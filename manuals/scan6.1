@@ -1,0 +1,193 @@
+.TH SCAN6 1
+.SH NAME
+scan6 \- An IPv6 host scanner
+.SH SYNOPSIS
+.B scan6
+.RB [\| \-i
+.IR INTERFACE \|]
+.RB [\| \-s
+.IR SRC_ADDR \|[/\| LEN \|]]
+.RB [\| \-r \|]
+.RB [\| \-S
+.IR LINK_SRC_ADDR
+| -R\|]
+.RB [\| \-p
+.IR PROBE_TYPE \|]
+.RB [\| \-P
+.IR ADDRESS_TYPE \|]
+.RB [\| \-e \|]
+.RB [\| \-x
+.IR RETRANS \|]
+.RB [\| \-o \|
+.IR TIMEOUT \|]
+.RB [\| \-l \|]
+.RB [\| \-v \|]
+.RB [\| \-h \|]
+
+
+.SH DESCRIPTION
+.B scan6
+is an IPv6 host scanning tool. It implements a number of IPv6-specific host scanning techniques. It is part of the IPv6 Toolkit v1.2: a security assessment suite for the IPv6 Protocol developed by the UK CPNI (Centre for the Protection of National Infrastructure).
+
+
+\fBHOST SCANNING TECHNIQUES\fR
+
+.B scan6
+employs a number of techniques techniques to discover active IPv6 nodes. The following subsections discuss the different techniques employed for each time of IPv6 scan 
+
+
+\fBLocal scans\fR
+
+For local scans,
+.B scan6
+operates (roughly) as follows:
+.TS
+tab (@);
+l l.
+@\+ The tool learns the local prefixes used for auto-configuration, an generates one address for each local prefix (in addition to a link-local address)
+@\+ An ICMPv6 Echo Request message destined to the all-nodes on-link multicast address (ff02::1) is sent with each of the addresses “configured” in the previous step. Probe packets are sent with different Source Addresses, such that they elicit responses from different addresses (as a result of the default IPv6 Source Address selection policy). Hence. all (or most) addresses of each node can be discovered.
+
+@\+ The same procedure of the previous bullet is performed, but this time with ICMPv6 packets that contain an unrecognized option of type 10xxxxxx, such that ICMPv6 Parameter Problem error messages are elicited. This allows the tool to discover e.g. Windows nodes, which otherwise do not respond to multicasted ICMPv6 Echo Request messages.
+@\+ Each time a new “alive” address is discovered, the corresponding Interface-ID is combined with all the local prefixes, and the resulting addresses are probed (with unicasted packets). This can help to discover all the SLAAC-derived and the “private addresses”, since some responses might contain e.g. Modified EUI-64 Format Identifiers, which are likely used with all the available prefixes.
+@\+ Finally, the tool removes any duplicate addresses, such that each unique address is informed to the user only once.
+.TE
+
+The aforemnetioned scheme can fail to discover some addresses for some implementation. For example, MacOS X employs IPv6 addresses embedding IEEE-identifiers when responding to packets destined to a link-local multicast address, sourced from an on-link prefix.  
+
+.SH OPTIONS
+.B scan6
+takes its parameters as command-line options. Each of the options can be specified with a short name (one character preceded with the hyphen character, as e.g. “\-i”) or with a long name (a string preceded with two hyphen characters, as e.g. “\-\-interface”).
+
+
+.TP
+.BI \-c\  file ,\ \-\-config\-file\  file
+This option specifies the pathname of the
+.B ipv6mon
+configuration file, to be used instead of the default
+.IR /etc/ipv6mon.conf .
+
+
+.TP
+.BI \-i\  interface ,\ \-\-interface\  interface
+This option specifies the network interface to be used by the
+.B scan6
+tool. For local scans (\-l option), specification of the network interface is mandatory (i.e., the tool does not select any network interface “by default”).
+
+.TP
+.BI \-s\  SRC_ADDR ,\ \-\-src\-address\  SRC_ADDR
+This option specifies the IPv6 Source Address to be used for the Source Address of the probe packets. If a prefix is specified, the Source Address is randomly selected from that prefix.
+
+If this option is left unspecified, the addresses currently configured for the specified network interface card are used. 
+
+.TP
+.BI \-S\  SRC_LINK_ADDR ,\ \-\-link\-src\-address\  SRC_LINK_ADDR
+
+This option specifies the link-layer Source Address of the probe packets (currently, only Ethernet is supported). If left unspecified, the real link-layer address of the interface is used.
+
+Note: Some systems may discard packets when the link-layer address is forged. That is, even when the relevant function calls (and hence the scan6 tool itself) may return “success”, packets may be discarded and not actually sent on the specified network link. In such scenarios, the real Ethernet address should be used. This type of behaviour has been found in some Linux systems.
+
+.TP
+.BR \-p\| ,\  \-\-probe\-type
+
+This option specifies the probe packets to be used for host scanning. The possible arguments are: “echo” (for ICMPv6 Echo Request), “unrec” (for IPv6 packets with unrecognized IPv6 options of type 10xxxxxx), and “all” (for using both ICMPv6 Echo Requests probes and unrecognized options of type 10xxxxxx). If left unspecified, this option defaults to “all”.
+
+Note: Using unrecognized IPv6 options of type 10xxxxxx enables the discovery of Windows Vista and Windows 7 systems, which otherwise do not respond to ICMPv6 Echo Requests sent to multicast addresses.
+
+.TP
+.BR \-P\| ,\  \-\-print\-type
+
+This option specifies the address types to be printed/informed by the 
+.B scan6
+tool. The possible arguments are: “local” (link-local addresses), “global” (global addresses), and “all” (print both link-local and global-addresses). If left unspecified, this option defaults to “all” (print both link-local and global-addresses).
+
+.TP
+.BR \-q\| ,\  \-\-print\-unique
+
+This option species that for each address scope (local and/or global) only one IPv6 address per Ethernet address should be printed. This option can be useful when interest is in identifying unique systems (e.g. for counting the number of systems connected to the local network), rather than the number of configured addresses on the local network.
+
+Note: In the case of systems that implement “Privacy Extensions for SLAAC” (IETF RFC 4941), more than one global unicast address will typically be found by the scan6 tool.
+
+.TP
+.BR \-e\| ,\  \-\-print\-link\-addr
+
+This option specifies that the link-layer addresses should be printed along with the IPv6 addresses, with the format “IPV6ADDRESS @ LINKADDRESS”.
+
+.TP
+.BR \-x\| ,\  \-\-retrans
+
+This option specifies the number of times probe packets should be retransmitted when no response is received. Note: If left unspecified, the number of retransmission defaults to 0 (i.e., no retransmissions).
+
+Note: this option might be useful when packets must traverse unreliable and/or congested network links.
+
+.TP
+.BR \-o\| ,\  \-\-timeout
+
+This option specifies the amount of time that the tool should wait for responses to probe packets. If left unspecified, the timeout value defaults to 1 second.
+
+Note: this option might be useful when scanning hosts on long-delay links.
+
+.TP
+.BR \-l\| ,\  \-\-local
+
+This option specifies that host scanning should be performed on the local subnet. The type of probe packets to be used can be specified with the “-p” option.
+
+.TP
+.BR \-r\| ,\  \-\-rand\-src\-addr
+
+This option specifies that the IPv6 Source Address should be randomized.
+
+
+.TP
+.BR \-R\| ,\  \-\-rand\-link\-src\-addr
+
+This option specifies that the Ethernet Source Address should be randomized.
+
+
+.TP
+.BR \-v\| ,\  \-\-verbose 
+
+This option selects the “verbosity” of the tool. If this option is left unspecified, only minimum information is printed. If this option is set once, additional information is printed (e.g., the tool indicates which addresses are “link-local” and which addresses are “global”). If this option is set twice, detailed information will be printed in the case the tool finds any problems when performing host scanning.
+
+
+.TP
+.BR \-h\| ,\  \-\-help
+
+Print help information for the 
+.B scan6
+tool. 
+
+
+.SH EXAMPLES
+The following sections illustrate typical use cases of the
+.B scan6
+tool.
+
+\fBExample #1\fR
+
+# ./scan6 -i eth0 -l -e -v
+
+Perform host scanning on the local network (“-l” option) using interface “eth0” (“-i” option). Use both ICMPv6 echo requests and unrecognized IPv6 options of type 10xxxxxx (default). Print link-link layer addresses along with IPv6 addresses (“-e” option). Be verbose (“-v” option).
+
+\fBExample #2\fR
+
+# ./scan6 -i eth0 -l -S 66:55:44:33:22:11 -p unrec -P global -v
+
+Use the “eth0” interface (“-i” option) to perform host-scanning on the local network (“-l” option). The Ethernet Source Address is set to “66:55:44:33:22:11” (“-S” option). The probe packets will be IPv6 packets with unrecognized options of type 10xxxxxx (“-p” option). The tool will only print IPv6 global addresses (“-P” option). The tool will be verbose.
+
+\fBExample #3\fR
+
+# ./scan6 -i eth0 -l -P global –print-unique -e
+
+Use the “eth0” interface (“-i” option) to perform host-scanning on the local network (“-l” option). Print only global unicast addresses (“-P” option), and at most one IPv6 address per Ethernet address (“--print-unique” option). Ethernet addresses will be printed along with the corresponiding IPv6 address (“-e” option).
+
+
+.SH AUTHOR
+The
+.B scan6
+tool and the corresponding manual pages were produced by Fernando Gont <fgont@si6networks.com> on behalf of the United Kingdom's Centre for the Protection of National Infrastructure (CPNI).
+
+.SH COPYRIGHT
+Copyright (c) 2012 United Kingdom's Centre for the Protection of National Infrastructure (CPNI).
+
+Permission is granted to copy, distribute and/or modify this document under the terms of the GNU Free Documentation License, Version 1.3 or any later version published by the Free Software Foundation; with the Invariant Sections being just "AUTHOR" and "COPYRIGHT", with no Front-Cover Texts, and with no Back-Cover Texts.  A copy of the license is available at
+.IR <http://www.gnu.org/licenses/fdl.html> .
