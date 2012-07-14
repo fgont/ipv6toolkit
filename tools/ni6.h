@@ -169,7 +169,7 @@ struct iface_data{
 #endif
 
 
-#if !(defined (__FreeBSD__) || defined(__NetBSD__) || defined (__OpenBSD__))
+#if !(defined (__FreeBSD__) || defined(__NetBSD__) || defined (__OpenBSD__) || defined(__APPLE__))
 
 	#define ICMP6_NI_QUERY			139	/* node information request */
 	#define ICMP6_NI_REPLY			140	/* node information reply */
