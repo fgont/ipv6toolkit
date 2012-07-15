@@ -184,7 +184,7 @@ struct iface_data{
 };
 
 
-#if defined (__FreeBSD__) || defined(__NetBSD__) || defined (__OpenBSD__) || defined(__APPLE__)
+#if defined(__FreeBSD__) || defined(__NetBSD__) || defined (__OpenBSD__) || defined(__APPLE__)
     #ifndef s6_addr16
 	    #define s6_addr16	__u6_addr.__u6_addr16
     #endif
@@ -196,6 +196,15 @@ struct iface_data{
     #ifndef s6_addr32
 	    #define s6_addr32	__u6_addr.__u6_addr32
     #endif
+#endif
+
+
+#if defined(__APPLE__)
+/* IPv6 options */
+struct ip6_opt{
+	uint8_t  ip6o_type;
+	uint8_t  ip6o_len;
+} __attribute__ ((__packed__));
 #endif
 
 
