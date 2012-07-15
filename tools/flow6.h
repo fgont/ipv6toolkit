@@ -123,27 +123,27 @@
 #define MAX_STRING_SIZE			10
 
 struct ether_addr{
-  u_int8_t a[ETHER_ADDR_LEN];
+	u_int8_t a[ETHER_ADDR_LEN];
 } __attribute__ ((__packed__));
 
 struct	nd_opt_slla{
-    u_int8_t	type;
-    u_int8_t	length;
-    u_int8_t	address[6];
+	u_int8_t	type;
+	u_int8_t	length;
+	u_int8_t	address[6];
 } __attribute__ ((__packed__));
 
 struct	nd_opt_tlla{
-    u_int8_t	type;
-    u_int8_t	length;
-    u_int8_t	address[6];
+	u_int8_t	type;
+	u_int8_t	length;
+	u_int8_t	address[6];
 } __attribute__ ((__packed__));
 
 struct ipv6pseudohdr{
-    struct in6_addr srcaddr;
-    struct in6_addr dstaddr;
-    u_int32_t	len;
-    u_int8_t zero[3];
-    u_int8_t	nh;
+	struct in6_addr srcaddr;
+	struct in6_addr dstaddr;
+	u_int32_t	len;
+	u_int8_t zero[3];
+	u_int8_t	nh;
 } __attribute__ ((__packed__));
 
 /* 10Mb/s ethernet header */
@@ -184,7 +184,7 @@ struct iface_data{
 	unsigned int		mtu;
 };
 
-#if defined (__FreeBSD__) || defined(__NetBSD__) || defined (__OpenBSD__)
+#if defined (__FreeBSD__) || defined(__NetBSD__) || defined (__OpenBSD__) || defined(__APPLE__)
     #ifndef s6_addr16
 	    #define s6_addr16	__u6_addr.__u6_addr16
     #endif
