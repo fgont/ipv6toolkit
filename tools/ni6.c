@@ -1267,7 +1267,7 @@ int main(int argc, char **argv){
 			}
 
 			/* Read a NI Reply packet */
-			if(FD_ISSET(idata.fd, &rset){
+			if(FD_ISSET(idata.fd, &rset)){
 				if((r=pcap_next_ex(pfd, &pkthdr, &pktdata)) == -1){
 					printf("pcap_next_ex(): %s", pcap_geterr(pfd));
 					exit(1);
