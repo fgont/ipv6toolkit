@@ -1072,10 +1072,10 @@ int main(int argc, char **argv){
 		exit(1);
 	}
 
-	srand(time(NULL));
+	srandom(time(NULL));
 
 	if(!hsrcaddr_f){
-		randomize_ether_addr(&idata.ether);
+		randomize_ether_addr(&hsrcaddr);
 	}
 
 	if(!srcaddr_f || srcprefix_f){
