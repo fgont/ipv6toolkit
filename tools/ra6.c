@@ -2338,10 +2338,8 @@ void print_filters(void){
 
 void print_filter_result(const u_char *pkt_data, unsigned char fresult){
 	struct ip6_hdr *pkt_ipv6;
-	struct nd_router_solicit *pkt_rs;
 	
 	pkt_ipv6 = (struct ip6_hdr *)((char *) pkt_data + ETHER_HDR_LEN);
-	pkt_rs = (struct nd_router_solicit *) ((char *) pkt_ipv6 + MIN_IPV6_HLEN);
 
 	if(inet_ntop(AF_INET6, &(pkt_ipv6->ip6_src), psrcaddr, sizeof(psrcaddr))<=0){
 	    puts("inet_ntop(): Error converting IPv6 Source Address to presentation format");
