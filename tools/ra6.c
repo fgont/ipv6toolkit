@@ -256,7 +256,7 @@ int main(int argc, char **argv){
 	lifetime= DEFAULT_ROUTER_LIFETIME;
 	reachable= DEFAULT_ROUTER_REACHABLE;
 	retrans= DEFAULT_ROUTER_RETRANS;
-	srand(time(NULL));
+	srandom(time(NULL));
 
 	while((option=getopt_long(argc, argv, shortopts, longopts, NULL)) != -1) {
 		switch(option) {
