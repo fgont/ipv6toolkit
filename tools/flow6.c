@@ -233,7 +233,7 @@ int main(int argc, char **argv){
 	}
 
 
-	srand(time(NULL));
+	srandom(time(NULL));
 	hoplimit=64+rand()%180;
 	init_iface_data(&idata);
 
