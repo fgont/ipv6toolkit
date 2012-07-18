@@ -1036,7 +1036,7 @@ int main(int argc, char **argv){
 		exit(1);
 	}
 
-	srand(time(NULL));
+	srandom(time(NULL));
 
 	/*
 	  If the flood option ("-F") has been specified, but no prefix has been specified,
