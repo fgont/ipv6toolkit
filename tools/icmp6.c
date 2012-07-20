@@ -475,7 +475,7 @@ int main(int argc, char **argv){
 				break;
 
 			case 'S':	/* Source Ethernet address */
-				if(ether_pton(optarg, &idata.ether, sizeof(idata.ether)) == 0){
+				if(ether_pton(optarg, &hsrcaddr, sizeof(hsrcaddr)) == 0){
 					puts("Error in Source link-layer address.");
 					exit(1);
 				}
@@ -1075,10 +1075,7 @@ int main(int argc, char **argv){
 	srand(time(NULL));
 
 	if(!hsrcaddr_f){
-		randomize_ether_addr(&idata.ether);
-	}
-	else{
-		idata.ether= hsrcaddr;
+		randomize_ether_addr(&hsrcaddr);
 	}
 
 	if(!srcaddr_f || srcprefix_f){
@@ -1436,7 +1433,7 @@ void init_packet_data(void){
 	v6buffer = buffer + sizeof(struct ether_header);
 	ipv6 = (struct ip6_hdr *) v6buffer;
 
-	ethernet->src = idata.ether;
+	ethernet->src = hsrcaddr;
 	ethernet->dst = hdstaddr;
 	ethernet->ether_type = htons(0x86dd);
 
@@ -1986,7 +1983,7 @@ void print_attack_info(void){
 
 	puts( "icmp6 version 1.1\nAssessment tool for attack vectors based on ICMPv6 error messages\n");
 
-	if(ether_ntop(&(idata.ether), plinkaddr, sizeof(plinkaddr)) == 0){
+	if(ether_ntop(&hsrcaddr, plinkaddr, sizeof(plinkaddr)) == 0){
 		puts("ether_ntop(): Error converting address");
 		exit(1);
 	}
