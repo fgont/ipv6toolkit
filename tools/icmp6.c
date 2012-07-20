@@ -124,7 +124,7 @@ unsigned char		randpreflen;
 
 
 /* Data structures for packets read from the wire */
-pcap_t			*pfd;
+pcap_t				*pfd;
 struct pcap_pkthdr	*pkthdr;
 const u_char		*pktdata;
 unsigned char		*pkt_end;
@@ -134,13 +134,13 @@ struct in6_addr		*pkt_ipv6addr;
 unsigned int		pktbytes;
 
 
-bpf_u_int32		my_netmask;
-bpf_u_int32		my_ip;
+bpf_u_int32			my_netmask;
+bpf_u_int32			my_ip;
 struct bpf_program	pcap_filter;
-char 			dev[64], errbuf[PCAP_ERRBUF_SIZE];
+char 				dev[64], errbuf[PCAP_ERRBUF_SIZE];
 unsigned char		buffer[65556], buffrh[MIN_IPV6_HLEN + MIN_TCP_HLEN];
 unsigned char		*v6buffer, *ptr, *startofprefixes;
-char			*pref;
+char				*pref;
     
 struct ip6_hdr		*ipv6;
 struct icmp6_hdr	*icmp6;
@@ -150,21 +150,21 @@ struct ether_addr	hsrcaddr, hdstaddr;
 
 struct in6_addr		srcaddr, dstaddr;
 
-char			*lasts, *rpref;
-char			*charptr;
+char				*lasts, *rpref;
+char				*charptr;
 
-size_t			nw;
+size_t				nw;
 unsigned long		ul_res, ul_val;
 unsigned int		i, j, startrand;
 unsigned int		skip;
 unsigned int		ntargets, sources, nsources, targets, nsleep;
 unsigned char		srcpreflen;
 
-u_int16_t		mask;
-u_int8_t		hoplimit;
+u_int16_t			mask;
+u_int8_t			hoplimit;
 
-char 			plinkaddr[ETHER_ADDR_PLEN];
-char 			psrcaddr[INET6_ADDRSTRLEN], pdstaddr[INET6_ADDRSTRLEN], pv6addr[INET6_ADDRSTRLEN];
+char 				plinkaddr[ETHER_ADDR_PLEN];
+char 				psrcaddr[INET6_ADDRSTRLEN], pdstaddr[INET6_ADDRSTRLEN], pv6addr[INET6_ADDRSTRLEN];
 unsigned char 		verbose_f=0, iface_f=0, acceptfilters_f=0, floodt_f=0;
 unsigned char 		srcaddr_f=0, dstaddr_f=0, hsrcaddr_f=0, hdstaddr_f=0;
 unsigned char 		listen_f = 0, multicastdst_f=0, accepted_f=0, loop_f=0, sleep_f=0;
@@ -173,7 +173,7 @@ unsigned char		newdata_f=0, floods_f=0;
 
 /* Support for Extension Headers */
 unsigned int		dstopthdrs, dstoptuhdrs, hbhopthdrs;
-char			hbhopthdr_f=0, dstoptuhdr_f=0, dstopthdr_f=0;
+char				hbhopthdr_f=0, dstoptuhdr_f=0, dstopthdr_f=0;
 unsigned char		*dstopthdr[MAX_DST_OPT_HDR], *dstoptuhdr[MAX_DST_OPT_U_HDR];
 unsigned char		*hbhopthdr[MAX_HBH_OPT_HDR];
 unsigned int		dstopthdrlen[MAX_DST_OPT_HDR], dstoptuhdrlen[MAX_DST_OPT_U_HDR];
@@ -192,8 +192,8 @@ unsigned char		*prev_nh, *startoffragment;
 /* Block Filters */
 struct in6_addr 	blocksrc[MAX_BLOCK_SRC], blockdst[MAX_BLOCK_DST];
 struct in6_addr		blocktarget[MAX_BLOCK_TARGET];
-u_int8_t		blocksrclen[MAX_BLOCK_SRC], blockdstlen[MAX_BLOCK_DST];
-u_int8_t		blocktargetlen[MAX_BLOCK_TARGET];
+u_int8_t			blocksrclen[MAX_BLOCK_SRC], blockdstlen[MAX_BLOCK_DST];
+u_int8_t			blocktargetlen[MAX_BLOCK_TARGET];
 struct ether_addr	blocklinksrc[MAX_BLOCK_LINK_SRC], blocklinkdst[MAX_BLOCK_LINK_DST];
 unsigned int		nblocksrc=0, nblockdst=0, nblocktarget=0;
 unsigned int		nblocklinksrc=0, nblocklinkdst=0;
@@ -201,14 +201,14 @@ unsigned int		nblocklinksrc=0, nblocklinkdst=0;
 /* Accept Filters */
 struct in6_addr		acceptsrc[MAX_ACCEPT_SRC], acceptdst[MAX_ACCEPT_DST];
 struct in6_addr		accepttarget[MAX_ACCEPT_TARGET];
-u_int8_t		acceptsrclen[MAX_ACCEPT_SRC], acceptdstlen[MAX_ACCEPT_DST];
-u_int8_t		accepttargetlen[MAX_ACCEPT_TARGET];
+u_int8_t			acceptsrclen[MAX_ACCEPT_SRC], acceptdstlen[MAX_ACCEPT_DST];
+u_int8_t			accepttargetlen[MAX_ACCEPT_TARGET];
 struct ether_addr	acceptlinksrc[MAX_ACCEPT_LINK_SRC], acceptlinkdst[MAX_ACCEPT_LINK_DST];
 unsigned int		nacceptsrc=0, nacceptdst=0, naccepttarget=0;
 unsigned int		nacceptlinksrc=0, nacceptlinkdst=0;
 
 /* IPv6 Address Resolution */
-sigjmp_buf		env;
+sigjmp_buf			env;
 unsigned int		canjump;
 
 int main(int argc, char **argv){
