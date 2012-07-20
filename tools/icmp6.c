@@ -1077,6 +1077,9 @@ int main(int argc, char **argv){
 	if(!hsrcaddr_f){
 		randomize_ether_addr(&idata.ether);
 	}
+	else{
+		idata.ether= hsrcaddr;
+	}
 
 	if(!srcaddr_f || srcprefix_f){
 		if(srcprefix_f){
@@ -1433,7 +1436,7 @@ void init_packet_data(void){
 	v6buffer = buffer + sizeof(struct ether_header);
 	ipv6 = (struct ip6_hdr *) v6buffer;
 
-	ethernet->src = hsrcaddr;
+	ethernet->src = idata.ether;
 	ethernet->dst = hdstaddr;
 	ethernet->ether_type = htons(0x86dd);
 
@@ -1983,7 +1986,7 @@ void print_attack_info(void){
 
 	puts( "icmp6 version 1.1\nAssessment tool for attack vectors based on ICMPv6 error messages\n");
 
-	if(ether_ntop(&hsrcaddr, plinkaddr, sizeof(plinkaddr)) == 0){
+	if(ether_ntop(&(idata.ether), plinkaddr, sizeof(plinkaddr)) == 0){
 		puts("ether_ntop(): Error converting address");
 		exit(1);
 	}
