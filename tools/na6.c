@@ -880,7 +880,7 @@ int main(int argc, char **argv){
 
 	pcap_freecode(&pcap_filter);
 
-	srand(time(NULL));
+	srandom(time(NULL));
     
 
 	if(!floods_f && !srcaddr_f){    
