@@ -134,6 +134,20 @@ struct ether_header
 } __attribute__ ((__packed__));
 
 
+/* IPv6 options
+
+   Most stacks define "struct ip_opt" for this purpose. But ias has proved to be painful to use this 
+   structure in Mac OS, since its definition seems to depend on the Xcode version, which is hard 
+   (if at all possible) to check at compile time. As a workaround, we define our own data type for 
+   IPv6 options
+*/
+struct ip6_option{
+	uint8_t  ip6o_type;
+	uint8_t  ip6o_len;
+} __attribute__ ((__packed__));
+
+
+
 struct host_entry{
 	struct in6_addr		ip6;
 	struct ether_addr	ether;
@@ -196,15 +210,6 @@ struct iface_data{
     #ifndef s6_addr32
 	    #define s6_addr32	__u6_addr.__u6_addr32
     #endif
-#endif
-
-
-#if defined(__APPLE__)
-/* IPv6 options */
-struct ip6_opt{
-	uint8_t  ip6o_type;
-	uint8_t  ip6o_len;
-} __attribute__ ((__packed__));
 #endif
 
 

@@ -1916,7 +1916,7 @@ int multi_scan_local(pcap_t *pfd, struct iface_data *idata, struct in6_addr *src
 	struct in6_addr				targetaddr;
 	struct sigaction			new_sig, old_sig;
 	struct ip6_dest				*destopth;
-	struct ip6_opt				*opt;
+	struct ip6_option			*opt;
 	u_int32_t					*uint32;
 	unsigned char				error_f=0, closefd_f=0, llocalsrc_f=0;
 	int 						result;
@@ -2059,7 +2059,7 @@ int multi_scan_local(pcap_t *pfd, struct iface_data *idata, struct in6_addr *src
 			destopth->ip6d_nxt= IPPROTO_ICMPV6;
 
 			ptr= ptr + 2;
-			opt= (struct ip6_opt *) ptr;
+			opt= (struct ip6_option *) ptr;
 			opt->ip6o_type= 0x80;
 			opt->ip6o_len= 4;
 
@@ -2271,7 +2271,7 @@ int host_scan_local(pcap_t *pfd, struct iface_data *idata, struct in6_addr *srca
 	struct in6_addr			targetaddr;
 	struct sigaction		new_sig, old_sig;
 	struct ip6_dest			*destopth;
-	struct ip6_opt			*opt;
+	struct ip6_option		*opt;
 	u_int32_t				*uint32;
 	unsigned char			foundaddr_f=0, error_f=0, closefd_f=0;
 	int				result;
@@ -2413,7 +2413,7 @@ int host_scan_local(pcap_t *pfd, struct iface_data *idata, struct in6_addr *srca
 			destopth->ip6d_nxt= IPPROTO_ICMPV6;
 
 			ptr= ptr + 2;
-			opt= (struct ip6_opt *) ptr;
+			opt= (struct ip6_option *) ptr;
 			opt->ip6o_type= 0x80;
 			opt->ip6o_len= 4;
 
