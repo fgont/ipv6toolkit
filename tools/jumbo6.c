@@ -249,7 +249,7 @@ int main(int argc, char **argv){
 		exit(1);
 	}
 
-	hoplimit=64+rand()%180;
+	hoplimit=64+random()%180;
 	init_iface_data(&idata);
 
 	while((option=getopt_long(argc, argv, shortopts, longopts, NULL)) != -1) {
@@ -1183,12 +1183,12 @@ void init_packet_data(void){
 	icmp6->icmp6_code = 0;
 	icmp6->icmp6_cksum = 0;
 	icmp6->icmp6_data16[0]= htons(getpid());	/* Identifier */
-	icmp6->icmp6_data16[1]= htons(rand());		/* Sequence Number */
+	icmp6->icmp6_data16[1]= htons(random());	/* Sequence Number */
 
 	ptr+= sizeof(struct icmp6_hdr);
 
 	for(i=0; i< (icmp6psize/4); i++){
-		*(u_int32_t *)ptr = rand();
+		*(u_int32_t *)ptr = random();
 		ptr += sizeof(u_int32_t);
 	}
 
