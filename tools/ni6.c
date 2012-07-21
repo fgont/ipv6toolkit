@@ -1013,7 +1013,7 @@ int main(int argc, char **argv){
 		exit(1);
 	}
 
-	srand(time(NULL));
+	srandom(time(NULL));
 
 	if(!forgeether_f || !rand_src_f){
 		if(get_if_addrs(&idata) == -1){
