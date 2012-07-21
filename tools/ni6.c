@@ -296,7 +296,8 @@ int main(int argc, char **argv){
 		exit(1);
 	}
 
-	hoplimit=64+rand()%180;
+	srandom(time(NULL));
+	hoplimit=64+random()%180;
 
 	if(init_iface_data(&idata) == -1){
 		puts("Error initializing internal data structure");
@@ -1013,7 +1014,6 @@ int main(int argc, char **argv){
 		exit(1);
 	}
 
-	srand(time(NULL));
 
 	if(!forgeether_f || !rand_src_f){
 		if(get_if_addrs(&idata) == -1){
@@ -2104,7 +2104,7 @@ int send_packet(const u_char *pktdata, struct pcap_pkthdr * pkthdr){
 					ptr+= 4;
 
 					for(i=0; i<payloadsize; i++){
-						*ptr= (unsigned char) rand();
+						*ptr= (unsigned char) random();
 						ptr++;
 					}
 				}
@@ -2132,7 +2132,7 @@ int send_packet(const u_char *pktdata, struct pcap_pkthdr * pkthdr){
 					}
 
 					for(i=0; i<payloadsize; i++){
-						*ptr= (unsigned char) rand();
+						*ptr= (unsigned char) random();
 						ptr++;
 					}
 				}
@@ -2159,7 +2159,7 @@ int send_packet(const u_char *pktdata, struct pcap_pkthdr * pkthdr){
 					}
 
 					for(i=0; i<payloadsize; i++){
-						*ptr= (unsigned char) rand();
+						*ptr= (unsigned char) random();
 						ptr++;
 					}
 				}
@@ -2179,7 +2179,7 @@ int send_packet(const u_char *pktdata, struct pcap_pkthdr * pkthdr){
 		ni->ni_flags= htons(flags);
 
 		for(i=0; i<8; i++)
-			ni->icmp6_ni_nonce[i]= rand();
+			ni->icmp6_ni_nonce[i]= random();
 
 		ptr= ptr + sizeof(struct icmp6_nodeinfo);
 
@@ -2304,7 +2304,7 @@ int send_packet(const u_char *pktdata, struct pcap_pkthdr * pkthdr){
 			}
 
 			for(i=0; i<payloadsize; i++){
-				*ptr= (unsigned char) rand();
+				*ptr= (unsigned char) random();
 				ptr++;
 			}
 		}
