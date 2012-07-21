@@ -229,7 +229,8 @@ int main(int argc, char **argv){
 		exit(1);
 	}
 
-	hoplimit=64+rand()%180;
+	srandom(time(NULL));
+	hoplimit=64+random()%180;
 
 	init_iface_data(&idata);
 
@@ -569,8 +570,6 @@ int main(int argc, char **argv){
 		}
 	}	
 
-	srand(time(NULL));
-
 	if(!print_f){
 		print_local_f=1;
 		print_global_f=1;
@@ -626,7 +625,7 @@ int main(int argc, char **argv){
 		if(idata.ip6_global_flag){
 			for(i=0; i < idata.ip6_global.nprefix; i++)
 				for(j=4; j<8; j++)
-					idata.ip6_global.prefix[i]->ip6.s6_addr16[j]= rand();
+					idata.ip6_global.prefix[i]->ip6.s6_addr16[j]= random();
 		}
 		else{
 			if( inet_pton(AF_INET6, "::", &randprefix) <= 0){
@@ -2030,14 +2029,14 @@ int multi_scan_local(pcap_t *pfd, struct iface_data *idata, struct in6_addr *src
 			icmp6 = (struct icmp6_hdr *) ptr;
 			icmp6->icmp6_type = ICMP6_ECHO_REQUEST;
 			icmp6->icmp6_code = 0;
-			icmp6->icmp6_cksum = rand();
+			icmp6->icmp6_cksum = random();
 			icmp6->icmp6_data16[0]= htons(getpid());	/* Identifier */
-			icmp6->icmp6_data16[1]= htons(rand());		/* Sequence Number */
+			icmp6->icmp6_data16[1]= htons(random());	/* Sequence Number */
 
 			ptr = ptr+ sizeof(struct icmp6_hdr);
 
 			for(i=0; i<(ICMPV6_ECHO_PAYLOAD_SIZE>>2); i++){
-				*(u_int32_t *)ptr = rand();
+				*(u_int32_t *)ptr = random();
 				ptr += sizeof(u_int32_t);
 			}
 			break;
@@ -2066,20 +2065,20 @@ int multi_scan_local(pcap_t *pfd, struct iface_data *idata, struct in6_addr *src
 
 			ptr= ptr + 2;
 			uint32 = (u_int32_t *) ptr;
-			*uint32 = rand();
+			*uint32 = random();
 
 			ptr= ptr +4;
 			icmp6 = (struct icmp6_hdr *) ptr;
 			icmp6->icmp6_type = ICMP6_ECHO_REQUEST;
 			icmp6->icmp6_code = 0;
-			icmp6->icmp6_cksum = rand();
+			icmp6->icmp6_cksum = random();
 			icmp6->icmp6_data16[0]= htons(getpid());	/* Identifier */
-			icmp6->icmp6_data16[1]= htons(rand());		/* Sequence Number */
+			icmp6->icmp6_data16[1]= htons(random());	/* Sequence Number */
 
 			ptr = ptr+ sizeof(struct icmp6_hdr);
 
 			for(i=0; i<(ICMPV6_ECHO_PAYLOAD_SIZE>>2); i++){
-				*(u_int32_t *)ptr = rand();
+				*(u_int32_t *)ptr = random();
 				ptr += sizeof(u_int32_t);
 			}
 			break;
@@ -2383,14 +2382,14 @@ int host_scan_local(pcap_t *pfd, struct iface_data *idata, struct in6_addr *srca
 			icmp6 = (struct icmp6_hdr *) ptr;
 			icmp6->icmp6_type = ICMP6_ECHO_REQUEST;
 			icmp6->icmp6_code = 0;
-			icmp6->icmp6_cksum = rand();
+			icmp6->icmp6_cksum = random();
 			icmp6->icmp6_data16[0]= htons(getpid());	/* Identifier */
-			icmp6->icmp6_data16[1]= htons(rand());		/* Sequence Number */
+			icmp6->icmp6_data16[1]= htons(random());		/* Sequence Number */
 
 			ptr = ptr+ sizeof(struct icmp6_hdr);
 
 			for(i=0; i<(ICMPV6_ECHO_PAYLOAD_SIZE>>2); i++){
-				*(u_int32_t *)ptr = rand();
+				*(u_int32_t *)ptr = random();
 				ptr += sizeof(u_int32_t);
 			}
 			break;
@@ -2420,20 +2419,20 @@ int host_scan_local(pcap_t *pfd, struct iface_data *idata, struct in6_addr *srca
 
 			ptr= ptr + 2;
 			uint32 = (u_int32_t *) ptr;
-			*uint32 = rand();
+			*uint32 = random();
 
 			ptr= ptr +4;
 			icmp6 = (struct icmp6_hdr *) ptr;
 			icmp6->icmp6_type = ICMP6_ECHO_REQUEST;
 			icmp6->icmp6_code = 0;
-			icmp6->icmp6_cksum = rand();
+			icmp6->icmp6_cksum = random();
 			icmp6->icmp6_data16[0]= htons(getpid());	/* Identifier */
-			icmp6->icmp6_data16[1]= htons(rand());		/* Sequence Number */
+			icmp6->icmp6_data16[1]= htons(random());	/* Sequence Number */
 
 			ptr = ptr+ sizeof(struct icmp6_hdr);
 
 			for(i=0; i<(ICMPV6_ECHO_PAYLOAD_SIZE>>2); i++){
-				*(u_int32_t *)ptr = rand();
+				*(u_int32_t *)ptr = random();
 				ptr += sizeof(u_int32_t);
 			}
 			break;
