@@ -234,7 +234,7 @@ int main(int argc, char **argv){
 
 
 	srandom(time(NULL));
-	hoplimit=64+rand()%180;
+	hoplimit=64+random()%180;
 	init_iface_data(&idata);
 
 	while((option=getopt_long(argc, argv, shortopts, longopts, NULL)) != -1) {
@@ -508,9 +508,9 @@ int main(int argc, char **argv){
 		puts("Identifying the 'Flow ID' generation policy of the target node....");
 
 		if(protocol == IPPROTO_TCP){
-			tcpwin= ((u_int16_t) rand() + 1500) & (u_int16_t)0x7f00;
-			tcpseq= rand();
-			baseport= 50000+ rand()%10000;
+			tcpwin= ((u_int16_t) random() + 1500) & (u_int16_t)0x7f00;
+			tcpseq= random();
+			baseport= 50000+ random()%10000;
 			lastport= baseport;
 		}
 
@@ -557,8 +557,8 @@ int main(int argc, char **argv){
 
 			if( testtype==FIXED_ORIGIN && ((curtime - start) >= ID_ASSESS_TIMEOUT || ntest1 >= NSAMPLES)){
 				testtype= MULTI_ORIGIN;
-				addr_sig= rand();
-				addr_key= rand();
+				addr_sig= random();
+				addr_key= random();
 				start= curtime;
 				continue;
 			}
