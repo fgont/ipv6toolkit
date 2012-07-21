@@ -268,7 +268,7 @@ int main(int argc, char **argv){
 
 
 	srandom(time(NULL));
-	hoplimit=64+rand()%180;
+	hoplimit=64+random()%180;
 	init_iface_data(&idata);
 
 	while((option=getopt_long(argc, argv, shortopts, longopts, NULL)) != -1) {
@@ -797,7 +797,7 @@ int main(int argc, char **argv){
 				if(verbose_f)
 					puts("Sending Fragments for Test #1....");
 
-				id= rand();
+				id= random();
 
 				if(send_fragment2(sizeof(struct icmp6_hdr)+minfragsize*2-overlap, id, 0, minfragsize, \
 									FIRST_FRAGMENT, block1) == -1){
@@ -815,7 +815,7 @@ int main(int argc, char **argv){
 				if(verbose_f)
 					puts("Sending Fragments for Test #2....");
 
-				id= rand();
+				id= random();
 
 				if(send_fragment2(sizeof(struct icmp6_hdr)+minfragsize * 3-overlap, id, 0, minfragsize, \
 									FIRST_FRAGMENT, block2) == -1){
@@ -837,7 +837,7 @@ int main(int argc, char **argv){
 				if(verbose_f)
 					puts("Sending Fragments for Test #3....");
 
-				id= rand();
+				id= random();
 
 				if(send_fragment2(sizeof(struct icmp6_hdr)+minfragsize * 3-overlap, id, 0, minfragsize, \
 									FIRST_FRAGMENT, block3) == -1){
@@ -860,7 +860,7 @@ int main(int argc, char **argv){
 				if(verbose_f)
 					puts("Sending Fragments for Test #4....");
 
-				id= rand();
+				id= random();
 
 				if(send_fragment2(sizeof(struct icmp6_hdr)+minfragsize *4, id, 0, minfragsize, FIRST_FRAGMENT, \
 									block4) == -1){
@@ -883,7 +883,7 @@ int main(int argc, char **argv){
 				if(verbose_f)
 					puts("Sending Fragments for Test #5....");
 
-				id= rand();
+				id= random();
 
 				if(send_fragment2(sizeof(struct icmp6_hdr)+minfragsize * 4 - overlap, id, 0, minfragsize, \
 									FIRST_FRAGMENT, block5) == -1){
@@ -1040,7 +1040,7 @@ int main(int argc, char **argv){
 		lastfrag1=0;		
 		ntest1=0;
 		ntest2=0;
-		icmp6_sig= rand();
+		icmp6_sig= random();
 		testtype= FIXED_ORIGIN;
 
 		if(srcprefix_f){
@@ -1058,8 +1058,8 @@ int main(int argc, char **argv){
 
 			if( testtype==FIXED_ORIGIN && ((curtime - start) >= ID_ASSESS_TIMEOUT || ntest1 >= NSAMPLES)){
 				testtype= MULTI_ORIGIN;
-				addr_sig= rand();
-				addr_key= rand();
+				addr_sig= random();
+				addr_key= random();
 				start= curtime;
 				continue;
 			}
@@ -1289,7 +1289,7 @@ int main(int argc, char **argv){
 		pcap_freecode(&pcap_filter);
 
 		maxsizedchunk= idata.mtu - sizeof(struct ip6_hdr) - sizeof(struct ip6_frag);
-		id=rand();
+		id=random();
 		foffset=0;
 		i=0;
 
@@ -1371,8 +1371,8 @@ int main(int argc, char **argv){
 				frags=0;
 
 				while(frags < nfrags){
-					if(send_fragment(fid_f?fid:rand(), foffset_f?foffset:rand(), \
-									fsize_f?fsize:( ((MIN_FRAG_SIZE+(rand()%400))>>3)<<3), forder, tstamp_f) == -1){
+					if(send_fragment(fid_f?fid:random(), foffset_f?foffset:random(), \
+									fsize_f?fsize:( ((MIN_FRAG_SIZE+(random()%400))>>3)<<3), forder, tstamp_f) == -1){
 
 						puts("Error sending packet");
 						exit(1);
@@ -1890,7 +1890,7 @@ int send_fragment2(u_int16_t ip6len, unsigned int id, unsigned int offset, unsig
 		icmp6->icmp6_code = 0;
 		icmp6->icmp6_cksum = 0;
 		icmp6->icmp6_data16[0]= htons(getpid());	/* Identifier */
-		icmp6->icmp6_data16[1]= htons(rand());		/* Sequence Number */
+		icmp6->icmp6_data16[1]= htons(random());		/* Sequence Number */
 
 		ptr+= sizeof(struct icmp6_hdr);
 
@@ -2078,7 +2078,7 @@ int send_fragment(unsigned int id, unsigned int offset, unsigned int fsize, unsi
 		icmp6->icmp6_code = 0;
 		icmp6->icmp6_cksum = 0;
 		icmp6->icmp6_data16[0]= htons(getpid());	/* Identifier */
-		icmp6->icmp6_data16[1]= htons(rand());		/* Sequence Number */
+		icmp6->icmp6_data16[1]= htons(random());		/* Sequence Number */
 
 		ptr+= sizeof(struct icmp6_hdr);
 		fsize-= sizeof(struct icmp6_hdr);
@@ -2106,7 +2106,7 @@ int send_fragment(unsigned int id, unsigned int offset, unsigned int fsize, unsi
 		}
 
 		for(i=0; i< (fsize/4); i++){
-			*(u_int32_t *)ptr = rand();
+			*(u_int32_t *)ptr = random();
 			ptr += sizeof(u_int32_t);
 		}
 
@@ -2146,7 +2146,7 @@ int send_fragment(unsigned int id, unsigned int offset, unsigned int fsize, unsi
 		}
 
 		for(i=0; i<(fsize/4); i++){
-			*(u_int32_t *)ptr = rand();
+			*(u_int32_t *)ptr = random();
 			ptr += sizeof(u_int32_t);
 		}
 
@@ -2210,14 +2210,14 @@ int send_fid_probe(void){
 	icmp6->icmp6_code = 0;
 	icmp6->icmp6_cksum = 0;
 	icmp6->icmp6_data16[0]= htons(getpid());	/* Identifier */
-	icmp6->icmp6_data16[1]= htons(rand());		/* Sequence Number */
+	icmp6->icmp6_data16[1]= htons(random());		/* Sequence Number */
 
 	ptr+= sizeof(struct icmp6_hdr);
 	*(u_int32_t *)ptr= icmp6_sig;
 	ptr+= sizeof(u_int32_t);
 
 	for(i=0;i<400; i++){
-		*(u_int32_t *)ptr= rand();
+		*(u_int32_t *)ptr= random();
 		ptr+=sizeof(u_int32_t);
 	}
 
