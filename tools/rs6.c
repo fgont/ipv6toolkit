@@ -498,7 +498,7 @@ int main(int argc, char **argv){
 
 	pcap_freecode(&pcap_filter);
 
-	srand(time(NULL));
+	srandom(time(NULL));
 
     /* 
        If the IPv6 Source Address has not been specified, and the "-F" (flood) option has
