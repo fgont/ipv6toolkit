@@ -795,7 +795,7 @@ int main(int argc, char **argv){
 		exit(1);
 	}
 
-	srand(time(NULL));
+	srandom(time(NULL));
 
 	if(!dstaddr_f && !listen_f){	/* Must specify IPv6 Destination Address if listening mode not used */
 		puts("IPv6 Destination Address not specified (and listening mode not selected)");
