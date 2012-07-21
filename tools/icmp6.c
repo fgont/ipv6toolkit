@@ -1072,7 +1072,7 @@ int main(int argc, char **argv){
 		exit(1);
 	}
 
-	srand(time(NULL));
+	srandom(time(NULL));
 
 	if(!hsrcaddr_f){
 		randomize_ether_addr(&hsrcaddr);
