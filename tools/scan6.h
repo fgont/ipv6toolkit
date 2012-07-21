@@ -200,12 +200,15 @@ struct iface_data{
 
 
 #if defined(__APPLE__)
-/* IPv6 options */
-struct ip6_opt{
-	uint8_t  ip6o_type;
-	uint8_t  ip6o_len;
-} __attribute__ ((__packed__));
+        #ifdef __MAC_10_8
+                /* IPv6 options */
+                struct ip6_opt {
+                        uint8_t  ip6o_type;
+                        uint8_t  ip6o_len;
+                } __attribute__ ((__packed__));
+        #endif
 #endif
+
 
 
 /* This causes Linux to use the BSD definition of the TCP and UDP header fields */
