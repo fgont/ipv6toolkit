@@ -1208,19 +1208,19 @@ int main(int argc, char **argv){
 			tcpflags= tcpflags | TH_ACK;
 
 		if(!tcpack_f)
-			tcpack= rand();
+			tcpack= random();
 
 		if(!tcpseq_f)
-			tcpseq= rand();
+			tcpseq= random();
 
 		if(!tcpwin_f)
-			tcpwin= ((u_int16_t) rand() + 1500) & (u_int16_t)0x7f00;
+			tcpwin= ((u_int16_t) random() + 1500) & (u_int16_t)0x7f00;
 
 		if(!peerport_f)
-			peerport= rand();
+			peerport= random();
 
 		if(!redirport_f)
-			redirport= rand();
+			redirport= random();
 
 		if(!tcpurg_f)
 			tcpurg= 0;
@@ -1228,18 +1228,18 @@ int main(int argc, char **argv){
 
 	if(rhudp_f){
 		if(!peerport_f)
-			peerport= rand();
+			peerport= random();
 
 		if(!redirport_f)
-			redirport= rand();
+			redirport= random();
 	}
 
 	if(rhicmp6_f){
 		if(!icmp6id_f)
-			icmp6id= rand();
+			icmp6id= random();
 
 		if(!icmp6seq_f)
-			icmp6seq= rand();
+			icmp6seq= random();
 	}
 
 	if(verbose_f){
@@ -1818,7 +1818,7 @@ void send_packet(const u_char *pktdata, struct pcap_pkthdr *pkthdr){
 							rhtcp->th_urp= htons(tcpurg);
 							rhtcp->th_win= htons(tcpwin);
 							rhtcp->th_off= MIN_TCP_HLEN >> 2;
-							rhtcp->th_sum = rand();
+							rhtcp->th_sum = random();
 
 							if(rhbytes <= (MIN_IPV6_HLEN + MIN_TCP_HLEN)){
 								bcopy(rhbuff, ptr, rhbytes);
@@ -1830,7 +1830,7 @@ void send_packet(const u_char *pktdata, struct pcap_pkthdr *pkthdr){
 								rhbytes -= MIN_IPV6_HLEN+MIN_TCP_HLEN;
 
 								while(rhbytes>=4){
-									*(u_int32_t *)ptr = rand();
+									*(u_int32_t *)ptr = random();
 									ptr += sizeof(u_int32_t);
 									rhbytes -= sizeof(u_int32_t);
 								}
@@ -1843,7 +1843,7 @@ void send_packet(const u_char *pktdata, struct pcap_pkthdr *pkthdr){
 							rhudp->uh_sport= htons(peerport);
 							rhudp->uh_dport= htons(redirport);
 							rhudp->uh_ulen= rhipv6->ip6_plen;
-							rhudp->uh_sum= rand();
+							rhudp->uh_sum= random();
 
 							if(rhbytes <= (MIN_IPV6_HLEN + MIN_UDP_HLEN)){
 								bcopy(rhbuff, ptr, rhbytes);
@@ -1854,7 +1854,7 @@ void send_packet(const u_char *pktdata, struct pcap_pkthdr *pkthdr){
 								ptr += MIN_IPV6_HLEN+MIN_UDP_HLEN;
 								rhbytes -= MIN_IPV6_HLEN+MIN_UDP_HLEN;
 								while(rhbytes>=4){
-									*(u_int32_t *)ptr = rand();
+									*(u_int32_t *)ptr = random();
 									ptr += sizeof(u_int32_t);
 									rhbytes -= sizeof(u_int32_t);
 								}
@@ -1865,9 +1865,9 @@ void send_packet(const u_char *pktdata, struct pcap_pkthdr *pkthdr){
 							rhicmp6 = (struct icmp6_hdr *) (rhbuff + sizeof(struct ip6_hdr));
 							rhicmp6->icmp6_type = ICMP6_ECHO_REQUEST;
 							rhicmp6->icmp6_code = 0;
-							rhicmp6->icmp6_cksum = rand();
-							rhicmp6->icmp6_data16[0]= rand(); /* Identifier */
-							rhicmp6->icmp6_data16[1]= rand(); /* Sequence Number */
+							rhicmp6->icmp6_cksum = random();
+							rhicmp6->icmp6_data16[0]= random(); /* Identifier */
+							rhicmp6->icmp6_data16[1]= random(); /* Sequence Number */
 
 							if(rhbytes <= (MIN_IPV6_HLEN + MIN_ICMP6_HLEN)){
 								bcopy(rhbuff, ptr, rhbytes);
@@ -1878,7 +1878,7 @@ void send_packet(const u_char *pktdata, struct pcap_pkthdr *pkthdr){
 								ptr += MIN_IPV6_HLEN+MIN_ICMP6_HLEN;
 								rhbytes -= MIN_IPV6_HLEN+MIN_ICMP6_HLEN;
 								while(rhbytes>=4){
-									*(u_int32_t *)ptr = rand();
+									*(u_int32_t *)ptr = random();
 									ptr += sizeof(u_int32_t);
 									rhbytes -= sizeof(u_int32_t);
 								}
