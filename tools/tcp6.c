@@ -1001,16 +1001,16 @@ int main(int argc, char **argv){
 			tcpflags= tcpflags | TH_ACK;
 
 		if(!tcpack_f)
-			tcpack= rand();
+			tcpack= random();
 
 		if(!tcpseq_f)
-			tcpseq= rand();
+			tcpseq= random();
 
 		if(!srcport_f)
-			srcport= rand();
+			srcport= random();
 
 		if(!dstport_f)
-			dstport= rand();
+			dstport= random();
 
 		if(!tcpurg_f)
 			tcpurg= 0;
@@ -1018,7 +1018,7 @@ int main(int argc, char **argv){
 
 	/* BY default, we randomize the TCP Window */
 	if(!tcpwin_f)
-		tcpwin= ((u_int16_t) rand() + 1500) & (u_int16_t)0x7f00;
+		tcpwin= ((u_int16_t) random() + 1500) & (u_int16_t)0x7f00;
 
 	if(verbose_f){
 		print_attack_info();
@@ -1422,13 +1422,13 @@ void send_packet(const u_char *pktdata){
 	}
 
 	while(rhbytes>=4){
-		*(u_int32_t *)ptr = rand();
+		*(u_int32_t *)ptr = random();
 		ptr += sizeof(u_int32_t);
 		rhbytes -= sizeof(u_int32_t);
 	}
 
 	while(rhbytes>0){
-		*(u_int8_t *) ptr= (u_int8_t) rand();
+		*(u_int8_t *) ptr= (u_int8_t) random();
 		ptr++;
 		rhbytes--;
 	}
@@ -1472,7 +1472,7 @@ void send_packet(const u_char *pktdata){
 
 		do{
 			if(floodp_f){
-				tcp->th_sport= rand();
+				tcp->th_sport= random();
 			}
 			tcp->th_sum = 0;
 			tcp->th_sum = in_chksum(v6buffer, tcp, ptr-((unsigned char *)tcp), IPPROTO_TCP);
