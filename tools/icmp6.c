@@ -279,7 +279,7 @@ int main(int argc, char **argv){
 		exit(1);
 	}
 
-	hoplimit=64+rand()%180;
+	hoplimit=64+random()%180;
 
 	while((option=getopt_long(argc, argv, shortopts, longopts, NULL)) != -1) {
 		switch(option) {
@@ -1072,7 +1072,7 @@ int main(int argc, char **argv){
 		exit(1);
 	}
 
-	srand(time(NULL));
+	srandom(time(NULL));
 
 	if(!hsrcaddr_f){
 		randomize_ether_addr(&hsrcaddr);
@@ -1122,7 +1122,7 @@ int main(int argc, char **argv){
 		rhdefault_f=1;
 
 	if(!ip6hoplimit_f)
-		ip6hoplimit=64+rand()%180;
+		ip6hoplimit=64+random()%180;
 
 	if(!ip6length_f)
 		ip6length=1460;
@@ -1145,21 +1145,21 @@ int main(int argc, char **argv){
 			tcpflags= tcpflags | TH_ACK;
 
 		if(!tcpack_f)
-			tcpack= rand();
+			tcpack= random();
 
 		if(!tcpseq_f)
-			tcpseq= rand();
+			tcpseq= random();
 
 		if(!tcpwin_f)
-			tcpwin= ((u_int16_t) rand() + 1500) & (u_int16_t)0x7f00;
+			tcpwin= ((u_int16_t) random() + 1500) & (u_int16_t)0x7f00;
 
 		if(!peerportl_f){
-			peerportl= rand();
+			peerportl= random();
 			peerporth= peerportl;
 		}
 
 		if(!targetportl_f){
-			targetportl= rand();
+			targetportl= random();
 			targetporth= targetportl;
 		}
 
@@ -1169,22 +1169,22 @@ int main(int argc, char **argv){
 
 	if(rhudp_f){
 		if(!peerportl_f){
-			peerportl= rand();
+			peerportl= random();
 			peerporth= peerportl;
 		}
 
 		if(!targetportl_f){
-			targetportl= rand();
+			targetportl= random();
 			targetporth= targetportl;
 		}
 	}
 
 	if(rhicmp6_f){
 		if(!icmp6id_f)
-			icmp6id= rand();
+			icmp6id= random();
 
 		if(!icmp6seq_f)
-			icmp6seq= rand();
+			icmp6seq= random();
 	}
 
 	if(!icmp6type_f){
@@ -1200,7 +1200,7 @@ int main(int argc, char **argv){
 
 		case ICMP6_PARAM_PROB:
 			if(pointer_f)
-				pointer= rand()%40;
+				pointer= random()%40;
 			break;
 
 		case ICMP6_DST_UNREACH:
@@ -1684,7 +1684,7 @@ void send_packet(const u_char *pktdata, struct pcap_pkthdr * pkthdr){
 						rhtcp->th_urp= htons(tcpurg);
 						rhtcp->th_win= htons(tcpwin);
 						rhtcp->th_off= MIN_TCP_HLEN >> 2;
-						rhtcp->th_sum = rand();
+						rhtcp->th_sum = random();
 
 						if(rhbytes <= (MIN_IPV6_HLEN + MIN_TCP_HLEN)){
 							bcopy(rhbuff, ptr, rhbytes);
@@ -1696,7 +1696,7 @@ void send_packet(const u_char *pktdata, struct pcap_pkthdr * pkthdr){
 							rhbytes -= MIN_IPV6_HLEN+MIN_TCP_HLEN;
 
 							while(rhbytes>=4){
-								*(u_int32_t *)ptr = rand();
+								*(u_int32_t *)ptr = random();
 								ptr += sizeof(u_int32_t);
 								rhbytes -= sizeof(u_int32_t);
 							}
@@ -1709,7 +1709,7 @@ void send_packet(const u_char *pktdata, struct pcap_pkthdr * pkthdr){
 						rhudp->uh_sport= htons(targetport);
 						rhudp->uh_dport= htons(peerport);
 						rhudp->uh_ulen= rhipv6->ip6_plen;
-						rhudp->uh_sum= rand();
+						rhudp->uh_sum= random();
 
 						if(rhbytes <= (MIN_IPV6_HLEN + MIN_UDP_HLEN)){
 							bcopy(rhbuff, ptr, rhbytes);
@@ -1720,7 +1720,7 @@ void send_packet(const u_char *pktdata, struct pcap_pkthdr * pkthdr){
 							ptr += MIN_IPV6_HLEN+MIN_UDP_HLEN;
 							rhbytes -= MIN_IPV6_HLEN+MIN_UDP_HLEN;
 							while(rhbytes>=4){
-								*(u_int32_t *)ptr = rand();
+								*(u_int32_t *)ptr = random();
 								ptr += sizeof(u_int32_t);
 								rhbytes -= sizeof(u_int32_t);
 							}
@@ -1731,9 +1731,9 @@ void send_packet(const u_char *pktdata, struct pcap_pkthdr * pkthdr){
 						rhicmp6 = (struct icmp6_hdr *) (rhbuff + sizeof(struct ip6_hdr));
 						rhicmp6->icmp6_type = ICMP6_ECHO_REQUEST;
 						rhicmp6->icmp6_code = 0;
-						rhicmp6->icmp6_cksum = rand();
-						rhicmp6->icmp6_data16[0]= rand(); /* Identifier */
-						rhicmp6->icmp6_data16[1]= rand(); /* Sequence Number */
+						rhicmp6->icmp6_cksum = random();
+						rhicmp6->icmp6_data16[0]= random(); /* Identifier */
+						rhicmp6->icmp6_data16[1]= random(); /* Sequence Number */
 
 						if(rhbytes <= (MIN_IPV6_HLEN + MIN_ICMP6_HLEN)){
 							bcopy(rhbuff, ptr, rhbytes);
@@ -1744,7 +1744,7 @@ void send_packet(const u_char *pktdata, struct pcap_pkthdr * pkthdr){
 							ptr += MIN_IPV6_HLEN+MIN_ICMP6_HLEN;
 							rhbytes -= MIN_IPV6_HLEN+MIN_ICMP6_HLEN;
 							while(rhbytes>=4){
-								*(u_int32_t *)ptr = rand();
+								*(u_int32_t *)ptr = random();
 								ptr += sizeof(u_int32_t);
 								rhbytes -= sizeof(u_int32_t);
 							}
