@@ -1,5 +1,5 @@
 ********************************************************************************
-*                           UK CPNI IPv6 Toolkit v1.1                          *
+*                       SI6 Networks IPv6 Toolkit v1.2.2                       *
 ********************************************************************************
 
 Description of each of the directories:
@@ -12,14 +12,16 @@ tools:   Contains the source code for the security assessment tools.
 Building the tools
 ------------------
 
-All tools should be built with: gcc name.c -Wall -lpcap -o name
+flow6 and frag6 should be built with: gcc name.c -Wall -lpcap -lm -o name
+
+All other tools should be built with: gcc name.c -Wall -lpcap -o name
 
 (where 'name' should be replaced with the tool name)
 
 Note: The libpcap library must be previously installed on the system.
 
 All the tools have been tested to compile and run on Debian GNU/Linux 6.0,
-FreeBSD 8.2, NetBSD 5.1, OpenBSD 5.0, and Ubuntu 11.10.
+FreeBSD 9.0, NetBSD 5.1, OpenBSD 5.0, Ubuntu 11.10, and Mac 0S 10.8.0.
 
 
 Bug reports
