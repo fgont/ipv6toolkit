@@ -3198,7 +3198,7 @@ int get_if_ether_addr(const char *iface, struct ether_addr *ether){
 
 	for(ptr=ifptr; ptr != NULL; ptr= ptr->ifa_next){
 
-		if(ptr->ifa_data != NULL){
+		if(ptr->ifa_addr != NULL && ptr->ifa_data != NULL){
 #ifdef __linux__
 			if((ptr->ifa_addr)->sa_family == AF_PACKET){
 #elif defined (__FreeBSD__) || defined(__NetBSD__) || defined (__OpenBSD__) || defined(__APPLE__)
@@ -3253,6 +3253,9 @@ int get_if_addrs(struct iface_data *idata){
 	}
 
 	for(ptr=ifptr; ptr != NULL; ptr= ptr->ifa_next){
+		if(ptr->ifa_addr == NULL)
+			continue;
+
 #ifdef __linux__
 		if( !(idata->ether_flag) && ((ptr->ifa_addr)->sa_family == AF_PACKET) && (ptr->ifa_data != NULL)){
 			if(strncmp(idata->iface, ptr->ifa_name, IFACE_LENGTH-1) == 0){
