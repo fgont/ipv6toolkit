@@ -1990,6 +1990,9 @@ int get_if_addrs(struct iface_data *idata){
 	}
 
 	for(ptr=ifptr; ptr != NULL; ptr= ptr->ifa_next){
+		if(ptr->ifa_addr == NULL)
+			continue;
+
 #ifdef __linux__
 		if( !(idata->ether_flag) && ((ptr->ifa_addr)->sa_family == AF_PACKET) && (ptr->ifa_data != NULL)){
 			if(strncmp(idata->iface, ptr->ifa_name, IFACE_LENGTH-1) == 0){
