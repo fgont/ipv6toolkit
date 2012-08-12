@@ -1,6 +1,6 @@
 /*
- * tcp6 v0.2: A security assessment tool that exploits potential flaws in the
- *         spe   processing of TCP/IPv6 packets
+ * tcp6 : A security assessment tool that exploits potential flaws in the
+ *            processing of TCP/IPv6 packets
  *
  * Copyright (C) 2011-2012 United Kingdom's Centre for the Protection of 
  *                         National Infrastructure (UK CPNI)
@@ -934,8 +934,7 @@ int main(int argc, char **argv){
 	}
 
 	if(!hsrcaddr_f)	/* Source link-layer address is randomized by default */
-		for(i=0; i<6; i++)
-			hsrcaddr.a[i]= random();
+			randomize_ether_addr(&hsrcaddr);
 
 	if(!hdstaddr_f && dstaddr_f){
 		get_if_addrs(&idata);
