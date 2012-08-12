@@ -498,7 +498,7 @@ int main(int argc, char **argv){
 				break;
 
 			case 'S':	/* Source Ethernet address */
-				if(ether_pton(optarg, &idata.ether, sizeof(idata.ether)) == 0){
+				if(ether_pton(optarg, &hsrcsaddr, sizeof(hsrcaddr)) == 0){
 					puts("Error in Source link-layer address.");
 					exit(1);
 				}
