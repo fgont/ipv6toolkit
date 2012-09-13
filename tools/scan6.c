@@ -3198,7 +3198,7 @@ int get_if_ether_addr(const char *iface, struct ether_addr *ether){
 
 	for(ptr=ifptr; ptr != NULL; ptr= ptr->ifa_next){
 
-		if(ptr->ifa_addr != NULL && ptr->ifa_data != NULL){
+		if(ptr->ifa_addr != NULL){
 #ifdef __linux__
 			if((ptr->ifa_addr)->sa_family == AF_PACKET){
 #elif defined (__FreeBSD__) || defined(__NetBSD__) || defined (__OpenBSD__) || defined(__APPLE__)
@@ -3257,7 +3257,7 @@ int get_if_addrs(struct iface_data *idata){
 			continue;
 
 #ifdef __linux__
-		if( !(idata->ether_flag) && ((ptr->ifa_addr)->sa_family == AF_PACKET) && (ptr->ifa_data != NULL)){
+		if( !(idata->ether_flag) && ((ptr->ifa_addr)->sa_family == AF_PACKET)){
 			if(strncmp(idata->iface, ptr->ifa_name, IFACE_LENGTH-1) == 0){
 				sockpptr = (struct sockaddr_ll *) (ptr->ifa_addr);
 				if(sockpptr->sll_halen == 6){
@@ -3267,7 +3267,7 @@ int get_if_addrs(struct iface_data *idata){
 			}
 		}
 #elif defined (__FreeBSD__) || defined(__NetBSD__) || defined (__OpenBSD__) || defined(__APPLE__)
-		if( !(idata->ether_flag) && ((ptr->ifa_addr)->sa_family == AF_LINK) && (ptr->ifa_data != NULL)){
+		if( !(idata->ether_flag) && ((ptr->ifa_addr)->sa_family == AF_LINK)){
 			if(strncmp(idata->iface, ptr->ifa_name, IFACE_LENGTH-1) == 0){
 				sockpptr = (struct sockaddr_dl *) (ptr->ifa_addr);
 				if(sockpptr->sdl_alen == 6){
