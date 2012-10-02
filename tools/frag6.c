@@ -1,11 +1,8 @@
 /*
- * frag6 v1.1: A security assessment tool that exploits potential flaws in the
- *              processing of IPv6 fragments
+ * frag6: A security assessment tool that exploits potential flaws in the
+ *        processing of IPv6 fragments
  *
- * Copyright (C) 2011-2012 United Kingdom's Centre for the Protection of 
- *                         National Infrastructure (UK CPNI)
- *
- * Programmed by Fernando Gont on behalf of CPNI (http://www.cpni.gov.uk)
+ * Copyright (C) 2011-2012 Fernando Gont (fgont@si6networks.com)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
