@@ -2207,7 +2207,7 @@ int send_fid_probe(void){
 	icmp6->icmp6_code = 0;
 	icmp6->icmp6_cksum = 0;
 	icmp6->icmp6_data16[0]= htons(getpid());	/* Identifier */
-	icmp6->icmp6_data16[1]= htons(random());		/* Sequence Number */
+	icmp6->icmp6_data16[1]= htons(random());	/* Sequence Number */
 
 	ptr+= sizeof(struct icmp6_hdr);
 	*(u_int32_t *)ptr= icmp6_sig;
