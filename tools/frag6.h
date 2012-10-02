@@ -116,6 +116,8 @@
 #define FIXED_ORIGIN			1
 #define MULTI_ORIGIN			2
 
+/* Size of the fragmentation buffer (including link-layer headers) for FID probes */
+#define FRAG_BUFFER_SIZE		(MIN_IPV6_HLEN + FRAG_HDR_SIZE + MAX_IPV6_PAYLOAD)
 
 /* For limiting strncmp */
 #define MAX_STRING_SIZE			10

@@ -2171,7 +2171,7 @@ int send_fragment(unsigned int id, unsigned int offset, unsigned int fsize, unsi
  * values sent by the target
  */
 int send_fid_probe(void){
-	unsigned char		fragbuffer[65536];
+	unsigned char		fragbuffer[FRAG_BUFFER_SIZE];
 	struct ip6_frag		*frag;
 	struct ether_header	*ethernet;
 	struct ip6_hdr		*ipv6;
@@ -2193,6 +2193,7 @@ int send_fid_probe(void){
 	ipv6->ip6_dst= dstaddr;
 	ipv6->ip6_nxt= IPPROTO_FRAGMENT;
 
+	/* ptr always points to the part of the original packet that is being crafted */
 	ptr = (unsigned char *) v6buffer + sizeof(struct ip6_hdr);
 
 	frag= (struct ip6_frag *) ptr;
@@ -2200,6 +2201,8 @@ int send_fid_probe(void){
 	frag->ip6f_nxt= IPPROTO_ICMPV6;
 
 	ptr+= sizeof(struct ip6_frag);
+
+	/* fragpart points to the beginning of the fragmentable part of the original packet */
 	fragpart= ptr;
 
 	icmp6 = (struct icmp6_hdr *) ptr;
@@ -2220,11 +2223,16 @@ int send_fid_probe(void){
 
 	icmp6->icmp6_cksum = in_chksum(v6buffer, icmp6, ptr-(unsigned char *)icmp6, IPPROTO_ICMPV6);
 
+	/* ptrend points to the end of the original packet */
 	ptrend= ptr;
 	ptr= fragpart;
+
+	/* fptr points to the part of the fragment that is being crafted */
 	fptr = fragbuffer;
 	fipv6 = (struct ip6_hdr *) (fragbuffer + sizeof(struct ether_header));
 	fptrend = fptr + (sizeof(struct ether_header) + sizeof(struct ip6_hdr) + MAX_IPV6_PAYLOAD);
+
+	/* Copy everything from the Ethernet header, up to (and including) the Fragmentation Header */
 	memcpy(fptr, buffer, fragpart-buffer);
 	fptr = fptr + (fragpart-buffer);
 
