@@ -2230,7 +2230,7 @@ int send_fid_probe(void){
 	/* fptr points to the part of the fragment that is being crafted */
 	fptr = fragbuffer;
 	fipv6 = (struct ip6_hdr *) (fragbuffer + sizeof(struct ether_header));
-	fptrend = fptr + (sizeof(struct ether_header) + sizeof(struct ip6_hdr) + MAX_IPV6_PAYLOAD);
+	fptrend = fptr + FRAG_BUFFER_SIZE;
 
 	/* Copy everything from the Ethernet header, up to (and including) the Fragmentation Header */
 	memcpy(fptr, buffer, fragpart-buffer);
@@ -2240,11 +2240,19 @@ int send_fid_probe(void){
 	fh->ip6f_ident=random();
 	startoffragment = fptr;
 
+	/* We'll be sending packets of at most 1280 bytes (the IPv6 minimum MTU) */
+	fragsize= ((MIN_IPV6_MTU - sizeof(struct ip6_hdr) - sizeof(struct ip6_frag)) >> 3) << 3;
+
 	/*
 	 * Check that the selected fragment size is not larger than the largest 
-	 * fragment size that can be sent
+	 * fragment size that can be sent. This chec will always be passed, but is useful
+	 * when future versions of the tool support other link-layer technologies.
 	 */
-	fragsize= ((MIN_IPV6_MTU - sizeof(struct ip6_hdr) - sizeof(struct ip6_frag)) >> 3) << 3;
+
+	if( (startoffragment + fragsize) > fptrend){
+		printf("Fragment size too large to fit into fragmentation buffer\n");
+		return(-1);
+	}
 
 	m=IP6F_MORE_FRAG;
 
