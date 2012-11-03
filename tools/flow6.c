@@ -2,10 +2,9 @@
  * flow6 v1.0: A security assessment tool that determines the Flow Label
  *             generation policy of a target node
  *
- * Copyright (C) 2011-2012 United Kingdom's Centre for the Protection of 
- *                         National Infrastructure (UK CPNI)
+ * Copyright (C) 2011-2012 Fernando Gont <fgont@si6networks.com>
  *
- * Programmed by Fernando Gont on behalf of CPNI (http://www.cpni.gov.uk)
+ * Programmed by Fernando Gont on behalf of SI6 Networks (www.si6networks.com)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
