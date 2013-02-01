@@ -2,7 +2,7 @@
  * frag6: A security assessment tool that exploits potential flaws in the
  *        processing of IPv6 fragments
  *
- * Copyright (C) 2011-2012 Fernando Gont (fgont@si6networks.com)
+ * Copyright (C) 2011-2013 Fernando Gont (fgont@si6networks.com)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -163,6 +163,7 @@ unsigned char 		srcaddr_f=0, dstaddr_f=0, hsrcaddr_f=0, hdstaddr_f=0, floodf_f=0
 unsigned char 		loop_f=0, sleep_f=0, localaddr_f=0, tstamp_f=1, pod_f;
 unsigned char		srcprefix_f=0, hoplimit_f=0, ip6length_f=0, icmp6psize_f=0;
 unsigned char		fsize_f=0, forder_f=0, foffset_f=0, fid_f=0, fragp_f=0, fragidp_f=0, resp_f=1;
+unsigned char		loopback_f=0, tunnel_f=0;
 
 u_int32_t			fsize, foffset, fid, id;
 unsigned int		forder, overlap, minfragsize;
@@ -180,7 +181,7 @@ struct ip6_hdr		*fipv6;
 
 unsigned char		*fragpart, *ptrend, *ptrhdr, *ptrhdrend;
 unsigned int		hdrlen, ndstopthdr=0, nhbhopthdr=0, ndstoptuhdr=0;
-unsigned int		nfrags, fragsize, max_packet_size;
+unsigned int		nfrags, fragsize, max_packet_size, linkhsize;
 unsigned char		*prev_nh, *startoffragment;
 
 
@@ -635,9 +636,17 @@ int main(int argc, char **argv){
 		}
 	}
 
-
-	if(pcap_datalink(pfd) != DLT_EN10MB){
-		printf("Error: Interface %s is not an Ethernet interface", iface);
+	if( (idata.type = pcap_datalink(pfd)) == DLT_EN10MB){
+		linkhsize= ETH_HLEN;
+		idata.mtu= ETH_DATA_LEN;
+	}
+	else if( idata.type == DLT_RAW){
+		linkhsize=0;
+		idata.mtu= MIN_IPV6_MTU;
+		tunnel_f=1;
+	}
+	else{
+		printf("Error: Interface %s is not an Ethernet or tunnel interface", iface);
 		exit(1);
 	}
 
@@ -661,35 +670,35 @@ int main(int argc, char **argv){
 		ether_to_ipv6_linklocal(&idata.ether, &idata.ip6_local);
 	}
 
-	idata.mtu= ETH_DATA_LEN;
-
-	if(find_ipv6_router_full(pfd, &idata) == 1){
-		if(!hdstaddr_f && dstaddr_f){
-			if(IN6_IS_ADDR_MC_LINKLOCAL(&dstaddr)){
-				hdstaddr= ether_multicast(&dstaddr);
-			}
-			else if(match_ipv6_to_prefixes(&dstaddr, &idata.prefix_ol)){
-				/* Must perform Neighbor Discovery for the local address */
-				if(ipv6_to_ether(pfd, &idata, &dstaddr, &hdstaddr) != 1){
-					puts("Error while performing Neighbor Discovery for the Destination Address");
-					exit(1);
+	if(!tunnel_f && !loopback_f){
+		if(find_ipv6_router_full(pfd, &idata) == 1){
+			if(!hdstaddr_f && dstaddr_f){
+				if(IN6_IS_ADDR_MC_LINKLOCAL(&dstaddr)){
+					hdstaddr= ether_multicast(&dstaddr);
+				}
+				else if(match_ipv6_to_prefixes(&dstaddr, &idata.prefix_ol)){
+					/* Must perform Neighbor Discovery for the local address */
+					if(ipv6_to_ether(pfd, &idata, &dstaddr, &hdstaddr) != 1){
+						puts("Error while performing Neighbor Discovery for the Destination Address");
+						exit(1);
+					}
+				}
+				else{
+					hdstaddr= idata.router_ether;
 				}
 			}
-			else{
-				hdstaddr= idata.router_ether;
-			}
 		}
-	}
-	else{
-		if(verbose_f)
-			puts("Couldn't find local router. Now trying Neighbor Discovery for the target node");
-		/*
-		 * If we were not able to find a local router, we assume the destination is "on-link" (as
-		 * a last ressort), and thus perform Neighbor Discovery for that destination
-		 */
-		if(ipv6_to_ether(pfd, &idata, &dstaddr, &hdstaddr) != 1){
-			puts("Error while performing Neighbor Discovery for the Destination Address");
-			exit(1);
+		else{
+			if(verbose_f)
+				puts("Couldn't find local router. Now trying Neighbor Discovery for the target node");
+			/*
+			 * If we were not able to find a local router, we assume the destination is "on-link" (as
+			 * a last ressort), and thus perform Neighbor Discovery for that destination
+			 */
+			if(ipv6_to_ether(pfd, &idata, &dstaddr, &hdstaddr) != 1){
+				puts("Error while performing Neighbor Discovery for the Destination Address");
+				exit(1);
+			}
 		}
 	}
 
@@ -758,7 +767,7 @@ int main(int argc, char **argv){
 		   response packets from employing fragmentation. The maximum-sized packets that we send is composed
 		   of a 4*minfragsize payload plus IPv6 and ICMPv6 headers -- hence the check bellow.
 		 */
-		if(minfragsize > ((ETH_DATA_LEN - sizeof(struct ip6_hdr) - sizeof(struct icmp6_hdr))/4)){
+		if(minfragsize > ((idata.mtu - sizeof(struct ip6_hdr) - sizeof(struct icmp6_hdr))/4)){
 			puts("Error: minimum fragment size is too large");
 			exit(1);
 		}
@@ -936,16 +945,16 @@ int main(int argc, char **argv){
 			}
 
 			pkt_ether = (struct ether_header *) pktdata;
-			pkt_ipv6 = (struct ip6_hdr *)((char *) pkt_ether + ETHER_HDR_LEN);
+			pkt_ipv6 = (struct ip6_hdr *)((char *) pkt_ether + linkhsize);
 			pkt_icmp6 = (struct icmp6_hdr *) ((char *) pkt_ipv6 + sizeof(struct ip6_hdr));
 			pkt_ns= (struct nd_neighbor_solicit *) pkt_icmp6;
 			pkt_end = (unsigned char *) pktdata + pkthdr->caplen;
 
-			if( (pkt_end -  pktdata) < (ETHER_HDR_LEN + MIN_IPV6_HLEN))
+			if( (pkt_end -  pktdata) < (linkhsize + MIN_IPV6_HLEN))
 				continue;
 
 			if(pkt_ipv6->ip6_nxt == IPPROTO_ICMPV6){
-				if(pkt_icmp6->icmp6_type == ND_NEIGHBOR_SOLICIT){
+				if(!tunnel_f && !loopback_f && pkt_icmp6->icmp6_type == ND_NEIGHBOR_SOLICIT){
 					if( (pkt_end - (unsigned char *) pkt_ns) < sizeof(struct nd_neighbor_solicit))
 						continue;
 					/* 
@@ -1133,14 +1142,14 @@ int main(int argc, char **argv){
 			}
 
 			pkt_ether = (struct ether_header *) pktdata;
-			pkt_ipv6 = (struct ip6_hdr *)((char *) pkt_ether + ETHER_HDR_LEN);
+			pkt_ipv6 = (struct ip6_hdr *)((char *) pkt_ether + linkhsize);
 			pkt_icmp6 = (struct icmp6_hdr *) ((char *) pkt_ipv6 + sizeof(struct ip6_hdr));
 			pkt_end = (unsigned char *) pktdata + pkthdr->caplen;
 
-			if( (pkt_end -  pktdata) < (ETHER_HDR_LEN + MIN_IPV6_HLEN))
+			if( (pkt_end -  pktdata) < (linkhsize + MIN_IPV6_HLEN))
 				continue;
 
-			if(pkt_ipv6->ip6_nxt == IPPROTO_ICMPV6 && pkt_icmp6->icmp6_type == ND_NEIGHBOR_SOLICIT){
+			if(!tunnel_f && !loopback_f && pkt_ipv6->ip6_nxt == IPPROTO_ICMPV6 && pkt_icmp6->icmp6_type == ND_NEIGHBOR_SOLICIT){
 				pkt_ns= (struct nd_neighbor_solicit *) pkt_icmp6;
 
 				if( (pkt_end - (unsigned char *) pkt_ns) < sizeof(struct nd_neighbor_solicit))
@@ -1409,16 +1418,16 @@ int main(int argc, char **argv){
 			}
 
 			pkt_ether = (struct ether_header *) pktdata;
-			pkt_ipv6 = (struct ip6_hdr *)((char *) pkt_ether + ETHER_HDR_LEN);
+			pkt_ipv6 = (struct ip6_hdr *)((char *) pkt_ether + linkhsize);
 			pkt_icmp6 = (struct icmp6_hdr *) ((char *) pkt_ipv6 + sizeof(struct ip6_hdr));
 			pkt_ns= (struct nd_neighbor_solicit *) pkt_icmp6;
 			pkt_end = (unsigned char *) pktdata + pkthdr->caplen;
 
-			if( (pkt_end -  pktdata) < (ETHER_HDR_LEN + MIN_IPV6_HLEN))
+			if( (pkt_end -  pktdata) < (linkhsize + MIN_IPV6_HLEN))
 				continue;
 
 			if(pkt_ipv6->ip6_nxt == IPPROTO_ICMPV6){
-				if(pkt_icmp6->icmp6_type == ND_NEIGHBOR_SOLICIT){
+				if(!tunnel_f && !loopback_f && pkt_icmp6->icmp6_type == ND_NEIGHBOR_SOLICIT){
 					if( (pkt_end - (unsigned char *) pkt_ns) < sizeof(struct nd_neighbor_solicit))
 						continue;
 					/* 
@@ -1478,7 +1487,7 @@ void print_icmp6_echo(struct pcap_pkthdr *pkthdr, const u_char *pktdata){
 	struct ip6_hdr		*pkt_ipv6;
 	time_t				rtt;
 
-	pkt_ipv6 = (struct ip6_hdr *) (pktdata + sizeof(struct ether_header));
+	pkt_ipv6 = (struct ip6_hdr *) (pktdata + linkhsize);
 
 	if(inet_ntop(AF_INET6, &(pkt_ipv6->ip6_src), pv6addr, sizeof(pv6addr))<=0){
 		puts("inet_ntop(): Error converting IPv6 Source Address to presentation format");
@@ -1507,7 +1516,7 @@ void print_icmp6_timed(struct pcap_pkthdr *pkthdr, const u_char *pktdata){
 	u_int8_t			pkt_prev_nh;
 	time_t				rtt;
 
-	pkt_ipv6 = (struct ip6_hdr *) (pktdata + sizeof(struct ether_header));
+	pkt_ipv6 = (struct ip6_hdr *) (pktdata + linkhsize);
 	pkt_icmp6= (struct icmp6_hdr *) ((unsigned char *) pkt_ipv6 + sizeof(struct ip6_hdr));
 	pkt_ipv6_ipv6= (struct ip6_hdr *) ((unsigned char *)pkt_icmp6+ sizeof(struct icmp6_hdr));
 	pkt_fh_fh= NULL;
@@ -1589,7 +1598,7 @@ void process_icmp6_echo(struct pcap_pkthdr *pkthdr, const u_char *pktdata, unsig
 	struct ip6_hdr		*pkt_ipv6;
 	struct icmp6_hdr	*pkt_icmp6;
 
-	pkt_ipv6 = (struct ip6_hdr *) (pktdata + sizeof(struct ether_header));
+	pkt_ipv6 = (struct ip6_hdr *) (pktdata + linkhsize);
 	pkt_icmp6= (struct icmp6_hdr *) ((unsigned char *) pkt_ipv6 + sizeof(struct ip6_hdr));
 
 	if(test_frag_pattern( ((unsigned char *) pkt_icmp6 + sizeof(struct icmp6_hdr)), FRAG_BLOCK_SIZE, block1)){
@@ -1712,7 +1721,7 @@ void process_icmp6_timed(struct pcap_pkthdr *pkthdr, const u_char *pktdata, unsi
 	struct ip6_frag		*pkt_fh_fh;
 	u_int8_t			pkt_prev_nh;
 
-	pkt_ipv6 = (struct ip6_hdr *) (pktdata + sizeof(struct ether_header));
+	pkt_ipv6 = (struct ip6_hdr *) (pktdata + linkhsize);
 	pkt_icmp6= (struct icmp6_hdr *) ((unsigned char *) pkt_ipv6 + sizeof(struct ip6_hdr));
 	pkt_ipv6_ipv6= (struct ip6_hdr *) ((unsigned char *)pkt_icmp6+ sizeof(struct icmp6_hdr));
 	pkt_fh_fh= NULL;
@@ -1820,14 +1829,15 @@ int send_fragment2(u_int16_t ip6len, unsigned int id, unsigned int offset, unsig
 	unsigned char	*ptrend;
 
 	ethernet= (struct ether_header *) buffer;
-	v6buffer = buffer + sizeof(struct ether_header);
+	v6buffer = buffer + linkhsize;
 	ipv6 = (struct ip6_hdr *) v6buffer;
 	fsize= (fsize>>3) << 3;
 
-
-	ethernet->src = hsrcaddr;
-	ethernet->dst = hdstaddr;
-	ethernet->ether_type = htons(0x86dd);
+	if(!tunnel_f){
+		ethernet->src = hsrcaddr;
+		ethernet->dst = hdstaddr;
+		ethernet->ether_type = htons(0x86dd);
+	}
 
 	ipv6->ip6_flow=0;
 	ipv6->ip6_vfc= 0x60;
@@ -1842,8 +1852,8 @@ int send_fragment2(u_int16_t ip6len, unsigned int id, unsigned int offset, unsig
 	/* Check that we are able to send the Unfragmentable Part, together with a 
 	   Fragment Header and a chunk data over our link layer
 	 */
-	if( (ptr+sizeof(struct ip6_frag)+fsize) > (v6buffer+ETH_DATA_LEN)){
-		puts("Unfragmentable part too large for current MTU (1500 bytes)");
+	if( (ptr+sizeof(struct ip6_frag)+fsize) > (v6buffer+idata.mtu)){
+		puts("Unfragmentable part too large for current MTU");
 		return(-1);
 	}
 
@@ -1951,12 +1961,14 @@ int send_fragment(unsigned int id, unsigned int offset, unsigned int fsize, unsi
 	unsigned int i;
 
 	ethernet= (struct ether_header *) buffer;
-	v6buffer = buffer + sizeof(struct ether_header);
+	v6buffer = buffer + linkhsize;
 	ipv6 = (struct ip6_hdr *) v6buffer;
 
-	ethernet->src = hsrcaddr;
-	ethernet->dst = hdstaddr;
-	ethernet->ether_type = htons(0x86dd);
+	if(!tunnel_f){
+		ethernet->src = hsrcaddr;
+		ethernet->dst = hdstaddr;
+		ethernet->ether_type = htons(0x86dd);
+	}
 
 	ipv6->ip6_flow=0;
 	ipv6->ip6_vfc= 0x60;
@@ -1972,7 +1984,7 @@ int send_fragment(unsigned int id, unsigned int offset, unsigned int fsize, unsi
 		hbhopthdrs=0;
 	
 		while(hbhopthdrs < nhbhopthdr){
-			if((ptr+ hbhopthdrlen[hbhopthdrs]) > (v6buffer+ ETH_DATA_LEN)){
+			if((ptr+ hbhopthdrlen[hbhopthdrs]) > (v6buffer+ idata.mtu)){
 				puts("Packet too large while processing HBH Opt. Header");
 				return(-1);
 			}
@@ -1989,7 +2001,7 @@ int send_fragment(unsigned int id, unsigned int offset, unsigned int fsize, unsi
 		dstoptuhdrs=0;
 	
 		while(dstoptuhdrs < ndstoptuhdr){
-			if((ptr+ dstoptuhdrlen[dstoptuhdrs]) > (v6buffer+ ETH_DATA_LEN)){
+			if((ptr+ dstoptuhdrlen[dstoptuhdrs]) > (v6buffer+ idata.mtu)){
 				puts("Packet too large while processing Dest. Opt. Header (Unfrag. Part)");
 				return(-1);
 			}
@@ -2005,7 +2017,7 @@ int send_fragment(unsigned int id, unsigned int offset, unsigned int fsize, unsi
 	/* Check that we are able to send the Unfragmentable Part, together with a 
 	   Fragment Header and a chunk data over our link layer
 	 */
-	if( (ptr+sizeof(struct ip6_frag)+fsize) > (v6buffer+ETH_DATA_LEN)){
+	if( (ptr+sizeof(struct ip6_frag)+fsize) > (v6buffer+idata.mtu)){
 		puts("Unfragmentable part too large for current MTU (1500 bytes)");
 		return(-1);
 	}
@@ -2179,12 +2191,14 @@ int send_fid_probe(void){
 	unsigned int		i;
 
 	ethernet= (struct ether_header *) buffer;
-	v6buffer = buffer + sizeof(struct ether_header);
+	v6buffer = buffer + linkhsize;
 	ipv6 = (struct ip6_hdr *) v6buffer;
 
-	ethernet->src = hsrcaddr;
-	ethernet->dst = hdstaddr;
-	ethernet->ether_type = htons(0x86dd);
+	if(!tunnel_f){
+		ethernet->src = hsrcaddr;
+		ethernet->dst = hdstaddr;
+		ethernet->ether_type = htons(0x86dd);
+	}
 
 	ipv6->ip6_flow=0;
 	ipv6->ip6_vfc= 0x60;
@@ -2229,14 +2243,14 @@ int send_fid_probe(void){
 
 	/* fptr points to the part of the fragment that is being crafted */
 	fptr = fragbuffer;
-	fipv6 = (struct ip6_hdr *) (fragbuffer + sizeof(struct ether_header));
+	fipv6 = (struct ip6_hdr *) (fragbuffer + linkhsize);
 	fptrend = fptr + FRAG_BUFFER_SIZE;
 
 	/* Copy everything from the Ethernet header, up to (and including) the Fragmentation Header */
 	memcpy(fptr, buffer, fragpart-buffer);
 	fptr = fptr + (fragpart-buffer);
 
-	fh= (struct ip6_frag *) (fragbuffer + sizeof(struct ether_header)+sizeof(struct ip6_hdr));
+	fh= (struct ip6_frag *) (fragbuffer + linkhsize + sizeof(struct ip6_hdr));
 	fh->ip6f_ident=random();
 	startoffragment = fptr;
 
@@ -2269,7 +2283,7 @@ int send_fid_probe(void){
 		ptr+=fragsize;
 		fptr+=fragsize;
 
-		fipv6->ip6_plen = htons((fptr - fragbuffer) - MIN_IPV6_HLEN - ETHER_HDR_LEN);
+		fipv6->ip6_plen = htons((fptr - fragbuffer) - MIN_IPV6_HLEN - linkhsize);
 		
 		if((nw=pcap_inject(pfd, fragbuffer, fptr - fragbuffer)) == -1){
 			printf("pcap_inject(): %s\n", pcap_geterr(pfd));
@@ -2307,7 +2321,7 @@ void usage(void){
  * Prints help information for the frag6 tool
  */
 void print_help(void){
-    puts( "frag6 version 1.0: A security assessment tool for attack vectors based on IPv6 fragments\n");
+    puts( "frag6: A security assessment tool for attack vectors based on IPv6 fragments\n");
     usage();
     
     puts("\nOPTIONS:\n"
@@ -2335,7 +2349,7 @@ void print_help(void){
 	"  --verbose, -v             Be verbose\n"
 	"  --help, -h                Print help for the frag6 tool\n"
 	"\n"
-	"Programmed by Fernando Gont on behalf of CPNI (http://www.cpni.gov.uk)\n"
+	"Programmed by Fernando Gont for SI6 Networks (http://www.si6networks.com)\n"
 	"Please send any bug reports to <fgont@si6networks.com>\n"
 	);
 }
@@ -2400,23 +2414,25 @@ u_int16_t in_chksum(void *ptr_ipv6, void *ptr_icmpv6, size_t len, u_int8_t proto
  */
  
 void print_attack_info(void){
-	if(ether_ntop(&hsrcaddr, plinkaddr, sizeof(plinkaddr)) == 0){
-		puts("ether_ntop(): Error converting address");
-		exit(1);
+	if(!tunnel_f && !loopback_f){
+		if(ether_ntop(&hsrcaddr, plinkaddr, sizeof(plinkaddr)) == 0){
+			puts("ether_ntop(): Error converting address");
+			exit(1);
+		}
+
+		printf("Ethernet Source Address: %s%s\n", plinkaddr, (!hsrcaddr_f)?" (automatically selected)":"");
+
+		/* 
+		   Ethernet Destination Address only used if a IPv6 Destination Address or an
+		   Ethernet Destination Address were specified.
+		 */
+		if(ether_ntop(&hdstaddr, plinkaddr, sizeof(plinkaddr)) == 0){
+			puts("ether_ntop(): Error converting address");
+			exit(1);
+		}
+
+		printf("Ethernet Destination Address: %s%s\n", plinkaddr, (!hdstaddr_f)?" (automatically selected)":"");
 	}
-
-	printf("Ethernet Source Address: %s%s\n", plinkaddr, (!hsrcaddr_f)?" (automatically selected)":"");
-
-	/* 
-	   Ethernet Destination Address only used if a IPv6 Destination Address or an
-	   Ethernet Destination Address were specified.
-	 */
-	if(ether_ntop(&hdstaddr, plinkaddr, sizeof(plinkaddr)) == 0){
-		puts("ether_ntop(): Error converting address");
-		exit(1);
-	}
-
-	printf("Ethernet Destination Address: %s%s\n", plinkaddr, (!hdstaddr_f)?" (automatically selected)":"");
 
 	if(inet_ntop(AF_INET6, &srcaddr, psrcaddr, sizeof(psrcaddr))<=0){
 		puts("inet_ntop(): Error converting IPv6 Source Address to presentation format");
@@ -3826,7 +3842,7 @@ int valid_icmp6_response(struct iface_data *idata, struct pcap_pkthdr *pkthdr, c
 	unsigned int		minfragsize;
 
 	pkt_ether = (struct ether_header *) pktdata;
-	pkt_ipv6 = (struct ip6_hdr *)((char *) pkt_ether + ETHER_HDR_LEN);
+	pkt_ipv6 = (struct ip6_hdr *)((char *) pkt_ether + linkhsize);
 	pkt_icmp6 = (struct icmp6_hdr *) ((char *) pkt_ipv6 + MIN_IPV6_HLEN);
 	pkt_icmp6_icmp6= (struct icmp6_hdr *) ((unsigned char *) pkt_icmp6 + sizeof(struct icmp6_hdr) +\
 						sizeof(struct ip6_hdr) + MIN_HBH_LEN);
@@ -3989,7 +4005,7 @@ int valid_icmp6_response2(struct iface_data *idata, struct pcap_pkthdr *pkthdr, 
 	u_int8_t			pkt_prev_nh;
 
 	pkt_ether = (struct ether_header *) pktdata;
-	pkt_ipv6 = (struct ip6_hdr *)((char *) pkt_ether + ETHER_HDR_LEN);
+	pkt_ipv6 = (struct ip6_hdr *)((char *) pkt_ether + linkhsize);
 	pkt_icmp6 = (struct icmp6_hdr *) ((char *) pkt_ipv6 + MIN_IPV6_HLEN);
 
 
