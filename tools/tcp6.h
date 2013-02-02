@@ -18,6 +18,7 @@
 #define ETHER_ALLROUTERS_LINK_ADDR	"33:33:00:00:00:02"
 
 #define	MIN_IPV6_HLEN		40
+#define MIN_IPV6_MTU		1280
 #define MIN_TCP_HLEN		20
 #define MIN_UDP_HLEN		20
 #define MIN_ICMP6_HLEN		8
@@ -120,6 +121,7 @@ struct prefix_list{
 
 struct iface_data{
 	char			iface[IFACE_LENGTH];
+	int			type;
 	int			fd;
 	struct ether_addr	ether;
 	unsigned int		ether_flag;
