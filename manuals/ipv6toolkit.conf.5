@@ -1,0 +1,58 @@
+.TH IPV6TOOLKIT.CONF 5
+.SH NAME
+ipv6toolkit.conf \- Configuration file for the SI6 Networks' IPv6 address monitoring daemon (ipv6mon)
+.SH SYNOPSIS
+.B /etc/ipv6toolkit.conf
+.SH DESCRIPTION
+This file controls the operation of the
+.B SI6 Networks' IPv6 Toolkit
+. It aloows the system administrator to configure parameters such as:
+.TS
+tab (@);
+l l.
+@\+ Location of the IEEE OUI database
+.TE
+
+The configuration file follows the following general format:
+.sp
+.RS 4
+.nf
+  # Comments
+  Variable1=Value1  # Comments
+  Variable2=Value2
+  
+.fi
+.RE
+
+The following configuration options are currently supported:
+.TP
+\fBOUI-Database\fR 
+This variable specifies the location of the IEEE OUI database. If left unspecified, the IEEE OUI databased is expected to be found "/usr/share/oui.txt". This is a stripped down version of the IEEE OUI list available at <http://standards.ieee.org/develop/regauth/oui/oui.txt>. The tool is able to process the raw file available from the IEEE site (hence the included oui.txt file can be overwritten with a freshly downloaded copy without any additional processing).
+
+.SH EXAMPLES
+The following is a sample
+.IR ipv6toolkit.conf
+file.
+.sp
+
+.nf
+# SI6 Networks IPv6 Toolkit Configuration File
+
+OUI-Database=/usr/share/ipv6toolkit/oui.txt
+
+
+.fi
+.RE
+.SH "SEE ALSO"
+.BR ipv6mon (8).
+
+.SH AUTHOR
+The
+.B SI6 Networks' IPv6 Toolkit
+and the corresponding manual pages were produced by Fernando Gont <fgont@si6networks.com> for SI6 Networks <http://www.si6networks.com>.
+
+.SH COPYRIGHT
+Copyright (c) 2011-2013 Fernando Gont.
+
+Permission is granted to copy, distribute and/or modify this document under the terms of the GNU Free Documentation License, Version 1.3 or any later version published by the Free Software Foundation; with the Invariant Sections being just "AUTHOR" and "COPYRIGHT", with no Front-Cover Texts, and with no Back-Cover Texts.  A copy of the license is available at
+.IR <http://www.gnu.org/licenses/fdl.html> .
