@@ -1,5 +1,5 @@
 ********************************************************************************
-*                       SI6 Networks IPv6 Toolkit v1.2.3                       *
+*                       SI6 Networks IPv6 Toolkit v1.3                         *
 ********************************************************************************
 
 Description of each of the directories:
@@ -12,11 +12,14 @@ tools:   Contains the source code for the security assessment tools.
 Building the tools
 ------------------
 
-flow6 and frag6 should be built with: gcc name.c -Wall -lpcap -lm -o name
+You can build the tools by running the following command:
+ 
+   make all
 
-All other tools should be built with: gcc name.c -Wall -lpcap -o name
+You can install the tools, configuration file, database, and existing manual
+pages by running the following command:
 
-(where 'name' should be replaced with the tool name)
+   make install
 
 Note: The libpcap library must be previously installed on the system.
 
