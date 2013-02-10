@@ -101,13 +101,8 @@ unsigned int		ackdata_f=1, ackflags_f=1;
 u_int16_t			srcport, dstport, tcpurg, tcpwin;
 u_int32_t			tcpseq, tcpack;
 u_int8_t			tcpflags=0;
-struct ip6_hdr		*rhipv6;
-struct udphdr		*rhudp;
 struct tcphdr		*rhtcp;
-struct icmp6_hdr	*rhicmp6;
-unsigned int		nredirs, redirs;
 unsigned int		rhbytes, currentsize;
-unsigned char		rh_hoplimit;
 
 
 /* Used for router discovery */
