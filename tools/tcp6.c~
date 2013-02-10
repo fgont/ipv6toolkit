@@ -4,6 +4,7 @@
  *
  * Copyright (C) 2011-2012 Fernando Gont (fgont@si6networks.com)
  *
+ *
  * Programmed by Fernando Gont for SI6 Networks (http://www.si6networks.com)
  *
  * This program is free software: you can redistribute it and/or modify
@@ -89,24 +90,29 @@ struct in6_addr		solicited_node(const struct in6_addr *);
 struct ether_addr	ether_multicast(const struct in6_addr *);
 int 				match_ipv6_to_prefixes(struct in6_addr *, struct prefix_list *);
 int					get_if_addrs(struct iface_data *);
-struct in6_addr *	src_addr_sel(struct iface_data *, struct in6_addr *);
 
 
 /* Flags used for TCP (specifically) */ 
 unsigned int		rediraddr_f=0, redirprefix_f=0, srcport_f=0, dstport_f=0;
+unsigned int		rhtcp_f=0, rhudp_f=0, rhicmp6_f=0, norheader_f=0, rheader_f=0;
 unsigned int		tcpseq_f=0, tcpack_f=0, tcpurg_f=0, tcpflags_f=0, tcpwin_f=0;
 unsigned int		icmp6id_f=0, icmp6seq_f=0;
-unsigned int		rhbytes_f=0;
+unsigned int		rhlength_f=0, floodr_f=0, respmcast_f=0, makeonlink_f=0;
+unsigned int		ip6hoplimit_f=0, ip6length_f=0;
 unsigned int		ackdata_f=1, ackflags_f=1;
-u_int16_t			srcport, dstport, tcpurg, tcpwin;
+
+/* Variables used for ICMPv6 Redirect (specifically) */
+
+u_int16_t			ip6length;
+u_int16_t			srcport, dstport, tcpurg, tcpwin, icmp6id, icmp6seq;
 u_int32_t			tcpseq, tcpack;
-u_int8_t			tcpflags=0;
+u_int8_t			tcpflags=0, ip6hoplimit;
 struct ip6_hdr		*rhipv6;
 struct udphdr		*rhudp;
 struct tcphdr		*rhtcp;
 struct icmp6_hdr	*rhicmp6;
 unsigned int		nredirs, redirs;
-unsigned int		rhbytes, currentsize;
+unsigned int		rhbytes, rhlength, currentsize;
 unsigned char		rh_hoplimit;
 
 
@@ -231,6 +237,7 @@ int main(int argc, char **argv){
 		{"link-src-addr", required_argument, 0, 'S'},
 		{"link-dst-addr", required_argument, 0, 'D'},
 		{"payload-size", required_argument, 0, 'P'},
+		{"ipv6-hlim", required_argument, 0, 'c'},
 		{"src-port", required_argument, 0, 'o'},
 		{"dst-port", required_argument, 0, 'a'},
 		{"tcp-flags", required_argument, 0, 'X'},
@@ -259,7 +266,7 @@ int main(int argc, char **argv){
 		{"help", no_argument, 0, 'h'}
 	};
 
-	char shortopts[]= "i:s:d:A:u:U:H:y:S:D:P:o:a:X:q:Q:V:w:Nfj:k:J:K:b:g:B:G:F:T:rRlz:Lvh";
+	char shortopts[]= "i:s:d:A:u:U:H:y:S:D:P:c:o:a:X:q:Q:V:w:Nfj:k:J:K:b:g:B:G:F:T:rRlz:Lvh";
 
 	char option;
 
@@ -483,8 +490,14 @@ int main(int argc, char **argv){
 				break;
 
 			case 'P':	/* Payload Size*/
-				rhbytes= atoi(optarg);
-				rhbytes_f= 1;
+				rhlength= atoi(optarg);
+				rhlength= (rhlength<<3) >> 3; /* The Redirected Header has a granularity of 8 bytes */ 
+				rhlength_f= 1;
+				break;
+
+			case 'c':	/* Hop Limit of the IPv6 Payload */
+				ip6hoplimit= atoi(optarg);
+				ip6hoplimit_f=1;
 				break;
 
 			case 'o':	/* TCP Source Port */
@@ -1024,6 +1037,13 @@ int main(int argc, char **argv){
 	else
 		max_packet_size = idata.mtu;
 
+	if(!ip6hoplimit_f)
+		ip6hoplimit=255;
+
+	if(!ip6length_f)
+		ip6length= idata.mtu - MIN_IPV6_HLEN; /* XXX Was 1460 */
+
+
 	/*
 	 *  If we are going to send packets to a specified target, we must set some default values
 	 */
@@ -1050,9 +1070,6 @@ int main(int argc, char **argv){
 	/* BY default, we randomize the TCP Window */
 	if(!tcpwin_f)
 		tcpwin= ((u_int16_t) random() + 1500) & (u_int16_t)0x7f00;
-
-	if(!rhbytes_f)
-		rhbytes=0;
 
 	if(verbose_f){
 		print_attack_info();
@@ -1624,7 +1641,7 @@ void usage(void){
  * Prints help information for the tcp6 tool
  */
 void print_help(void){
-    puts( "tcp6\nSecurity assessment tool for attack vectors based on TCP/IPv6 packets\n");
+    puts( "tcp6 version 1.0\nSecurity assessment tool for attack vectors based on TCP/IPv6 packets\n");
     usage();
     
     puts("\nOPTIONS:\n"
@@ -1659,8 +1676,8 @@ void print_help(void){
 	"  --flood-sources, -F       Flood from multiple IPv6 Source Addresses\n"
 	"  --flood-ports, -T         Flood from multiple TCP Source Ports\n"
 	"  --listen, -L              Listen to incoming packets\n"
-	"  --loop, -l                Send periodic TCP segments\n"
-	"  --sleep, -z               Pause between sending TCP segments\n"
+	"  --loop, -l                Send periodic Redirect messages\n"
+	"  --sleep, -z               Pause between sending Redirect messages\n"
 	"  --help, -h                Print help for the tcp6 tool\n"
 	"  --verbose, -v             Be verbose\n"
 	"\n"
@@ -3161,53 +3178,5 @@ void generate_slaac_address(struct in6_addr *prefix, struct ether_addr *etheradd
 	ipv6addr->s6_addr16[7]=  htons(((u_int16_t)etheraddr->a[4] << 8) | etheraddr->a[5]);
 }
 
-
-/*
- * Function: src_addr_sel()
- *
- * Selects a Source Address for a given Destination Address
- */
-
-struct in6_addr *src_addr_sel(struct iface_data *idata, struct in6_addr *dst){
-	u_int16_t	mask16;
-	unsigned int	i, j, full16, rest16;
-	/*
-	   If the destination address is a link-local address, we select our link-local
-	   address as the Source Address. If the dst address is a global unicast address
-	   we select our first matching address, or else our first global address.
-	   Worst case scenario, we don't have global address and must use our link-local
-	   address.
-	*/   
-
-	if( (dst->s6_addr16[0] & htons(0xffc0)) == htons(0xfe80)){
-		return( &(idata->ip6_local));
-	}
-	else if(IN6_IS_ADDR_MC_LINKLOCAL(dst) || IN6_IS_ADDR_LINKLOCAL(dst)){
-		return( &(idata->ip6_local));
-	}
-	else if(idata->ip6_global_flag){
-		for(i=0; i < idata->ip6_global.nprefix; i++){
-				full16=(idata->ip6_global.prefix[i])->len / 16;
-				rest16=(idata->ip6_global.prefix[i])->len % 16;
-				mask16 = 0xffff;
-
-				for(j=0; j < full16; j++)
-					if( dst->s6_addr16[j] != (idata->ip6_global.prefix[i])->ip6.s6_addr16[j])
-						break;
-
-				if( (j == full16) && rest16){
-					mask16 = mask16 << (16 - rest16);
-
-					if( (dst->s6_addr16[full16] & mask16) == ((idata->ip6_global.prefix[i])->ip6.s6_addr16[full16] & mask16))
-						return( &((idata->ip6_global.prefix[i])->ip6));
-				}
-		}
-
-		return( &((idata->ip6_global.prefix[0])->ip6));
-	}
-	else{
-		return( &(idata->ip6_local));
-	}
-}
 
 
