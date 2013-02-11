@@ -2321,6 +2321,7 @@ void usage(void){
  * Prints help information for the frag6 tool
  */
 void print_help(void){
+	puts("SI6 Networks' IPv6 Toolkit v1.3");
     puts( "frag6: A security assessment tool for attack vectors based on IPv6 fragments\n");
     usage();
     

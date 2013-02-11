@@ -1,11 +1,10 @@
 /*
- * na6 v1.1: A security assessment tool for attack vectors based on
- *           ICMPv6 Neighbor Advertisement messages
+ * na6: A security assessment tool for attack vectors based on
+ *      ICMPv6 Neighbor Advertisement messages
  *
- * Copyright (C) 2009-2012 United Kingdom's Centre for the Protection of 
- *                         National Infrastructure (UK CPNI)
+ * Copyright (C) 2011-2013 Fernando Gont <fgont@si6networks.com>
  *
- * Programmed by Fernando Gont on behalf of CPNI (http://www.cpni.gov.uk)
+ * Programmed by Fernando Gont for SI6 Networks <http://www.si6networks.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -1549,8 +1548,9 @@ void usage(void){
  * Prints help information for the na6 tool
  */
 void print_help(void){
-    puts( "na6 version 1.1\nAssessment tool for attack vectors based on NA messages\n");
-    usage();
+	puts("SI6 Networks' IPv6 Toolkit v1.3");
+	puts("na6: Security Assessment tool for attack vectors based on NA messages\n");
+	usage();
     
     puts("\nOPTIONS:\n"
 	"  --interface, -i            Network interface\n"
@@ -1586,8 +1586,8 @@ void print_help(void){
 	"  --help, -h                 Print help for the na6 tool\n"
 	"  --verbose, -v              Be verbose\n"
 	"\n"
-	"Programmed by Fernando Gont on behalf of CPNI (http://www.cpni.gov.uk)\n"
-	"Please send any bug reports to <fgont@si6networks.com>"
+	"Programmed by Fernando Gont for SI6 Networks <http://www.si6networks.com>\n"
+	"Please send any bug reports to <fgont@si6networks.com>\n"
 	);
 }
 

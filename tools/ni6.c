@@ -1,11 +1,10 @@
 /*
- * ni6 v1.1: A security assessment tool that exploits potential flaws
- *           in the processing of ICMPv6 Node Information messages
+ * ni6: A security assessment tool that exploits potential flaws
+ *      in the processing of ICMPv6 Node Information messages
  *
- * Copyright (C) 2012 United Kingdom's Centre for the Protection of 
- *                    National Infrastructure (UK CPNI)
+ * Copyright (C) 2011-2013 Fernando Gont <fgont@si6networks.com>
  *
- * Programmed by Fernando Gont on behalf of CPNI (http://www.cpni.gov.uk)
+ * Programmed by Fernando Gont for SI6 Networks <http://www.si6networks.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -2426,7 +2425,8 @@ void usage(void){
  * Prints help information for the icmp6 tool
  */
 void print_help(void){
-	puts( "ni6 v1.0: Assessment tool for attack vectors based on ICMPv6 error messages\n");
+	puts("SI6 Networks' IPv6 Toolkit v1.3");
+	puts("ni6: Securty assessment tool for attack vectors based on ICMPv6 error messages\n");
 	usage();
     
 	puts("\nOPTIONS:\n"
@@ -2475,7 +2475,7 @@ void print_help(void){
 	     "  --help, -h                 Print help for the icmp6 tool\n"
 	     "  --verbose, -v              Be verbose\n"
 	     "\n"
-	     " Programmed by Fernando Gont on behalf of CPNI (http://www.cpni.gov.uk)\n"
+	     " Programmed by Fernando Gont for SI6 Networks <http://www.si6networks.com>\n"
 	     " Please send any bug reports to <fgont@si6networks.com>\n"
 	);
 }

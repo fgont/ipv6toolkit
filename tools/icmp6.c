@@ -1,11 +1,10 @@
 /*
- * icmp6 v1.1: A security assessment tool that exploits potential
- *             flaws in the processing of ICMPv6 Error messages
+ * icmp6: A security assessment tool that exploits potential flaws
+ *        in the processing of ICMPv6 Error messages
  *
- * Copyright (C) 2011-2012 United Kingdom's Centre for the Protection of 
- *                         National Infrastructure (UK CPNI)
+ * Copyright (C) 2011-2013 Fernando Gont <fgont@si6networks.com>
  *
- * Programmed by Fernando Gont on behalf of CPNI (http://www.cpni.gov.uk)
+ * Programmed by Fernando Gont for SI6 Networks <http://www.si6networks.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -1849,7 +1848,7 @@ void usage(void){
 	 "       [-u DST_OPT_HDR_SIZE] [-U DST_OPT_U_HDR_SIZE] [-H HBH_OPT_HDR_SIZE]\n"
 	 "       [-t TYPE[:CODE] | -e CODE | -A CODE -V CODE -R CODE] [-r TARGET_ADDR]\n"
 	 "       [-x PEER_ADDR] [-c HOP_LIMIT] [-m MTU] [-O POINTER] [-p PAYLOAD_TYPE]\n"
-	 "       [-P PAYLOAD_SIZE] [-n][-a SRC_PORTL[:SRC_PORTH]\n"
+	 "       [-P PAYLOAD_SIZE] [-n] [-a SRC_PORTL[:SRC_PORTH]]\n"
 	 "       [-o DST_PORTL[:DST_PORTH]] [-X TCP_FLAGS] [-q TCP_SEQ] [-Q TCP_ACK]\n"
 	 "       [-V TCP_URP] [-w TCP_WIN] [-M] [-j PREFIX[/LEN]] [-k PREFIX[/LEN]]\n"
 	 "       [-J LINK_ADDR] [-K LINK_ADDR] [-b PREFIX[/LEN]] [-g PREFIX[/LEN]]\n"
@@ -1863,7 +1862,8 @@ void usage(void){
  * Prints help information for the icmp6 tool
  */
 void print_help(void){
-	puts( "icmp6 version 1.1\nAssessment tool for attack vectors based on ICMPv6 error messages\n");
+	puts("SI6 Networks' IPv6 Toolkit v1.3");
+	puts("icmp6: Assessment tool for attack vectors based on ICMPv6 error messages\n");
 	usage();
     
 	puts("\nOPTIONS:\n"
@@ -1913,7 +1913,7 @@ void print_help(void){
 	     "  --help, -h                  Print help for the icmp6 tool\n"
 	     "  --verbose, -v               Be verbose\n"
 	     "\n"
-	     " Programmed by Fernando Gont on behalf of CPNI (http://www.cpni.gov.uk)\n"
+	     " Programmed by Fernando Gont for SI6 Networks <http://www.si6networks.com>\n"
 	     " Please send any bug reports to <fgont@si6networks.com>\n"
 	);
 }

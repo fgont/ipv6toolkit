@@ -1,10 +1,10 @@
 /*
  * tcp6 : A security assessment tool that exploits potential flaws in the
- *            processing of TCP/IPv6 packets
+ *        processing of TCP/IPv6 packets
  *
- * Copyright (C) 2011-2012 Fernando Gont (fgont@si6networks.com)
+ * Copyright (C) 2011-2013 Fernando Gont <fgont@si6networks.com>
  *
- * Programmed by Fernando Gont for SI6 Networks (http://www.si6networks.com)
+ * Programmed by Fernando Gont for SI6 Networks <http://www.si6networks.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -93,9 +93,8 @@ struct in6_addr *	src_addr_sel(struct iface_data *, struct in6_addr *);
 
 
 /* Flags used for TCP (specifically) */ 
-unsigned int		rediraddr_f=0, redirprefix_f=0, srcport_f=0, dstport_f=0;
+unsigned int		srcport_f=0, dstport_f=0;
 unsigned int		tcpseq_f=0, tcpack_f=0, tcpurg_f=0, tcpflags_f=0, tcpwin_f=0;
-unsigned int		icmp6id_f=0, icmp6seq_f=0;
 unsigned int		rhbytes_f=0;
 unsigned int		ackdata_f=1, ackflags_f=1;
 u_int16_t			srcport, dstport, tcpurg, tcpwin;
@@ -1619,7 +1618,8 @@ void usage(void){
  * Prints help information for the tcp6 tool
  */
 void print_help(void){
-    puts( "tcp6\nSecurity assessment tool for attack vectors based on TCP/IPv6 packets\n");
+	puts("SI6 Networks' IPv6 Toolkit v1.3");
+    puts( "tcp6: Security assessment tool for attack vectors based on TCP/IPv6 packets\n");
     usage();
     
     puts("\nOPTIONS:\n"
@@ -1659,8 +1659,8 @@ void print_help(void){
 	"  --help, -h                Print help for the tcp6 tool\n"
 	"  --verbose, -v             Be verbose\n"
 	"\n"
-	"Programmed by Fernando Gont on behalf of CPNI (http://www.cpni.gov.uk)\n"
-	"Please send any bug reports to <fgont@si6networks.com>"
+	"Programmed by Fernando Gont for SI6 Networks <http://www.si6networks.com>\n"
+	"Please send any bug reports to <fgont@si6networks.com>\n"
 	);
 }
 

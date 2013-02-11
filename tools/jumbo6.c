@@ -1,11 +1,10 @@
 /*
- * jumbo6 v1.0: A security assessment tool that exploits potential flaws in the
- *              processing of IPv6 Jumbo payloads
+ * jumbo6: A security assessment tool that exploits potential flaws in the
+ *         processing of IPv6 Jumbo payloads
  *
- * Copyright (C) 2011-2012 United Kingdom's Centre for the Protection of 
- *                         National Infrastructure (UK CPNI)
+ * Copyright (C) 2011-2013 Fernando Gont <fgont@si6networks.com>
  *
- * Programmed by Fernando Gont on behalf of CPNI (http://www.cpni.gov.uk)
+ * Programmed by Fernando Gont for SI6 Networks <http://www.si6networks.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -1330,7 +1329,8 @@ void usage(void){
  * Prints help information for the jumbo6 tool
  */
 void print_help(void){
-    puts( "jumbo6 version 1.0\nSecurity assessment tool for attack vectors based on IPv6 jumbo packets\n");
+	puts("SI6 Networks' IPv6 Toolkit v1.3");
+	puts("jumbo6: Security assessment tool for attack vectors based on IPv6 jumbo packets\n");
     usage();
     
     puts("\nOPTIONS:\n"

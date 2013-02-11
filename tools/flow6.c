@@ -1,10 +1,10 @@
 /*
- * flow6 v1.0: A security assessment tool that determines the Flow Label
- *             generation policy of a target node
+ * flow6: A security assessment tool that determines the Flow Label
+ *        generation policy of a target node
  *
- * Copyright (C) 2011-2012 Fernando Gont <fgont@si6networks.com>
+ * Copyright (C) 2011-2013 Fernando Gont <fgont@si6networks.com>
  *
- * Programmed by Fernando Gont on behalf of SI6 Networks (www.si6networks.com)
+ * Programmed by Fernando Gont for SI6 Networks (www.si6networks.com)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,7 +23,7 @@
  * Build with: gcc flow6.c -Wall -lpcap -lm -o flow6
  * 
  * This program has been tested to compile and run on: Debian GNU/Linux 6.0,
- * FreeBSD 9.0, NetBSD 5.1, OpenBSD 5.0, and Ubuntu 11.10.
+ * FreeBSD 9.0, NetBSD 5.1, OpenBSD 5.0, Ubuntu 11.10, and Mac OS X.
  *
  * It requires that the libpcap library be installed on your system.
  *
@@ -425,7 +425,16 @@ int main(int argc, char **argv){
 
 	idata.mtu= ETH_DATA_LEN;
 
-	if(find_ipv6_router_full(pfd, &idata) == 1){
+	/*
+	   If the destination address is a link-local address, there is no need to perform next-hop determination
+	 */
+	if(IN6_IS_ADDR_LINKLOCAL(&dstaddr)){
+		if(ipv6_to_ether(pfd, &idata, &dstaddr, &hdstaddr) != 1){
+			puts("Error while performing Neighbor Discovery for the Destination Address");
+			exit(1);
+		}
+	}
+	else if(find_ipv6_router_full(pfd, &idata) == 1){
 		if(!hdstaddr_f && dstaddr_f){
 			if(IN6_IS_ADDR_MC_LINKLOCAL(&dstaddr)){
 				hdstaddr= ether_multicast(&dstaddr);
@@ -444,15 +453,9 @@ int main(int argc, char **argv){
 	}
 	else{
 		if(verbose_f)
-			puts("Couldn't find local router. Now trying Neighbor Discovery for the target node");
-		/*
-		 * If we were not able to find a local router, we assume the destination is "on-link" (as
-		 * a last ressort), and thus perform Neighbor Discovery for that destination
-		 */
-		if(ipv6_to_ether(pfd, &idata, &dstaddr, &hdstaddr) != 1){
-			puts("Error while performing Neighbor Discovery for the Destination Address");
-			exit(1);
-		}
+			puts("Couldn't find local router.");
+
+		exit(1);
 	}
 
 	if(srcprefix_f){
@@ -873,7 +876,8 @@ void usage(void){
  * Prints help information for the flow6 tool
  */
 void print_help(void){
-    puts( "flow6 version 1.0: Security assessment tool for the IPv6 Flow Label field\n");
+	puts("SI6 Networks' IPv6 Toolkit v1.3");
+    puts("flow6: Security assessment tool for the IPv6 Flow Label field\n");
     usage();
     
     puts("\nOPTIONS:\n"
@@ -889,8 +893,8 @@ void print_help(void){
 	"  --help, -h                Print help for the flow6 tool\n"
 	"  --verbose, -v             Be verbose\n"
 	"\n"
-	"Programmed by Fernando Gont on behalf of CPNI (http://www.cpni.gov.uk)\n"
-	"Please send any bug reports to <fgont@si6networks.com>"
+	"Programmed by Fernando Gont on behalf of SI6 Networks <http://www.si6networks.com>\n"
+	"Please send any bug reports to <fgont@si6networks.com>\n"
 	);
 }
 

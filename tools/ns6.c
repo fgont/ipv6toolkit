@@ -1,11 +1,10 @@
 /*
- * ns6 v1.1: A security assessment tool for attack vectors based on
- *           ICMPv6 Neighbor Solicitation messages
+ * ns6: A security assessment tool for attack vectors based on
+ *      ICMPv6 Neighbor Solicitation messages
  *
- * Copyright (C) 2009-2011 United Kingdom's Centre for the Protection of 
- *                         National Infrastructure (UK CPNI)
+ * Copyright (C) 2009-2013 Fernando Gont
  *
- * Programmed by Fernando Gont on behalf of CPNI (http://www.cpni.gov.uk)
+ * Programmed by Fernando Gont for SI6 Networks <http://www.si6networks.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -993,7 +992,8 @@ void usage(void){
  * Print help information for the ns6 tool
  */
 void print_help(void){
-	puts( "ns6 version 1.1\nAssessment tool for attack vectors based on NS messages\n");
+	puts("SI6 Networks' IPv6 Toolkit v1.3");
+	puts("ns6\nSecurity assessment tool for attack vectors based on NS messages\n");
 	usage();
     
 	puts("\nOPTIONS:\n"
@@ -1016,7 +1016,7 @@ void print_help(void){
 	     "  --help, -h                 Print help for the ns6 tool\n"
 	     "  --verbose, -v              Be verbose\n"
 	     "\n"
-	     "Programmed by Fernando Gont on behalf of CPNI (http://www.cpni.gov.uk)\n"
+	     "Programmed by Fernando Gont for SI6 Networks <http://www.si6networks.com>\n"
 	     "Please send any bug reports to <fgont@si6networks.com>"
 	);
 }
