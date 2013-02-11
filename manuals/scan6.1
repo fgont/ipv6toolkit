@@ -283,6 +283,11 @@ This options allows the user to specify an IPv4 prefix. The aforementioned prefi
 
 This option is used to specify the increment size for the lowest-order 16-bit word of an IPv6 address when an IPv6 address range is to be scanned. This option is particularly useful if the target network is assumed to contain a large number of nodes with consecutive addresses (maybe because the target network employs DHCPv6, or because the target network contains a large number of devices from the same manufacturer, thus emplying consecutive MAC/SLAAC addresses). The increment size should be that of the assumed size of the “cluster” of nodes. 
 
+.TP
+.BI \-r\  RATE ,\ \-\-rate\-limit\  RATE
+
+This option specifies the rate limit to use when performing a remote address scan. "RATE" should be specified as "xbps" or "xpps" (with "x" being an unsigned integer), for rate-limits in bits per second or packets per second, respectively.
+
 
 .TP
 .BI \-c\  CONFIG_FILE ,\ \-\-config-file\  CONFIG_FILE

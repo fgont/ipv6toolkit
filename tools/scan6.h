@@ -4,6 +4,8 @@
  */
 
 #define LUI		long unsigned int
+#define LINE_BUFFER_SIZE	80
+#define BUFFER_SIZE		65556
 
 #define ETH_ALEN	6		/* Octets in one ethernet addr	 */
 #define ETH_HLEN	14		/* Total octets in header.	 */

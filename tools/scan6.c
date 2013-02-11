@@ -167,7 +167,8 @@ bpf_u_int32				my_netmask;
 bpf_u_int32				my_ip;
 struct bpf_program		pcap_filter;
 char 					dev[64], errbuf[PCAP_ERRBUF_SIZE];
-unsigned char			buffer[65556], buffrh[MIN_IPV6_HLEN + MIN_TCP_HLEN];
+unsigned char			buffer[BUFFER_SIZE], buffrh[MIN_IPV6_HLEN + MIN_TCP_HLEN];
+char					line[LINE_BUFFER_SIZE];
 unsigned char			*v6buffer, *ptr, *startofprefixes;
 char					*pref;
 char 					iface[IFACE_LENGTH];
@@ -229,7 +230,7 @@ unsigned char			v4hostprefix_f=0, sort_ouis_f=0, rnd_probes_f=0, inc_f=0, end_f=
 unsigned char			onlink_f=0, pps_f=0, bps_f=0, tcpflags_f=0, rhbytes_f=0, srcport_f=0, dstport_f=0, probetype;
 u_int16_t				srcport, dstport;
 u_int8_t				tcpflags=0;
-unsigned long			pktinterval, pps, bps;
+unsigned long			pktinterval, rate;
 unsigned int			packetsize, rhbytes;
 struct prefix4_entry	v4host;
 struct prefix_entry		prefix;
@@ -290,11 +291,12 @@ int main(int argc, char **argv){
 		{"random-probes", no_argument, 0, 'N'},
 		{"inc-size", required_argument, 0, 'I'},
 		{"config-file", required_argument, 0, 'c'},
+		{"rate-limit", required_argument, 0, 'r'},
 		{"verbose", no_argument, 0, 'v'},
 		{"help", no_argument, 0, 'h'}
 	};
 
-	char shortopts[]= "i:s:d:u:U:H:y:S:D:lp:Z:o:a:X:P:qex:z:fFV:bBk:K:Q:TNI:c:r:R:vh";
+	char shortopts[]= "i:s:d:u:U:H:y:S:D:lp:Z:o:a:X:P:qex:z:fFV:bBk:K:Q:TNI:c:r:vh";
 
 	char option;
 
@@ -827,13 +829,24 @@ int main(int argc, char **argv){
 				break;
 
 			case 'r':
-				pps = atol(optarg);
-				pps_f=1;
-				break;
+				if( strnlen(optarg, LINE_BUFFER_SIZE-1) >= (LINE_BUFFER_SIZE-1)){
+					puts("scan6: -r option is too long");
+					exit(1);
+				}
 
-			case 'R':
-				bps = atol(optarg);
-				bps_f=1;
+				sscanf(optarg, "%lu%s", &rate, line);
+
+				line[LINE_BUFFER_SIZE-1]=0;
+
+				if(strncmp(line, "pps", 3) == 0)
+					pps_f=1;
+				else if(strncmp(line, "bps", 3) == 0)
+					bps_f=1;
+				else{
+					puts("scan6: Unknown unit of for the rate limit ('-r' option). Unit should be 'bps' or 'pps'");
+					exit(1);
+				}
+
 				break;
 
 			case 'v':	/* Be verbose */
@@ -919,24 +932,36 @@ int main(int argc, char **argv){
 		scan_list.inc=1;
 
 	if(pps_f && bps_f){
-		puts("Cannot specify '-r' and '-R' at the same time");
+		puts("Cannot specify a rate-limit in bps and pps at the same time");
 		exit(1);
 	}
 
 	if(pps_f){
-		if(pps < 1)
-			pps=1;
+		if(rate < 1)
+			rate=1;
 
-		pktinterval= 1000000/pps;
+		pktinterval= 1000000/rate;
 	}
 
 	if(bps_f){
-		packetsize= MIN_IPV6_HLEN + ICMPV6_ECHO_PAYLOAD_SIZE + sizeof(struct icmp6_hdr);
+		switch(probetype){
+			case PROBE_UNREC_OPT:
+				packetsize= MIN_IPV6_HLEN + sizeof(struct icmp6_hdr) + ICMPV6_ECHO_PAYLOAD_SIZE;
+				break;
 
-		if(bps == 0 || packetsize/bps > 1)
+			case PROBE_ICMP6_ECHO:
+				packetsize= MIN_IPV6_HLEN + MIN_DST_OPT_HDR_SIZE + sizeof(struct icmp6_hdr) + ICMPV6_ECHO_PAYLOAD_SIZE;
+				break;
+
+			case PROBE_TCP:
+				packetsize= MIN_IPV6_HLEN + sizeof(struct tcphdr) + rhbytes;
+				break;
+		}
+
+		if(rate == 0 || ((packetsize * 8)/rate) <= 0)
 			pktinterval= 1000000;
 		else
-			pktinterval= packetsize/bps * 1000000;
+			pktinterval= ((packetsize * 8)/rate) * 1000000;
 	}
 
 	/* We Default to 1000 pps */
@@ -2251,8 +2276,10 @@ void prefix_to_scan(struct prefix_entry *pref, struct scan_entry *scan){
  * Prints the syntax of the scan6 tool
  */
 void usage(void){
-	puts("usage: scan6 -i INTERFACE [-s SRC_ADDR[/LEN]] [-r] [-S LINK_SRC_ADDR | -R]\n"
-	     "       [-p PROBE_TYPE] [-P ADDRESS_TYPE] [-e] [-x RETRANS] [-o TIMEOUT] [-l]\n"
+	puts("usage: scan6 -i INTERFACE (-l | -d) [-s SRC_ADDR[/LEN] | -f] [-S LINK_SRC_ADDR | -F]\n"
+	     "       [-p PROBE_TYPE] [-Z PAYLOAD_SIZE] [-o SRC_PORT] [-a DST_PORT]\n"
+	     "       [-X TCP_FLAGS] [-P ADDRESS_TYPE] [-q] [-e] [-x RETRANS] [-o TIMEOUT]\n"
+	     "       [-l]\n"
 	     "       [-v] [-h]");
 }
 
@@ -2293,6 +2320,7 @@ void print_help(void){
 	     "  --ipv4-host, -Q             Host IPv4 Address/Prefix\n"
 	     "  --sort-ouis, -T             Sort IEEE OUIs\n"
 	     "  --inc-size, -I              Increments size\n"
+	     "  --rate-limit, -r            Rate limit the address scan to specified rate\n"
 	     "  --config-file, -c           Use alternate configuration file\n"
 	     "  --help, -h                  Print help for the scan6 tool\n"
 	     "  --verbose, -v               Be verbose\n"
