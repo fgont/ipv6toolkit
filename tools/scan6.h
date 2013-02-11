@@ -18,9 +18,11 @@
 #define ETHER_ALLROUTERS_LINK_ADDR	"33:33:00:00:00:02"
 
 #define	MIN_IPV6_HLEN		40
+#define MIN_IPV6_MTU		1280
 #define MIN_TCP_HLEN		20
 #define MIN_UDP_HLEN		20
 #define MIN_ICMP6_HLEN		8
+#define MIN_DST_OPT_HDR_SIZE	8
 #define	SLLA_OPT_LEN		1
 #define	TLLA_OPT_LEN		1
 #define MAX_TLLA_OPTION		256
@@ -29,6 +31,7 @@
 /* Constants used with the multi_scan_local() function */
 #define	PROBE_ICMP6_ECHO	1
 #define PROBE_UNREC_OPT		2
+#define PROBE_TCP		3
 #define	LOCAL_SRC		1
 #define GLOBAL_SRC		2
 
@@ -94,12 +97,33 @@
 #define PCAP_ICMPV6_RANS_FILTER		"icmp6 and ip6[7]==255 and ((ip6[40]==134 and ip6[41]==0) or (ip6[40]==135 and ip6[41]==0))"
 #define PCAP_ICMPV6_ERNS_FILTER		"icmp6 and ((ip6[40]==129 and ip6[41]==0) or (ip6[40]==135 and ip6[41]==0))"
 #define PCAP_ICMPV6_ERRORNS_FILTER	"icmp6 and ((ip6[40]==4) or (ip6[40]==135 and ip6[41]==0))"
-#define	PCAP_TIMEOUT			1
+
+#define PCAP_ICMPV6_ERQNSNA_FILTER	"icmp6 and ((ip6[40]==129 and ip6[41]==0) or ((ip6[40]==135 or ip6[40]==136) and ip6[41]==0 and ip6[7]==255))"
+#define PCAP_ICMPV6_ERRORNSNA_FILTER	"icmp6 and ((ip6[40]==4) or ((ip6[7]==255 and ip6[41]==0) and (ip6[40]==135 or ip6[40]==136)))"
+#define PCAP_TCP_NSNA_FILTER		"(ip6 and tcp) or (icmp6 and ip6[7]==255 and ip6[41]==0 and (ip6[40]==135 or ip6[40]==136))"
+#define	PCAP_TIMEOUT			100
 #define	PCAP_PROMISC			1
 #define	PCAP_OPT			1
 #ifndef PCAP_NETMASK_UNKNOWN
 	#define PCAP_NETMASK_UNKNOWN	0xffffffff
 #endif
+
+/* Remote scans */
+#define LOW_BYTE_1ST_WORD_UPPER		800
+#define LOW_BYTE_2ND_WORD_UPPER		100
+#define	MAX_IEEE_OUIS_LINE_SIZE		160
+#define	OUI_HEX_STRING_SIZE		5
+#define	MAX_IEEE_OUIS			1000
+#define MAX_SCAN_ENTRIES		8192
+#define	SELECT_TIMEOUT			4
+#define MAX_RANGE_STR_LEN		79
+#define MIN_INC_RANGE			1000
+#define ND_RETRIES			0
+
+/* Constants for config file processing */
+#define MAX_LINE_SIZE			250
+#define MAX_VAR_NAME_LEN		100
+#define MAX_FILENAME_SIZE		250
 
 struct ether_addr{
   u_int8_t a[ETHER_ADDR_LEN];
@@ -167,6 +191,11 @@ struct prefix_entry{
 	unsigned char		len;
 };
 
+struct prefix4_entry{
+	struct in_addr		ip;
+	unsigned char		len;
+};
+
 struct prefix_list{
 	struct prefix_entry	**prefix;
 	unsigned int		nprefix;
@@ -180,8 +209,28 @@ struct address_list{
 	unsigned int		maxaddr;
 };
 
+
+/* Stores one remote target to scan */
+struct scan_entry{
+	struct in6_addr		start;
+	struct in6_addr		end;
+	struct in6_addr		cur;
+};
+
+
+/* Store the list of remote targets to scan */
+struct scan_list{
+	struct scan_entry	**target;
+	unsigned int		ctarget;
+	unsigned int		ntarget;
+	unsigned int		maxtarget;
+	unsigned int		inc;
+};
+
 struct iface_data{
 	char			iface[IFACE_LENGTH];
+	char			loopback_f;
+	int			type;
 	struct ether_addr	ether;
 	unsigned int		ether_flag;
 	struct in6_addr		ip6_local;
@@ -195,6 +244,15 @@ struct iface_data{
 	unsigned int		local_retrans;
 	unsigned int		local_timeout;
 	unsigned int		mtu;
+	unsigned int		pending_write_f;
+	void			*pending_write_data;
+	unsigned int		pending_write_size;
+	int			fd;
+	pcap_t			*pd;
+	fd_set			*rset;
+	fd_set			*wset;
+	fd_set			*eset;
+	unsigned int		write_errors;
 };
 
 
