@@ -1794,16 +1794,19 @@ int load_ipv4mapped_entries(struct scan_list *scan, struct scan_entry *dst, stru
 	for(i=4; i<=5; i++)
 		(scan->target[scan->ntarget])->end.s6_addr16[i]= htons(0);
 
-	(scan->target[scan->ntarget])->start.s6_addr16[6]= htons(ntohl(v4host->ip.s_addr) >> 16);
-	(scan->target[scan->ntarget])->start.s6_addr16[7]= htons( (ntohl(v4host->ip.s_addr) & 0x0000ffff));
+	(scan->target[scan->ntarget])->start.s6_addr16[6]= htons( (u_int16_t) (ntohl(v4host->ip.s_addr) >> 16));
+	(scan->target[scan->ntarget])->start.s6_addr16[7]= htons( (u_int16_t) (ntohl(v4host->ip.s_addr) & 0x0000ffff));
 	(scan->target[scan->ntarget])->cur= (scan->target[scan->ntarget])->start;
 
 	(scan->target[scan->ntarget])->end= dst->end;
 
 	for(i=4; i<=7; i++)
-		(scan->target[scan->ntarget])->end.s6_addr16[i]= htons(0);
+		(scan->target[scan->ntarget])->end.s6_addr16[i]= (scan->target[scan->ntarget])->start.s6_addr16[i];
 
 	mask32= 0xffffffff;
+
+	for(i=0; i< v4host->len; i++)
+		mask32=mask32<<1;
 
 	for(i=0; i< v4host->len; i++)
 		mask32=mask32>>1;
