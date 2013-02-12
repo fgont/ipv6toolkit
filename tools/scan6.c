@@ -2279,11 +2279,12 @@ void prefix_to_scan(struct prefix_entry *pref, struct scan_entry *scan){
  * Prints the syntax of the scan6 tool
  */
 void usage(void){
-	puts("usage: scan6 -i INTERFACE (-l | -d) [-s SRC_ADDR[/LEN] | -f] [-S LINK_SRC_ADDR | -F]\n"
-	     "       [-p PROBE_TYPE] [-Z PAYLOAD_SIZE] [-o SRC_PORT] [-a DST_PORT]\n"
-	     "       [-X TCP_FLAGS] [-P ADDRESS_TYPE] [-q] [-e] [-x RETRANS] [-o TIMEOUT]\n"
-	     "       [-l]\n"
-	     "       [-v] [-h]");
+	puts("usage: scan6 -i INTERFACE (-l | -d) [-s SRC_ADDR[/LEN] | -f] \n"
+	     "       [-S LINK_SRC_ADDR | -F] [-p PROBE_TYPE] [-Z PAYLOAD_SIZE] [-o SRC_PORT]\n"
+	     "       [-a DST_PORT] [-X TCP_FLAGS] [-P ADDRESS_TYPE] [-q] [-e] [-x RETRANS]\n"
+	     "       [-o TIMEOUT] [-V VM_TYPE] [-b] [-B] [-k IEEE_OUI] [-K VENDOR]\n"
+	     "       [-Q IPV4_PREFIX[/LEN]] [-T] [-I INC_SIZE] [-r RATE(bps|pps)]\n"
+	     "       [-c CONFIG_FILE] [-v] [-h]");
 }
 
 
@@ -2302,15 +2303,15 @@ void print_help(void){
 	     "  --src-address, -s           IPv6 Source Address\n"
 	     "  --dst-address, -d           IPv6 Destination Range or Prefix\n"
 	     "  --link-src-address, -S      Link-layer Destination Address\n"
-	     "  --probe-type, -p            Probe type {echo, unrec, all} (default: 'all')\n"
+	     "  --probe-type, -p            Probe type {echo, unrec, all}\n"
 	     "  --payload-size, -Z          TCP/UDP Payload Size\n"
 	     "  --src-port, -o              TCP/UDP Source Port\n"
 	     "  --dst-port, -a              TCP/UDP Destination Port\n"
 	     "  --tcp-flags, -X             TCP Flags\n"
-	     "  --print-type, -P            Print address type {local, global, all} (default: 'all')\n"
+	     "  --print-type, -P            Print address type {local, global, all}\n"
 	     "  --print-unique, -q          Print only one IPv6 addresses per Ethernet address\n"
 	     "  --print-link-addr, -e       Print link-layer addresses\n"
-	     "  --retrans, -x               Number of retransmissions of each probe (default: 0)\n"
+	     "  --retrans, -x               Number of retransmissions of each probe\n"
 	     "  --timeout, -o               Timeout in seconds (default: 1 second)\n"
 	     "  --local-scan, -l            Scan the local subnet\n"
 	     "  --rand-src-addr, -f         Randomize the IPv6 Source Address\n"
