@@ -288,6 +288,7 @@ This option is used to specify the increment size for the lowest-order 16-bit wo
 
 This option specifies the rate limit to use when performing a remote address scan. "RATE" should be specified as "xbps" or "xpps" (with "x" being an unsigned integer), for rate-limits in bits per second or packets per second, respectively.
 
+In general, the address scan should be rate-limited to about 80% (eighty percent) of the upstram bandwidth, such that probe packets are not lost as a result of network congestion.
 
 .TP
 .BI \-c\  CONFIG_FILE ,\ \-\-config-file\  CONFIG_FILE
@@ -325,13 +326,13 @@ Perform host scanning on the local network (“-l” option) using interface “
 
 \fBExample #2\fR
 
-# ./scan6 -i eth0 -d 2001:db8::/64 –tgt-virtual-machines all –ipv4-host 10.10.10.0/24
+# ./scan6 -i eth0 -d 2001:db8::/64 --tgt-virtual-machines all –ipv4-host 10.10.10.0/24
 
 Use the “eth0” interface (“-i” option) to scan for virtual machines (both VirtualBox and vmware) in the prefix 2001:db8::/64. The additional information about the IPv4 prefix employed by the host system is leveraged to reduce the search space.
 
 \fBExample #3\fR
 
-# ./scan6 -i eth0 -d 2001:db8::/64 –tgt-ipv4-embedded –ipv4-host 10.10.10.0/24
+# ./scan6 -i eth0 -d 2001:db8::/64 --tgt-ipv4-embedded --ipv4-host 10.10.10.0/24
 
 Use the “eth0” interface (“-i” option) to scan for IPv6 addresses of the network 2001:db8::/64 that embed the IPv4 prefix 10.10.10.0/24.
 
@@ -343,21 +344,43 @@ Use the “eth0” interface (“-i” option) to scan for IPv6 addresses of the
 
 \fBExample #5\fR
 
+# ./scan6 -i eth0 -l -d fc00::/64 --tgt-vendor 'Dell Inc' -p tcp
+
+Use the “eth0” interface to scan for network devices manufactured by 'Dell Inc' in the target prefix fc00::/64. The tool will employ TCP segments as the probe packets (rather than the default ICMPv6 echo requests).
+
+
+\fBExample #6\fR
+
 # ./scan6 -i eth0 -l -S 66:55:44:33:22:11 -p unrec -P global -v
 
 Use the “eth0” interface (“-i” option) to perform host-scanning on the local network (“-l” option). The Ethernet Source Address is set to “66:55:44:33:22:11” (“-S” option). The probe packets will be IPv6 packets with unrecognized options of type 10xxxxxx (“-p” option). The tool will only print IPv6 global addresses (“-P” option). The tool will be verbose.
 
-\fBExample #6\fR
+\fBExample #7\fR
 
-# ./scan6 -i eth0 -l -P global –print-unique -e
+# ./scan6 -i eth0 -l -P global --print-unique -e
 
 Use the “eth0” interface (“-i” option) to perform host-scanning on the local network (“-l” option). Print only global unicast addresses (“-P” option), and at most one IPv6 address per Ethernet address (“--print-unique” option). Ethernet addresses will be printed along with the corresponiding IPv6 address (“-e” option).
 
+.SH SEE ALSO
+.BR ipv6toolkit.conf (5)
+
+draft-ietf-opsec-ipv6-host-scanning (available at: 
+.IR <http://tools.ietf.org/html/draft-gont-opsec-ipv6-host-scanning> )
+for a discussion of the scanning techniques implemented by
+.B scan6
+, and a discussion of a number of aspects that should be taken into account when performing address scanning of remote networks.
+
+RFC 6583 (available at 
+.IR <http://www.rfc-editor.org/rfc/rfc6583.txt> )
+for a discussion of the potential Denial of Service (DoS) when scanning remote networks.
 
 .SH AUTHOR
 The
 .B scan6
-tool and the corresponding manual pages were produced by Fernando Gont <fgont@si6networks.com> on behalf of the United Kingdom's Centre for the Protection of National Infrastructure (CPNI).
+tool and the corresponding manual pages were produced by Fernando Gont 
+.I <fgont@si6networks.com>
+for SI6 Networks 
+.IR <http://www.si6networks.com> .
 
 .SH COPYRIGHT
 Copyright (c) 2011-2013 Fernando Gont.
