@@ -129,6 +129,7 @@ int					is_time_elapsed(struct timeval *, struct timeval *, unsigned long);
 int					is_ip6_in_address_list(struct prefix_list *, struct in6_addr *);
 int					process_config_file(const char *);
 int					keyval(char *, unsigned int, char **, char **);
+size_t				Strnlen(const char *, size_t);
 
 /* Used for multiscan */
 struct host_list			host_local, host_global, host_candidate;
@@ -1748,25 +1749,20 @@ int get_next_target(struct scan_list *scan_list){
  * Print address ranges to scan
  */
 int print_scan_entries(struct scan_list *scan){
-	unsigned int i;
-	char ipv6start[INET6_ADDRSTRLEN], ipv6end[INET6_ADDRSTRLEN];
+	unsigned int i, j;
 
 	for(i=0; i< scan->ntarget; i++){
-		if(inet_ntop(AF_INET6, &((scan->target[i])->start), ipv6start, sizeof(ipv6start))<=0){
-			if(verbose_f)
-				puts("inet_ntop(): Error converting IPv6 Source Address to presentation format");
+		for(j=0; j<8; j++){
+			if((scan->target[i])->start.s6_addr16[j] == (scan->target[i])->end.s6_addr16[j])
+				printf("%x", ntohs((scan->target[i])->start.s6_addr16[j]));
+			else
+				printf("%x-%x", ntohs((scan->target[i])->start.s6_addr16[j]), ntohs((scan->target[i])->end.s6_addr16[j]));
 
-			return(0);
+			if(j<7)
+				printf(":");
+			else
+				puts("");
 		}
-
-		if(inet_ntop(AF_INET6, &((scan->target[i])->end), ipv6end, sizeof(ipv6end))<=0){
-			if(verbose_f)
-				puts("inet_ntop(): Error converting IPv6 Source Address to presentation format");
-
-			return(0);
-		}
-
-		printf("%s to %s\n", ipv6start, ipv6end);
 	}
 
 	return(1);
@@ -5138,7 +5134,7 @@ int process_config_file(const char *path){
 	}
 
 	while(fgets(line, sizeof(line),  fp) != NULL){
-		r=keyval(line, strlen(line), &key, &value);
+		r=keyval(line, Strnlen(line, MAX_LINE_SIZE), &key, &value);
 
 		if(r == 1){
 			if(strncmp(key, "OUI-Database", MAX_VAR_NAME_LEN) == 0){
@@ -5263,5 +5259,24 @@ int is_ip6_in_address_list(struct prefix_list *plist, struct in6_addr *target){
 	}
 
 	return 0;
+}
+
+
+/*
+ * Function: Strnlen()
+ *
+ * Our own version of strnlen(), since some OSes do not support it.
+ */
+
+size_t Strnlen(const char *s, size_t maxlen){
+	size_t i=0;
+
+	while(s[i] != 0 && i < maxlen)
+		i++;
+
+	if(i < maxlen)
+		return(i);
+	else
+		return(maxlen);
 }
 
