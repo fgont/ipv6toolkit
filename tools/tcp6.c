@@ -1418,8 +1418,8 @@ void send_packet(const u_char *pktdata){
 			tcp->th_flags= TH_ACK;
 
 			/* If the incoming packet was a SYN, we should respond with a SYN/ACK */
-		if( (pkt_tcp->th_flags & TH_SYN) && !(pkt_tcp->th_flags & TH_ACK))
-				tcp->th_flags = tcp->th_flags | TH_SYN;
+			if( (pkt_tcp->th_flags & TH_SYN) && !(pkt_tcp->th_flags & TH_ACK))
+					tcp->th_flags = tcp->th_flags | TH_SYN;
 		}
 
 		tcp->th_urp= htons(tcpurg);
@@ -1725,7 +1725,7 @@ u_int16_t in_chksum(void *ptr_ipv6, void *ptr_icmpv6, size_t len, u_int8_t proto
  */
  
 void print_attack_info(void){
-	puts( "tcp6 version 1.0\nAssessment tool for attack vectors based on TCP/IPv6 packets\n");
+	puts( "tcp6\nAssessment tool for attack vectors based on TCP/IPv6 packets\n");
 
 	if(floods_f)
 		printf("Flooding the target from %u different IPv6 Source Addresses\n", nsources);
