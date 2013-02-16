@@ -130,6 +130,7 @@ int					is_ip6_in_address_list(struct prefix_list *, struct in6_addr *);
 int					process_config_file(const char *);
 int					keyval(char *, unsigned int, char **, char **);
 size_t				Strnlen(const char *, size_t);
+int					is_ip6_in_scan_list(struct scan_list *, struct in6_addr *);
 
 /* Used for multiscan */
 struct host_list			host_local, host_global, host_candidate;
@@ -1487,7 +1488,11 @@ int main(int argc, char **argv){
 									}
 							}
 						}
-						else if( (pkt_icmp6->icmp6_type == ICMP6_ECHO_REPLY) || (pkt_icmp6->icmp6_type == ICMP6_PARAM_PROB)){
+						else if( (probetype == PROBE_ICMP6_ECHO && pkt_icmp6->icmp6_type == ICMP6_ECHO_REPLY) ||\
+								 (probetype == PROBE_UNREC_OPT && pkt_icmp6->icmp6_type == ICMP6_PARAM_PROB)){
+							if(!is_ip6_in_scan_list(&scan_list, &(pkt_ipv6->ip6_src)))
+								continue;
+
 							if( (pkt_end - (unsigned char *) pkt_icmp6) < sizeof(struct icmp6_hdr))
 								continue;
 
@@ -1504,7 +1509,10 @@ int main(int argc, char **argv){
 							}
 						}
 					}
-					else if(pkt_ipv6->ip6_nxt == IPPROTO_TCP){
+					else if(probetype == PROBE_TCP && pkt_ipv6->ip6_nxt == IPPROTO_TCP){
+						if(!is_ip6_in_scan_list(&scan_list, &(pkt_ipv6->ip6_src)))
+							continue;
+
 						if(srcport_f)
 							if(pkt_tcp->th_dport != htons(srcport))
 								continue;
@@ -2248,6 +2256,7 @@ void prefix_to_scan(struct prefix_entry *pref, struct scan_entry *scan){
 
 	sanitize_ipv6_prefix(&(pref->ip6), pref->len);
 	scan->start= pref->ip6;
+	scan->cur= scan->start;
 
 	words= pref->len/16;
 
@@ -5278,5 +5287,29 @@ size_t Strnlen(const char *s, size_t maxlen){
 		return(i);
 	else
 		return(maxlen);
+}
+
+
+/*
+ * Function: is_ip6_in_scan_list()
+ *
+ * Check whether an IPv6 address belongs to one of our scan ranges
+ */
+int	is_ip6_in_scan_list(struct scan_list *scan, struct in6_addr *ip6){
+	unsigned int i, j;
+
+	for(i=0; i< scan->ntarget; i++){
+		for(j=0; j<8; j++){
+			if( (ntohs(ip6->s6_addr16[j]) < ntohs((scan->target[i])->start.s6_addr16[j])) || \
+					(ntohs(ip6->s6_addr16[j]) > ntohs((scan->target[i])->end.s6_addr16[j]))){
+				break;
+			}
+		}
+
+		if(j == 8)
+			return(1);
+	}
+
+	return(0);
 }
 
