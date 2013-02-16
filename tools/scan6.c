@@ -830,7 +830,7 @@ int main(int argc, char **argv){
 				break;
 
 			case 'r':
-				if( strnlen(optarg, LINE_BUFFER_SIZE-1) >= (LINE_BUFFER_SIZE-1)){
+				if( Strnlen(optarg, LINE_BUFFER_SIZE-1) >= (LINE_BUFFER_SIZE-1)){
 					puts("scan6: -r option is too long");
 					exit(1);
 				}
@@ -2057,7 +2057,7 @@ int load_vendor_entries(struct scan_list *scan, struct scan_entry *dst, char *ve
 		   the pattern XX-XX-XX
 		 */
 
-		if( (lines=strnlen(line, MAX_IEEE_OUIS_LINE_SIZE)) <= 9)
+		if( (lines=Strnlen(line, MAX_IEEE_OUIS_LINE_SIZE)) <= 9)
 			continue;
 
 		if(line[2] != '-' || line[5] != '-' || line[8] != ' ')
@@ -2187,8 +2187,8 @@ int match_strings(char *buscar, char *buffer){
 	unsigned int buscars, buffers;
 	unsigned int i=0, j=0;
 
-	buscars= strnlen(buscar, MAX_IEEE_OUIS_LINE_SIZE);
-	buffers= strnlen(buffer, MAX_IEEE_OUIS_LINE_SIZE);
+	buscars= Strnlen(buscar, MAX_IEEE_OUIS_LINE_SIZE);
+	buffers= Strnlen(buffer, MAX_IEEE_OUIS_LINE_SIZE);
 
 	if(buscars > buffers)
 		return(0);
