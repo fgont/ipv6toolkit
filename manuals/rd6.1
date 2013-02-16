@@ -13,7 +13,6 @@ This tool has two modes of operation: active and passive. In active mode, the to
 
 The tool supports filtering of incoming packets based on the Ethernet Source Address, the Ethernet Destination Address, the IPv6 Source Address, and the IPv6 Destination Address.  There are two types of filters: “block filters” and “accept filters”. If any “block filter” is specified, and the incoming packet matches any of those filters, the message is discarded (and thus no Redirect messages are sent in response). If any “accept filter” is specified, incoming packets must match the specified filters in order for the tool to respond with Redirect messages.
 
-
 .SH OPTIONS
 .B rd6
 takes it parameters as command-line options. Each of the options can be specified with a short name (one character preceded with the hyphen character, as e.g. “-i”) or with a long name (a string preceded with two hyphen characters, as e.g. “--interface”).
@@ -115,7 +114,6 @@ This option specifies the IPv6 Source Address of the Redirect payload. If left u
 
 Note: this option might be useful to check whether an implementation validates the contents of the Redirect message.
 
-
 .TP
 --redir-port, -o
 
@@ -164,7 +162,6 @@ Note: This option is meaningful only if “TCP” has been specified with the �
 This option specifies the Window of the TCP header contained in the Redirect payload. If left unspecified, the Window is randomized.
 
 Note: This option is meaningful only if “TCP” has been specified with the “-p” option.
-
 
 .TP
 --resp-mcast, -M
@@ -280,7 +277,6 @@ This option instructs the rd6 tool to be verbose.  When the option is set twice,
 
 Print help information for the rd6 tool. 
 
-
 .SH EXAMPLES
 
 The following sections illustrate typical use cases of the
@@ -293,17 +289,14 @@ tool.
 
 The tool uses the network interface “eth0”, and operates in passive mode (“-L” option). The IPv6 and Ethernet address of the local router is automatically learned by means of RS/RA messages. Basic filters are employed to avoid responding to incorrect/unnecessary packets (“--sanity-filters”). Each Redirect message will contain the Redirect Target Address set to the same value as the Redirect Destination Address, thus causing the corresponding address to be considered “on-link” (“--make-onlink” option). The tool will print detailed information about the attack (“-v” option).
 
-
 \fBExample #2\fR
 
 # rd6 -i eth0 --learn-router -d 2001:db8::1 -r 2001:db8::/64 -t fe80::bad -R 100 -l -v
 
 Flood the victim host (specified with the “-d” option) with batches of 100 Redirect messages (“-R 100” option). Each Redirect message redirects a random address from the prefix “2001:db8::/64” to the address “fe80::bad”. The IPv6 and link-layer addresses of the current local router is dynamically learned by means of RS/RA messages (“--learn-router” option). The process is repeated every second (“-l” option, with the default delay of 1 second).
 
-
 .SH SEE ALSO
 "Security/Robustness Assessment of IPv6 Neighbor Discovery Implementations" (available at: <http://www.si6networks.com/tools/ipv6toolkit/si6networks-ipv6-nd-assessment.pdf>) for a discussion of Neighbor Discovery vulnerabilities, and additional examples of how to use the na6 tool to exploit them.
-
 
 .SH AUTHOR
 The

@@ -1,4 +1,4 @@
-.TH TCP6 1
+.TH JUMBO6 1
 .SH NAME
 jumbo6 \- A security assessment tool for attack vectors based on IPv6 jumbograms
 .SH SYNOPSIS
@@ -13,7 +13,6 @@ This tool has two modes of operation: active and listening. Active mode is emplo
 In active mode, the tool sends IPv6 jumbograms to the specified target, and informs the user of any received ICMPv6 error messages (typically “ICMPv6 Parameter Problem” error messages). In “listening” mode, the tool listens to traffic on the local network, and sends IPv6 jumbograms in response to received packets.  
 
 When operating in “listening” mode, the tool can filter incoming packets based on the Ethernet Source Address, the Ethernet Destination Address, the IPv6 Source Address, and the IPv6 Destination Address.  There are two types of filters: “block filters” and “accept filters”. If any “block filter” is specified, and the incoming packet matches any of those filters, the message is discarded (and thus no attack packets are sent in response). If any “accept filter” is specified, incoming packets must match the specified filters in order for the tool to respond with attack packets.
-
 
 .SH OPTIONS
 .B jumbo6
@@ -59,7 +58,6 @@ This option specifies the Hop Limit to be used for the IPv6 packets. By default,
 --frag-hdr, -y
 
 This option specifies that the resulting packet must be fragmented. The fragment size must be specified as an argument to this option.
-
 
 .TP
 --dst-opt-hdr, -u
@@ -156,7 +154,6 @@ This option instructs the jumbo6 tool to be verbose.  When the option is set twi
 
 Print help information for the jumbo6 tool. 
 
-
 .SH EXAMPLES
 
 The following sections illustrate typical use cases of the
@@ -169,13 +166,11 @@ tool.
 
 Send an IPv6 jumbogram to the host fc00:1::1. The IPv6 Source Address will be randomly selected from the prefix fc00:1::/64, and a the payload of 100 bytes is included in the packet.
 
-
 \fBExample #2\fR
 
 # jumbo6 -i eth0 -L -b 2001:db8::1 -v
 
 Listen on the eth0 interface to incoming packets with the IPv6 Source Address set to “2001:db8::1”, and respond to such packets with an IPv6 jumbogram. Be verbose.
-
 
 .SH AUTHOR
 The

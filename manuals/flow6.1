@@ -25,9 +25,6 @@ flow6 \- A security assessment tool for the IPv6 Flow Label field
 .B flow6
 performs a security assessment of the Flow Label generation policy of a target node. It is part of the IPv6 Toolkit v1.2: a security assessment suite for the IPv6 protocol developed Fernando Gont on behalf of the UK CPNI (Centre for the Protection of National Infrastructure).
 
-
-\fBOperation\fR
-
 .B flow6
 sends a number of probe packets to the target node, and samples the Flow Label values of the corresponding response packets. Based on the sampled values, it tries to infer the Flow Label generation policy of the target.
 .PP
@@ -37,11 +34,9 @@ The tool computes the expected value and the standard deviation of the differenc
 .PP
 If the standard deviation of [Labeln – Labeln-1] is 0, the Flow Label is assumed to be set to a constant value, and the corresponding value is informed to the user. For small values of the standard deviation, the Flow Label is assumed to be a monotonically-increasing function with increments of the “expected value”, and such “expected value” together with the standard deviation, are informed to the user. For large values of the standard deviation, the Flow Label is assumed to be randomized, and the expected value and standard deviation are informed to the user, as indicators of the “quality” of the Flow Label generation algorithm.
 
-
 .SH OPTIONS
 .B flow6
 takes it parameters as command-line options. Each of the options can be specified with a short name (one character preceded with the hyphen character, as e.g. “\-i”) or with a long name (a string preceded with two hyphen characters, as e.g. “\-\-interface”).
-
 
 .TP
 .BI \-i\  INTERFACE ,\ \-\-interface\  INTERFACE
@@ -51,7 +46,6 @@ This option specifies the network interface that the tool will use. The network 
 .BI \-s\  SRC_ADDR ,\ \-\-src\-address\  SRC_ADDR
 
 This option specifies the IPv6 source address (or IPv6 prefix) to be used for the Source Address of the probe packets. If an IPv6 prefix is specified, the IPv6 Source Address of the ICMPv6 packets will be randomized from that prefix.
-
 
 .TP
 .BI \-d\  DST_ADDR ,\ \-\-dst\-address\  DST_ADDR
@@ -63,18 +57,15 @@ This option specifies the IPv6 Destination Address of the target node. This opti
 
 This option specifies the Hop Limit to be used for the IPv6 packets. By default, the Hop Limit is randomized.
 
-
 .TP
 .BI \-S\  SRC_LINK_ADDR ,\ \-\-src\-link\-address\  SRC_LINK_ADDR
 
 This option specifies the link-layer Source Address of the probe packets (currently, only Ethernet is supported). If left unspecified, the link-layer Source Address of the packets is set to the real link-layer address of the network interface.
 
-
 .TP
 .BI \-D\  DST_LINK_ADDR ,\ \-\-dst\-link\-address\  DST_LINK_ADDR
 
 This option specifies the link-layer Destination Address of the probe packets (currently, only Ethernet is supported). By default, the link-layer Destination Address is automatically set to the link-layer address of the destination host (for on-link destinations) or to the link-layer address of the first-hop router.
-
 
 .TP
 .BI \-P\  PROTOCOL ,\ \-\-protocol\  PROTOCOL
@@ -92,12 +83,10 @@ Note: Since it is vital for the tool to receive response packets to be able to i
 .BR \-W,\ \-\-flow\-label\-policy
 This option instructs the tool to determine the Flow Label generation policy. As of this version of the tool, this option must be specified.
 
-
 .TP
 .BR \-v\| ,\  \-\-verbose 
 
 This option instructs the flow6 tool to be verbose.  If this option is set twice, the tool is “very verbose”, and outputs the sampled Flow Label values (in addition to other information). 
-
 
 .TP
 .BR \-h\| ,\  \-\-help
@@ -105,7 +94,6 @@ This option instructs the flow6 tool to be verbose.  If this option is set twice
 Print help information for the 
 .B flow6
 tool. 
-
 
 .SH EXAMPLES
 The following sections illustrate typical use cases of the
@@ -124,14 +112,13 @@ Assess the Flow Label generation policy of the host “fe80::1”, using the net
 
 Assess the Flow Label generation policy of the host “fe80::1”, using the network interface “eth0”. Probe packets are TCP segments directed to port 22. Be very verbose (i.e., list the sampled Flow Label values).
 
-
 .SH AUTHOR
 The
 .B flow6
-tool and the corresponding manual pages were produced by Fernando Gont <fgont@si6networks.com> on behalf of the United Kingdom's Centre for the Protection of National Infrastructure (CPNI).
+tool and the corresponding manual pages were produced by Fernando Gont <fgont@si6networks.com> for SI6 Networks <http://www.si6networks.com>.
 
 .SH COPYRIGHT
-Copyright (c) 2012 United Kingdom's Centre for the Protection of National Infrastructure (CPNI).
+Copyright (c) 2011-2013 Fernando Gont.
 
 Permission is granted to copy, distribute and/or modify this document under the terms of the GNU Free Documentation License, Version 1.3 or any later version published by the Free Software Foundation; with the Invariant Sections being just "AUTHOR" and "COPYRIGHT", with no Front-Cover Texts, and with no Back-Cover Texts.  A copy of the license is available at
 .IR <http://www.gnu.org/licenses/fdl.html> .

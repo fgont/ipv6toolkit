@@ -5,11 +5,9 @@ rs6 \- A security assessment tool for attack vectors based on ICMPv6 Router Soli
 .B rs6
 -i INTERFACE [-s SRC_ADDR[/LEN]] [-d DST_ADDR] [-y FRAG_SIZE] [-u DST_OPT_HDR_SIZE] [-U DST_OPT_U_HDR_SIZE] [-H HBH_OPT_HDR_SIZE] [-S LINK_SRC_ADDR] [-D LINK-DST-ADDR] [-E LINK_ADDR] [-e] [-F N_SOURCES] [-z SECONDS] [-l] [-v] [-h]
 
-
 .SH DESCRIPTION
 .B rs6
 allows the assessment of IPv6 implementations with respect to a variety of attacks based on ICMPv6 Router Solicitation messages. This tool is part of the SI6 Networks' IPv6 Toolkit v1.3: a security assessment suite for the IPv6 protocols.
-
 
 .SH OPTIONS
 .B rs6
@@ -62,7 +60,6 @@ This option specifies that a Hop-by-Hop Options header is to be included in the 
 
 This option specifies the link-layer Source Address of the Router Solicitation messages (currently, only Ethernet is supported). If left unspecified, the link-layer Source Address is randomized.
 
-
 .TP
 --link-dst-address, -D
 
@@ -103,7 +100,6 @@ This option instructs the rs6 tool to be verbose.
 
 Print help information for the rs6 tool.
 
-
 .SH EXAMPLES
 
 The following sections illustrate typical use cases of the
@@ -116,13 +112,11 @@ tool.
 
 Use the network interface “eth0” to send a Router Solicitation using a random link-local unicast IPv6 Source Address and a random Ethernet Source Address, to the IPv6 Destination Address “ff02::2” (“all-routers link-local multicast” address, selected by default) and the Ethernet Destination Address “33:33:00:00:00:02” (selected by default). The Router Solicitation also includes a source link-layer address option, that contains the same Ethernet address as that used for the Ethernet Source Address of the packet. 
 
-
 \fBExample #2\fR
 
 # rs6 -i eth0 -e -F 100 -l -z 10 -v
 
 Send 100 Router Solicitation messages using a random Ethernet Source Address and random IPv6 Source Address for each of them, to the Ethernet Destination Address “33:33:00:00:00:02” (default) and the IPv6 Destination Address “ff02:2” (default). Each message includes a source link-layer address option that contains the same link-layer address as that used for the Ethernet Source Address of the packet. Repeat this operation every ten seconds. Be verbose.
-
 
 \fBExample #3\fR
 
@@ -130,10 +124,8 @@ Send 100 Router Solicitation messages using a random Ethernet Source Address and
 
 Send one Router Solicitation message using a random Ethernet Source Address and a random link-local unicast (i.e., fe80::/64) IPv6 Source Address, to the Ethernet Destination Address “33:33:00:00:00:02” (default) and the IPv6 Destination Address “fe80::1”. Each Router Solicitation includes a source link-layer address option that contains the Ethernet address “ff:ff:ff:ff:ff:ff”. Be verbose.
 
-
 .SH SEE ALSO
 "Security/Robustness Assessment of IPv6 Neighbor Discovery Implementations" (available at: <http://www.si6networks.com/tools/ipv6toolkit/si6networks-ipv6-nd-assessment.pdf>) for a discussion of Neighbor Discovery vulnerabilities, and additional examples of how to use the na6 tool to exploit them.
-
 
 .SH AUTHOR
 The

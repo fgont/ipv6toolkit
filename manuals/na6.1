@@ -13,8 +13,6 @@ This tool has two modes of operation: active and passive. In active mode, the to
 
 The tool supports filtering of incoming Neighbor Solicitation messages based on the Ethernet Source Address, the Ethernet Destination Address, the IPv6 Source Address, the IPv6 Destination Address, and the Neighbor Solicitation Target Address.  There are two types of filters: “block filters” and “accept filters”. If any “block filter” is specified, and the incoming Neighbor Solicitation message matches any of those filters, the message is discarded (and thus no Neighbor Advertisements are sent in response). If any “accept filter” is specified, incoming Neighbor Solicitation messages must match the specified filters in order for the na6 tool to respond with Neighbor Advertisement messages. 
 
-
-
 .SH OPTIONS
 .B na6
 takes its parameters as command-line options. Each of the options can be specified with a short name (one character preceded with the hyphen character, as e.g. “-i”) or with a long name (a string preceded with two hyphen characters, as e.g. “--interface”).
@@ -49,7 +47,6 @@ This option specifies the Hop Limit to be used for the Neighbor Advertisement me
 --frag-hdr, -y
 
 This option specifies that the resulting packet must be fragmented. The fragment size must be specified as an argument to this option.
-
 
 .TP
 --dst-opt-hdr, -u
@@ -211,17 +208,14 @@ tool.
 
 Use the network interface “eth0” to send a Neighbor Advertisement using a random link-local unicast IPv6 Source Address and a random Ethernet Source Address, to the IPv6 Destination address ffe80::1 and the Ethernet Destination Address 33:33:00:00:00:01 (selected by default). The target of the Neighbor Advertisement is 2001:db8::1, and the message has both the “Override” and the “Solicited” flags set. The Neighbor Advertisement also includes a target link-layer address option that contains the same Ethernet address as that used for the Ethernet Source Address of the packet. 
 
-
 \fBExample #2\fR
 
 # na6 -i eth0 -j fe80::1 -j 2001:db8::/32 -W fe80::/64 -c -o -e -L -v -v
 
 Listen for incoming Neighbor Solicitation messages on the interface “eth0”. Discard those messages that have an IPv6 Source Address equal to fe80::1, an IPv6 Source Address that belongs to the prefix 2001:db8::/32, or a Target Address that does not belong to the prefix fe80::/64. Respond (to those messages that are accepted) with a Neighbor Advertisement with a randomized Ethernet Source Address and a randomized link-local unicast IPv6 Source Address (unless the Destination Address of the Neighbor Solicitation was a unicast address), the IPv6 Destination Address set to the Source Address of the incoming NS message (unless it was the unspecified address), the Target Address set to the same value as the Target Address of the incoming NS, and the “Solicited” and “Override” flags set. Be very verbose (“-v -v” options).
 
-
 .SH SEE ALSO
 "Security/Robustness Assessment of IPv6 Neighbor Discovery Implementations" (available at: <http://www.si6networks.com/tools/ipv6toolkit/si6networks-ipv6-nd-assessment.pdf>) for a discussion of Neighbor Discovery vulnerabilities, and additional examples of how to use the na6 tool to exploit them.
-
 
 .SH AUTHOR
 The

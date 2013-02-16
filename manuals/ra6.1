@@ -11,7 +11,6 @@ allows the assessment of IPv6 implementations with respect to a variety of attac
 
 This tool has two modes of operation: active and passive. In active mode, the tool attacks a specific target, while in passive mode the tool listens to traffic on the local network, and launches an attack in response to such traffic. Active mode is employed when an Ethernet destination address and/or an IPv6 destination address are specified. Passive mode is employed when the “-L” option (or its long variant “--listen”) is specified. In passive mode, the ra6 tool listens for incoming Router Solicitation messages and responds with the Router Advertisement attack messages. If both a destination address and the “-L” option are specified, the tool firstly employs active mode to attack the specified target, and then enters passive mode to respond to Router Solicitation messages with Router Advertisement attack packets.
 
-
 .SH OPTIONS
 .B ra6
 takes its parameters as command-line options. Each of the options can be specified with a short name (one character preceded with the hyphen character, as e.g. “-i”) or with a long name (a string preceded with two hyphen characters, as e.g. “--interface”).
@@ -19,7 +18,6 @@ takes its parameters as command-line options. Each of the options can be specifi
 Depending on the amount of information (i.e., options and option data) to be conveyed into the Router Advertisements, it may be necessary for ra6 to split that information into more than one Router Advertisement message. This may be particularly the case when the “flood-prefixes”, “--flood-routes”, or “--flood-dns” options are used. Also, when the ra6 tool is instructed to flood the victim with Router Advertisements from different sources (“--flood-sources” option), multiple packets may need to be generated. ra6 supports IPv6 fragmentation, which may be of use if a large amount of information needs to be conveyed within a single Router Advertisement message. IPv6 fragmentation is not enabled by default, and must be explicitly enabled with the “-y” option.
 
 The tool supports filtering of incoming Router Solicitation messages based on the Ethernet Source Address, the Ethernet Destination Address, the IPv6 Source Address, and the IPv6 Destination Address.  There are two types of filters: “block filters” and “accept filters”. If any “block filter” is specified, and the incoming Router Solicitation message matches any of those filters, the message is discarded (and thus no Router Advertisements are sent in response). If any “accept filter” is specified, incoming Router Solicitation messages must match the specified filters in order for the ra6 tool to respond with Router Advertisement messages. 
-
 
 .TP
 --interface, -i
@@ -234,12 +232,10 @@ This option specifies that the tool should enter the “passive” mode (possibl
 
 This option instructs the ra6 tool to be verbose. 
 
-
 .TP
 --help, -h
 
 Print help information for the ra6 tool. 
-
 
 .SH EXAMPLES
 
@@ -253,13 +249,11 @@ tool.
 
 Listen (“-L”) for incoming Router Solicitations on interface eth0 (“-i eth0”), and advertise the prefix 2001::/64 for both on-link determination and auto-configuration (“-P 2001::/64#LA”) and the prefix 2002::/64 only for auto-configuration (“-P 2002::/64#A”). Include a source link-layer address option (“-e”) in the Router Advertisements.
 
-
 \fBExample #2\fR
 
 # ra6 -i eth0 -d fe80::1 -D 01:02:03:04:05:06 -c 5 --lifetime 100 -o -e -M 1400
 
 Use the network interface “eth0” to send a Router Advertisement using a random link-local IPv6 Source Address and a random Ethernet Source Address, to the IPv6 Destination address fe80::1 and the Ethernet Destination Address 01:02:03:04:05:06. The Router Advertisement includes a “Router Lifetime” of 100, and advertises a CurHop value of 5 (i.e., a recommended “Hop Limit” of “5”). The ‘O’ bit is set (thus indicating that other configuration information is available via DHCP). The Router Advertisement includes a source link-layer address option (containing the same address as the Ethernet Source Address of the packet) and an MTU option with a value of 1400.
-
 
 \fBExample #3\fR
 
@@ -279,10 +273,8 @@ Listen for incoming Router Solicitation messages, and respond with a Router Adve
 
 Flood the target (fe80::1) with 1000 random IPv6 addresses of Recursive DNS Servers, with a maximum of 10 addresses per RDNSS option. Each RDNSS option has a “Lifetime” of 900. Packets are sent with an IPv6 Source Address of “fe80::1234” and an Ethernet Source Address of “00:01:02:03:04:05”. Once the target has been attacked, listen for incoming Router Solicitation messages and respond with the same “flood” packets (the Ethernet Source Address and the IPv6 Source Address will change if the Router Solicitation messages have been sent to a unicast address, though).
 
-
 .SH SEE ALSO
 "Security/Robustness Assessment of IPv6 Neighbor Discovery Implementations" (available at: <http://www.si6networks.com/tools/ipv6toolkit/si6networks-ipv6-nd-assessment.pdf>) for a discussion of Neighbor Discovery vulnerabilities, and additional examples of how to use the na6 tool to exploit them.
-
 
 .SH AUTHOR
 The

@@ -56,12 +56,10 @@ scan6 \- An IPv6 host scanner
 .B scan6
 is an IPv6 address scanning tool that implements a number of advanced IPv6 address scanning techniques. It is part of the SI6 Networks' IPv6 Toolkit v1.3: a security assessment suite for the IPv6 protocols.
 
-
 \fBHOST SCANNING TECHNIQUES\fR
 
 .B scan6
 employs a number of techniques techniques to discover active IPv6 nodes. The following subsections discuss the different techniques employed for each time of IPv6 scan 
-
 
 \fBLocal scans\fR
 
@@ -129,7 +127,6 @@ A thorough discussion of these address patterns can be found in: <http://tools.i
 .B scan6
 takes its parameters as command-line options. Each of the options can be specified with a short name (one character preceded with the hyphen character, as e.g. “\-i”) or with a long name (a string preceded with two hyphen characters, as e.g. “\-\-interface”).
 
-
 .TP
 .BI \-i\  interface ,\ \-\-interface\  interface
 This option specifies the network interface to be used by the
@@ -141,7 +138,6 @@ tool. For local scans (\-l option), specification of the network interface is ma
 This option specifies the IPv6 Source Address to be used for the Source Address of the probe packets. If a prefix is specified, the Source Address is randomly selected from that prefix.
 
 If this option is left unspecified, the addresses currently configured for the specified network interface card are used. 
-
 
 .TP
 .BI \-d\  DST_ADDRESS ,\ \-\-dst\-address\  DST_ADDRESS 
@@ -186,7 +182,6 @@ This option is used to set specific the TCP flags. The flags are specified as �
 
 If this option is left unspecified, the ACK bit is set on all probe packets.
 
-
 .TP
 .BI \-P\   ADDR_TYPE ,\ \-\-print\-type\  ADDR_TYPE
 
@@ -230,7 +225,6 @@ This option specifies that host scanning should be performed on the local subnet
 
 This option specifies that the IPv6 Source Address should be randomized.
 
-
 .TP
 .BR \-R\| ,\  \-\-rand\-link\-src\-addr
 
@@ -241,42 +235,35 @@ This option specifies that the Ethernet Source Address should be randomized.
 
 This option specifies that the target is virtual machines. Possible options are: 'vbox' (VirtualBox), 'vmware' (vmware), and 'all' (both VirtualBox and vmware). When this option is specified, scan6 can narrow dow the search space by targetting only those IEEE OUIs employed by the aforementioned virtualization software. Note: For vmware, the search space can be further reduced if the '--ipv4-host' option is specified.
 
-
 .TP
 .BR \-b\| ,\  \-\-tgt\-low-byte
 
 This option specifies that the target is IPv6 nodes employing “low-byte” addresses. 
-
 
 .TP
 .BR \-B\| ,\  \-\-tgt\-ipv4\-embedded
 
 This option specifies that the target is IPv6 addresses that embed an IPv4 address. When this option is set, a prefix should be specified with the '--ipv4-host' option, such that the search space is reduced.
 
-
 .TP
 .BI -k\  IEEE_OUI ,\ \-\-tgt\-ieee\-oui\  IEEE_OUI
 
 This options is used to specify an IEEE OUI, such that the target of the scan is SLAAC addresses that employ the aforementioned IEEE OUI.
-
 
 .TP
 .BI \-K\  VENDOR ,\  \-\-tgt\-vendor\  VENDOR
 
 This option allows the user to specify a vendor name. scan6 will look-up all the correspoinding IEEE OUIs for such vendor, and then scan for SLAAC addresses that employ the aforementioned IEEE OUIs.
 
-
 .TP
 .BR \-T ,\  \-\-sort\-ouis 
 
 This options, when used in conjunction with the “--tgt-vendor” option, tells the scan6 tool to “sort” the IEEE OUIs corresponding to a vendor. Namely, OUIs are employed in descending order, with the largest OUI used last (together with the smallest OUI). The rationale for this option is that when a vendor has been assigned multiple OUIs, chances are that the smaller (and “oldest”) OUI was used for devices that have already been put “out of service”, while the largest (and “newest”) OUI has probably not yet been used for deployed devices.
 
-
 .TP
 .BI \-Q\  PREFIX/LEN ,\ \-\-ipv4\-host\  PREFIX/LEN
 
 This options allows the user to specify an IPv4 prefix. The aforementioned prefix is employed with the “--tgt-virtual-machines” and/or “--tgc-ipv4-embeded” options to reduce the search space.
-
 
 .TP
 .BI \-I\  INC_SIZE ,\ \-\-inc\-size\  INC_SIZE
@@ -295,13 +282,10 @@ In general, the address scan should be rate-limited to about 80% (eighty percent
 
 This option is used to specify an alternative configuration file. If left unspecified, the tool will employ '/etc/ipv6toolkit.conf'.
 
-
-
 .TP
 .BR \-v\| ,\  \-\-verbose 
 
 This option selects the “verbosity” of the tool. If this option is left unspecified, only minimum information is printed. If this option is set once, additional information is printed (e.g., the tool indicates which addresses are “link-local” and which addresses are “global”). If this option is set twice, detailed information will be printed in the case the tool finds any problems when performing host scanning.
-
 
 .TP
 .BR \-h\| ,\  \-\-help
@@ -309,7 +293,6 @@ This option selects the “verbosity” of the tool. If this option is left unsp
 Print help information for the 
 .B scan6
 tool. 
-
 
 .SH EXAMPLES
 
@@ -347,7 +330,6 @@ Use the “eth0” interface (“-i” option) to scan for IPv6 addresses of the
 # ./scan6 -i eth0 -l -d fc00::/64 --tgt-vendor 'Dell Inc' -p tcp
 
 Use the “eth0” interface to scan for network devices manufactured by 'Dell Inc' in the target prefix fc00::/64. The tool will employ TCP segments as the probe packets (rather than the default ICMPv6 echo requests).
-
 
 \fBExample #6\fR
 

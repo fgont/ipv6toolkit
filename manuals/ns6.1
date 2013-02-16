@@ -9,8 +9,6 @@ ns6 \- A security assessment tool for attack vectors based on ICMPv6 Neighbor So
 .B ns6
 allows the assessment of IPv6 implementations with respect to a variety of attacks based on ICMPv6 Neighbor Solicitation messages. This tool is part of the IPv6 Toolkit v1.3: a security assessment suite for the IPv6 protocols.
 
-
-
 .SH OPTIONS
 .B ns6
 The ns6 tool takes its parameters by means of command-line options. Each of the options can be specified with a short name (one character preceded with the hyphen character, as e.g. “-i”) or with a long name (a string preceded with two hyphen characters, as e.g. “--interface”).
@@ -126,7 +124,6 @@ tool.
 
 Use the network interface “eth0” to send a Neighbor Solicitation message using a random link-local unicast IPv6 Source Address and a random Ethernet Source Address, to the IPv6 Destination address fe80::1 and the Ethernet Destination Address 33:33:00:00:00:01 (selected by default). The target of the Neighbor Advertisement is 2001:db8::1. The Neighbor Solicitation also includes a source link-layer address option, that contains the same Ethernet address as that used for the Ethernet Source Address of the packet. 
 
-
 \fBExample #2\fR
 
 # ns6 -i eth0 -s 2001:db8::/32 -t 2001:db8::1 -F 10 -l -z 10 -e -v
@@ -139,10 +136,8 @@ Send 10 Neighbor Solicitation messages using random Ethernet Source Addresses an
 
 Send 10 Neighbor Solicitation messages using random Ethernet Source Addresses and random IPv6 Source Addresses from the prefix fe80::/64 (default, link-local unicast), to the Ethernet Destination Address 33:33:00:00:00:01 (default) and the IPv6 Destination Address ff02:1 (default). The IPv6 Target Address of the Neighbor Solicitation is 2001:db8::1, and each message includes a source link-layer address option that contains the Ethernet address ff:ff:ff:ff:ff:ff. Repeat this operation every ten seconds. Be verbose.
 
-
 .SH SEE ALSO
 "Security/Robustness Assessment of IPv6 Neighbor Discovery Implementations" (available at: <http://www.si6networks.com/tools/ipv6toolkit/si6networks-ipv6-nd-assessment.pdf>) for a discussion of Neighbor Discovery vulnerabilities, and additional examples of how to use the na6 tool to exploit them.
-
 
 .SH AUTHOR
 The

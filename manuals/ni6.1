@@ -13,8 +13,6 @@ This tool has two modes of operation: “active” and “listening”. In “ac
 
 The tool supports filtering of incoming packets based on the Ethernet Source Address, the Ethernet Destination Address, the IPv6 Source Address, and the IPv6 Destination Address.  There are two types of filters: “block filters” and “accept filters”. If any “block filter” is specified, and the incoming packet matches any of those filters, the message is discarded (and thus no ICMPv6 NI Reply messages are sent in response). If any “accept filter” is specified, incoming packets must match any of the specified “accept filters” in order for the tool to respond with ICMPv6 NI Reply messages.
 
-
-
 .SH OPTIONS
 .B ni6
 takes it parameters as command-line options. Each of the options can be specified with a short name (one character preceded with the hyphen character, as e.g. “-i”) or with a long name (a string preceded with two hyphen characters, as e.g. “--interface”).
@@ -132,7 +130,6 @@ This option specified the ICMPv6 code. For ICMPv6 NI Query messages, if specific
 
 This option specifies the Qtype value of ICMPv6 NI messages. For ICMPv6 NI Reply messages, if specific Data type is specified, the ICMPv6 Qtype is automatically set to the corresponding value. 
 
-
 .TP
 --flags, -X
 
@@ -182,7 +179,6 @@ This option specifies that the specified Data Name is a single-label name, and h
 --block-src, -j
 
 This option sets a block filter for the incoming packets, based on their IPv6 Source Address. It allows the specification of an IPv6 prefix in the form “-j prefix/prefixlen”. If the prefix length is not specified, a prefix length of “/128” is selected (i.e., the option assumes that a single IPv6 address, rather than an IPv6 prefix, has been specified).
-
 
 .TP
 --block-dst, -k
@@ -268,13 +264,11 @@ tool.
 
 Send an ICMPv6 Node Information Query to the multicast address ff02::1 (“-d” option), with a Subject IPv6 Address of “ff02::1” (“--subject-ipv6” option), querying for Node names (“-q” option). Be verbose.
 
-
 \fBExample #2\fR
 
 # ni6 -i eth0 --data-fname 1000 -L --forge-src-addr -v
 
 Listen to incoming ICMPv6 Node Information Query messages querying for node names, and respond with ICMPv6 NI Reply messages that contain a forged name of 700 bytes. Forge the IPv6 Source Address of the packets. Be verbose.
-
 
 .SH AUTHOR
 The
