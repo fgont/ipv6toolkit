@@ -2403,7 +2403,7 @@ int send_packet(const u_char *pktdata, struct pcap_pkthdr * pkthdr){
 /*
  * Function: usage()
  *
- * Prints the syntax of the icmp6 tool
+ * Prints the syntax of the ni6 tool
  */
 void usage(void){
     puts("usage:\n"
@@ -2470,9 +2470,9 @@ void print_help(void){
 		 "  --forge-src-addr, -r       Forge IPv6 Source Address\n"
 		 "  --forge-link-src-addr, -R  Forge link-layer Source Address\n"
 	     "  --loop, -l                 Send periodic ICMPv6 error messages\n"
-	     "  --sleep, -z                Pause between sending ICMPv6 error messages\n"
+	     "  --sleep, -z                Pause between sending ICMPv6 messages\n"
 	     "  --listen, -L               Listen to incoming traffic\n"
-	     "  --help, -h                 Print help for the icmp6 tool\n"
+	     "  --help, -h                 Print help for the ni6 tool\n"
 	     "  --verbose, -v              Be verbose\n"
 	     "\n"
 	     " Programmed by Fernando Gont for SI6 Networks <http://www.si6networks.com>\n"
