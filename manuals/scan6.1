@@ -66,62 +66,67 @@ employs a number of techniques techniques to discover active IPv6 nodes. The fol
 For local scans,
 .B scan6
 operates (roughly) as follows:
-.TS
-tab (@);
-l l.
-@\+ The tool learns the local prefixes used for auto-configuration,
-@\  an generates one address for each local prefix (in addition to
-@\  a link-local address)
-@\+ An ICMPv6 Echo Request message destined to the all-nodes on-link
-@\  multicast address (ff02::1) is sent with each of the addresses 
-@\  “configured” in the previous step. Probe packets are sent with
-@\  different Source Addresses, such that they elicit responses from
-@\  different addresses (as a result of the default IPv6 Source 
-@\  Address selection policy). Hence. all (or most) addresses of 
-@\  each node can be discovered.
 
-@\+ The same procedure of the previous bullet is performed, but 
-@\  this time with ICMPv6 packets that contain an unrecognized 
-@\  option of type 10xxxxxx, such that ICMPv6 Parameter Problem 
-@\  error messages are elicited. This allows the tool to discover 
-@\  e.g. Windows nodes, which otherwise do not respond to multicasted
-@\  ICMPv6 Echo Request messages.
+.sp
+.RS 4
+.nf
+\+ The tool learns the local prefixes used for auto-configuration,
+\  an generates one address for each local prefix (in addition to
+\  a link-local address)
 
-@\+ Each time a new “alive” address is discovered, the corresponding
-@\  Interface-ID is combined with all the local prefixes, and the 
-@\  resulting addresses are probed (with unicasted packets). This 
-@\  can help to discover all the SLAAC-derived and the “private 
-@\  addresses”, since some responses might contain e.g. Modified 
-@\  EUI-64 Format Identifiers, which are likely used with all the 
-@\  available prefixes.
+\+ An ICMPv6 Echo Request message destined to the all-nodes on-link
+\  multicast address (ff02::1) is sent with each of the addresses 
+\  “configured” in the previous step. Probe packets are sent with
+\  different Source Addresses, such that they elicit responses from
+\  different addresses (as a result of the default IPv6 Source 
+\  Address selection policy). Hence. all (or most) addresses of 
+\  each node can be discovered.
 
-@\+ Finally, the tool removes any duplicate addresses, such that each
-@\  unique address is informed to the user only once.
-.TE
+\+ The same procedure of the previous bullet is performed, but 
+\  this time with ICMPv6 packets that contain an unrecognized 
+\  option of type 10xxxxxx, such that ICMPv6 Parameter Problem 
+\  error messages are elicited. This allows the tool to discover 
+\  e.g. Windows nodes, which otherwise do not respond to multicasted
+\  ICMPv6 Echo Request messages.
+
+\+ Each time a new “alive” address is discovered, the corresponding
+\  Interface-ID is combined with all the local prefixes, and the 
+\  resulting addresses are probed (with unicasted packets). This 
+\  can help to discover all the SLAAC-derived and the “private 
+\  addresses”, since some responses might contain e.g. Modified 
+\  EUI-64 Format Identifiers, which are likely used with all the 
+\  available prefixes.
+
+\+ Finally, the tool removes any duplicate addresses, such that each
+\  unique address is informed to the user only once.
+.fi
+.RE
 
 The aforemnetioned scheme can fail to discover some addresses for some implementation. For example, MacOS X employs IPv6 addresses embedding IEEE-identifiers when responding to packets destined to a link-local multicast address (and hence the temporary addresses could not be learned).
 
 \fBRemote scans\fR
 
 scan6 employs a number of bran-new techniquest for performing address scans of remote networks. Namely, it tries to mitigate a number of patterns in IPv6 addresses, such that the (theoretical) search space of 2**64 addresses is dramatically reduced. scan6 can leverage the following address patterns:
+.sp
+.RS 4
+.nf
+\+ SLAAC addresses of specific vendors: Adresses that embedd the MAC
+\  address of the corresponding network interface card.
 
-.TS
-tab (@);
-l l.
-@\+ SLAAC addresses of specific vendors: Adresses that embedd the MAC
-@\  address of the corresponding network interface card.
-@\+ virtual host addresses: Most virtualization technologies select 
-@\  their MAC addresses from specific IEEE OUIs (e.g., VirtualBox 
-@\  employs the OUI 00:50:56)
-@\+ "low-byte" addresses: in which only the lowest order (or the two
-@\  lowest order) word of the IID contains a small integer (with the
-@\  rest of the words being set to zero)
-@\+ IPv4-based addresses: in which the IID encodes the IPv4-address 
-@\  of the network interface (as in 2001:db8::192.168.1.1)
-.TE
+\+ virtual host addresses: Most virtualization technologies select 
+\  their MAC addresses from specific IEEE OUIs (e.g., VirtualBox 
+\  employs the OUI 00:50:56)
+
+\+ "low-byte" addresses: in which only the lowest order (or the two
+\  lowest order) word of the IID contains a small integer (with the
+\  rest of the words being set to zero)
+
+\+ IPv4-based addresses: in which the IID encodes the IPv4-address 
+\  of the network interface (as in 2001:db8::192.168.1.1)
+.fi
+.RE
 
 A thorough discussion of these address patterns can be found in: <http://tools.ietf.org/html/draft-gont-opsec-ipv6-host-scanning>
-
 
 .SH OPTIONS
 .B scan6
