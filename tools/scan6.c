@@ -1834,7 +1834,7 @@ int load_lowbyte_entries(struct scan_list *scan, struct scan_entry *dst){
 	(scan->target[scan->ntarget])->start= dst->start;
 
 	for(i=4; i<=7; i++)
-		(scan->target[scan->ntarget])->end.s6_addr16[i]= htons(0);
+		(scan->target[scan->ntarget])->start.s6_addr16[i]= htons(0);
 
 	(scan->target[scan->ntarget])->cur= (scan->target[scan->ntarget])->start;
 	(scan->target[scan->ntarget])->end= dst->end;
