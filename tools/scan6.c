@@ -2214,7 +2214,7 @@ int match_strings(char *buscar, char *buffer){
 
 
 /*
- * Function: prefix_to_scan()
+ * Function: load_bruteforce_entries()
  *
  * Converts a target prefix to scan_entry format
  */
@@ -2255,7 +2255,7 @@ void prefix_to_scan(struct prefix_entry *pref, struct scan_entry *scan){
 		(scan->end).s6_addr16[i]= (pref->ip6).s6_addr16[i];
 
 	for(i= (words+1); i<8; i++){
-		(scan->end).s6_addr16[i]= 0xffff;
+		(scan->end).s6_addr16[i]= htons(0xffff);
 	}
 
 	mask=0xffff;
@@ -2263,7 +2263,7 @@ void prefix_to_scan(struct prefix_entry *pref, struct scan_entry *scan){
 	for(i=0; i< (pref->len % 16); i++)
 		mask= mask>>1;
 
-	(scan->end).s6_addr16[words]= (scan->end).s6_addr16[words] | htons(mask);
+	(scan->end).s6_addr16[words]= (scan->start).s6_addr16[words] | htons(mask);
 }
 
 
