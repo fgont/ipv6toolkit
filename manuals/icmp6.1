@@ -3,23 +3,7 @@
 icmp6 \- A security assessment tool for attack vectors based on ICMPv6 packets
 .SH SYNOPSIS
 .B icmp6
-.BI \-i \|\ INTERFACE
-.BI \-d \|\ DST_ADDR
-.RB [\| \-S
-.IR LINK_SRC_ADDR\| ]
-.RB [\| \-D
-.IR LINK_DST_ADDR\| ]
-.RB [\| \-s
-.IR SRC_ADDR \|[/\| LEN \|]]
-.RB [\| \-A
-.IR HOP_LIMIT \|]
-.RB [\| \-P
-.IR PROTOCOL \|]
-.RB [\| \-p
-.IR PORT \|]
-.RB [\| \-W \|]
-.RB [\| \-v \|]
-.RB [\| \-h \|]
+-i INTERFACE [-s SRC_ADDR[/LEN]] [-d DST_ADDR] [-S LINK_SRC_ADDR] [-D LINK-DST-ADDR] [-c HOP_LIMIT] [-y FRAG_SIZE] [-u DST_OPT_HDR_SIZE] [-U DST_OPT_U_HDR_SIZE] [-H HBH_OPT_HDR_SIZE] [-t TYPE[:CODE] | -e CODE | -A CODE -V CODE -R CODE] [-r TARGET_ADDR] [-x PEER_ADDR] [-c HOP_LIMIT] [-m MTU] [-O POINTER] [-p PAYLOAD_TYPE] [-P PAYLOAD_SIZE] [-n] [-a SRC_PORTL[:SRC_PORTH]] [-o DST_PORTL[:DST_PORTH]] [-X TCP_FLAGS] [-q TCP_SEQ] [-Q TCP_ACK] [-V TCP_URP] [-w TCP_WIN] [-M] [-j PREFIX[/LEN]] [-k PREFIX[/LEN]] [-J LINK_ADDR] [-K LINK_ADDR] [-b PREFIX[/LEN]] [-g PREFIX[/LEN]] [-B LINK_ADDR] [-G LINK_ADDR] [-f] [-L | -l] [-z] [-v] [-h]
 
 .SH DESCRIPTION
 .B icmp6
@@ -350,6 +334,9 @@ The tool uses the network interface “eth0”, and operates in “Listening” 
 # ./icmp6 -i eth0 --icmp6-packet-too-big -p ICMP6 -d 2001:db8:10::1 --peer-addr 2001:db8:11::2 -m 1240 -v
 
 The tool uses the network interface “eth0” to send an ICMPv6 Packet Too Big error message that advertises an MTU of 1240 bytes. The ICMPv6 error message will be sent to the address “ “2001:db8:10::1”. The ICMPv6 error message will embed an ICMPv6 Echo Request message with the Source Address set to  “2001:db8:10::1” (i.e., Destination Address of the error message), and the Destination Address set to “2001:db8:11::2) (“--peer-addr” option). The value of the “Identifier” and “Sequence Number” fields of the embedded ICMPv6 Echo Request message randomized. The tool will provide detailed information about the attack (“-v” option).
+
+.SH SEE ALSO
+RFC 5927 (available at <http://www.rfc-editor.org/rfc/rfc5927.txt>) and "Security Assessment of the Transmission Control Protocol (TCP)" (available at <http://www.si6networks.com/publications/tn-03-09-security-assessment-TCP.pdf>) for a discussion of ICMPv6 attacks against TCP.
 
 
 .SH AUTHOR
