@@ -2205,7 +2205,7 @@ int match_strings(char *buscar, char *buffer){
 		j=0;
 
 		while(j < buscars){
-			if(toupper((int)buscar[j]) != toupper((int)buffer[i+j]))
+			if(toupper((int) ((unsigned char)buscar[j])) != toupper((int) ((unsigned char)buffer[i+j])))
 				break;
 
 			j++;
