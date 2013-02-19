@@ -79,6 +79,13 @@ struct ether_addr{
   u_int8_t a[ETHER_ADDR_LEN];
 } __attribute__ ((__packed__));
 
+/* For DLT_NULL encapsulation */
+struct dlt_null
+{
+  u_int32_t	family;	/* Protocol Family	*/
+} __attribute__ ((__packed__));
+
+
 struct	nd_opt_slla{
     u_int8_t	type;
     u_int8_t	length;

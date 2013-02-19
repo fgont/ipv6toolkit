@@ -894,6 +894,11 @@ int main(int argc, char **argv){
 		idata.mtu= MIN_IPV6_MTU;
 		tunnel_f=1;
 	}
+	else if(idata.type == DLT_NULL){
+		linkhsize=4;
+		idata.mtu= MIN_IPV6_MTU;
+		tunnel_f=1;
+	}
 	else{
 		printf("Error: Interface %s is not an Ethernet or tunnel interface", iface);
 		exit(1);
@@ -1295,7 +1300,7 @@ int main(int argc, char **argv){
 			}
 		}
 
-		if(!tunnel_f && !loopback_f){
+		if(idata.type == DLT_EN10MB && !loopback_f){
 			if(find_ipv6_router_full(sfd, &idata) == 1){
 				if(!hdstaddr_f){
 					/*
@@ -1468,7 +1473,7 @@ int main(int argc, char **argv){
 						continue;
 
 					if(pkt_ipv6->ip6_nxt == IPPROTO_ICMPV6){
-						if( !loopback_f && !tunnel_f && pkt_icmp6->icmp6_type == ND_NEIGHBOR_SOLICIT){
+						if( idata.type == DLT_EN10MB && !loopback_f && pkt_icmp6->icmp6_type == ND_NEIGHBOR_SOLICIT){
 							if( (pkt_end - (unsigned char *) pkt_ns) < sizeof(struct nd_neighbor_solicit))
 								continue;
 
@@ -3393,6 +3398,7 @@ int send_probe_remote(struct iface_data *idata, struct scan_list *scan, struct i
 	unsigned char				*ptr;
 	unsigned int 				i;
 	struct ether_header			*ether;
+	struct dlt_null				*dlt_null;
 	unsigned char 				*v6buffer;
 	struct ip6_hdr				*ipv6;
 	struct tcphdr				*tcp;
@@ -3403,10 +3409,11 @@ int send_probe_remote(struct iface_data *idata, struct scan_list *scan, struct i
 	/* max_packet_size holds is equal to the link MTU, since the tool doesn't support packets larger than the link MTU */
 	max_packet_size = idata->mtu;
 	ether = (struct ether_header *) buffer;
+	dlt_null= (struct dlt_null *) buffer;
 	v6buffer = buffer + linkhsize;
 	ipv6 = (struct ip6_hdr *) v6buffer;
 
-	if(!tunnel_f && !loopback_f){
+	if(idata->type == DLT_EN10MB && !loopback_f){
 		ether->src = idata->ether;
 
 		if(!onlink_f){
@@ -3418,6 +3425,9 @@ int send_probe_remote(struct iface_data *idata, struct scan_list *scan, struct i
 		}
 
 		ether->ether_type = htons(0x86dd);
+	}
+	else if(idata->type == DLT_NULL){
+		dlt_null->family= PF_INET6;
 	}
 
 	ipv6->ip6_flow=0;

@@ -160,6 +160,12 @@ struct ether_header
 } __attribute__ ((__packed__));
 
 
+/* For DLT_NULL encapsulation */
+struct dlt_null
+{
+  u_int32_t	family;	/* Protocol Family	*/
+} __attribute__ ((__packed__));
+
 /* IPv6 options
 
    Most stacks define "struct ip_opt" for this purpose. But ias has proved to be painful to use this 

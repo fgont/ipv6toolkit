@@ -18,6 +18,7 @@
 #define ETHER_ALLROUTERS_LINK_ADDR	"33:33:00:00:00:02"
 
 #define	MIN_IPV6_HLEN		40
+#define MIN_IPV6_MTU		1280
 #define MIN_TCP_HLEN		20
 #define MIN_UDP_HLEN		20
 #define MIN_ICMP6_HLEN		8
@@ -114,6 +115,14 @@ struct ether_header
   u_int16_t ether_type;		/* packet type ID field	*/
 } __attribute__ ((__packed__));
 
+/* For DLT_NULL encapsulation */
+struct dlt_null
+{
+  u_int32_t	family;	/* Protocol Family	*/
+} __attribute__ ((__packed__));
+
+
+
 struct prefix_entry{
 	struct in6_addr		ip6;
 	unsigned char		len;
@@ -128,7 +137,9 @@ struct prefix_list{
 
 struct iface_data{
 	char			iface[IFACE_LENGTH];
+	int			type;
 	int			fd;
+	pcap_t			*pd;
 	struct ether_addr	ether;
 	struct in6_addr		ip6_local;
 	struct in6_addr		ip6_global;

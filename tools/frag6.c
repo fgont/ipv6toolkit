@@ -110,7 +110,6 @@ struct in6_addr		randprefix;
 unsigned char		randpreflen;
 
 /* Data structures for packets read from the wire */
-pcap_t				*pfd;
 struct pcap_pkthdr	*pkthdr;
 const u_char		*pktdata;
 unsigned char		*pkt_end, *pkt_ptr;
@@ -136,6 +135,7 @@ struct ip6_hdr		*ipv6;
 struct icmp6_hdr	*icmp6;
 
 struct ether_header	*ethernet;
+struct dlt_null		*dlt_null;
 struct ether_addr	hsrcaddr, hdstaddr;
 struct nd_opt_tlla	*tllaopt;
 
@@ -596,7 +596,7 @@ int main(int argc, char **argv){
 		exit(1);
 	}
 
-	if( (pfd= pcap_open_live(idata.iface, PCAP_SNAP_LEN, PCAP_PROMISC, PCAP_TIMEOUT, errbuf)) == NULL){
+	if( (idata.pd = pcap_open_live(idata.iface, PCAP_SNAP_LEN, PCAP_PROMISC, PCAP_TIMEOUT, errbuf)) == NULL){
 		printf("pcap_open_live(): %s\n", errbuf);
 		exit(1);
 	}
@@ -636,7 +636,7 @@ int main(int argc, char **argv){
 		}
 	}
 
-	if( (idata.type = pcap_datalink(pfd)) == DLT_EN10MB){
+	if( (idata.type = pcap_datalink(idata.pd)) == DLT_EN10MB){
 		linkhsize= ETH_HLEN;
 		idata.mtu= ETH_DATA_LEN;
 	}
@@ -645,13 +645,13 @@ int main(int argc, char **argv){
 		idata.mtu= MIN_IPV6_MTU;
 		tunnel_f=1;
 	}
+	else if(idata.type == DLT_NULL){
+		linkhsize=4;
+		idata.mtu= MIN_IPV6_MTU;
+		tunnel_f=1;
+	}
 	else{
 		printf("Error: Interface %s is not an Ethernet or tunnel interface", iface);
-		exit(1);
-	}
-
-	if(get_if_addrs(&idata) == -1){
-		puts("Error obtaining local addresses");
 		exit(1);
 	}
 
@@ -670,15 +670,15 @@ int main(int argc, char **argv){
 		ether_to_ipv6_linklocal(&idata.ether, &idata.ip6_local);
 	}
 
-	if(!tunnel_f && !loopback_f){
-		if(find_ipv6_router_full(pfd, &idata) == 1){
+	if(idata.type == DLT_EN10MB && !loopback_f){
+		if(find_ipv6_router_full(idata.pd, &idata) == 1){
 			if(!hdstaddr_f && dstaddr_f){
 				if(IN6_IS_ADDR_MC_LINKLOCAL(&dstaddr)){
 					hdstaddr= ether_multicast(&dstaddr);
 				}
 				else if(match_ipv6_to_prefixes(&dstaddr, &idata.prefix_ol)){
 					/* Must perform Neighbor Discovery for the local address */
-					if(ipv6_to_ether(pfd, &idata, &dstaddr, &hdstaddr) != 1){
+					if(ipv6_to_ether(idata.pd, &idata, &dstaddr, &hdstaddr) != 1){
 						puts("Error while performing Neighbor Discovery for the Destination Address");
 						exit(1);
 					}
@@ -695,7 +695,7 @@ int main(int argc, char **argv){
 			 * If we were not able to find a local router, we assume the destination is "on-link" (as
 			 * a last ressort), and thus perform Neighbor Discovery for that destination
 			 */
-			if(ipv6_to_ether(pfd, &idata, &dstaddr, &hdstaddr) != 1){
+			if(ipv6_to_ether(idata.pd, &idata, &dstaddr, &hdstaddr) != 1){
 				puts("Error while performing Neighbor Discovery for the Destination Address");
 				exit(1);
 			}
@@ -739,13 +739,13 @@ int main(int argc, char **argv){
 		/*
 		   Set filter for receiving Neighbor Solicitations, ICMPv6 Echo Responses, and ICMPv6 Time Exceeded
 		 */
-		if(pcap_compile(pfd, &pcap_filter, PCAP_ICMPV6_NSECHOEXCEEDED_FILTER, PCAP_OPT, PCAP_NETMASK_UNKNOWN) == -1){
-			printf("pcap_compile(): %s", pcap_geterr(pfd));
+		if(pcap_compile(idata.pd, &pcap_filter, PCAP_ICMPV6_NSECHOEXCEEDED_FILTER, PCAP_OPT, PCAP_NETMASK_UNKNOWN) == -1){
+			printf("pcap_compile(): %s", pcap_geterr(idata.pd));
 			exit(1);
 		}
 		
-		if(pcap_setfilter(pfd, &pcap_filter) == -1){
-			printf("pcap_setfilter(): %s", pcap_geterr(pfd));
+		if(pcap_setfilter(idata.pd, &pcap_filter) == -1){
+			printf("pcap_setfilter(): %s", pcap_geterr(idata.pd));
 			exit(1);
 		}
 
@@ -777,7 +777,7 @@ int main(int argc, char **argv){
 			exit(1);
 		}
 
-		if( (idata.fd= pcap_fileno(pfd)) == -1){
+		if( (idata.fd= pcap_fileno(idata.pd)) == -1){
 			puts("Error obtaining descriptor number for pcap_t");
 			exit(1);
 		}
@@ -936,8 +936,8 @@ int main(int argc, char **argv){
 				continue;
 
 			/* Read a packet (Echo Reply, ICMPv6 Error, or Neighbor Solicitation) */
-			if((r=pcap_next_ex(pfd, &pkthdr, &pktdata)) == -1){
-				printf("pcap_next_ex(): %s", pcap_geterr(pfd));
+			if((r=pcap_next_ex(idata.pd, &pkthdr, &pktdata)) == -1){
+				printf("pcap_next_ex(): %s", pcap_geterr(idata.pd));
 				exit(1);
 			}
 			else if(r == 0){
@@ -954,7 +954,7 @@ int main(int argc, char **argv){
 				continue;
 
 			if(pkt_ipv6->ip6_nxt == IPPROTO_ICMPV6){
-				if(!tunnel_f && !loopback_f && pkt_icmp6->icmp6_type == ND_NEIGHBOR_SOLICIT){
+				if(idata.type == DLT_EN10MB && !loopback_f && pkt_icmp6->icmp6_type == ND_NEIGHBOR_SOLICIT){
 					if( (pkt_end - (unsigned char *) pkt_ns) < sizeof(struct nd_neighbor_solicit))
 						continue;
 					/* 
@@ -963,8 +963,8 @@ int main(int argc, char **argv){
 					    one of our addresses, and respond with a Neighbor Advertisement. Otherwise, the kernel
 					    will take care of that.
 					 */
-					if(!localaddr_f && is_eq_in6_addr(&(pkt_ns->nd_ns_target), &srcaddr)){
-							if(send_neighbor_advert(&idata, pfd, pktdata) == -1){
+					if(idata.type == DLT_EN10MB && !loopback_f && !localaddr_f && is_eq_in6_addr(&(pkt_ns->nd_ns_target), &srcaddr)){
+							if(send_neighbor_advert(&idata, idata.pd, pktdata) == -1){
 								puts("Error sending Neighbor Advertisement");
 								exit(1);
 							}
@@ -1023,19 +1023,19 @@ int main(int argc, char **argv){
 		/*
 		   Set filter for receiving Neighbor Solicitations, and fragmented ICMPv6 Echo Responses
 		 */
-		if(pcap_compile(pfd, &pcap_filter, PCAP_ICMPV6NSFRAG_FILTER, PCAP_OPT, PCAP_NETMASK_UNKNOWN) == -1){
-			printf("pcap_compile(): %s", pcap_geterr(pfd));
+		if(pcap_compile(idata.pd, &pcap_filter, PCAP_ICMPV6NSFRAG_FILTER, PCAP_OPT, PCAP_NETMASK_UNKNOWN) == -1){
+			printf("pcap_compile(): %s", pcap_geterr(idata.pd));
 			exit(1);
 		}
 		
-		if(pcap_setfilter(pfd, &pcap_filter) == -1){
-			printf("pcap_setfilter(): %s", pcap_geterr(pfd));
+		if(pcap_setfilter(idata.pd, &pcap_filter) == -1){
+			printf("pcap_setfilter(): %s", pcap_geterr(idata.pd));
 			exit(1);
 		}
 
 		pcap_freecode(&pcap_filter);
 
-		if( (idata.fd= pcap_fileno(pfd)) == -1){
+		if( (idata.fd= pcap_fileno(idata.pd)) == -1){
 			puts("Error obtaining descriptor number for pcap_t");
 			exit(1);
 		}
@@ -1133,8 +1133,8 @@ int main(int argc, char **argv){
 				continue;
 
 			/* Read a packet (Echo Reply, or Neighbor Solicitation) */
-			if((r=pcap_next_ex(pfd, &pkthdr, &pktdata)) == -1){
-				printf("pcap_next_ex(): %s", pcap_geterr(pfd));
+			if((r=pcap_next_ex(idata.pd, &pkthdr, &pktdata)) == -1){
+				printf("pcap_next_ex(): %s", pcap_geterr(idata.pd));
 				exit(1);
 			}
 			else if(r == 0){
@@ -1149,7 +1149,7 @@ int main(int argc, char **argv){
 			if( (pkt_end -  pktdata) < (linkhsize + MIN_IPV6_HLEN))
 				continue;
 
-			if(!tunnel_f && !loopback_f && pkt_ipv6->ip6_nxt == IPPROTO_ICMPV6 && pkt_icmp6->icmp6_type == ND_NEIGHBOR_SOLICIT){
+			if(idata.type == DLT_EN10MB && !loopback_f && pkt_ipv6->ip6_nxt == IPPROTO_ICMPV6 && pkt_icmp6->icmp6_type == ND_NEIGHBOR_SOLICIT){
 				pkt_ns= (struct nd_neighbor_solicit *) pkt_icmp6;
 
 				if( (pkt_end - (unsigned char *) pkt_ns) < sizeof(struct nd_neighbor_solicit))
@@ -1161,19 +1161,19 @@ int main(int argc, char **argv){
 				    will take care of that.
 				 */
 				if(testtype==FIXED_ORIGIN){
-					if(!localaddr_f && is_eq_in6_addr(&(pkt_ns->nd_ns_target), &srcaddr)){
-						if(send_neighbor_advert(&idata, pfd, pktdata) == -1){
+					if(idata.type == DLT_EN10MB && !loopback_f && !localaddr_f && is_eq_in6_addr(&(pkt_ns->nd_ns_target), &srcaddr)){
+						if(send_neighbor_advert(&idata, idata.pd, pktdata) == -1){
 							puts("Error sending Neighbor Advertisement");
 							exit(1);
 						}
 					}
 				}
-				else{
+				else if(idata.type == DLT_EN10MB && !loopback_f){
 					if(pkt_ns->nd_ns_target.s6_addr16[5] != addr_sig || \
 						pkt_ns->nd_ns_target.s6_addr16[7] !=  (pkt_ns->nd_ns_target.s6_addr16[6] ^ addr_key))
 						continue;
 
-					if(send_neighbor_advert(&idata, pfd, pktdata) == -1){
+					if(send_neighbor_advert(&idata, idata.pd, pktdata) == -1){
 						puts("Error sending Neighbor Advertisement");
 						exit(1);
 					}
@@ -1282,13 +1282,13 @@ int main(int argc, char **argv){
 		/*
 		   Set filter for receiving Neighbor Solicitations, ICMPv6 Echo Responses, and ICMPv6 Time Exceeded
 		 */
-		if(pcap_compile(pfd, &pcap_filter, PCAP_ICMPV6_NSECHOEXCEEDED_FILTER, PCAP_OPT, PCAP_NETMASK_UNKNOWN) == -1){
-			printf("pcap_compile(): %s", pcap_geterr(pfd));
+		if(pcap_compile(idata.pd, &pcap_filter, PCAP_ICMPV6_NSECHOEXCEEDED_FILTER, PCAP_OPT, PCAP_NETMASK_UNKNOWN) == -1){
+			printf("pcap_compile(): %s", pcap_geterr(idata.pd));
 			exit(1);
 		}
 		
-		if(pcap_setfilter(pfd, &pcap_filter) == -1){
-			printf("pcap_setfilter(): %s", pcap_geterr(pfd));
+		if(pcap_setfilter(idata.pd, &pcap_filter) == -1){
+			printf("pcap_setfilter(): %s", pcap_geterr(idata.pd));
 			exit(1);
 		}
 
@@ -1342,19 +1342,19 @@ int main(int argc, char **argv){
 		/*
 		   Set filter for receiving Neighbor Solicitations, ICMPv6 Echo Responses, and ICMPv6 Time Exceeded
 		 */
-		if(pcap_compile(pfd, &pcap_filter, PCAP_ICMPV6_NSECHOEXCEEDED_FILTER, PCAP_OPT, PCAP_NETMASK_UNKNOWN) == -1){
-			printf("pcap_compile(): %s", pcap_geterr(pfd));
+		if(pcap_compile(idata.pd, &pcap_filter, PCAP_ICMPV6_NSECHOEXCEEDED_FILTER, PCAP_OPT, PCAP_NETMASK_UNKNOWN) == -1){
+			printf("pcap_compile(): %s", pcap_geterr(idata.pd));
 			exit(1);
 		}
 		
-		if(pcap_setfilter(pfd, &pcap_filter) == -1){
-			printf("pcap_setfilter(): %s", pcap_geterr(pfd));
+		if(pcap_setfilter(idata.pd, &pcap_filter) == -1){
+			printf("pcap_setfilter(): %s", pcap_geterr(idata.pd));
 			exit(1);
 		}
 
 		pcap_freecode(&pcap_filter);
 
-		if( (idata.fd= pcap_fileno(pfd)) == -1){
+		if( (idata.fd= pcap_fileno(idata.pd)) == -1){
 			puts("Error obtaining descriptor number for pcap_t");
 			exit(1);
 		}
@@ -1409,8 +1409,8 @@ int main(int argc, char **argv){
 				continue;
 
 			/* Read a packet (Echo Reply, ICMPv6 Error, or Neighbor Solicitation) */
-			if((r=pcap_next_ex(pfd, &pkthdr, &pktdata)) == -1){
-				printf("pcap_next_ex(): %s", pcap_geterr(pfd));
+			if((r=pcap_next_ex(idata.pd, &pkthdr, &pktdata)) == -1){
+				printf("pcap_next_ex(): %s", pcap_geterr(idata.pd));
 				exit(1);
 			}
 			else if(r == 0){
@@ -1427,7 +1427,7 @@ int main(int argc, char **argv){
 				continue;
 
 			if(pkt_ipv6->ip6_nxt == IPPROTO_ICMPV6){
-				if(!tunnel_f && !loopback_f && pkt_icmp6->icmp6_type == ND_NEIGHBOR_SOLICIT){
+				if(idata.type == DLT_EN10MB && !loopback_f && pkt_icmp6->icmp6_type == ND_NEIGHBOR_SOLICIT){
 					if( (pkt_end - (unsigned char *) pkt_ns) < sizeof(struct nd_neighbor_solicit))
 						continue;
 					/* 
@@ -1436,8 +1436,8 @@ int main(int argc, char **argv){
 					    one of our addresses, and respond with a Neighbor Advertisement. Otherwise, the kernel
 					    will take care of that.
 					 */
-					if(!localaddr_f && is_eq_in6_addr(&(pkt_ns->nd_ns_target), &srcaddr)){
-							if(send_neighbor_advert(&idata, pfd, pktdata) == -1){
+					if(idata.type == DLT_EN10MB && !loopback_f && !localaddr_f && is_eq_in6_addr(&(pkt_ns->nd_ns_target), &srcaddr)){
+							if(send_neighbor_advert(&idata, idata.pd, pktdata) == -1){
 								puts("Error sending Neighbor Advertisement");
 								exit(1);
 							}
@@ -1829,14 +1829,18 @@ int send_fragment2(u_int16_t ip6len, unsigned int id, unsigned int offset, unsig
 	unsigned char	*ptrend;
 
 	ethernet= (struct ether_header *) buffer;
+	dlt_null= (struct dlt_null *) buffer;
 	v6buffer = buffer + linkhsize;
 	ipv6 = (struct ip6_hdr *) v6buffer;
 	fsize= (fsize>>3) << 3;
 
-	if(!tunnel_f){
+	if(idata.type == DLT_EN10MB && !loopback_f){
 		ethernet->src = hsrcaddr;
 		ethernet->dst = hdstaddr;
 		ethernet->ether_type = htons(0x86dd);
+	}
+	else if(idata.type == DLT_NULL){
+		dlt_null->family= PF_INET6;
 	}
 
 	ipv6->ip6_flow=0;
@@ -1936,8 +1940,8 @@ int send_fragment2(u_int16_t ip6len, unsigned int id, unsigned int offset, unsig
 		ipv6->ip6_plen= htons(ptr-(v6buffer + MIN_IPV6_HLEN));
 	}
 
-	if((nw=pcap_inject(pfd, buffer, ptr - buffer)) == -1){
-		printf("pcap_inject(): %s\n", pcap_geterr(pfd));
+	if((nw=pcap_inject(idata.pd, buffer, ptr - buffer)) == -1){
+		printf("pcap_inject(): %s\n", pcap_geterr(idata.pd));
 		return(-1);
 	}
 
@@ -1961,13 +1965,17 @@ int send_fragment(unsigned int id, unsigned int offset, unsigned int fsize, unsi
 	unsigned int i;
 
 	ethernet= (struct ether_header *) buffer;
+	dlt_null= (struct dlt_null *) buffer;
 	v6buffer = buffer + linkhsize;
 	ipv6 = (struct ip6_hdr *) v6buffer;
 
-	if(!tunnel_f){
+	if(idata.type == DLT_EN10MB && !loopback_f){
 		ethernet->src = hsrcaddr;
 		ethernet->dst = hdstaddr;
 		ethernet->ether_type = htons(0x86dd);
+	}
+	else if(idata.type == DLT_NULL){
+		dlt_null->family= PF_INET6;
 	}
 
 	ipv6->ip6_flow=0;
@@ -2162,8 +2170,8 @@ int send_fragment(unsigned int id, unsigned int offset, unsigned int fsize, unsi
 		ipv6->ip6_plen= htons(ptr-(v6buffer + MIN_IPV6_HLEN));
 	}
 
-	if((nw=pcap_inject(pfd, buffer, ptr - buffer)) == -1){
-		printf("pcap_inject(): %s\n", pcap_geterr(pfd));
+	if((nw=pcap_inject(idata.pd, buffer, ptr - buffer)) == -1){
+		printf("pcap_inject(): %s\n", pcap_geterr(idata.pd));
 		return(-1);
 	}
 
@@ -2194,10 +2202,13 @@ int send_fid_probe(void){
 	v6buffer = buffer + linkhsize;
 	ipv6 = (struct ip6_hdr *) v6buffer;
 
-	if(!tunnel_f){
+	if(idata.type == DLT_EN10MB && !loopback_f){
 		ethernet->src = hsrcaddr;
 		ethernet->dst = hdstaddr;
 		ethernet->ether_type = htons(0x86dd);
+	}
+	else if(idata.type == DLT_NULL){
+		dlt_null->family= PF_INET6;
 	}
 
 	ipv6->ip6_flow=0;
@@ -2285,8 +2296,8 @@ int send_fid_probe(void){
 
 		fipv6->ip6_plen = htons((fptr - fragbuffer) - MIN_IPV6_HLEN - linkhsize);
 		
-		if((nw=pcap_inject(pfd, fragbuffer, fptr - fragbuffer)) == -1){
-			printf("pcap_inject(): %s\n", pcap_geterr(pfd));
+		if((nw=pcap_inject(idata.pd, fragbuffer, fptr - fragbuffer)) == -1){
+			printf("pcap_inject(): %s\n", pcap_geterr(idata.pd));
 			return(-1);
 		}
 
@@ -2415,7 +2426,7 @@ u_int16_t in_chksum(void *ptr_ipv6, void *ptr_icmpv6, size_t len, u_int8_t proto
  */
  
 void print_attack_info(void){
-	if(!tunnel_f && !loopback_f){
+	if(idata.type == DLT_EN10MB && !loopback_f){
 		if(ether_ntop(&hsrcaddr, plinkaddr, sizeof(plinkaddr)) == 0){
 			puts("ether_ntop(): Error converting address");
 			exit(1);
@@ -4354,9 +4365,9 @@ int send_neighbor_solicit(struct iface_data *idata){
 	ns->nd_ns_cksum = 0;
 	ns->nd_ns_cksum = in_chksum(v6buffer, ns, ptr-((unsigned char *)ns), IPPROTO_ICMPV6);
 
-	if((nw=pcap_inject(pfd, buffer, ptr - buffer)) == -1){
+	if((nw=pcap_inject(idata->pd, buffer, ptr - buffer)) == -1){
 		if(verbose_f>1)
-			printf("pcap_inject(): %s\n", pcap_geterr(pfd));
+			printf("pcap_inject(): %s\n", pcap_geterr(idata->pd));
 
 		return(-1);
 	}

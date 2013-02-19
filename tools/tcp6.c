@@ -913,6 +913,11 @@ int main(int argc, char **argv){
 		idata.mtu= MIN_IPV6_MTU;
 		tunnel_f=1;
 	}
+	else if(idata.type == DLT_NULL){
+		linkhsize=4;
+		idata.mtu= MIN_IPV6_MTU;
+		tunnel_f=1;
+	}
 	else{
 		printf("Error: Interface %s is not an Ethernet or tunnel interface", iface);
 		exit(1);
@@ -957,7 +962,7 @@ int main(int argc, char **argv){
 		ether_to_ipv6_linklocal(&idata.ether, &idata.ip6_local);
 	}
 
-	if(!tunnel_f && !loopback_f){
+	if(idata.type == DLT_EN10MB && !loopback_f){
 		if(find_ipv6_router_full(pfd, &idata) == 1){
 			if(!hdstaddr_f && dstaddr_f){
 				if(IN6_IS_ADDR_MC_LINKLOCAL(&dstaddr)){
@@ -1131,7 +1136,7 @@ int main(int argc, char **argv){
 
 			accepted_f=0;
 
-			if(!tunnel_f && !loopback_f){
+			if(idata.type == DLT_EN10MB && !loopback_f){
 				if(nblocklinksrc){
 					if(match_ether(blocklinksrc, nblocklinksrc, &(pkt_ether->src))){
 						if(verbose_f>1)
@@ -1169,7 +1174,7 @@ int main(int argc, char **argv){
 				}
 			}
 
-			if(!tunnel_f && !loopback_f){	
+			if(idata.type == DLT_EN10MB && !loopback_f){	
 				if(nacceptlinksrc){
 					if(match_ether(acceptlinksrc, nacceptlinksrc, &(pkt_ether->src)))
 						accepted_f=1;
@@ -1359,7 +1364,7 @@ void send_packet(const u_char *pktdata){
 		else{
 			ipv6->ip6_dst = pkt_ipv6->ip6_src;
 
-			if(!tunnel_f && loopback_f)
+			if(idata.type == DLT_EN10MB && !loopback_f)
 				ethernet->dst = pkt_ether->src;
 		}
 
@@ -1375,7 +1380,7 @@ void send_packet(const u_char *pktdata){
 		else{
 			ipv6->ip6_src = pkt_ipv6->ip6_dst;
 
-			if(!tunnel_f && loopback_f)
+			if(idata.type == DLT_EN10MB && !loopback_f)
 				ethernet->src = pkt_ether->dst;
 		}
 
@@ -1500,7 +1505,7 @@ void send_packet(const u_char *pktdata){
 			for(i=0; i<=(srcpreflen/16); i++)
 				ipv6->ip6_src.s6_addr16[i]= ipv6->ip6_src.s6_addr16[i] | srcaddr.s6_addr16[i];
 
-			if(!tunnel_f && !loopback_f && !hsrcaddr_f){
+			if(idata.type == DLT_EN10MB && !loopback_f && !hsrcaddr_f){
 				for(i=0; i<6; i++)
 					ethernet->src.a[i]= random();
 			}
@@ -1733,7 +1738,7 @@ void print_attack_info(void){
 	if(floods_f)
 		printf("Flooding the target from %u different TCP ports\n", nports);
 
-	if(!tunnel_f && !loopback_f){
+	if(idata.type == DLT_EN10MB && !loopback_f){
 		if(hsrcaddr_f){
 				if(ether_ntop(&hsrcaddr, plinkaddr, sizeof(plinkaddr)) == 0){
 					puts("ether_ntop(): Error converting address");
@@ -1891,7 +1896,7 @@ void print_filters(void){
 		printf("\n");
 	}
 
-	if(!tunnel_f && !loopback_f){
+	if(idata.type == DLT_EN10MB && !loopback_f){
 		if(nblocklinksrc){
 			printf("Block filter for link-layer Source Address: ");
 	
@@ -1949,7 +1954,7 @@ void print_filters(void){
 		printf("\n");
 	}
 
-	if(!tunnel_f && !loopback_f){
+	if(idata.type == DLT_EN10MB && !loopback_f){
 		if(nacceptlinksrc){
 			printf("Accept filter for link-layer Source Address: ");
 
