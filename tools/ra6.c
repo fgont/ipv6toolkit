@@ -1848,7 +1848,7 @@ void usage(void){
  */
 
 void print_help(void){
-	puts("SI6 Networks' IPv6 Toolkit v1.3");
+	puts("SI6 Networks' IPv6 Toolkit v1.3.1");
     puts( "ra6\nSecurity assessment tool for attack vectors based on RA messages\n");
     usage();
 

@@ -2304,7 +2304,7 @@ void usage(void){
  * Prints help information for the scan6 tool
  */
 void print_help(void){
-	puts("SI6 Networks' IPv6 Toolkit v1.3");
+	puts("SI6 Networks' IPv6 Toolkit v1.3.1");
 	puts( "scan6: An advanced IPv6 Address Scanning tool\n");
 	usage();
     

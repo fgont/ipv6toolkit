@@ -905,7 +905,7 @@ void usage(void){
  * Print help information for the rs6 tool
  */
 void print_help(void){
-	puts("SI6 Networks' IPv6 Toolkit v1.3");
+	puts("SI6 Networks' IPv6 Toolkit v1.3.1");
     puts( "rs6: Security assessment tool for attack vectors based on RS messages\n");
     usage();
     

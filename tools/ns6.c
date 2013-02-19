@@ -992,7 +992,7 @@ void usage(void){
  * Print help information for the ns6 tool
  */
 void print_help(void){
-	puts("SI6 Networks' IPv6 Toolkit v1.3");
+	puts("SI6 Networks' IPv6 Toolkit v1.3.1");
 	puts("ns6\nSecurity assessment tool for attack vectors based on NS messages\n");
 	usage();
     

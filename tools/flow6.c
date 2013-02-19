@@ -478,7 +478,7 @@ int main(int argc, char **argv){
 	else
 		max_packet_size = ETH_DATA_LEN;
 
-	puts( "frag6 v1.0: Assessment tool for attack vectors based on IPv6 fragmentation");
+	puts( "frag6 v1.3.1: Assessment tool for attack vectors based on IPv6 fragmentation");
 
 	if(verbose_f){
 		print_attack_info();
@@ -876,7 +876,7 @@ void usage(void){
  * Prints help information for the flow6 tool
  */
 void print_help(void){
-	puts("SI6 Networks' IPv6 Toolkit v1.3");
+	puts("SI6 Networks' IPv6 Toolkit v1.3.1");
     puts("flow6: Security assessment tool for the IPv6 Flow Label field\n");
     usage();
     

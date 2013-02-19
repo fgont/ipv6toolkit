@@ -1548,7 +1548,7 @@ void usage(void){
  * Prints help information for the na6 tool
  */
 void print_help(void){
-	puts("SI6 Networks' IPv6 Toolkit v1.3");
+	puts("SI6 Networks' IPv6 Toolkit v1.3.1");
 	puts("na6: Security Assessment tool for attack vectors based on NA messages\n");
 	usage();
     

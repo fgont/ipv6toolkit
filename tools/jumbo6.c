@@ -1329,7 +1329,7 @@ void usage(void){
  * Prints help information for the jumbo6 tool
  */
 void print_help(void){
-	puts("SI6 Networks' IPv6 Toolkit v1.3");
+	puts("SI6 Networks' IPv6 Toolkit v1.3.1");
 	puts("jumbo6: Security assessment tool for attack vectors based on IPv6 jumbo packets\n");
     usage();
     
