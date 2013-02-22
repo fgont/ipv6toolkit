@@ -1874,8 +1874,29 @@ int load_embeddedport_entries(struct scan_list *scan, struct scan_entry *dst){
 		(scan->target[scan->ntarget])->end= dst->end;
 		(scan->target[scan->ntarget])->end.s6_addr16[4]= htons(0);
 		(scan->target[scan->ntarget])->end.s6_addr16[5]= htons(0);
-		(scan->target[scan->ntarget])->end.s6_addr16[6]= htons(0);
+		(scan->target[scan->ntarget])->end.s6_addr16[6]= htons(EMBEDDED_PORT_2ND_WORD);
 		(scan->target[scan->ntarget])->end.s6_addr16[7]= htons(service_ports[i]);
+		scan->ntarget++;
+
+		if(scan->ntarget >= scan->maxtarget){
+			return(0);
+		}
+
+		if( (scan->target[scan->ntarget] = malloc(sizeof(struct scan_entry))) == NULL)
+			return(0);
+
+		(scan->target[scan->ntarget])->start= dst->start;
+		(scan->target[scan->ntarget])->start.s6_addr16[4]= htons(0);
+		(scan->target[scan->ntarget])->start.s6_addr16[5]= htons(0);
+		(scan->target[scan->ntarget])->start.s6_addr16[6]= htons(service_ports[i]);
+		(scan->target[scan->ntarget])->start.s6_addr16[7]= htons(0);
+		(scan->target[scan->ntarget])->cur= (scan->target[scan->ntarget])->start;
+
+		(scan->target[scan->ntarget])->end= dst->end;
+		(scan->target[scan->ntarget])->end.s6_addr16[4]= htons(0);
+		(scan->target[scan->ntarget])->end.s6_addr16[5]= htons(0);
+		(scan->target[scan->ntarget])->end.s6_addr16[6]= htons(service_ports[i]);
+		(scan->target[scan->ntarget])->end.s6_addr16[7]= htons(EMBEDDED_PORT_2ND_WORD);
 		scan->ntarget++;
 	}
 
@@ -2346,7 +2367,7 @@ void usage(void){
 	puts("usage: scan6 -i INTERFACE (-l | -d) [-s SRC_ADDR[/LEN] | -f] \n"
 	     "       [-S LINK_SRC_ADDR | -F] [-p PROBE_TYPE] [-Z PAYLOAD_SIZE] [-o SRC_PORT]\n"
 	     "       [-a DST_PORT] [-X TCP_FLAGS] [-P ADDRESS_TYPE] [-q] [-e] [-x RETRANS]\n"
-	     "       [-o TIMEOUT] [-V VM_TYPE] [-b] [-B] [-k IEEE_OUI] [-K VENDOR]\n"
+	     "       [-o TIMEOUT] [-V VM_TYPE] [-b] [-B] [-g] [-k IEEE_OUI] [-K VENDOR]\n"
 	     "       [-Q IPV4_PREFIX[/LEN]] [-T] [-I INC_SIZE] [-r RATE(bps|pps)]\n"
 	     "       [-c CONFIG_FILE] [-v] [-h]");
 }
@@ -2358,7 +2379,7 @@ void usage(void){
  * Prints help information for the scan6 tool
  */
 void print_help(void){
-	puts("SI6 Networks' IPv6 Toolkit v1.3.1");
+	puts("SI6 Networks' IPv6 Toolkit v1.3.2");
 	puts( "scan6: An advanced IPv6 Address Scanning tool\n");
 	usage();
     
@@ -2382,7 +2403,8 @@ void print_help(void){
 	     "  --rand-link-src-addr, -F    Randomize the Ethernet Source Address\n"
 	     "  --tgt-virtual-machines, -V  Target virtual machines\n"
 	     "  --tgt-low-byte, -b          Target low-byte addresses\n"
-	     "  --tgt-ipv4-embedded, -B     Target IPv4-embedded addresses\n"
+	     "  --tgt-ipv4-embedded, -B     Target embedded-IPv4 addresses\n"
+	     "  --tgt-port-embedded         Target embedded-port addresses\n"
 	     "  --tgt-ieee-oui, -k          Target IPv6 addresses embedding IEEE OUI\n"
 	     "  --tgt-vendor, -K            Target IPv6 addresses for vendor's IEEE OUIs\n"
 	     "  --ipv4-host, -Q             Host IPv4 Address/Prefix\n"
