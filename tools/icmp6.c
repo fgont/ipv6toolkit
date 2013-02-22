@@ -1067,7 +1067,7 @@ int main(int argc, char **argv){
 		}
 	}
 
-	if( (idata.type = pcap_datalink(idata.pd)) == DLT_EN10MB){
+	if( (idata.type = pcap_datalink(pfd)) == DLT_EN10MB){
 		linkhsize= ETH_HLEN;
 		idata.mtu= ETH_DATA_LEN;
 	}
