@@ -123,7 +123,6 @@ unsigned char		randpreflen;
 
 
 /* Data structures for packets read from the wire */
-pcap_t				*pfd;
 struct pcap_pkthdr	*pkthdr;
 const u_char		*pktdata;
 unsigned char		*pkt_end;
@@ -1027,7 +1026,7 @@ int main(int argc, char **argv){
 		exit(1);
 	}
 
-	if( (pfd= pcap_open_live(idata.iface, PCAP_SNAP_LEN, PCAP_PROMISC, PCAP_TIMEOUT, errbuf)) == NULL){
+	if( (idata.pd= pcap_open_live(idata.iface, PCAP_SNAP_LEN, PCAP_PROMISC, PCAP_TIMEOUT, errbuf)) == NULL){
 		printf("pcap_open_live(): %s\n", errbuf);
 		exit(1);
 	}
@@ -1229,14 +1228,14 @@ int main(int argc, char **argv){
 
 			idata.mtu= ETH_DATA_LEN;
 
-			if(find_ipv6_router_full(pfd, &idata) != 1){
+			if(find_ipv6_router_full(idata.pd, &idata) != 1){
 				puts("Failed learning default IPv6 router");
 				exit(1);
 			}
 
 			if(match_ipv6_to_prefixes(&dstaddr, &idata.prefix_ol)){
 				/* Must perform Neighbor Discovery for the local address */
-				if(ipv6_to_ether(pfd, &idata, &dstaddr, &hdstaddr) != 1){
+				if(ipv6_to_ether(idata.pd, &idata, &dstaddr, &hdstaddr) != 1){
 					puts("Error while performing Neighbor Discovery for the Destination Address");
 				}
 			}
@@ -1247,30 +1246,30 @@ int main(int argc, char **argv){
 	}
 
 	if(rhtcp_f){
-		if(pcap_compile(pfd, &pcap_filter, PCAP_TCPV6_FILTER, PCAP_OPT, PCAP_NETMASK_UNKNOWN) == -1){
-			printf("pcap_compile(): %s", pcap_geterr(pfd));
+		if(pcap_compile(idata.pd, &pcap_filter, PCAP_TCPV6_FILTER, PCAP_OPT, PCAP_NETMASK_UNKNOWN) == -1){
+			printf("pcap_compile(): %s", pcap_geterr(idata.pd));
 			exit(1);
 		}
 	}
 	else if(rhudp_f){
-		if(pcap_compile(pfd, &pcap_filter, PCAP_UDPV6_FILTER, PCAP_OPT, PCAP_NETMASK_UNKNOWN) == -1){
-			printf("pcap_compile(): %s", pcap_geterr(pfd));
+		if(pcap_compile(idata.pd, &pcap_filter, PCAP_UDPV6_FILTER, PCAP_OPT, PCAP_NETMASK_UNKNOWN) == -1){
+			printf("pcap_compile(): %s", pcap_geterr(idata.pd));
 			exit(1);
 		}
 	}
 	else if(rhicmp6_f){
-		if(pcap_compile(pfd, &pcap_filter, PCAP_ICMPV6_FILTER, PCAP_OPT, PCAP_NETMASK_UNKNOWN) == -1){
-			printf("pcap_compile(): %s", pcap_geterr(pfd));
+		if(pcap_compile(idata.pd, &pcap_filter, PCAP_ICMPV6_FILTER, PCAP_OPT, PCAP_NETMASK_UNKNOWN) == -1){
+			printf("pcap_compile(): %s", pcap_geterr(idata.pd));
 			exit(1);
 		}
 	}
-	else if(pcap_compile(pfd, &pcap_filter, PCAP_IPV6_FILTER, PCAP_OPT, PCAP_NETMASK_UNKNOWN) == -1){
-		printf("pcap_compile(): %s", pcap_geterr(pfd));
+	else if(pcap_compile(idata.pd, &pcap_filter, PCAP_IPV6_FILTER, PCAP_OPT, PCAP_NETMASK_UNKNOWN) == -1){
+		printf("pcap_compile(): %s", pcap_geterr(idata.pd));
 		exit(1);
 	}
     
-	if(pcap_setfilter(pfd, &pcap_filter) == -1){
-		printf("pcap_setfilter(): %s", pcap_geterr(pfd));
+	if(pcap_setfilter(idata.pd, &pcap_filter) == -1){
+		printf("pcap_setfilter(): %s", pcap_geterr(idata.pd));
 		exit(1);
 	}
 
@@ -1319,7 +1318,7 @@ int main(int argc, char **argv){
 			}
 		}
 
-		if( (idata.fd= pcap_fileno(pfd)) == -1){
+		if( (idata.fd= pcap_fileno(idata.pd)) == -1){
 			puts("Error obtaining descriptor number for pcap_t");
 			exit(1);
 		}
@@ -1341,8 +1340,8 @@ int main(int argc, char **argv){
 			}
 
 			/* Read a Neighbor Solicitation message */
-			if((r=pcap_next_ex(pfd, &pkthdr, &pktdata)) == -1){
-				printf("pcap_next_ex(): %s", pcap_geterr(pfd));
+			if((r=pcap_next_ex(idata.pd, &pkthdr, &pktdata)) == -1){
+				printf("pcap_next_ex(): %s", pcap_geterr(idata.pd));
 				exit(1);
 			}
 			else if(r == 0){
@@ -1787,8 +1786,8 @@ void send_packet(const u_char *pktdata, struct pcap_pkthdr * pkthdr){
 			if(!fragh_f){
 				ipv6->ip6_plen = htons((ptr - v6buffer) - MIN_IPV6_HLEN);
 
-				if((nw=pcap_inject(pfd, buffer, ptr - buffer)) == -1){
-					printf("pcap_inject(): %s\n", pcap_geterr(pfd));
+				if((nw=pcap_inject(idata.pd, buffer, ptr - buffer)) == -1){
+					printf("pcap_inject(): %s\n", pcap_geterr(idata.pd));
 					exit(1);
 				}
 
@@ -1843,8 +1842,8 @@ void send_packet(const u_char *pktdata, struct pcap_pkthdr * pkthdr){
 
 					fipv6->ip6_plen = htons((fptr - fragbuffer) - MIN_IPV6_HLEN - linkhsize);
 		
-					if((nw=pcap_inject(pfd, fragbuffer, fptr - fragbuffer)) == -1){
-						printf("pcap_inject(): %s\n", pcap_geterr(pfd));
+					if((nw=pcap_inject(idata.pd, fragbuffer, fptr - fragbuffer)) == -1){
+						printf("pcap_inject(): %s\n", pcap_geterr(idata.pd));
 						exit(1);
 					}
 
