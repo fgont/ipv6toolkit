@@ -113,6 +113,7 @@ int					get_if_addrs(struct iface_data *);
 struct in6_addr		*src_addr_sel(struct iface_data *, struct in6_addr *);
 int					print_scan_entries(struct scan_list *);
 int					load_ipv4mapped_entries(struct scan_list *, struct scan_entry *, struct prefix4_entry *);
+int					load_embeddedport_entries(struct scan_list *, struct scan_entry *);
 int					load_lowbyte_entries(struct scan_list *, struct scan_entry *);
 int					load_oui_entries(struct scan_list *, struct scan_entry *, struct ether_addr *);
 int					load_vm_entries(struct scan_list *, struct scan_entry *, struct prefix4_entry *);
@@ -227,7 +228,8 @@ int						ranges;
 struct	scan_list		scan_list;
 struct scan_entry		*target_list[MAX_SCAN_ENTRIES];
 unsigned char			dst_f=0, tgt_ipv4mapped_f=0, tgt_lowbyte_f=0, tgt_oui_f=0, tgt_vendor_f=0, tgt_vm_f=0;
-unsigned char			tgt_bruteforce_f=0, tgt_range_f=0, vm_vbox_f=0, vm_vmware_f=0, vm_vmwarem_f=0, v4hostaddr_f=0;
+unsigned char			tgt_bruteforce_f=0, tgt_range_f=0, tgt_portembedded_f=0;
+unsigned char			vm_vbox_f=0, vm_vmware_f=0, vm_vmwarem_f=0, v4hostaddr_f=0;
 unsigned char			v4hostprefix_f=0, sort_ouis_f=0, rnd_probes_f=0, inc_f=0, end_f=0, donesending_f=0;
 unsigned char			onlink_f=0, pps_f=0, bps_f=0, tcpflags_f=0, rhbytes_f=0, srcport_f=0, dstport_f=0, probetype;
 u_int16_t				srcport, dstport;
@@ -246,6 +248,8 @@ char					vendor[MAX_IEEE_OUIS_LINE_SIZE];
 int						sel;
 fd_set					sset, rset, wset, eset;
 struct timeval			curtime, lastprobe;
+u_int16_t				service_ports[]={0x21, 0x22, 0x23, 0x25, 0x49, 0x53, 0x80, 0x110, 0x123, 0x179, 0x220, 0x389, \
+						                 0x443, 0x547, 0x993, 0x995, 0x1194, 0x3306, 0x5060, 0x5061, 0x5432, 0x6446, 0x8080};
 
 
 /* IPv6 Address Resolution */
@@ -286,6 +290,7 @@ int main(int argc, char **argv){
 		{"tgt-virtual-machines", required_argument, 0, 'V'},
 		{"tgt-low-byte", no_argument, 0, 'b'},
 		{"tgt-ipv4-embedded", no_argument, 0, 'B'},
+		{"tgt-port-embedded", no_argument, 0, 'g'},
 		{"tgt-ieee-oui", required_argument, 0, 'k'},
 		{"tgt-vendor", required_argument, 0, 'K'},
 		{"ipv4-host", required_argument, 0, 'Q'},
@@ -298,7 +303,7 @@ int main(int argc, char **argv){
 		{"help", no_argument, 0, 'h'}
 	};
 
-	char shortopts[]= "i:s:d:u:U:H:y:S:D:lp:Z:o:a:X:P:qex:z:fFV:bBk:K:Q:TNI:c:r:vh";
+	char shortopts[]= "i:s:d:u:U:H:y:S:D:lp:Z:o:a:X:P:qex:z:fFV:bBgk:K:Q:TNI:c:r:vh";
 
 	char option;
 
@@ -758,6 +763,10 @@ int main(int argc, char **argv){
 				tgt_ipv4mapped_f=1;
 				break;
 
+			case 'g':
+				tgt_portembedded_f=1;
+				break;
+
 			case 'k':	/* Target OUI */
 				/*
 				   In case the user entered an OUI as OO:UU:II:00:00:00, just copy the first 8 bytes of input 
@@ -994,7 +1003,7 @@ int main(int argc, char **argv){
 		exit(1);
 	}
 
-	if(dst_f && !(tgt_ipv4mapped_f || tgt_lowbyte_f || tgt_oui_f || tgt_vendor_f || tgt_vm_f || tgt_range_f)){
+	if(dst_f && !(tgt_ipv4mapped_f || tgt_lowbyte_f || tgt_oui_f || tgt_vendor_f || tgt_vm_f || tgt_range_f || tgt_portembedded_f)){
 		tgt_bruteforce_f=1;
 	}
 
@@ -1241,16 +1250,26 @@ int main(int argc, char **argv){
 				scan_list.ntarget++;
 			}
 		}
-		else{
+
+		if(dst_f){
 			if(IN6_IS_ADDR_MULTICAST(&dst.start)){
 				if(verbose_f)
 					puts("scan6: Remote scan cannot target a multicast address");
 
 				exit(1);
 			}
-		}
 
-		if(dst_f){
+			if(IN6_IS_ADDR_MULTICAST(&dst.end)){
+				if(verbose_f)
+					puts("scan6: Remote scan cannot target a multicast address");
+
+				exit(1);
+			}
+
+			if(tgt_portembedded_f){
+				load_embeddedport_entries(&scan_list, &dst);
+			}
+
 			if(tgt_vm_f){
 				load_vm_entries(&scan_list, &dst, &v4host);
 			}
@@ -1824,6 +1843,41 @@ int load_ipv4mapped_entries(struct scan_list *scan, struct scan_entry *dst, stru
 	(scan->target[scan->ntarget])->end.s6_addr16[7]= (scan->target[scan->ntarget])->end.s6_addr16[7] | htons((u_int16_t)(mask32 & 0x0000ffff));
 
 	scan->ntarget++;
+
+	return(1);
+}
+
+
+/*
+ * Function: load_embeddedport_entries()
+ *
+ * Generate scan_entry's for IPv6 addresses with embedded service ports
+ */
+int load_embeddedport_entries(struct scan_list *scan, struct scan_entry *dst){
+	unsigned int	i;
+
+	for(i=0; i < (sizeof(service_ports)/sizeof(u_int16_t)); i++){
+		if(scan->ntarget >= scan->maxtarget){
+			return(0);
+		}
+
+		if( (scan->target[scan->ntarget] = malloc(sizeof(struct scan_entry))) == NULL)
+			return(0);
+
+		(scan->target[scan->ntarget])->start= dst->start;
+		(scan->target[scan->ntarget])->start.s6_addr16[4]= htons(0);
+		(scan->target[scan->ntarget])->start.s6_addr16[5]= htons(0);
+		(scan->target[scan->ntarget])->start.s6_addr16[6]= htons(0);
+		(scan->target[scan->ntarget])->start.s6_addr16[7]= htons(service_ports[i]);
+		(scan->target[scan->ntarget])->cur= (scan->target[scan->ntarget])->start;
+
+		(scan->target[scan->ntarget])->end= dst->end;
+		(scan->target[scan->ntarget])->end.s6_addr16[4]= htons(0);
+		(scan->target[scan->ntarget])->end.s6_addr16[5]= htons(0);
+		(scan->target[scan->ntarget])->end.s6_addr16[6]= htons(0);
+		(scan->target[scan->ntarget])->end.s6_addr16[7]= htons(service_ports[i]);
+		scan->ntarget++;
+	}
 
 	return(1);
 }
