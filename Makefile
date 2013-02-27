@@ -67,5 +67,5 @@ install: all
 	install -m0755 -d $(MANPATH)/man1
 	install -m0644 manuals/*.1 $(MANPATH)/man1
 	install -m0755 -d $(MANPATH)/man5
-	install -m0644 manuals/*.5 $(MANPATH)/man1
+	install -m0644 manuals/*.5 $(MANPATH)/man5
 
