@@ -2,7 +2,7 @@
 # SI6 Networks' IPv6 toolkit Makefile
 #
 CC= gcc
-CFLAGS= -Wall
+CFLAGS+= -Wall
 LDFLAGS+= -lpcap -lm
 MANPATH= /usr/share/man
 DATAPATH= /usr/share
