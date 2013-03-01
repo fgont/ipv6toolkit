@@ -248,9 +248,10 @@ char					vendor[MAX_IEEE_OUIS_LINE_SIZE];
 int						sel;
 fd_set					sset, rset, wset, eset;
 struct timeval			curtime, lastprobe;
-u_int16_t				service_ports[]={0x21, 0x22, 0x23, 0x25, 0x49, 0x53, 0x80, 0x110, 0x123, 0x179, 0x220, 0x389, \
+u_int16_t				service_ports_hex[]={0x21, 0x22, 0x23, 0x25, 0x49, 0x53, 0x80, 0x110, 0x123, 0x179, 0x220, 0x389, \
 						                 0x443, 0x547, 0x993, 0x995, 0x1194, 0x3306, 0x5060, 0x5061, 0x5432, 0x6446, 0x8080};
-
+u_int16_t				service_ports_dec[]={21, 22, 23, 25, 49, 53, 80, 110, 123, 179, 220, 389, \
+						                 443, 547, 993, 995, 1194, 3306, 5060, 5061, 5432, 6446, 8080};
 
 /* IPv6 Address Resolution */
 sigjmp_buf				env;
@@ -1856,7 +1857,7 @@ int load_ipv4mapped_entries(struct scan_list *scan, struct scan_entry *dst, stru
 int load_embeddedport_entries(struct scan_list *scan, struct scan_entry *dst){
 	unsigned int	i;
 
-	for(i=0; i < (sizeof(service_ports)/sizeof(u_int16_t)); i++){
+	for(i=0; i < (sizeof(service_ports_hex)/sizeof(u_int16_t)); i++){
 		if(scan->ntarget >= scan->maxtarget){
 			return(0);
 		}
@@ -1868,14 +1869,14 @@ int load_embeddedport_entries(struct scan_list *scan, struct scan_entry *dst){
 		(scan->target[scan->ntarget])->start.s6_addr16[4]= htons(0);
 		(scan->target[scan->ntarget])->start.s6_addr16[5]= htons(0);
 		(scan->target[scan->ntarget])->start.s6_addr16[6]= htons(0);
-		(scan->target[scan->ntarget])->start.s6_addr16[7]= htons(service_ports[i]);
+		(scan->target[scan->ntarget])->start.s6_addr16[7]= htons(service_ports_hex[i]);
 		(scan->target[scan->ntarget])->cur= (scan->target[scan->ntarget])->start;
 
 		(scan->target[scan->ntarget])->end= dst->end;
 		(scan->target[scan->ntarget])->end.s6_addr16[4]= htons(0);
 		(scan->target[scan->ntarget])->end.s6_addr16[5]= htons(0);
 		(scan->target[scan->ntarget])->end.s6_addr16[6]= htons(EMBEDDED_PORT_2ND_WORD);
-		(scan->target[scan->ntarget])->end.s6_addr16[7]= htons(service_ports[i]);
+		(scan->target[scan->ntarget])->end.s6_addr16[7]= htons(service_ports_hex[i]);
 		scan->ntarget++;
 
 		if(scan->ntarget >= scan->maxtarget){
@@ -1888,14 +1889,58 @@ int load_embeddedport_entries(struct scan_list *scan, struct scan_entry *dst){
 		(scan->target[scan->ntarget])->start= dst->start;
 		(scan->target[scan->ntarget])->start.s6_addr16[4]= htons(0);
 		(scan->target[scan->ntarget])->start.s6_addr16[5]= htons(0);
-		(scan->target[scan->ntarget])->start.s6_addr16[6]= htons(service_ports[i]);
+		(scan->target[scan->ntarget])->start.s6_addr16[6]= htons(service_ports_hex[i]);
 		(scan->target[scan->ntarget])->start.s6_addr16[7]= htons(0);
 		(scan->target[scan->ntarget])->cur= (scan->target[scan->ntarget])->start;
 
 		(scan->target[scan->ntarget])->end= dst->end;
 		(scan->target[scan->ntarget])->end.s6_addr16[4]= htons(0);
 		(scan->target[scan->ntarget])->end.s6_addr16[5]= htons(0);
-		(scan->target[scan->ntarget])->end.s6_addr16[6]= htons(service_ports[i]);
+		(scan->target[scan->ntarget])->end.s6_addr16[6]= htons(service_ports_hex[i]);
+		(scan->target[scan->ntarget])->end.s6_addr16[7]= htons(EMBEDDED_PORT_2ND_WORD);
+		scan->ntarget++;
+	}
+
+	for(i=0; i < (sizeof(service_ports_dec)/sizeof(u_int16_t)); i++){
+		if(scan->ntarget >= scan->maxtarget){
+			return(0);
+		}
+
+		if( (scan->target[scan->ntarget] = malloc(sizeof(struct scan_entry))) == NULL)
+			return(0);
+
+		(scan->target[scan->ntarget])->start= dst->start;
+		(scan->target[scan->ntarget])->start.s6_addr16[4]= htons(0);
+		(scan->target[scan->ntarget])->start.s6_addr16[5]= htons(0);
+		(scan->target[scan->ntarget])->start.s6_addr16[6]= htons(0);
+		(scan->target[scan->ntarget])->start.s6_addr16[7]= htons(service_ports_dec[i]);
+		(scan->target[scan->ntarget])->cur= (scan->target[scan->ntarget])->start;
+
+		(scan->target[scan->ntarget])->end= dst->end;
+		(scan->target[scan->ntarget])->end.s6_addr16[4]= htons(0);
+		(scan->target[scan->ntarget])->end.s6_addr16[5]= htons(0);
+		(scan->target[scan->ntarget])->end.s6_addr16[6]= htons(EMBEDDED_PORT_2ND_WORD);
+		(scan->target[scan->ntarget])->end.s6_addr16[7]= htons(service_ports_dec[i]);
+		scan->ntarget++;
+
+		if(scan->ntarget >= scan->maxtarget){
+			return(0);
+		}
+
+		if( (scan->target[scan->ntarget] = malloc(sizeof(struct scan_entry))) == NULL)
+			return(0);
+
+		(scan->target[scan->ntarget])->start= dst->start;
+		(scan->target[scan->ntarget])->start.s6_addr16[4]= htons(0);
+		(scan->target[scan->ntarget])->start.s6_addr16[5]= htons(0);
+		(scan->target[scan->ntarget])->start.s6_addr16[6]= htons(service_ports_dec[i]);
+		(scan->target[scan->ntarget])->start.s6_addr16[7]= htons(0);
+		(scan->target[scan->ntarget])->cur= (scan->target[scan->ntarget])->start;
+
+		(scan->target[scan->ntarget])->end= dst->end;
+		(scan->target[scan->ntarget])->end.s6_addr16[4]= htons(0);
+		(scan->target[scan->ntarget])->end.s6_addr16[5]= htons(0);
+		(scan->target[scan->ntarget])->end.s6_addr16[6]= htons(service_ports_dec[i]);
 		(scan->target[scan->ntarget])->end.s6_addr16[7]= htons(EMBEDDED_PORT_2ND_WORD);
 		scan->ntarget++;
 	}
