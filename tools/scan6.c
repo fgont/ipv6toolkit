@@ -118,6 +118,8 @@ int					load_lowbyte_entries(struct scan_list *, struct scan_entry *);
 int					load_oui_entries(struct scan_list *, struct scan_entry *, struct ether_addr *);
 int					load_vm_entries(struct scan_list *, struct scan_entry *, struct prefix4_entry *);
 int					load_vendor_entries(struct scan_list *, struct scan_entry *, char *);
+int					load_knowniid_entries(struct scan_list *, struct scan_entry *, FILE *);
+int					read_ipv6_address(char *, unsigned int, struct in6_addr *);
 int					match_strings(char *, char *);
 int					load_bruteforce_entries(struct scan_list *, struct scan_entry *);
 void				prefix_to_scan(struct prefix_entry *, struct scan_entry *);
@@ -228,7 +230,7 @@ int						ranges;
 struct	scan_list		scan_list;
 struct scan_entry		*target_list[MAX_SCAN_ENTRIES];
 unsigned char			dst_f=0, tgt_ipv4mapped_f=0, tgt_lowbyte_f=0, tgt_oui_f=0, tgt_vendor_f=0, tgt_vm_f=0;
-unsigned char			tgt_bruteforce_f=0, tgt_range_f=0, tgt_portembedded_f=0;
+unsigned char			tgt_bruteforce_f=0, tgt_range_f=0, tgt_portembedded_f=0, tgt_knowniids_f=0;
 unsigned char			vm_vbox_f=0, vm_vmware_f=0, vm_vmwarem_f=0, v4hostaddr_f=0;
 unsigned char			v4hostprefix_f=0, sort_ouis_f=0, rnd_probes_f=0, inc_f=0, end_f=0, donesending_f=0;
 unsigned char			onlink_f=0, pps_f=0, bps_f=0, tcpflags_f=0, rhbytes_f=0, srcport_f=0, dstport_f=0, probetype;
@@ -241,7 +243,8 @@ struct prefix_entry		prefix;
 struct ether_addr		oui;
 char					*charstart, *charend, *lastcolon;
 char					rangestart[MAX_RANGE_STR_LEN+1], rangeend[MAX_RANGE_STR_LEN+1];
-char 					fname[MAX_FILENAME_SIZE], fname_f=0, configfile[MAX_FILENAME_SIZE];
+char 					fname[MAX_FILENAME_SIZE], fname_f=0, configfile[MAX_FILENAME_SIZE], knowniidsfile[MAX_FILENAME_SIZE];
+FILE					*knowniids_fp;
 char 					*oui_end=":00:00:00";
 char 					oui_ascii[ETHER_ADDR_PLEN];
 char					vendor[MAX_IEEE_OUIS_LINE_SIZE];
@@ -252,6 +255,7 @@ u_int16_t				service_ports_hex[]={0x21, 0x22, 0x23, 0x25, 0x49, 0x53, 0x80, 0x11
 						                 0x443, 0x547, 0x993, 0x995, 0x1194, 0x3306, 0x5060, 0x5061, 0x5432, 0x6446, 0x8080};
 u_int16_t				service_ports_dec[]={21, 22, 23, 25, 49, 53, 80, 110, 123, 179, 220, 389, \
 						                 443, 547, 993, 995, 1194, 3306, 5060, 5061, 5432, 6446, 8080};
+
 
 /* IPv6 Address Resolution */
 sigjmp_buf				env;
@@ -294,6 +298,7 @@ int main(int argc, char **argv){
 		{"tgt-port-embedded", no_argument, 0, 'g'},
 		{"tgt-ieee-oui", required_argument, 0, 'k'},
 		{"tgt-vendor", required_argument, 0, 'K'},
+		{"tgt-known-iids", required_argument, 0, 'w'},
 		{"ipv4-host", required_argument, 0, 'Q'},
 		{"sort-ouis", no_argument, 0, 'T'},
 		{"random-probes", no_argument, 0, 'N'},
@@ -304,7 +309,7 @@ int main(int argc, char **argv){
 		{"help", no_argument, 0, 'h'}
 	};
 
-	char shortopts[]= "i:s:d:u:U:H:y:S:D:lp:Z:o:a:X:P:qex:z:fFV:bBgk:K:Q:TNI:c:r:vh";
+	char shortopts[]= "i:s:d:u:U:H:y:S:D:lp:Z:o:a:X:P:qex:z:fFV:bBgk:K:w:Q:TNI:c:r:vh";
 
 	char option;
 
@@ -789,12 +794,19 @@ int main(int argc, char **argv){
 				/*
 				   In case the user entered an OUI as OO:UU:II:00:00:00, just copy the first 8 bytes of input 
 				   (the OUI part)
-				  */
+				 */
 
 				strncpy(vendor, optarg, MAX_IEEE_OUIS_LINE_SIZE-1);
 				vendor[MAX_IEEE_OUIS_LINE_SIZE-1]= 0;
 		
 				tgt_vendor_f = 1;
+				break;
+
+			case 'w':	/* Target known Interface Identifiers (IIDs) */
+				strncpy(knowniidsfile, optarg, MAX_FILENAME_SIZE-1);
+				knowniidsfile[MAX_FILENAME_SIZE-1]=0;
+
+				tgt_knowniids_f=1;
 				break;
 
 			case 'Q':
@@ -914,6 +926,13 @@ int main(int argc, char **argv){
 		exit(1);
 	}
 
+	/* Must open the "Known IIDs" file now, since it might be non-readable for the unprivileged user */
+	if(tgt_knowniids_f){
+		if( (knowniids_fp=fopen(knowniidsfile, "r")) == NULL){
+			perror("Error opening known IIDs file");
+			exit(1);
+		}
+	}
 
 	/* 
 	   If the real UID is not root, we setuid() and setgid() to that user and group, releasing superuser
@@ -1004,7 +1023,9 @@ int main(int argc, char **argv){
 		exit(1);
 	}
 
-	if(dst_f && !(tgt_ipv4mapped_f || tgt_lowbyte_f || tgt_oui_f || tgt_vendor_f || tgt_vm_f || tgt_range_f || tgt_portembedded_f)){
+	if(dst_f && !(tgt_ipv4mapped_f || tgt_lowbyte_f || tgt_oui_f || tgt_vendor_f || tgt_vm_f || tgt_range_f || \
+			tgt_portembedded_f || tgt_knowniids_f)){
+
 		tgt_bruteforce_f=1;
 	}
 
@@ -1267,12 +1288,19 @@ int main(int argc, char **argv){
 				exit(1);
 			}
 
+			if(tgt_knowniids_f){
+				load_knowniid_entries(&scan_list, &dst, knowniids_fp);
+			}
+
 			if(tgt_portembedded_f){
 				load_embeddedport_entries(&scan_list, &dst);
 			}
 
-			if(tgt_vm_f){
-				load_vm_entries(&scan_list, &dst, &v4host);
+			if(tgt_lowbyte_f){
+				if(!load_lowbyte_entries(&scan_list, &dst)){
+					puts("Couldn't load prefixes for low-byte IPv6 addresses");
+					exit(1);
+				}
 			}
 
 			if(tgt_ipv4mapped_f){
@@ -1282,11 +1310,8 @@ int main(int argc, char **argv){
 				}
 			}
 
-			if(tgt_lowbyte_f){
-				if(!load_lowbyte_entries(&scan_list, &dst)){
-					puts("Couldn't load prefixes for low-byte IPv6 addresses");
-					exit(1);
-				}
+			if(tgt_vm_f){
+				load_vm_entries(&scan_list, &dst, &v4host);
 			}
 
 			if(tgt_oui_f){
@@ -1600,6 +1625,7 @@ int main(int argc, char **argv){
 					donesending_f=1;
 					continue;
 				}
+
 			}
 
 			if(FD_ISSET(idata.fd, &eset)){
@@ -1847,6 +1873,95 @@ int load_ipv4mapped_entries(struct scan_list *scan, struct scan_entry *dst, stru
 
 	return(1);
 }
+
+
+/*
+ * Function: load_knowniid_entries()
+ *
+ * Generate scan_entry's for known Interface IDs
+ */
+int load_knowniid_entries(struct scan_list *scan, struct scan_entry *dst, FILE *fp){
+	unsigned int i;
+	int	r;
+	char line[MAX_LINE_SIZE];
+	struct in6_addr	iid;
+
+	while(fgets(line, sizeof(line),  fp) != NULL){
+		r= read_ipv6_address(line, Strnlen(line, MAX_LINE_SIZE), &iid);
+
+		if(r == 1){
+			if(scan->ntarget >= scan->maxtarget){
+				return(0);
+			}
+
+			if( (scan->target[scan->ntarget] = malloc(sizeof(struct scan_entry))) == NULL)
+				return(0);
+
+			(scan->target[scan->ntarget])->start= dst->start;
+
+			for(i=4; i<=7; i++)
+				(scan->target[scan->ntarget])->start.s6_addr16[i]= iid.s6_addr16[i];
+
+			(scan->target[scan->ntarget])->cur= (scan->target[scan->ntarget])->start;
+
+			(scan->target[scan->ntarget])->end= dst->end;
+
+			for(i=4; i<=7; i++)
+				(scan->target[scan->ntarget])->end.s6_addr16[i]= iid.s6_addr16[i];
+
+			scan->ntarget++;
+		}
+		else if(r == -1){
+			if(verbose_f){
+				printf("Error in 'known IIDs' file %s\n", knowniidsfile);
+			}
+
+			fclose(fp);
+			return(0);
+		}
+
+	}
+
+	fclose(fp);
+
+	return(1);
+}
+
+
+/*
+ * Function: read_ipv6_address()
+ *
+ * Obtains an IPv6 address (struct in6_addr) from a line of text in "IPv6_address # comments" format
+ */
+
+int read_ipv6_address(char *line, unsigned int len, struct in6_addr *iid){
+	char *ptr, *ipv6addr;
+	ptr= line;
+
+	/* Skip initial spaces (e.g. "   IPv6_address") */
+	while( (*ptr==' ' || *ptr=='\t') && ptr < (line+len))
+		ptr++;
+
+	/* If we got to end of line or there is a comment or equal sign, there is no IPv6 address */
+	if(ptr==(line+len) || *ptr=='#' || *ptr=='=' || *ptr=='\r' || *ptr=='\n')
+		return 0;
+
+	ipv6addr=ptr;
+
+	/* The IPv6 address is everything till (and excluding) the first separator character (e.g., space or tab) */
+	while( (*ptr!=' ' && *ptr!='\t' && *ptr!='\r' && *ptr!='\n' && *ptr!='#' && *ptr!='=') && ptr < (line+len))
+		ptr++;
+
+	/* NULL-terminate the ASCII-encoded IPv6 address */
+	*ptr=0; 
+
+	if ( inet_pton(AF_INET6, ipv6addr, iid) <= 0){
+		return(-1);
+	}
+
+	return(1);
+}
+
 
 
 /*
@@ -2413,8 +2528,8 @@ void usage(void){
 	     "       [-S LINK_SRC_ADDR | -F] [-p PROBE_TYPE] [-Z PAYLOAD_SIZE] [-o SRC_PORT]\n"
 	     "       [-a DST_PORT] [-X TCP_FLAGS] [-P ADDRESS_TYPE] [-q] [-e] [-x RETRANS]\n"
 	     "       [-o TIMEOUT] [-V VM_TYPE] [-b] [-B] [-g] [-k IEEE_OUI] [-K VENDOR]\n"
-	     "       [-Q IPV4_PREFIX[/LEN]] [-T] [-I INC_SIZE] [-r RATE(bps|pps)]\n"
-	     "       [-c CONFIG_FILE] [-v] [-h]");
+	     "       [-w KNOWN_IIDS_FILE] [-Q IPV4_PREFIX[/LEN]] [-T] [-I INC_SIZE]\n"
+	     "       [-r RATE(bps|pps)] [-c CONFIG_FILE] [-v] [-h]");
 }
 
 
@@ -2452,6 +2567,7 @@ void print_help(void){
 	     "  --tgt-port-embedded         Target embedded-port addresses\n"
 	     "  --tgt-ieee-oui, -k          Target IPv6 addresses embedding IEEE OUI\n"
 	     "  --tgt-vendor, -K            Target IPv6 addresses for vendor's IEEE OUIs\n"
+	     "  --tgt-known-iids, -w        Target known Interface Identifiers (IIDs)\n"
 	     "  --ipv4-host, -Q             Host IPv4 Address/Prefix\n"
 	     "  --sort-ouis, -T             Sort IEEE OUIs\n"
 	     "  --inc-size, -I              Increments size\n"
@@ -5259,7 +5375,7 @@ int get_if_addrs(struct iface_data *idata){
 /*
  * Function: process_config_file()
  *
- * Processes the ipv6mon configuration file
+ * Processes the SI6 Networks' toolkit configuration file
  */
 
 int process_config_file(const char *path){
