@@ -306,9 +306,16 @@ This option specifies that the target is IPv6 addresses that embed service ports
 This options is used to specify an IEEE OUI, such that the target of the scan is SLAAC addresses that employ the aforementioned IEEE OUI.
 
 .TP
-.BI \-K\  VENDOR ,\  \-\-tgt\-vendor\  VENDOR
+.BI \-K\  VENDOR ,\ \-\-tgt\-vendor\  VENDOR
 
 This option allows the user to specify a vendor name. scan6 will look-up all the correspoinding IEEE OUIs for such vendor, and then scan for SLAAC addresses that employ the aforementioned IEEE OUIs.
+
+.TP
+.BI \-w\  KNOWN_IIDS_FILE ,\ \-\-tgt\-known-iids\  KNOWN_IIDS_FILE
+
+This option specifies the name of a file containing one IPv6 address per line. The Interface ID of each of those IPv6 addresses will be employed, together with the network prefix specified with the '-d' option, to construct the IPv6 addressses to be probed. Since autoconfigured addresses typically employ Interface IDs that are constant across networks, this option can leverage known IIDs to track such nodes across networks. Please see http://tools.ietf.org/html/draft-ietf-6man-stable-privacy-addresses> for further details. Note: The file can contain comments if they are preceded with the numeral sign ('#'), asi in:
+
+        IPv6_address      # comment
 
 .TP
 .BR \-T ,\  \-\-sort\-ouis 
