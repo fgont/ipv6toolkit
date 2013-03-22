@@ -49,7 +49,7 @@ tcp6: $(SRCPATH)/tcp6.c
 	$(CC) $(CFLAGS) -o tcp6 $(SRCPATH)/tcp6.c $(LDFLAGS)
 
 clean: 
-	-rm -f $(TOOLS)
+	rm -f $(TOOLS)
 
 install: all
 	# Install the binaries
@@ -68,4 +68,40 @@ install: all
 	install -m0644 manuals/*.1 $(MANPATH)/man1
 	install -m0755 -d $(MANPATH)/man5
 	install -m0644 manuals/*.5 $(MANPATH)/man5
+
+uninstall:
+	# Remove the binaries
+	rm -f $(BINPATH)/flow6
+	rm -f $(BINPATH)/frag6
+	rm -f $(BINPATH)/icmp6
+	rm -f $(BINPATH)/jumbo6
+	rm -f $(BINPATH)/na6
+	rm -f $(BINPATH)/ni6
+	rm -f $(BINPATH)/ns6
+	rm -f $(BINPATH)/ra6
+	rm -f $(BINPATH)/rd6
+	rm -f $(BINPATH)/rs6
+	rm -f $(BINPATH)/scan6
+	rm -f $(BINPATH)/tcp6
+
+	# Remove the configuration file
+	rm -f /etc/ipv6toolkit.conf
+
+	# Remove the IEEE OUI database
+	rm -rf $(DATAPATH)/ipv6toolkit
+
+	# Remove the manual pages
+	rm -f $(MANPATH)/man1/flow6.1
+	rm -f $(MANPATH)/man1/frag6.1
+	rm -f $(MANPATH)/man1/icmp6.1
+	rm -f $(MANPATH)/man1/jumbo6.1
+	rm -f $(MANPATH)/man1/na6.1
+	rm -f $(MANPATH)/man1/ni6.1
+	rm -f $(MANPATH)/man1/ns6.1
+	rm -f $(MANPATH)/man1/ra6.1
+	rm -f $(MANPATH)/man1/rd6.1
+	rm -f $(MANPATH)/man1/rs6.1
+	rm -f $(MANPATH)/man1/scan6.1
+	rm -f $(MANPATH)/man1/tcp6.1
+	rm -f $(MANPATH)/man5/ipv6toolkit.conf.5
 
