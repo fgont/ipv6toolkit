@@ -135,7 +135,18 @@ scan6 employs a number of bran-new techniquest for performing address scans of r
 .fi
 .RE
 
-A thorough discussion of these address patterns can be found in: <http://tools.ietf.org/html/draft-gont-opsec-ipv6-host-scanning>
+A thorough discussion of these address patterns can be found in: <http://tools.ietf.org/html/draft-ietf-opsec-ipv6-host-scanning>.
+
+\fBHOST TRACKING\fR
+
+.B scan6
+can be employed to track IPv6 nodes across networks. Since IPv6 StateLess Address Auto-Configuration (SLAAC) typically results in globally-unique Interface Identifiers (IIDs) that are constant across networks, such identifiers can be leveraged to track nodes across a range of "known" networks, by periodically probing the IPv6 address composed of the IPv6 prefix of the target network, and the (known) Interface ID of the target node.
+
+For host-tracking purposes, the target networks can be specified with the '-d' and/or '-m' options, while the target Interface IDs can be specified with the '-w' and/or the '-W' options (see the documentation of each option for further information).
+
+Since for tracking purposes one will continually track the user across networks, the '-l' option will typically be set. Additionally, the '-z' option may be used to specifiy the number of seconds to sleep between iterations (i.e. each round of probes send to the specified targets). The value specified by the '-z' option represents a trade-off between time-liness of the tracking and bandwidth-consumption.
+
+IPv6 host-tracking is discussed in detail in Appendix A of <http://tools.ietf.org/html/draft-ietf-6man-stable-privacy-addresses>.
 
 .SH OPTIONS
 .B scan6
@@ -461,7 +472,13 @@ Use the “eth0” interface (“-i” option). Build the list of targets from t
 .BR ipv6toolkit.conf (5)
 
 draft-ietf-opsec-ipv6-host-scanning (available at: 
-.IR <http://tools.ietf.org/html/draft-gont-opsec-ipv6-host-scanning> )
+.IR <http://tools.ietf.org/html/draft-ietf-opsec-ipv6-host-scanning> )
+for a discussion of the IPv6 host-tracking technique implemented by
+.B scan6
+, and a proposal on how to mitigate such attacks.
+
+draft-ietf-6man-stable-privac-addresses (available at: 
+.IR <http://tools.ietf.org/html/draft-ietf-6man-stable-privacy-addresses> )
 for a discussion of the scanning techniques implemented by
 .B scan6
 , and a discussion of a number of aspects that should be taken into account when performing address scanning of remote networks.
