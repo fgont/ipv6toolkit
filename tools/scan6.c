@@ -60,6 +60,7 @@
 	#include <net/if_dl.h>
 #endif
 #include "scan6.h"
+#include "ipv6toolkit.h"
 #include <netinet/tcp.h>
 
 /* Function prototypes */
@@ -118,7 +119,9 @@ int					load_lowbyte_entries(struct scan_list *, struct scan_entry *);
 int					load_oui_entries(struct scan_list *, struct scan_entry *, struct ether_addr *);
 int					load_vm_entries(struct scan_list *, struct scan_entry *, struct prefix4_entry *);
 int					load_vendor_entries(struct scan_list *, struct scan_entry *, char *);
-int					load_knowniid_entries(struct scan_list *, struct scan_entry *, FILE *);
+int					load_knownprefix_entries(struct scan_list *, FILE *);
+int					load_knowniid_entries(struct scan_list *, struct scan_list *, struct prefix_list *);
+int					load_knowniidfile_entries(struct scan_list *, struct scan_list *, FILE *);
 int					read_ipv6_address(char *, unsigned int, struct in6_addr *);
 int					match_strings(char *, char *);
 int					load_bruteforce_entries(struct scan_list *, struct scan_entry *);
@@ -128,6 +131,7 @@ int					get_next_target(struct scan_list *);
 int					is_target_in_range(struct scan_entry *);
 int					send_probe_remote(struct iface_data *, struct scan_list *, struct in6_addr *, unsigned char);
 int					address_contains_ranges(char *);
+void				reset_scan_list(struct scan_list *);
 int					is_time_elapsed(struct timeval *, struct timeval *, unsigned long);
 int					is_ip6_in_address_list(struct prefix_list *, struct in6_addr *);
 int					process_config_file(const char *);
@@ -184,7 +188,7 @@ struct icmp6_hdr		*icmp6;
 struct ether_header		*ethernet;
 struct ether_addr		hsrcaddr, hdstaddr;
 struct in6_addr			srcaddr;
-struct scan_entry		dst;
+unsigned int			ndst=0;
 
 char					*lasts, *rpref;
 char					*charptr;
@@ -205,7 +209,7 @@ unsigned char 			srcaddr_f=0, srcprefix_f=0, hsrcaddr_f=0, rand_src_f=0, rand_li
 unsigned char 			accepted_f=0, configfile_f=0, dstaddr_f=0, hdstaddr_f=0, dstprefix_f=0;
 unsigned char			print_f=0, print_local_f=0, print_global_f=0, probe_echo_f=0, probe_unrec_f=0, probe_f=0;
 unsigned char			print_type=NOT_PRINT_ETHER_ADDR, scan_local_f=0, print_unique_f=0, localaddr_f=0;
-unsigned char			tunnel_f=0, loopback_f=0;
+unsigned char			tunnel_f=0, loopback_f=0, timestamps_f=0;
 
 /* Support for Extension Headers */
 unsigned int			dstopthdrs, dstoptuhdrs, hbhopthdrs;
@@ -227,13 +231,18 @@ unsigned char			*prev_nh, *startoffragment;
 /* Remote scans */
 unsigned int			inc=1;
 int						ranges;
-struct	scan_list		scan_list;
+struct	scan_list		scan_list, prefix_list;
 struct scan_entry		*target_list[MAX_SCAN_ENTRIES];
+struct	scan_entry		*tgt_pref_list[MAX_PREF_ENTRIES];
+struct prefix_list		iid_list;
+struct prefix_entry		*tgt_iid_list[MAX_IID_ENTRIES];
 unsigned char			dst_f=0, tgt_ipv4mapped_f=0, tgt_lowbyte_f=0, tgt_oui_f=0, tgt_vendor_f=0, tgt_vm_f=0;
-unsigned char			tgt_bruteforce_f=0, tgt_range_f=0, tgt_portembedded_f=0, tgt_knowniids_f=0;
+unsigned char			tgt_bruteforce_f=0, tgt_range_f=0, tgt_portembedded_f=0, tgt_knowniids_f=0, tgt_knowniidsfile_f=0;
+unsigned char			knownprefixes_f=0;
 unsigned char			vm_vbox_f=0, vm_vmware_f=0, vm_vmwarem_f=0, v4hostaddr_f=0;
 unsigned char			v4hostprefix_f=0, sort_ouis_f=0, rnd_probes_f=0, inc_f=0, end_f=0, donesending_f=0;
 unsigned char			onlink_f=0, pps_f=0, bps_f=0, tcpflags_f=0, rhbytes_f=0, srcport_f=0, dstport_f=0, probetype;
+unsigned char			loop_f=0, sleep_f=0;
 u_int16_t				srcport, dstport;
 u_int8_t				tcpflags=0;
 unsigned long			pktinterval, rate;
@@ -244,10 +253,12 @@ struct ether_addr		oui;
 char					*charstart, *charend, *lastcolon;
 char					rangestart[MAX_RANGE_STR_LEN+1], rangeend[MAX_RANGE_STR_LEN+1];
 char 					fname[MAX_FILENAME_SIZE], fname_f=0, configfile[MAX_FILENAME_SIZE], knowniidsfile[MAX_FILENAME_SIZE];
-FILE					*knowniids_fp;
+char					knownprefixesfile[MAX_FILENAME_SIZE];
+FILE					*knowniids_fp, *knownprefixes_fp;
 char 					*oui_end=":00:00:00";
 char 					oui_ascii[ETHER_ADDR_PLEN];
 char					vendor[MAX_IEEE_OUIS_LINE_SIZE];
+unsigned int			nsleep;
 int						sel;
 fd_set					sset, rset, wset, eset;
 struct timeval			curtime, lastprobe;
@@ -268,6 +279,7 @@ int main(int argc, char **argv){
 	gid_t			rgid;
 	struct passwd	*pwdptr;
 	struct timeval	timeout;
+	char			date[30];
 
 	static struct option longopts[] = {
 		{"interface", required_argument, 0, 'i'},
@@ -279,7 +291,7 @@ int main(int argc, char **argv){
 		{"frag-hdr", required_argument, 0, 'y'},
 		{"link-src-addr", required_argument, 0, 'S'},
 		{"link-dst-addr", required_argument, 0, 'D'},
-		{"local-scan", no_argument, 0, 'l'},
+		{"local-scan", no_argument, 0, 'L'},
 		{"probe-type", required_argument, 0, 'p'},
 		{"payload-size", required_argument, 0, 'Z'},
 		{"src-port", required_argument, 0, 'o'},
@@ -288,8 +300,9 @@ int main(int argc, char **argv){
 		{"print-type", required_argument, 0, 'P'},
 		{"print-unique", no_argument, 0, 'q'},
 		{"print-link-addr", no_argument, 0, 'e'},
+		{"print-timestamp", no_argument, 0, 't'},
 		{"retrans", required_argument, 0, 'x'},
-		{"timeout", required_argument, 0, 'z'},
+		{"timeout", required_argument, 0, 'O'},
 		{"rand-src-addr", no_argument, 0, 'f'},
 		{"rand-link-src-addr", no_argument, 0, 'F'},
 		{"tgt-virtual-machines", required_argument, 0, 'V'},
@@ -298,18 +311,22 @@ int main(int argc, char **argv){
 		{"tgt-port-embedded", no_argument, 0, 'g'},
 		{"tgt-ieee-oui", required_argument, 0, 'k'},
 		{"tgt-vendor", required_argument, 0, 'K'},
-		{"tgt-known-iids", required_argument, 0, 'w'},
+		{"tgt-known-iids-file", required_argument, 0, 'w'},
+		{"tgt-known-iid", required_argument, 0, 'W'},
+		{"known-prefixes-file", required_argument, 0, 'm'},
 		{"ipv4-host", required_argument, 0, 'Q'},
 		{"sort-ouis", no_argument, 0, 'T'},
 		{"random-probes", no_argument, 0, 'N'},
 		{"inc-size", required_argument, 0, 'I'},
-		{"config-file", required_argument, 0, 'c'},
 		{"rate-limit", required_argument, 0, 'r'},
+		{"loop", no_argument, 0, 'l'},
+		{"sleep", required_argument, 0, 'z'},
+		{"config-file", required_argument, 0, 'c'},
 		{"verbose", no_argument, 0, 'v'},
 		{"help", no_argument, 0, 'h'}
 	};
 
-	char shortopts[]= "i:s:d:u:U:H:y:S:D:lp:Z:o:a:X:P:qex:z:fFV:bBgk:K:w:Q:TNI:c:r:vh";
+	char shortopts[]= "i:s:d:u:U:H:y:S:D:Lp:Z:o:a:X:P:qetx:O:fFV:bBgk:K:w:W:m:Q:TNI:r:lz:c:vh";
 
 	char option;
 
@@ -322,6 +339,21 @@ int main(int argc, char **argv){
 	hoplimit=64+random()%180;
 
 	init_iface_data(&idata);
+
+	/* Initialize the scan_list structure (for remote scans) */
+	scan_list.target=target_list;
+	scan_list.ntarget=0;
+	scan_list.maxtarget= MAX_SCAN_ENTRIES;
+
+	/* Initialize the prefix_list structure (for remote scans) */
+	prefix_list.target= tgt_pref_list;
+	prefix_list.ntarget=0;
+	prefix_list.maxtarget= MAX_PREF_ENTRIES;
+
+	/* Initialize the iid_list structure (for remote scans/tracking) */
+	iid_list.prefix= tgt_iid_list;
+	iid_list.nprefix=0;
+	iid_list.maxprefix= MAX_IID_ENTRIES;
 
 	while((option=getopt_long(argc, argv, shortopts, longopts, NULL)) != -1) {
 		switch(option) {
@@ -399,6 +431,90 @@ int main(int argc, char **argv){
 					*charstart=0;
 					*charend=0;
 					tgt_range_f=1;
+
+					if(scan_list.ntarget <= scan_list.maxtarget){
+						if( (scan_list.target[scan_list.ntarget] = malloc(sizeof(struct scan_entry))) == NULL){
+							if(verbose_f)
+								puts("scan6: Not enough memory");
+
+							exit(1);
+						}
+
+						if ( inet_pton(AF_INET6, rangestart, &(scan_list.target[scan_list.ntarget]->start)) <= 0){
+							if(verbose_f>1)
+								puts("inet_pton(): Error converting IPv6 address from presentation to network format");
+
+							exit(1);
+						}
+
+						if ( inet_pton(AF_INET6, rangeend, &(scan_list.target[scan_list.ntarget]->end)) <= 0){
+							if(verbose_f>1)
+								puts("inet_pton(): Error converting IPv6 address from presentation to network format");
+
+							exit(1);
+						}
+
+						scan_list.target[scan_list.ntarget]->cur= scan_list.target[scan_list.ntarget]->start;
+
+						/* Check whether the start address is smaller than the end address */
+						for(i=0;i<7; i++)
+							if( ntohs(scan_list.target[scan_list.ntarget]->start.s6_addr16[i]) > 
+								ntohs(scan_list.target[scan_list.ntarget]->end.s6_addr16[i])){
+								if(verbose_f)
+									puts("Error in Destination Address range: Start address larger than end address!");
+
+								exit(1);
+							}
+
+						if(IN6_IS_ADDR_MULTICAST(&(scan_list.target[scan_list.ntarget]->start))){
+							if(verbose_f)
+								puts("scan6: Remote scan cannot target a multicast address");
+
+							exit(1);
+						}
+
+						if(IN6_IS_ADDR_MULTICAST(&(scan_list.target[scan_list.ntarget]->end))){
+							if(verbose_f)
+								puts("scan6: Remote scan cannot target a multicast address");
+
+							exit(1);
+						}
+
+						scan_list.ntarget++;
+					}
+					else{
+						/*
+						   If the number of "targets" has already been exceeded, it doesn't make sense to continue further,
+						   since there wouldn't be space for any specific target types
+						 */
+						if(verbose_f)
+							puts("Too many targets!");
+
+						exit(1);
+					}
+
+					if(prefix_list.ntarget <= prefix_list.maxtarget){
+						if( (prefix_list.target[prefix_list.ntarget] = malloc(sizeof(struct scan_entry))) == NULL){
+							if(verbose_f)
+								puts("scan6: Not enough memory");
+
+							exit(1);
+						}
+
+						/* Copy the recently added target to our prefix list */
+						*prefix_list.target[prefix_list.ntarget]= *scan_list.target[scan_list.ntarget - 1];
+						prefix_list.ntarget++;
+					}
+					else{
+						/*
+						   If the number of "targets" has already been exceeded, it doesn't make sense to continue further,
+						   since there wouldn't be space for any specific target types
+						 */
+						if(verbose_f)
+							puts("Too many targets!");
+
+						exit(1);
+					}
 				}
 				else if(ranges == 0){
 					if((charptr = strtok_r(optarg, "/", &lasts)) == NULL){
@@ -425,11 +541,45 @@ int main(int argc, char **argv){
 						prefix.len= 128;
 					}
 
-					prefix_to_scan(&prefix, &dst);
+					if(prefix_list.ntarget <= prefix_list.maxtarget){
+						if( (prefix_list.target[prefix_list.ntarget] = malloc(sizeof(struct scan_entry))) == NULL){
+							if(verbose_f)
+								puts("scan6: Not enough memory");
+
+							exit(1);
+						}
+
+						prefix_to_scan(&prefix, prefix_list.target[prefix_list.ntarget]);
+
+						if(IN6_IS_ADDR_MULTICAST(&(prefix_list.target[prefix_list.ntarget]->start))){
+							if(verbose_f)
+								puts("scan6: Remote scan cannot target a multicast address");
+
+							exit(1);
+						}
+
+						if(IN6_IS_ADDR_MULTICAST(&(prefix_list.target[prefix_list.ntarget]->end))){
+							if(verbose_f)
+								puts("scan6: Remote scan cannot target a multicast address");
+
+							exit(1);
+						}
+
+						prefix_list.ntarget++;
+					}
+					else{
+						/*
+						   If the number of "targets" has already been exceeded, it doesn't make sense to continue further,
+						   since there wouldn't be space for any specific target types
+						 */
+						if(verbose_f)
+							puts("Too many targets!");
+
+						exit(1);
+					}
 				}
 
 				dst_f=1;
-
 				break;
 	    
 			case 'u':	/* Destinations Options Header */
@@ -715,15 +865,19 @@ int main(int argc, char **argv){
 				print_type= PRINT_ETHER_ADDR;
 				break;
 
+			case 't':
+				timestamps_f= 1;
+				break;
+
 			case 'x':
 				idata.local_retrans=atoi(optarg);
 				break;
 
-			case 'z':
+			case 'O':
 				idata.local_timeout=atoi(optarg);
 				break;
 
-			case 'l':
+			case 'L':
 				scan_local_f=1;
 				break;
 
@@ -806,7 +960,37 @@ int main(int argc, char **argv){
 				strncpy(knowniidsfile, optarg, MAX_FILENAME_SIZE-1);
 				knowniidsfile[MAX_FILENAME_SIZE-1]=0;
 
-				tgt_knowniids_f=1;
+				tgt_knowniidsfile_f=1;
+				break;
+
+
+			case 'W':	/* Target Interface Identifier (IIDs) */
+				if(iid_list.nprefix >= iid_list.maxprefix){
+					puts("Too many INterface Identifiers");
+					exit(1);
+				}
+
+				if( (iid_list.prefix[iid_list.nprefix] = malloc(sizeof(struct prefix_entry))) == NULL){
+					puts("Not enough memory while storing Interface ID");
+					exit(1);
+				}
+
+				if ( inet_pton(AF_INET6, optarg, &((iid_list.prefix[iid_list.nprefix])->ip6)) <= 0){
+					puts("inet_pton(): Source Address not valid");
+					exit(1);
+				}
+
+				iid_list.prefix[iid_list.nprefix]->len=128;
+				iid_list.nprefix++;
+
+				tgt_knowniids_f= 1;
+				break;
+
+			case 'm':	/* Known prefixes file */
+				strncpy(knownprefixesfile, optarg, MAX_FILENAME_SIZE-1);
+				knownprefixesfile[MAX_FILENAME_SIZE-1]=0;
+
+				knownprefixes_f=1;
 				break;
 
 			case 'Q':
@@ -873,6 +1057,20 @@ int main(int argc, char **argv){
 
 				break;
 
+			case 'l':	/* "Loop mode */
+				loop_f = 1;
+				break;
+
+			case 'z':	/* Sleep option */
+				nsleep=atoi(optarg);
+				if(nsleep==0){
+					puts("Invalid number of seconds in '-z' option");
+					exit(1);
+				}
+	
+				sleep_f=1;
+				break;
+
 			case 'v':	/* Be verbose */
 				verbose_f++;
 				break;
@@ -927,11 +1125,21 @@ int main(int argc, char **argv){
 	}
 
 	/* Must open the "Known IIDs" file now, since it might be non-readable for the unprivileged user */
-	if(tgt_knowniids_f){
+	if(tgt_knowniidsfile_f){
 		if( (knowniids_fp=fopen(knowniidsfile, "r")) == NULL){
 			perror("Error opening known IIDs file");
 			exit(1);
 		}
+	}
+
+	/* Must open the "Known IIDs" file now, since it might be non-readable for the unprivileged user */
+	if(knownprefixes_f){
+		if( (knownprefixes_fp=fopen(knownprefixesfile, "r")) == NULL){
+			perror("Error opening known prefixes file");
+			exit(1);
+		}
+
+		dst_f=1;
 	}
 
 	/* 
@@ -962,6 +1170,14 @@ int main(int argc, char **argv){
 				exit(1);
 			}
 		}
+	}
+
+	/* This loads prefixes, but not scan entries */
+	if(knownprefixes_f){
+		if(!load_knownprefix_entries(&prefix_list, knownprefixes_fp)){
+			puts("Couldn't load known IPv6 prefixes");
+			exit(1);
+		}			
 	}
 
 	if(!inc_f)
@@ -1024,7 +1240,7 @@ int main(int argc, char **argv){
 	}
 
 	if(dst_f && !(tgt_ipv4mapped_f || tgt_lowbyte_f || tgt_oui_f || tgt_vendor_f || tgt_vm_f || tgt_range_f || \
-			tgt_portembedded_f || tgt_knowniids_f)){
+			tgt_portembedded_f || tgt_knowniids_f || tgt_knowniidsfile_f)){
 
 		tgt_bruteforce_f=1;
 	}
@@ -1212,124 +1428,79 @@ int main(int argc, char **argv){
 
 	/* Remote scan */
 	else{
-		/* Initialize the scan_list structure */
-		scan_list.target=target_list;
-		scan_list.ntarget=0;
-		scan_list.maxtarget= MAX_SCAN_ENTRIES;
-
-		if(tgt_range_f){
-			if(scan_list.ntarget <= scan_list.maxtarget){
-				if( (scan_list.target[scan_list.ntarget] = malloc(sizeof(struct scan_entry))) == NULL){
-					if(verbose_f)
-						puts("scan6: Not enough memory");
-
-					exit(1);
-				}
-
-				if ( inet_pton(AF_INET6, rangestart, &(scan_list.target[scan_list.ntarget]->start)) <= 0){
-					if(verbose_f>1)
-						puts("inet_pton(): Error converting IPv6 address from presentation to network format");
-
-					exit(1);
-				}
-
-				if ( inet_pton(AF_INET6, rangeend, &(scan_list.target[scan_list.ntarget]->end)) <= 0){
-					if(verbose_f>1)
-						puts("inet_pton(): Error converting IPv6 address from presentation to network format");
-
-					exit(1);
-				}
-
-				scan_list.target[scan_list.ntarget]->cur= scan_list.target[scan_list.ntarget]->start;
-
-				/* Check whether the start address is smaller than the end address */
-				for(i=0;i<7; i++)
-					if( ntohs(scan_list.target[scan_list.ntarget]->start.s6_addr16[i]) > 
-						ntohs(scan_list.target[scan_list.ntarget]->end.s6_addr16[i])){
-						if(verbose_f)
-							puts("Error in Destination Address range: Start address larger than end address!");
-
-						exit(1);
-					}
-
-				if(IN6_IS_ADDR_MULTICAST(&(scan_list.target[scan_list.ntarget]->start))){
-					if(verbose_f)
-						puts("scan6: Remote scan cannot target a multicast address");
-
-					exit(1);
-				}
-
-				if(IN6_IS_ADDR_MULTICAST(&(scan_list.target[scan_list.ntarget]->end))){
-					if(verbose_f)
-						puts("scan6: Remote scan cannot target a multicast address");
-
-					exit(1);
-				}
-
-				dst.start= scan_list.target[scan_list.ntarget]->start;
-				dst.end= scan_list.target[scan_list.ntarget]->end;
-				dst.cur= dst.start;
-				scan_list.ntarget++;
+		if(tgt_knowniids_f){
+			if(!load_knowniid_entries(&scan_list, &prefix_list, &iid_list)){
+				puts("Couldn't load known IID IPv6 addresses");
+				exit(1);
 			}
 		}
 
-		if(dst_f){
-			if(IN6_IS_ADDR_MULTICAST(&dst.start)){
-				if(verbose_f)
-					puts("scan6: Remote scan cannot target a multicast address");
-
+		if(tgt_knowniidsfile_f){
+			if(!load_knowniidfile_entries(&scan_list, &prefix_list, knowniids_fp)){
+				puts("Couldn't load known IID IPv6 addresses");
 				exit(1);
 			}
 
-			if(IN6_IS_ADDR_MULTICAST(&dst.end)){
-				if(verbose_f)
-					puts("scan6: Remote scan cannot target a multicast address");
+			fclose(knowniids_fp);
+		}
 
-				exit(1);
+		if(tgt_portembedded_f){
+			for(i=0; i < prefix_list.ntarget; i++){
+				if(!load_embeddedport_entries(&scan_list, prefix_list.target[i])){
+					puts("Couldn't load embedded-port IPv6 addresses");
+					exit(1);
+				}
 			}
+		}
 
-			if(tgt_knowniids_f){
-				load_knowniid_entries(&scan_list, &dst, knowniids_fp);
-			}
-
-			if(tgt_portembedded_f){
-				load_embeddedport_entries(&scan_list, &dst);
-			}
-
-			if(tgt_lowbyte_f){
-				if(!load_lowbyte_entries(&scan_list, &dst)){
+		if(tgt_lowbyte_f){
+			for(i=0; i < prefix_list.ntarget; i++){
+				if(!load_lowbyte_entries(&scan_list, prefix_list.target[i])){
 					puts("Couldn't load prefixes for low-byte IPv6 addresses");
 					exit(1);
 				}
 			}
+		}
 
-			if(tgt_ipv4mapped_f){
-				if(!load_ipv4mapped_entries(&scan_list, &dst, &v4host)){
+		if(tgt_ipv4mapped_f){
+			for(i=0; i < prefix_list.ntarget; i++){
+				if(!load_ipv4mapped_entries(&scan_list, prefix_list.target[i], &v4host)){
 					puts("Couldn't load prefixes for IPv4-embeded IPv6 addresses");
 					exit(1);
 				}
 			}
+		}
 
-			if(tgt_vm_f){
-				load_vm_entries(&scan_list, &dst, &v4host);
-			}
-
-			if(tgt_oui_f){
-				if(!load_oui_entries(&scan_list, &dst, &oui)){
+		if(tgt_vm_f){
+			for(i=0; i < prefix_list.ntarget; i++){
+				if(!load_vm_entries(&scan_list, prefix_list.target[i], &v4host)){
 					puts("Couldn't load prefix for IEEE OUI");
 					exit(1);
-				}				
+				}
 			}
+		}
 
-			if(tgt_vendor_f){
-				if(!load_vendor_entries(&scan_list, &dst, vendor)){
+		if(tgt_oui_f){
+			for(i=0; i < prefix_list.ntarget; i++){
+				if(!load_oui_entries(&scan_list, prefix_list.target[i], &oui)){
+					puts("Couldn't load prefix for IEEE OUI");
+					exit(1);
+				}
+			}			
+		}
+
+		if(tgt_vendor_f){
+			for(i=0; i < prefix_list.ntarget; i++){
+				if(!load_vendor_entries(&scan_list, prefix_list.target[i], vendor)){
 					puts("Couldn't load prefixes for the specified vendor");
 					exit(1);
 				}
 			}
+		}
 
-			if(tgt_bruteforce_f){
-				if(!load_bruteforce_entries(&scan_list, &dst)){
+		if(tgt_bruteforce_f){
+			for(i=0; i < prefix_list.ntarget; i++){
+				if(!load_bruteforce_entries(&scan_list, prefix_list.target[i])){
 					puts("Couldn't load prefixes for the specified destination prefix");
 					exit(1);
 				}
@@ -1352,21 +1523,22 @@ int main(int argc, char **argv){
 					   XXX: We're assuming the local subnet is a /64, and that the same route must be used for all
 					   probes. This could be improved.
 					 */
-					if(match_ipv6_to_prefixes(&(dst.start), &idata.prefix_ol)){
-						/* Must perform Neighbor Discovery for the local address */
-						onlink_f=1;
-						puts("Target network is on-link. Try the '-l' option instead");
-						exit(1);
+					for(i=0; i < prefix_list.ntarget; i++){
+						if(match_ipv6_to_prefixes(&(prefix_list.target[i]->start), &idata.prefix_ol)){
+							/* Must perform Neighbor Discovery for the local address */
+							onlink_f=1;
+							puts("Target network is on-link. Try the '-l' option instead");
+							exit(1);
+						}
 					}
-					else{
-						hdstaddr= idata.router_ether;
-					}
+
+					hdstaddr= idata.router_ether;
 				}
 			}
 		}
 		
 
-		if(!IN6_IS_ADDR_LINKLOCAL(&dst.start) && !idata.ip6_global_flag){
+		if(!scan_local_f && !idata.ip6_global_flag){
 			if(verbose_f)
 				puts("Cannot obtain a global address to scan remote network");
 
@@ -1470,10 +1642,26 @@ int main(int argc, char **argv){
 				exit(1);
 			}
 
-			if(donesending_f)
-				if(is_time_elapsed(&curtime, &lastprobe, SELECT_TIMEOUT * 1000000)){
-					end_f=1;
+			/* Check whether we have finished probing all targets */
+			if(donesending_f){
+				/*
+				   If we're not looping, just wait for SELECT_TIMEOUT seconds for any incoming responses.
+				   If we are looping (most likely because we're doing host-tracking, wait for nsleep seconds, and
+				   reset the targets.
+				*/
+				if(!loop_f){
+					if(is_time_elapsed(&curtime, &lastprobe, SELECT_TIMEOUT * 1000000)){
+						end_f=1;
+					}
 				}
+				else{
+					if(is_time_elapsed(&curtime, &lastprobe, nsleep * 1000000)){
+						reset_scan_list(&scan_list);
+						donesending_f=0;
+						continue;
+					}
+				}
+			}
 
 			/*
 			   If we didn't check for writeability in the previous call to select(), we must do it now. Otherwise, we might
@@ -1555,7 +1743,14 @@ int main(int argc, char **argv){
 									exit(1);
 								}
 
-								printf("%s\n", pv6addr);
+								if(timestamps_f){
+									ctime_r(&(curtime.tv_sec), date);
+									date[24]=0;
+									printf("%s (%s)\n", pv6addr, date);
+								}
+								else{
+									printf("%s\n", pv6addr);
+								}
 							}
 						}
 					}
@@ -1581,11 +1776,17 @@ int main(int argc, char **argv){
 							exit(1);
 						}
 
-						printf("%s\n", pv6addr);
+						if(timestamps_f){
+							ctime_r(&(curtime.tv_sec), date);
+							date[24]=0;
+							printf("%s (%s)\n", pv6addr, date);
+						}
+						else{
+							printf("%s\n", pv6addr);
+						}
 					}
 				}
 			}
-
 
 			if(!donesending_f && !idata.pending_write_f && is_time_elapsed(&curtime, &lastprobe, pktinterval)){
 				idata.pending_write_f=1;
@@ -1642,6 +1843,23 @@ int main(int argc, char **argv){
 }
 
 
+/*
+ * Function: reset_scan_list()
+ *
+ * Resets each scan_list.target[]->cur to scan_list.target[]->start.
+ */
+
+void reset_scan_list(struct scan_list *scan){
+	unsigned int i;
+
+	for(i=0; i < scan->ntarget; i++)
+		(scan->target[i])->cur = (scan->target[i])->start;
+
+	scan->ctarget=0;
+
+	return;
+}
+
 
 /*
  * Function: is_time_elapsed()
@@ -1669,6 +1887,7 @@ int is_time_elapsed(struct timeval *curtime, struct timeval *lastprobe, unsigned
  * Checks whether a string contains ranges in the form YYYY-ZZZZ. A string that contains both ranges and a
  * /length prefix is considered invalid.
  */
+
 int address_contains_ranges(char *ptr){
 	unsigned char slash_f=0, dash_f=0;
 	unsigned int i=0;
@@ -1702,6 +1921,7 @@ int address_contains_ranges(char *ptr){
  *
  * Checks whether a scan_entry->cur is >= scan_entry->start && <= scan_entry->end
  */
+
 int is_target_in_range(struct scan_entry *scan_entry){
 	unsigned int i;
 
@@ -1724,6 +1944,7 @@ int is_target_in_range(struct scan_entry *scan_entry){
  *
  * "Increments" a scan_entry structure to obtain the next target to scan.
  */
+
 int get_next_target(struct scan_list *scan_list){
 	int i;
 	unsigned int	cind;
@@ -1801,12 +2022,12 @@ int get_next_target(struct scan_list *scan_list){
 
 
 
-
 /*
  * Function: print_scan_entries()
  *
  * Print address ranges to scan
  */
+
 int print_scan_entries(struct scan_list *scan){
 	unsigned int i, j;
 
@@ -1833,6 +2054,7 @@ int print_scan_entries(struct scan_list *scan){
  *
  * Generate scan_entry's for IPv4-mapped addresses
  */
+
 int load_ipv4mapped_entries(struct scan_list *scan, struct scan_entry *dst, struct prefix4_entry *v4host){
 	unsigned int i;
 	u_int32_t	mask32;
@@ -1876,11 +2098,101 @@ int load_ipv4mapped_entries(struct scan_list *scan, struct scan_entry *dst, stru
 
 
 /*
+ * Function: load_knownprefix_entries()
+ *
+ * Generate prefix_entry's for known prefixes (populate the prefix_list)
+ */
+
+int load_knownprefix_entries(struct scan_list *pref, FILE *fp){
+	unsigned int i;
+	int	r;
+	char line[MAX_LINE_SIZE];
+	struct in6_addr	prefix;
+
+	while(fgets(line, sizeof(line),  fp) != NULL){
+		r= read_ipv6_address(line, Strnlen(line, MAX_LINE_SIZE), &prefix);
+
+		if(r == 1){
+			if(pref->ntarget >= pref->maxtarget){
+				return(0);
+			}
+
+			if( (pref->target[pref->ntarget] = malloc(sizeof(struct scan_entry))) == NULL)
+				return(0);
+
+			(pref->target[pref->ntarget])->start= prefix;
+
+			for(i=4; i<=7; i++)
+				(pref->target[pref->ntarget])->start.s6_addr16[i]= 0;
+
+			(pref->target[pref->ntarget])->cur= (pref->target[pref->ntarget])->start;
+			(pref->target[pref->ntarget])->end= (pref->target[pref->ntarget])->start;
+
+			pref->ntarget++;
+		}
+		else if(r == -1){
+			if(verbose_f){
+				printf("Error in 'known prefixes' file %s\n", knownprefixesfile);
+			}
+
+			fclose(fp);
+			return(0);
+		}
+
+	}
+
+	fclose(fp);
+
+	return(1);
+}
+
+
+/*
  * Function: load_knowniid_entries()
  *
  * Generate scan_entry's for known Interface IDs
  */
-int load_knowniid_entries(struct scan_list *scan, struct scan_entry *dst, FILE *fp){
+
+int load_knowniid_entries(struct scan_list *scan, struct scan_list *prefix, struct prefix_list *iid){
+	unsigned int i, j, k;
+
+	for(i=0; i< iid->nprefix; i++){
+		for(j=0; j < prefix->ntarget; j++){
+			if(scan->ntarget >= scan->maxtarget){
+				return(0);
+			}
+
+			if( (scan->target[scan->ntarget] = malloc(sizeof(struct scan_entry))) == NULL)
+				return(0);
+
+			(scan->target[scan->ntarget])->start= (prefix->target[j])->start;
+
+			for(k=4; k<=7; k++)
+				(scan->target[scan->ntarget])->start.s6_addr16[k]= (iid->prefix[i])->ip6.s6_addr16[k];
+
+			(scan->target[scan->ntarget])->cur= (scan->target[scan->ntarget])->start;
+
+			(scan->target[scan->ntarget])->end= (prefix->target[j])->end;
+
+			for(k=4; k<=7; k++)
+				(scan->target[scan->ntarget])->end.s6_addr16[k]= (iid->prefix[i])->ip6.s6_addr16[k];
+
+			scan->ntarget++;
+		}
+	}
+
+	return(1);
+}
+
+
+
+/*
+ * Function: load_knowniidfile_entries()
+ *
+ * Generate scan_entry's for known Interface IDs
+ */
+
+int load_knowniidfile_entries(struct scan_list *scan, struct scan_list *prefix, FILE *fp){
 	unsigned int i;
 	int	r;
 	char line[MAX_LINE_SIZE];
@@ -1890,26 +2202,29 @@ int load_knowniid_entries(struct scan_list *scan, struct scan_entry *dst, FILE *
 		r= read_ipv6_address(line, Strnlen(line, MAX_LINE_SIZE), &iid);
 
 		if(r == 1){
-			if(scan->ntarget >= scan->maxtarget){
-				return(0);
+			for(i=0; i< prefix->ntarget; i++){
+				if(scan->ntarget >= scan->maxtarget){
+					return(0);
+				}
+
+				if( (scan->target[scan->ntarget] = malloc(sizeof(struct scan_entry))) == NULL)
+					return(0);
+
+				(scan->target[scan->ntarget])->start= (prefix->target[i])->start;
+
+				for(j=4; j<=7; j++)
+					(scan->target[scan->ntarget])->start.s6_addr16[j]= iid.s6_addr16[j];
+
+				(scan->target[scan->ntarget])->cur= (scan->target[scan->ntarget])->start;
+
+				(scan->target[scan->ntarget])->end= (prefix->target[i])->end;
+
+				for(j=4; j<=7; j++)
+					(scan->target[scan->ntarget])->end.s6_addr16[j]= iid.s6_addr16[j];
+
+				scan->ntarget++;
 			}
 
-			if( (scan->target[scan->ntarget] = malloc(sizeof(struct scan_entry))) == NULL)
-				return(0);
-
-			(scan->target[scan->ntarget])->start= dst->start;
-
-			for(i=4; i<=7; i++)
-				(scan->target[scan->ntarget])->start.s6_addr16[i]= iid.s6_addr16[i];
-
-			(scan->target[scan->ntarget])->cur= (scan->target[scan->ntarget])->start;
-
-			(scan->target[scan->ntarget])->end= dst->end;
-
-			for(i=4; i<=7; i++)
-				(scan->target[scan->ntarget])->end.s6_addr16[i]= iid.s6_addr16[i];
-
-			scan->ntarget++;
 		}
 		else if(r == -1){
 			if(verbose_f){
@@ -1921,8 +2236,6 @@ int load_knowniid_entries(struct scan_list *scan, struct scan_entry *dst, FILE *
 		}
 
 	}
-
-	fclose(fp);
 
 	return(1);
 }
@@ -1969,6 +2282,7 @@ int read_ipv6_address(char *line, unsigned int len, struct in6_addr *iid){
  *
  * Generate scan_entry's for IPv6 addresses with embedded service ports
  */
+
 int load_embeddedport_entries(struct scan_list *scan, struct scan_entry *dst){
 	unsigned int	i;
 
@@ -2069,6 +2383,7 @@ int load_embeddedport_entries(struct scan_list *scan, struct scan_entry *dst){
  *
  * Generate scan_entry's for low-byte addresses
  */
+
 int load_lowbyte_entries(struct scan_list *scan, struct scan_entry *dst){
 	unsigned int	i;
 
@@ -2098,11 +2413,13 @@ int load_lowbyte_entries(struct scan_list *scan, struct scan_entry *dst){
 }
 
 
+
 /*
  * Function: load_oui_entries()
  *
  * Generate scan_entry's based on a specific IEEE OUI
  */
+
 int load_oui_entries(struct scan_list *scan, struct scan_entry *dst, struct ether_addr *oui){
 	unsigned int i;
 
@@ -2134,11 +2451,13 @@ int load_oui_entries(struct scan_list *scan, struct scan_entry *dst, struct ethe
 	return(1);
 }
 
+
 /*
  * Function: load_vm_entries()
  *
  * Generate scan_entry's based on virtualization prefixes, and scan modes
  */
+
 int load_vm_entries(struct scan_list *scan, struct scan_entry *dst, struct prefix4_entry *v4host){
 	unsigned int 		i;
 	u_int32_t			mask32;
@@ -2279,6 +2598,7 @@ int load_vm_entries(struct scan_list *scan, struct scan_entry *dst, struct prefi
  *
  * Lookup vendor's IEEE OUIs
  */
+
 int load_vendor_entries(struct scan_list *scan, struct scan_entry *dst, char *vendor){
 	FILE 				*fp;
 	struct ether_addr	aux_oui, oui_list[MAX_IEEE_OUIS];
@@ -2431,6 +2751,7 @@ int load_vendor_entries(struct scan_list *scan, struct scan_entry *dst, char *ve
  *
  * Checks whether one string "matches" within another string
  */
+
 int match_strings(char *buscar, char *buffer){
 	unsigned int buscars, buffers;
 	unsigned int i=0, j=0;
@@ -2466,6 +2787,7 @@ int match_strings(char *buscar, char *buffer){
  *
  * Converts a target prefix to scan_entry format
  */
+
 int load_bruteforce_entries(struct scan_list *scan, struct scan_entry *dst){
 	if(scan->ntarget >= scan->maxtarget)
 		return(0);
@@ -2489,6 +2811,7 @@ int load_bruteforce_entries(struct scan_list *scan, struct scan_entry *dst){
  *
  * Converts a target prefix to scan_entry format
  */
+
 void prefix_to_scan(struct prefix_entry *pref, struct scan_entry *scan){
 	u_int16_t mask;
 	u_int8_t words;	
@@ -2523,13 +2846,15 @@ void prefix_to_scan(struct prefix_entry *pref, struct scan_entry *scan){
  *
  * Prints the syntax of the scan6 tool
  */
+
 void usage(void){
 	puts("usage: scan6 -i INTERFACE (-l | -d) [-s SRC_ADDR[/LEN] | -f] \n"
 	     "       [-S LINK_SRC_ADDR | -F] [-p PROBE_TYPE] [-Z PAYLOAD_SIZE] [-o SRC_PORT]\n"
 	     "       [-a DST_PORT] [-X TCP_FLAGS] [-P ADDRESS_TYPE] [-q] [-e] [-x RETRANS]\n"
 	     "       [-o TIMEOUT] [-V VM_TYPE] [-b] [-B] [-g] [-k IEEE_OUI] [-K VENDOR]\n"
-	     "       [-w KNOWN_IIDS_FILE] [-Q IPV4_PREFIX[/LEN]] [-T] [-I INC_SIZE]\n"
-	     "       [-r RATE(bps|pps)] [-c CONFIG_FILE] [-v] [-h]");
+	     "       [-w KNOWN_IIDS_FILE] [-W KNOWN_IID] [-Q IPV4_PREFIX[/LEN]] [-T]\n"
+	     "       [-I INC_SIZE] [-r RATE(bps|pps)] [-l] [-z SECONDS] [-c CONFIG_FILE]\n"
+	     "       [-v] [-h]");
 }
 
 
@@ -2538,8 +2863,9 @@ void usage(void){
  *
  * Prints help information for the scan6 tool
  */
+
 void print_help(void){
-	puts("SI6 Networks' IPv6 Toolkit v1.3.3");
+	puts(SI6_TOOLKIT);
 	puts( "scan6: An advanced IPv6 Address Scanning tool\n");
 	usage();
     
@@ -2556,9 +2882,10 @@ void print_help(void){
 	     "  --print-type, -P            Print address type {local, global, all}\n"
 	     "  --print-unique, -q          Print only one IPv6 addresses per Ethernet address\n"
 	     "  --print-link-addr, -e       Print link-layer addresses\n"
+	     "  --print-timestamp, -t       Print timestamp for each alive node\n"
 	     "  --retrans, -x               Number of retransmissions of each probe\n"
-	     "  --timeout, -o               Timeout in seconds (default: 1 second)\n"
-	     "  --local-scan, -l            Scan the local subnet\n"
+	     "  --timeout, -O               Timeout in seconds (default: 1 second)\n"
+	     "  --local-scan, -L            Scan the local subnet\n"
 	     "  --rand-src-addr, -f         Randomize the IPv6 Source Address\n"
 	     "  --rand-link-src-addr, -F    Randomize the Ethernet Source Address\n"
 	     "  --tgt-virtual-machines, -V  Target virtual machines\n"
@@ -2567,11 +2894,15 @@ void print_help(void){
 	     "  --tgt-port-embedded         Target embedded-port addresses\n"
 	     "  --tgt-ieee-oui, -k          Target IPv6 addresses embedding IEEE OUI\n"
 	     "  --tgt-vendor, -K            Target IPv6 addresses for vendor's IEEE OUIs\n"
-	     "  --tgt-known-iids, -w        Target known Interface Identifiers (IIDs)\n"
+	     "  --tgt-known-iids-file, -w   Target Interface Identifiers (IIDs) in specified file\n"
+	     "  --tgt-known-iid, -W         Target Interface Identifiers (IID)\n"
+	     "  --known-prefixes-file, -m   Known prefixes file\n"
 	     "  --ipv4-host, -Q             Host IPv4 Address/Prefix\n"
 	     "  --sort-ouis, -T             Sort IEEE OUIs\n"
 	     "  --inc-size, -I              Increments size\n"
 	     "  --rate-limit, -r            Rate limit the address scan to specified rate\n"
+	     "  --loop, -l                  Send periodic probes to the specified targets\n"
+	     "  --sleep, -z                 Pause between periodic probes\n"
 	     "  --config-file, -c           Use alternate configuration file\n"
 	     "  --help, -h                  Print help for the scan6 tool\n"
 	     "  --verbose, -v               Be verbose\n"
@@ -2656,7 +2987,6 @@ int ether_pton(const char *ascii, struct ether_addr *etheraddr, unsigned int s){
 
 	return 0;
 }
-
 
 
 /*

@@ -117,10 +117,14 @@
 #define	MAX_IEEE_OUIS_LINE_SIZE		160
 #define	OUI_HEX_STRING_SIZE		5
 #define	MAX_IEEE_OUIS			1000
-#define MAX_SCAN_ENTRIES		8192
+#define MAX_SCAN_ENTRIES		65535
+#define MAX_PREF_ENTRIES		MAX_SCAN_ENTRIES
 #define	SELECT_TIMEOUT			4
 #define MAX_RANGE_STR_LEN		79
 #define MIN_INC_RANGE			1000
+/* #define	MAX_DESTNATIONS			65535 */
+#define MAX_IID_ENTRIES			65535
+
 #define ND_RETRIES			0
 
 /* Constants for config file processing */
