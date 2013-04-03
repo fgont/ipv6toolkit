@@ -9,7 +9,7 @@ scan6 \- An IPv6 host scanner
 .IR SRC_ADDR \|[/\| LEN \|]]
 .RB [\| \-d
 .IR DST_ADDR \|[/\| LEN\|
-.RB | \ \-l \|]
+.RB | \ \-L \|]
 .RB [\| \-r \|]
 .RB [\| \-S
 .IR LINK_SRC_ADDR
@@ -39,9 +39,11 @@ scan6 \- An IPv6 host scanner
 .IR IEEE_OUI \|]
 .RB [\| \-K
 .IR VENDOR \|]
+.RB [\| \-m
+.IR KNOWN_PREFIXES_FILE \|]
 .RB [\| \-w
 .IR KNOWN_IIDS_FILE \|]
-.RB [\| \-w
+.RB [\| \-W
 .IR KNOWN_IIDS_FILE \|]
 .RB [\| \-T \|]
 .RB [\| \-Q
@@ -51,6 +53,9 @@ scan6 \- An IPv6 host scanner
 .RB [\| \-c
 .IR CONFIG_FILE \|]
 .RB [\| \-r \|]
+.RB [\| \-l \|]
+.RB [\| \-z
+.IR SECONDS \|]
 .RB [\| \-R \|]
 .RB [\| \-v \|]
 .RB [\| \-h \|]
@@ -58,7 +63,7 @@ scan6 \- An IPv6 host scanner
 
 .SH DESCRIPTION
 .B scan6
-is an IPv6 address scanning tool that implements a number of advanced IPv6 address scanning techniques. It is part of the SI6 Networks' IPv6 Toolkit v1.3: a security assessment suite for the IPv6 protocols.
+is an IPv6 address scanning tool that implements a number of advanced IPv6 address scanning techniques. It is part of the SI6 Networks' IPv6 Toolkit v1.3.4: a security assessment suite for the IPv6 protocols.
 
 \fBHOST SCANNING TECHNIQUES\fR
 
@@ -211,6 +216,12 @@ Note: In the case of systems that implement “Privacy Extensions for SLAAC” (
 This option specifies that the link-layer addresses should be printed along with the IPv6 addresses, with the format “IPV6ADDRESS @ LINKADDRESS”.
 
 .TP
+.BR \-t\|  ,\  \-\-print\-timestamp
+
+This option specifies that a timestamp should be printed after the IPv6 address of each alive node.
+
+
+.TP
 .BI \-x\  NO_RETRANS ,\ \-\-retrans\  NO_RETRANS
 
 This option specifies the number of times probe packets should be retransmitted when no response is received. Note: If left unspecified, the number of retransmission defaults to 0 (i.e., no retransmissions).
@@ -313,9 +324,25 @@ This options is used to specify an IEEE OUI, such that the target of the scan is
 This option allows the user to specify a vendor name. scan6 will look-up all the correspoinding IEEE OUIs for such vendor, and then scan for SLAAC addresses that employ the aforementioned IEEE OUIs.
 
 .TP
-.BI \-w\  KNOWN_IIDS_FILE ,\ \-\-tgt\-known-iids\  KNOWN_IIDS_FILE
+.BI \-m\  PREFIXES_FILE ,\ \-\-prefixes\-file\  PREFIXES_FILE
 
-This option specifies the name of a file containing one IPv6 address per line. The Interface ID of each of those IPv6 addresses will be employed, together with the network prefix specified with the '-d' option, to construct the IPv6 addresses to be probed. Since auto-configured addresses typically employ Interface IDs that are constant across networks, this option can leverage known IIDs to track such nodes across networks. Please see <http://tools.ietf.org/html/draft-ietf-6man-stable-privacy-addresses> for further details. Note: The file can contain comments if they are preceded with the numeral sign ('#'), asi in:
+This option specifies the name of a file containing a list of IPv6 addresses and/or IPv6 prefixes, one per line, in the same format as that used with the '-d' option. Note: The file can contain comments if they are preceded with the numeral sign ('#'), as in:
+
+        IPv6_address/len      # comment
+        # comment
+        IPv6_address
+
+.TP
+.BI \-w\  KNOWN_IIDS_FILE ,\ \-\-tgt\-iids\-file\  KNOWN_IIDS_FILE
+
+This option specifies the name of a file containing one IPv6 address per line. The Interface ID of each of those IPv6 addresses will be employed, together with the network prefix specified with the '-d' option, to construct the IPv6 addresses to be probed. Since auto-configured addresses typically employ Interface IDs that are constant across networks, this option can leverage known IIDs to track such nodes across networks. Please see <http://tools.ietf.org/html/draft-ietf-6man-stable-privacy-addresses> for further details. Note: The file can contain comments if they are preceded with the numeral sign ('#'), as in:
+
+        IPv6_address      # comment
+
+.TP
+.BI \-W\  KNOWN_IIDS ,\ \-\-tgt\-iid\  KNOWN_IID
+
+This option specifies an IPv6 Interface Identifier (IID), with the same syntax as that of an IPv6 address (only the lowest-order 64 bits of the address will be employed). The specified Interface ID will be employed, together with the any network prefixes specified with the '-d' option (or with the '-m' option), to construct the IPv6 addresses to be probed. Since auto-configured addresses typically employ Interface IDs that are constant across networks, this option can leverage known IIDs to track such nodes across networks. Please see <http://tools.ietf.org/html/draft-ietf-6man-stable-privacy-addresses> for further details. Note: The file can contain comments if they are preceded with the numeral sign ('#'), as in:
 
         IPv6_address      # comment
 
@@ -342,6 +369,16 @@ This option specifies the rate limit to use when performing a remote address sca
 In general, the address scan should be rate-limited to about 80% (eighty percent) of the upstram bandwidth, such that probe packets are not lost as a result of network congestion.
 
 .TP
+.BR \-l\| ,\  \-\-loop
+
+This option specifies that the tool should periodically loop through the specified targets. It is mostly useful to e.g. when a node disconnects from the network, or for host-tracking purposes.
+
+.TP
+.BI \-z\  SECONDS ,\ \-\-sleep\  SECONDS
+
+This option specifies the amount of time (in seconds) that the tool should sleep in-between iterations over the specified targets. It is only meaningful when the '-l' option is set.
+
+.TP
 .BI \-c\  CONFIG_FILE ,\ \-\-config-file\  CONFIG_FILE
 
 This option is used to specify an alternative configuration file. If left unspecified, the tool will employ '/etc/ipv6toolkit.conf'.
@@ -366,9 +403,9 @@ tool.
 
 \fBExample #1\fR
 
-# ./scan6 -i eth0 -l -e -v
+# ./scan6 -i eth0 -L -e -v
 
-Perform host scanning on the local network (“-l” option) using interface “eth0” (“-i” option). Use both ICMPv6 echo requests and unrecognized IPv6 options of type 10xxxxxx (default). Print link-link layer addresses along with IPv6 addresses (“-e” option). Be verbose (“-v” option).
+Perform host scanning on the local network (“-L” option) using interface “eth0” (“-i” option). Use both ICMPv6 echo requests and unrecognized IPv6 options of type 10xxxxxx (default). Print link-link layer addresses along with IPv6 addresses (“-e” option). Be verbose (“-v” option).
 
 
 \fBExample #2\fR
@@ -391,15 +428,15 @@ Use the “eth0” interface (“-i” option) to scan for IPv6 addresses of the
 
 \fBExample #5\fR
 
-# ./scan6 -i eth0 -l -d fc00::/64 --tgt-vendor 'Dell Inc' -p tcp
+# ./scan6 -i eth0 -d fc00::/64 --tgt-vendor 'Dell Inc' -p tcp
 
 Use the “eth0” interface to scan for network devices manufactured by 'Dell Inc' in the target prefix fc00::/64. The tool will employ TCP segments as the probe packets (rather than the default ICMPv6 echo requests).
 
 \fBExample #6\fR
 
-# scan6 -i eth0 -l -S 66:55:44:33:22:11 -p unrec -P global -v
+# scan6 -i eth0 -L -S 66:55:44:33:22:11 -p unrec -P global -v
 
-Use the “eth0” interface (“-i” option) to perform host-scanning on the local network (“-l” option). The Ethernet Source Address is set to “66:55:44:33:22:11” (“-S” option). The probe packets will be IPv6 packets with unrecognized options of type 10xxxxxx (“-p” option). The tool will only print IPv6 global addresses (“-P” option). The tool will be verbose.
+Use the “eth0” interface (“-i” option) to perform host-scanning on the local network (“-L” option). The Ethernet Source Address is set to “66:55:44:33:22:11” (“-S” option). The probe packets will be IPv6 packets with unrecognized options of type 10xxxxxx (“-p” option). The tool will only print IPv6 global addresses (“-P” option). The tool will be verbose.
 
 \fBExample #7\fR
 
@@ -409,9 +446,16 @@ Use the “eth0” interface (“-i” option) to perform an address scan of a s
 
 \fBExample #8\fR
 
-# scan6 -i eth0 -l -P global --print-unique -e
+# scan6 -i eth0 -L -P global --print-unique -e
 
-Use the “eth0” interface (“-i” option) to perform host-scanning on the local network (“-l” option). Print only global unicast addresses (“-P” option), and at most one IPv6 address per Ethernet address (“--print-unique” option). Ethernet addresses will be printed along with the corresponiding IPv6 address (“-e” option).
+Use the “eth0” interface (“-i” option) to perform host-scanning on the local network (“-L” option). Print only global unicast addresses (“-P” option), and at most one IPv6 address per Ethernet address (“--print-unique” option). Ethernet addresses will be printed along with the corresponiding IPv6 address (“-e” option).
+
+\fBExample #9\fR
+
+# scan6 -i eth0 -m knownprefixes.txt -w knowniids.txt -l -z 60 -t -v
+
+Use the “eth0” interface (“-i” option). Build the list of targets from the IPv6 prefixes contained in the file 'knownprefixes.txt' and the Interface IDs (IIDs) contained in the file 'knowniids.txt'. Poll the targets periodically ('-l' option), and sleep 60 seconds after each iteration ('-z' option). Print a timestamp along the IPv6 address of each alive node ('-t' option). Be verbose ('-v' option).
+
 
 .SH SEE ALSO
 .BR ipv6toolkit.conf (5)
