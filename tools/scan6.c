@@ -3058,7 +3058,7 @@ void usage(void){
 	     "       [-S LINK_SRC_ADDR | -F] [-p PROBE_TYPE] [-Z PAYLOAD_SIZE] [-o SRC_PORT]\n"
 	     "       [-a DST_PORT] [-X TCP_FLAGS] [-P ADDRESS_TYPE] [-q] [-e] [-t]\n"
 	     "       [-x RETRANS] [-o TIMEOUT] [-V VM_TYPE] [-b] [-B] [-g] [-k IEEE_OUI]\n"
-	     "       [-K VENDOR] [-m KNOWN_PREFIXES_FILE] [-w KNOWN_IIDS_FILE] [-W KNOWN_IID]\n"
+	     "       [-K VENDOR] [-m PREFIXES_FILE] [-w IIDS_FILE] [-W IID]\n"
 	     "       [-Q IPV4_PREFIX[/LEN]] [-T] [-I INC_SIZE] [-r RATE(bps|pps)] [-l]\n"
 	     "       [-z SECONDS] [-c CONFIG_FILE] [-v] [-h]");
 }
