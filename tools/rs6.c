@@ -46,6 +46,7 @@
 #include <sys/socket.h>
 #include <pwd.h>
 #include "rs6.h"
+#include "ipv6toolkit.h"
 
 void					init_packet_data(void);
 int						insert_pad_opt(char *ptrhdr, const char *, unsigned int);
@@ -905,30 +906,30 @@ void usage(void){
  * Print help information for the rs6 tool
  */
 void print_help(void){
-	puts("SI6 Networks' IPv6 Toolkit v1.3.1");
-    puts( "rs6: Security assessment tool for attack vectors based on RS messages\n");
-    usage();
+	puts(SI6_TOOLKIT);
+	puts( "rs6: Security assessment tool for attack vectors based on RS messages\n");
+	usage();
     
-    puts("\nOPTIONS:\n"
-	"  --interface, -i            Network interface\n"
-	"  --src-address, -s          IPv6 Source Address\n"
-	"  --dst-address, -d          IPv6 Destination Address\n"
-	"  --frag-hdr. -y             Fragment Header\n"
-	"  --dst-opt-hdr, -u          Destination Options Header (Fragmentable Part)\n"
-	"  --dst-opt-u-hdr, -U        Destination Options Header (Unfragmentable Part)\n"
-	"  --hbh-opt-hdr, -H          Hop by Hop Options Header\n"
-	"  --link-src-address, -S     Link-layer Destination Address\n"
-	"  --link-dst-address, -D     Link-layer Source Address\n"
-	"  --src-link-opt, -E         Source link-layer address option\n"
-	"  --add-slla-opt, -e         Add Source link-layer address option\n"
-	"  --flood-sources, -F        Number of Source Addresses to forge randomly\n"
-	"  --loop, -l                 Send Router Solicitations periodically\n"
-	"  --sleep, -z                Pause between peiodic Router Solicitations\n"
-	"  --help, -h                 Print help for the rs6 tool\n"
-	"  --verbose, -v              Be verbose\n"
-	"\n"
-	"Programmed by Fernando Gont for SI6 Networks <http://www.si6networks.com>\n"
-	"Please send any bug reports to <fgont@si6networks.com>"
+	puts("\nOPTIONS:\n"
+	     "  --interface, -i            Network interface\n"
+	     "  --src-address, -s          IPv6 Source Address\n"
+	     "  --dst-address, -d          IPv6 Destination Address\n"
+	     "  --frag-hdr. -y             Fragment Header\n"
+	     "  --dst-opt-hdr, -u          Destination Options Header (Fragmentable Part)\n"
+	     "  --dst-opt-u-hdr, -U        Destination Options Header (Unfragmentable Part)\n"
+	     "  --hbh-opt-hdr, -H          Hop by Hop Options Header\n"
+	     "  --link-src-address, -S     Link-layer Destination Address\n"
+	     "  --link-dst-address, -D     Link-layer Source Address\n"
+	     "  --src-link-opt, -E         Source link-layer address option\n"
+	     "  --add-slla-opt, -e         Add Source link-layer address option\n"
+	     "  --flood-sources, -F        Number of Source Addresses to forge randomly\n"
+	     "  --loop, -l                 Send Router Solicitations periodically\n"
+	     "  --sleep, -z                Pause between peiodic Router Solicitations\n"
+	     "  --help, -h                 Print help for the rs6 tool\n"
+	     "  --verbose, -v              Be verbose\n"
+	     "\n"
+	     "Programmed by Fernando Gont for SI6 Networks <http://www.si6networks.com>\n"
+	     "Please send any bug reports to <fgont@si6networks.com>"
 	);
 }
 

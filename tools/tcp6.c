@@ -57,6 +57,7 @@
 #endif
 #include <sys/select.h>
 #include "tcp6.h"
+#include "ipv6toolkit.h"
 #include <netinet/tcp.h>
 
 
@@ -1623,49 +1624,49 @@ void usage(void){
  * Prints help information for the tcp6 tool
  */
 void print_help(void){
-	puts("SI6 Networks' IPv6 Toolkit v1.3.1");
-    puts( "tcp6: Security assessment tool for attack vectors based on TCP/IPv6 packets\n");
-    usage();
+	puts(SI6_TOOLKIT);
+	puts( "tcp6: Security assessment tool for attack vectors based on TCP/IPv6 packets\n");
+	usage();
     
-    puts("\nOPTIONS:\n"
-	"  --interface, -i           Network interface\n"
-	"  --src-address, -s         IPv6 Source Address\n"
-	"  --dst-address, -d         IPv6 Destination Address\n"
-	"  --hop-limit, -A           IPv6 Hop Limit\n"
-	"  --frag-hdr. -y            Fragment Header\n"
-	"  --dst-opt-hdr, -u         Destination Options Header (Fragmentable Part)\n"
-	"  --dst-opt-u-hdr, -U       Destination Options Header (Unfragmentable Part)\n"
-	"  --hbh-opt-hdr, -H         Hop by Hop Options Header\n"
-	"  --link-src-address, -S    Link-layer Destination Address\n"
-	"  --link-dst-address, -D    Link-layer Source Address\n"
-	"  --payload-size, -P        TCP Payload Size\n"
-	"  --src-port, -o            TCP Source Port\n"
-	"  --dst-port, -a            TCP Destination Port\n"
-	"  --tcp-flags, -X           TCP Flags\n"
-	"  --tcp-seq, -q             TCP Sequence Number\n"
-	"  --tcp-ack, -Q             TCP Acknowledgment Number\n"
-	"  --tcp-urg, -V             TCP Urgent Pointer\n"
-	"  --tcp-win, -w             TCP Window\n"
-	"  --not-ack-data, -N        Do not acknowledge the TCP payload\n"
-	"  --not-ack-flags, -f       Do not acknowledge the TCP flags\n"
-	"  --block-src, -j           Block IPv6 Source Address prefix\n"
-	"  --block-dst, -k           Block IPv6 Destination Address prefix\n"
-	"  --block-link-src, -J      Block Ethernet Source Address\n"
-	"  --block-link-dst, -K      Block Ethernet Destination Address\n"
-	"  --accept-src, -b          Accept IPv6 Source Addres prefix\n"
-	"  --accept-dst, -g          Accept IPv6 Destination Address prefix\n"
-	"  --accept-link-src, -B     Accept Ethernet Source Address\n"
-	"  --accept-link-dst, -G     Accept Ethernet Destination Address\n"
-	"  --flood-sources, -F       Flood from multiple IPv6 Source Addresses\n"
-	"  --flood-ports, -T         Flood from multiple TCP Source Ports\n"
-	"  --listen, -L              Listen to incoming packets\n"
-	"  --loop, -l                Send periodic TCP segments\n"
-	"  --sleep, -z               Pause between sending TCP segments\n"
-	"  --help, -h                Print help for the tcp6 tool\n"
-	"  --verbose, -v             Be verbose\n"
-	"\n"
-	"Programmed by Fernando Gont for SI6 Networks <http://www.si6networks.com>\n"
-	"Please send any bug reports to <fgont@si6networks.com>\n"
+	puts("\nOPTIONS:\n"
+	     "  --interface, -i           Network interface\n"
+	     "  --src-address, -s         IPv6 Source Address\n"
+	     "  --dst-address, -d         IPv6 Destination Address\n"
+	     "  --hop-limit, -A           IPv6 Hop Limit\n"
+	     "  --frag-hdr. -y            Fragment Header\n"
+	     "  --dst-opt-hdr, -u         Destination Options Header (Fragmentable Part)\n"
+	     "  --dst-opt-u-hdr, -U       Destination Options Header (Unfragmentable Part)\n"
+	     "  --hbh-opt-hdr, -H         Hop by Hop Options Header\n"
+	     "  --link-src-address, -S    Link-layer Destination Address\n"
+	     "  --link-dst-address, -D    Link-layer Source Address\n"
+	     "  --payload-size, -P        TCP Payload Size\n"
+	     "  --src-port, -o            TCP Source Port\n"
+	     "  --dst-port, -a            TCP Destination Port\n"
+	     "  --tcp-flags, -X           TCP Flags\n"
+	     "  --tcp-seq, -q             TCP Sequence Number\n"
+	     "  --tcp-ack, -Q             TCP Acknowledgment Number\n"
+	     "  --tcp-urg, -V             TCP Urgent Pointer\n"
+	     "  --tcp-win, -w             TCP Window\n"
+	     "  --not-ack-data, -N        Do not acknowledge the TCP payload\n"
+	     "  --not-ack-flags, -f       Do not acknowledge the TCP flags\n"
+	     "  --block-src, -j           Block IPv6 Source Address prefix\n"
+	     "  --block-dst, -k           Block IPv6 Destination Address prefix\n"
+	     "  --block-link-src, -J      Block Ethernet Source Address\n"
+	     "  --block-link-dst, -K      Block Ethernet Destination Address\n"
+	     "  --accept-src, -b          Accept IPv6 Source Addres prefix\n"
+	     "  --accept-dst, -g          Accept IPv6 Destination Address prefix\n"
+	     "  --accept-link-src, -B     Accept Ethernet Source Address\n"
+	     "  --accept-link-dst, -G     Accept Ethernet Destination Address\n"
+	     "  --flood-sources, -F       Flood from multiple IPv6 Source Addresses\n"
+	     "  --flood-ports, -T         Flood from multiple TCP Source Ports\n"
+	     "  --listen, -L              Listen to incoming packets\n"
+	     "  --loop, -l                Send periodic TCP segments\n"
+	     "  --sleep, -z               Pause between sending TCP segments\n"
+	     "  --help, -h                Print help for the tcp6 tool\n"
+	     "  --verbose, -v             Be verbose\n"
+	     "\n"
+	     "Programmed by Fernando Gont for SI6 Networks <http://www.si6networks.com>\n"
+	     "Please send any bug reports to <fgont@si6networks.com>\n"
 	);
 }
 

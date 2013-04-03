@@ -55,6 +55,7 @@
 #endif
 #include <sys/select.h>
 #include "frag6.h"
+#include "ipv6toolkit.h"
 #include <netinet/tcp.h>
 #include <math.h>
 
@@ -716,8 +717,6 @@ int main(int argc, char **argv){
 		nsleep=QUERY_TIMEOUT;
 
 	max_packet_size = MAX_IPV6_PAYLOAD + MIN_IPV6_HLEN;
-
-	puts( "frag6 v1.0: Assessment tool for attack vectors based on IPv6 fragmentation");
 
 	if(verbose_f){
 		print_attack_info();
@@ -2332,37 +2331,37 @@ void usage(void){
  * Prints help information for the frag6 tool
  */
 void print_help(void){
-	puts("SI6 Networks' IPv6 Toolkit v1.3.1");
-    puts( "frag6: A security assessment tool for attack vectors based on IPv6 fragments\n");
-    usage();
+	puts(SI6_TOOLKIT);
+	puts( "frag6: A security assessment tool for attack vectors based on IPv6 fragments\n");
+	usage();
     
-    puts("\nOPTIONS:\n"
-	"  --interface, -i           Network interface\n"
-	"  --link-src-address, -S    Link-layer Destination Address\n"
-	"  --link-dst-address, -D    Link-layer Source Address\n"
-	"  --src-address, -s         IPv6 Source Address\n"
-	"  --dst-address, -d         IPv6 Destination Address\n"
-	"  --hop-limit, -A           IPv6 Hop Limit\n"
-	"  --dst-opt-hdr, -u         Destination Options Header (Fragmentable Part)\n"
-	"  --dst-opt-u-hdr, -U       Destination Options Header (Unfragmentable Part)\n"
-	"  --hbh-opt-hdr, -H         Hop by Hop Options Header\n"
-	"  --frag-size, -P           IPv6 fragment payload size\n"
-	"  --frag-type, -O           IPv6 Fragment Type {first, last, middle, atomic}\n"
-	"  --frag-offset, -o         IPv6 Fragment Offset\n"
-	"  --frag-id, -I             IPv6 Fragment Identification\n"
-	"  --no-timestamp, -T        Do not include a timestamp in the payload\n"
-	"  --no-responses, -n        Do not print responses to transmitted packets\n"
-	"  --frag-reass-policy, -p   Assess fragment reassembly policy\n"
-	"  --frag-id-policy, -W      Assess the Fragment ID generation policy\n"
-	"  --pod-attack, -X          Perform a 'Ping of Death' attack\n"
-	"  --flood-frags, -F         Flood target with IPv6 fragments\n"
-	"  --loop, -l                Send IPv6 fragments periodically\n"
-	"  --sleep, -z               Pause between sending IPv6 fragments\n"
-	"  --verbose, -v             Be verbose\n"
-	"  --help, -h                Print help for the frag6 tool\n"
-	"\n"
-	"Programmed by Fernando Gont for SI6 Networks (http://www.si6networks.com)\n"
-	"Please send any bug reports to <fgont@si6networks.com>\n"
+	puts("\nOPTIONS:\n"
+	     "  --interface, -i           Network interface\n"
+	     "  --link-src-address, -S    Link-layer Destination Address\n"
+	     "  --link-dst-address, -D    Link-layer Source Address\n"
+	     "  --src-address, -s         IPv6 Source Address\n"
+	     "  --dst-address, -d         IPv6 Destination Address\n"
+	     "  --hop-limit, -A           IPv6 Hop Limit\n"
+	     "  --dst-opt-hdr, -u         Destination Options Header (Fragmentable Part)\n"
+	     "  --dst-opt-u-hdr, -U       Destination Options Header (Unfragmentable Part)\n"
+	     "  --hbh-opt-hdr, -H         Hop by Hop Options Header\n"
+	     "  --frag-size, -P           IPv6 fragment payload size\n"
+	     "  --frag-type, -O           IPv6 Fragment Type {first, last, middle, atomic}\n"
+	     "  --frag-offset, -o         IPv6 Fragment Offset\n"
+	     "  --frag-id, -I             IPv6 Fragment Identification\n"
+	     "  --no-timestamp, -T        Do not include a timestamp in the payload\n"
+	     "  --no-responses, -n        Do not print responses to transmitted packets\n"
+	     "  --frag-reass-policy, -p   Assess fragment reassembly policy\n"
+	     "  --frag-id-policy, -W      Assess the Fragment ID generation policy\n"
+	     "  --pod-attack, -X          Perform a 'Ping of Death' attack\n"
+	     "  --flood-frags, -F         Flood target with IPv6 fragments\n"
+	     "  --loop, -l                Send IPv6 fragments periodically\n"
+	     "  --sleep, -z               Pause between sending IPv6 fragments\n"
+	     "  --verbose, -v             Be verbose\n"
+	     "  --help, -h                Print help for the frag6 tool\n"
+	     "\n"
+	     "Programmed by Fernando Gont for SI6 Networks (http://www.si6networks.com)\n"
+	     "Please send any bug reports to <fgont@si6networks.com>\n"
 	);
 }
 

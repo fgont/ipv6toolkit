@@ -46,6 +46,7 @@
 #include <sys/socket.h>
 #include <pwd.h>
 #include "ns6.h"
+#include "ipv6toolkit.h"
 
 void				init_packet_data(void);
 int					insert_pad_opt(char *ptrhdr, const char *, unsigned int);
@@ -992,8 +993,8 @@ void usage(void){
  * Print help information for the ns6 tool
  */
 void print_help(void){
-	puts("SI6 Networks' IPv6 Toolkit v1.3.1");
-	puts("ns6\nSecurity assessment tool for attack vectors based on NS messages\n");
+	puts(SI6_TOOLKIT);
+	puts("ns6: Security assessment tool for attack vectors based on NS messages\n");
 	usage();
     
 	puts("\nOPTIONS:\n"

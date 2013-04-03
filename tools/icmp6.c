@@ -49,6 +49,7 @@
 #include <pwd.h>
 #include <sys/socket.h>
 #include "icmp6.h"
+#include "ipv6toolkit.h"
 #include <netinet/tcp.h>
 #include <netinet/udp.h>
 
@@ -1890,7 +1891,7 @@ void usage(void){
  * Prints help information for the icmp6 tool
  */
 void print_help(void){
-	puts("SI6 Networks' IPv6 Toolkit v1.3.1");
+	puts(SI6_TOOLKIT);
 	puts("icmp6: Assessment tool for attack vectors based on ICMPv6 error messages\n");
 	usage();
     

@@ -57,6 +57,7 @@
 	#include <net/if_dl.h>
 #endif
 #include "ni6.h"
+#include "ipv6toolkit.h"
 #include <netinet/tcp.h>
 #include <netinet/udp.h>
 
@@ -2422,10 +2423,10 @@ void usage(void){
 /*
  * Function: print_help()
  *
- * Prints help information for the icmp6 tool
+ * Prints help information for the ni6 tool
  */
 void print_help(void){
-	puts("SI6 Networks' IPv6 Toolkit v1.3.1");
+	puts(SI6_TOOLKIT);
 	puts("ni6: Securty assessment tool for attack vectors based on ICMPv6 error messages\n");
 	usage();
     
@@ -2446,8 +2447,8 @@ void print_help(void){
 	     "  --subject-name, -n         Subject Name\n"
 	     "  --subject-fname, -N        Forge Subject Name of specific length\n"
 	     "  --subject-ename, -x        For (malformed) Subject name of specified length\n"
-		 "  --subject-nloop, -o        Subject is a Name with a DNS compression loop\n"
-		 "  --max-label-size, -Z       Maximum DNS label size (defaults to 63)\n"
+	     "  --subject-nloop, -o        Subject is a Name with a DNS compression loop\n"
+	     "  --max-label-size, -Z       Maximum DNS label size (defaults to 63)\n"
 	     "  --sname-slabel, -e         Subject Name is a single-label name\n"
 	     "  --code, -C                 ICMPv6 code\n"
 	     "  --qtype, -q                ICMPv6 NI Qtype\n"
@@ -2457,7 +2458,7 @@ void print_help(void){
 	     "  --data-name, -a            Data Name\n"
 	     "  --data-fname, -A           Forge Data Name of specific length\n"
 	     "  --data-ename, -Q           For (malformed) Data Name of specified length\n"
-		 "  --data-nloop, -O           Data is a Name with a DNS compression loop\n"
+	     "  --data-nloop, -O           Data is a Name with a DNS compression loop\n"
 	     "  --dname-slabel, -E         Subject Name is a single-label name\n"
 	     "  --block-src, -j            Block IPv6 Source Address prefix\n"
 	     "  --block-dst, -k            Block IPv6 Destination Address prefix\n"
@@ -2467,8 +2468,8 @@ void print_help(void){
 	     "  --accept-dst, -g           Accept IPv6 Destination Address prefix\n"
 	     "  --accept-link-src, -B      Accept Ethernet Source Address\n"
 	     "  --accept-link-dst, -G      Accept Ethernet Destination Address\n"
-		 "  --forge-src-addr, -r       Forge IPv6 Source Address\n"
-		 "  --forge-link-src-addr, -R  Forge link-layer Source Address\n"
+	     "  --forge-src-addr, -r       Forge IPv6 Source Address\n"
+	     "  --forge-link-src-addr, -R  Forge link-layer Source Address\n"
 	     "  --loop, -l                 Send periodic ICMPv6 error messages\n"
 	     "  --sleep, -z                Pause between sending ICMPv6 messages\n"
 	     "  --listen, -L               Listen to incoming traffic\n"

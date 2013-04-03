@@ -57,6 +57,7 @@
 #endif
 #include <sys/select.h>
 #include "flow6.h"
+#include "ipv6toolkit.h"
 #include <netinet/tcp.h>
 #include <netinet/udp.h>
 #include <math.h>
@@ -478,8 +479,6 @@ int main(int argc, char **argv){
 	else
 		max_packet_size = ETH_DATA_LEN;
 
-	puts( "frag6 v1.3.1: Assessment tool for attack vectors based on IPv6 fragmentation");
-
 	if(verbose_f){
 		print_attack_info();
 	}
@@ -876,11 +875,11 @@ void usage(void){
  * Prints help information for the flow6 tool
  */
 void print_help(void){
-	puts("SI6 Networks' IPv6 Toolkit v1.3.1");
-    puts("flow6: Security assessment tool for the IPv6 Flow Label field\n");
-    usage();
+	puts(SI6_TOOLKIT);
+	puts("flow6: Security assessment tool for the IPv6 Flow Label field\n");
+	usage();
     
-    puts("\nOPTIONS:\n"
+	puts("\nOPTIONS:\n"
 	"  --interface, -i           Network interface\n"
 	"  --link-src-address, -S    Link-layer Destination Address\n"
 	"  --link-dst-address, -D    Link-layer Source Address\n"

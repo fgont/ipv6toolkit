@@ -47,6 +47,7 @@
 #include <sys/socket.h>
 #include <sys/select.h>
 #include <pwd.h>
+#include "ipv6toolkit.h"
 #include "na6.h"
 
 /* Function prototypes */
@@ -1548,7 +1549,7 @@ void usage(void){
  * Prints help information for the na6 tool
  */
 void print_help(void){
-	puts("SI6 Networks' IPv6 Toolkit v1.3.1");
+	puts(SI6_TOOLKIT);
 	puts("na6: Security Assessment tool for attack vectors based on NA messages\n");
 	usage();
     
