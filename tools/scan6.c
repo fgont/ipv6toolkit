@@ -119,10 +119,11 @@ int					load_lowbyte_entries(struct scan_list *, struct scan_entry *);
 int					load_oui_entries(struct scan_list *, struct scan_entry *, struct ether_addr *);
 int					load_vm_entries(struct scan_list *, struct scan_entry *, struct prefix4_entry *);
 int					load_vendor_entries(struct scan_list *, struct scan_entry *, char *);
-int					load_knownprefix_entries(struct scan_list *, FILE *);
+int					load_knownprefix_entries(struct scan_list *, struct scan_list *, FILE *);
 int					load_knowniid_entries(struct scan_list *, struct scan_list *, struct prefix_list *);
 int					load_knowniidfile_entries(struct scan_list *, struct scan_list *, FILE *);
 int					read_ipv6_address(char *, unsigned int, struct in6_addr *);
+int					read_prefix(char *, unsigned int, char **);
 int					match_strings(char *, char *);
 int					load_bruteforce_entries(struct scan_list *, struct scan_entry *);
 void				prefix_to_scan(struct prefix_entry *, struct scan_entry *);
@@ -311,9 +312,9 @@ int main(int argc, char **argv){
 		{"tgt-port-embedded", no_argument, 0, 'g'},
 		{"tgt-ieee-oui", required_argument, 0, 'k'},
 		{"tgt-vendor", required_argument, 0, 'K'},
-		{"tgt-known-iids-file", required_argument, 0, 'w'},
-		{"tgt-known-iid", required_argument, 0, 'W'},
-		{"known-prefixes-file", required_argument, 0, 'm'},
+		{"tgt-iids-file", required_argument, 0, 'w'},
+		{"tgt-iid", required_argument, 0, 'W'},
+		{"prefixes-file", required_argument, 0, 'm'},
 		{"ipv4-host", required_argument, 0, 'Q'},
 		{"sort-ouis", no_argument, 0, 'T'},
 		{"random-probes", no_argument, 0, 'N'},
@@ -1174,7 +1175,7 @@ int main(int argc, char **argv){
 
 	/* This loads prefixes, but not scan entries */
 	if(knownprefixes_f){
-		if(!load_knownprefix_entries(&prefix_list, knownprefixes_fp)){
+		if(!load_knownprefix_entries(&scan_list, &prefix_list, knownprefixes_fp)){
 			puts("Couldn't load known IPv6 prefixes");
 			exit(1);
 		}			
@@ -2103,37 +2104,240 @@ int load_ipv4mapped_entries(struct scan_list *scan, struct scan_entry *dst, stru
 
 
 /*
+ * Function: read_prefix()
+ *
+ * Obtain a pointer to the beginning of non-blank text, and zero-terminate that text upon space or comment.
+ */
+int read_prefix(char *line, unsigned int len, char **start){
+	char *end;
+
+	*start=line;
+
+	while( (*start < (line + len)) && (**start==' ' || **start=='\t' || **start=='\r' || **start=='\n')){
+		(*start)++;
+	}
+
+	if( *start == (line + len))
+		return(0);
+
+	if( **start == '#')
+		return(0);
+
+	end= *start;
+
+	while( (end < (line + len)) && !(*end==' ' || *end=='\t' || *end=='#' || *end=='\r' || *end=='\n'))
+		end++;
+
+	*end=0;
+	return(1);
+}
+
+
+/*
  * Function: load_knownprefix_entries()
  *
  * Generate prefix_entry's for known prefixes (populate the prefix_list)
  */
 
-int load_knownprefix_entries(struct scan_list *pref, FILE *fp){
+int load_knownprefix_entries(struct scan_list *scan_list, struct scan_list *prefix_list, FILE *fp){
 	unsigned int i;
 	int	r;
-	char line[MAX_LINE_SIZE];
-	struct in6_addr	prefix;
+	char line[MAX_LINE_SIZE], *ptr, *charptr, *charstart, *charend, *lastcolon;
+	char rangestart[MAX_RANGE_STR_LEN+1], rangeend[MAX_RANGE_STR_LEN+1];
+	struct prefix_entry		prefix;
 
 	while(fgets(line, sizeof(line),  fp) != NULL){
-		r= read_ipv6_address(line, Strnlen(line, MAX_LINE_SIZE), &prefix);
+		r= read_prefix(line, Strnlen(line, MAX_LINE_SIZE), &ptr);
 
 		if(r == 1){
-			if(pref->ntarget >= pref->maxtarget){
-				return(0);
+			if( (ranges= address_contains_ranges(ptr)) == 1){
+				charptr= ptr;
+				charstart= rangestart;
+				charend= rangeend;
+				lastcolon= charend;
+
+				while(*charptr && (ptr - charptr) <= MAX_RANGE_STR_LEN){
+					if(*charptr != '-'){
+						*charstart= *charptr;
+						*charend= *charptr;
+						charstart++;
+						charend++;
+
+						if(*charptr==':')
+							lastcolon= charend;
+
+						charptr++;
+					}
+					else{
+						charend= lastcolon;
+						charptr++;
+
+						while(*charptr && (ptr - charptr) <= MAX_RANGE_STR_LEN && *charptr !=':' && *charptr !='-'){
+							*charend= *charptr;
+							charend++;
+							charptr++;
+						}
+					}
+				}
+
+				*charstart=0;
+				*charend=0;
+				tgt_range_f=1;
+
+				if(scan_list->ntarget <= scan_list->maxtarget){
+					if( (scan_list->target[scan_list->ntarget] = malloc(sizeof(struct scan_entry))) == NULL){
+						if(verbose_f > 1)
+							puts("scan6: Not enough memory");
+
+						return(0);
+					}
+
+					if ( inet_pton(AF_INET6, rangestart, &((scan_list->target[scan_list->ntarget])->start)) <= 0){
+						if(verbose_f>1)
+							puts("inet_pton(): Error converting IPv6 address from presentation to network format");
+
+						return(0);
+					}
+
+					if ( inet_pton(AF_INET6, rangeend, &((scan_list->target[scan_list->ntarget])->end)) <= 0){
+						if(verbose_f>1)
+							puts("inet_pton(): Error converting IPv6 address from presentation to network format");
+
+						return(0);
+					}
+
+					(scan_list->target[scan_list->ntarget])->cur= (scan_list->target[scan_list->ntarget])->start;
+
+					/* Check whether the start address is smaller than the end address */
+					for(i=0;i<7; i++)
+						if( ntohs((scan_list->target[scan_list->ntarget])->start.s6_addr16[i]) > 
+							ntohs((scan_list->target[scan_list->ntarget])->end.s6_addr16[i])){
+							if(verbose_f > 1)
+								puts("Error in Destination Address range: Start address larger than end address!");
+
+							return(0);
+						}
+
+					if(IN6_IS_ADDR_MULTICAST(&((scan_list->target[scan_list->ntarget])->start))){
+						if(verbose_f > 1)
+							puts("scan6: Remote scan cannot target a multicast address");
+
+						return(0);
+					}
+
+					if(IN6_IS_ADDR_MULTICAST(&((scan_list->target[scan_list->ntarget])->end))){
+						if(verbose_f > 1)
+							puts("scan6: Remote scan cannot target a multicast address");
+
+						return(0);
+					}
+
+					scan_list->ntarget++;
+				}
+				else{
+					/*
+					   If the number of "targets" has already been exceeded, it doesn't make sense to continue further,
+					   since there wouldn't be space for any specific target types
+					 */
+					if(verbose_f > 1)
+						puts("Too many targets!");
+
+					return(0);
+				}
+
+				if(prefix_list->ntarget <= prefix_list->maxtarget){
+					if( (prefix_list->target[prefix_list->ntarget] = malloc(sizeof(struct scan_entry))) == NULL){
+						if(verbose_f > 1)
+							puts("scan6: Not enough memory");
+
+						return(0);
+					}
+
+					/* Copy the recently added target to our prefix list */
+					*(prefix_list->target[prefix_list->ntarget])= *(scan_list->target[scan_list->ntarget - 1]);
+					prefix_list->ntarget++;
+				}
+				else{
+					/*
+					   If the number of "targets" has already been exceeded, it doesn't make sense to continue further,
+					   since there wouldn't be space for any specific target types
+					 */
+					if(verbose_f > 1)
+						puts("Too many targets!");
+
+					return(0);
+				}
+			}
+			else if(ranges == 0){
+				if((charptr = strtok_r(ptr, "/", &lasts)) == NULL){
+					if(verbose_f > 1)
+						puts("Error in Destination Address");
+
+					return(0);
+				}
+
+				if ( inet_pton(AF_INET6, charptr, &(prefix.ip6)) <= 0){
+					if(verbose_f > 1)
+						puts("inet_pton(): Destination Address not valid");
+
+					return(0);
+				}
+
+				if((charptr = strtok_r(NULL, " ", &lasts)) != NULL){
+					prefix.len = atoi(charptr);
+		
+					if(prefix.len>128){
+						if(verbose_f > 1)
+							puts("Prefix length error in IPv6 Destination Address");
+
+						return(0);
+					}
+
+					sanitize_ipv6_prefix(&(prefix.ip6), prefix.len);
+				}
+				else{
+					prefix.len= 128;
+				}
+
+				if(prefix_list->ntarget <= prefix_list->maxtarget){
+					if( (prefix_list->target[prefix_list->ntarget] = malloc(sizeof(struct scan_entry))) == NULL){
+						if(verbose_f)
+							puts("scan6: Not enough memory");
+
+						return(0);
+					}
+
+					prefix_to_scan(&prefix, prefix_list->target[prefix_list->ntarget]);
+
+					if(IN6_IS_ADDR_MULTICAST(&((prefix_list->target[prefix_list->ntarget])->start))){
+						if(verbose_f > 1)
+							puts("scan6: Remote scan cannot target a multicast address");
+
+						return(0);
+					}
+
+					if(IN6_IS_ADDR_MULTICAST(&((prefix_list->target[prefix_list->ntarget])->end))){
+						if(verbose_f > 1)
+							puts("scan6: Remote scan cannot target a multicast address");
+
+						return(0);
+					}
+
+					prefix_list->ntarget++;
+				}
+				else{
+					/*
+					   If the number of "targets" has already been exceeded, it doesn't make sense to continue further,
+					   since there wouldn't be space for any specific target types
+					 */
+					if(verbose_f > 1)
+						puts("Too many targets!");
+
+					return(0);
+				}
 			}
 
-			if( (pref->target[pref->ntarget] = malloc(sizeof(struct scan_entry))) == NULL)
-				return(0);
-
-			(pref->target[pref->ntarget])->start= prefix;
-
-			for(i=4; i<=7; i++)
-				(pref->target[pref->ntarget])->start.s6_addr16[i]= 0;
-
-			(pref->target[pref->ntarget])->cur= (pref->target[pref->ntarget])->start;
-			(pref->target[pref->ntarget])->end= (pref->target[pref->ntarget])->start;
-
-			pref->ntarget++;
+			dst_f=1;
 		}
 		else if(r == -1){
 			if(verbose_f){
@@ -2143,10 +2347,7 @@ int load_knownprefix_entries(struct scan_list *pref, FILE *fp){
 			fclose(fp);
 			return(0);
 		}
-
 	}
-
-	fclose(fp);
 
 	return(1);
 }
@@ -2878,6 +3079,7 @@ void print_help(void){
 	     "  --interface, -i             Network interface\n"
 	     "  --src-address, -s           IPv6 Source Address\n"
 	     "  --dst-address, -d           IPv6 Destination Range or Prefix\n"
+	     "  --prefixes-file, -m         Prefixes file\n"
 	     "  --link-src-address, -S      Link-layer Destination Address\n"
 	     "  --probe-type, -p            Probe type {echo, unrec, all}\n"
 	     "  --payload-size, -Z          TCP/UDP Payload Size\n"
@@ -2899,9 +3101,8 @@ void print_help(void){
 	     "  --tgt-port-embedded         Target embedded-port addresses\n"
 	     "  --tgt-ieee-oui, -k          Target IPv6 addresses embedding IEEE OUI\n"
 	     "  --tgt-vendor, -K            Target IPv6 addresses for vendor's IEEE OUIs\n"
-	     "  --tgt-known-iids-file, -w   Target Interface Identifiers (IIDs) in specified file\n"
-	     "  --tgt-known-iid, -W         Target Interface Identifiers (IID)\n"
-	     "  --known-prefixes-file, -m   Known prefixes file\n"
+	     "  --tgt-iids-file, -w         Target Interface Identifiers (IIDs) in specified file\n"
+	     "  --tgt-iid, -W               Target Interface Identifiers (IID)\n"
 	     "  --ipv4-host, -Q             Host IPv4 Address/Prefix\n"
 	     "  --sort-ouis, -T             Sort IEEE OUIs\n"
 	     "  --inc-size, -I              Increments size\n"
