@@ -1232,9 +1232,14 @@ int main(int argc, char **argv){
 		}
 	}
 
+	if(loop_f && !dst_f){
+		puts("Loop mode '-l' set, but no targets ('-d') specified!");
+		puts("Note: '-l' option changed since IPv6 toolkit v1.3.4!");
+	}
+
 	if(!dst_f && !scan_local_f){
 		if(verbose_f)
-			puts("Must specify either a destination prefix ('-d'), or a local scan ('-l')");
+			puts("Must specify either a destination prefix ('-d'), or a local scan ('-L')");
 
 		exit(1);
 	}
@@ -1527,7 +1532,7 @@ int main(int argc, char **argv){
 						if(match_ipv6_to_prefixes(&(prefix_list.target[i]->start), &idata.prefix_ol)){
 							/* Must perform Neighbor Discovery for the local address */
 							onlink_f=1;
-							puts("Target network is on-link. Try the '-l' option instead");
+							puts("Target network is on-link. Try the '-L' option instead");
 							exit(1);
 						}
 					}
@@ -2848,13 +2853,13 @@ void prefix_to_scan(struct prefix_entry *pref, struct scan_entry *scan){
  */
 
 void usage(void){
-	puts("usage: scan6 -i INTERFACE (-l | -d) [-s SRC_ADDR[/LEN] | -f] \n"
+	puts("usage: scan6 -i INTERFACE (-L | -d) [-s SRC_ADDR[/LEN] | -f] \n"
 	     "       [-S LINK_SRC_ADDR | -F] [-p PROBE_TYPE] [-Z PAYLOAD_SIZE] [-o SRC_PORT]\n"
-	     "       [-a DST_PORT] [-X TCP_FLAGS] [-P ADDRESS_TYPE] [-q] [-e] [-x RETRANS]\n"
-	     "       [-o TIMEOUT] [-V VM_TYPE] [-b] [-B] [-g] [-k IEEE_OUI] [-K VENDOR]\n"
-	     "       [-w KNOWN_IIDS_FILE] [-W KNOWN_IID] [-Q IPV4_PREFIX[/LEN]] [-T]\n"
-	     "       [-I INC_SIZE] [-r RATE(bps|pps)] [-l] [-z SECONDS] [-c CONFIG_FILE]\n"
-	     "       [-v] [-h]");
+	     "       [-a DST_PORT] [-X TCP_FLAGS] [-P ADDRESS_TYPE] [-q] [-e] [-t]\n"
+	     "       [-x RETRANS] [-o TIMEOUT] [-V VM_TYPE] [-b] [-B] [-g] [-k IEEE_OUI]\n"
+	     "       [-K VENDOR] [-m KNOWN_PREFIXES_FILE] [-w KNOWN_IIDS_FILE] [-W KNOWN_IID]\n"
+	     "       [-Q IPV4_PREFIX[/LEN]] [-T] [-I INC_SIZE] [-r RATE(bps|pps)] [-l]\n"
+	     "       [-z SECONDS] [-c CONFIG_FILE] [-v] [-h]");
 }
 
 
