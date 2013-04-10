@@ -8,9 +8,12 @@ MANPATH= /usr/share/man
 DATAPATH= /usr/share
 BINPATH= /usr/bin
 SRCPATH= tools
-TOOLS= flow6 frag6 icmp6 jumbo6 na6 ni6 ns6 ra6 rd6 rs6 scan6 tcp6
+TOOLS= address6 flow6 frag6 icmp6 jumbo6 na6 ni6 ns6 ra6 rd6 rs6 scan6 tcp6
 
 all: $(TOOLS)
+
+address6: $(SRCPATH)/address6.c
+	$(CC) $(CFLAGS) -o address6 $(SRCPATH)/address6.c $(LDFLAGS) 
 
 flow6: $(SRCPATH)/flow6.c
 	$(CC) $(CFLAGS) -o flow6 $(SRCPATH)/flow6.c $(LDFLAGS) 
@@ -71,6 +74,7 @@ install: all
 
 uninstall:
 	# Remove the binaries
+	rm -f $(BINPATH)/address6
 	rm -f $(BINPATH)/flow6
 	rm -f $(BINPATH)/frag6
 	rm -f $(BINPATH)/icmp6
@@ -91,6 +95,7 @@ uninstall:
 	rm -rf $(DATAPATH)/ipv6toolkit
 
 	# Remove the manual pages
+	rm -f $(MANPATH)/man1/address6.1
 	rm -f $(MANPATH)/man1/flow6.1
 	rm -f $(MANPATH)/man1/frag6.1
 	rm -f $(MANPATH)/man1/icmp6.1
