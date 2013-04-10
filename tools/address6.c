@@ -966,8 +966,8 @@ void print_stats(struct stats6 *stats){
 	puts("\n** IPv6 General Address Analysis **\n");
 	printf("Total IPv6 addresses: %u\n", stats->total);
 	printf("Unicast: %7u (%.2f%%)\t\tMulticast: %7u (%.2f%%)\n", stats->ipv6unicast, \
-			(float)(stats->ipv6unicast)/stats->total, stats->ipv6multicast, (float)(stats->ipv6multicast)/stats->total);
-	printf("Unspec.: %7u (%.2f%%)\n\n", stats->ipv6unspecified, (float)(stats->ipv6unspecified)/stats->total);
+			((float)(stats->ipv6unicast)/stats->total) * 100, stats->ipv6multicast, ((float)(stats->ipv6multicast)/stats->total) * 100);
+	printf("Unspec.: %7u (%.2f%%)\n\n", stats->ipv6unspecified, ((float)(stats->ipv6unspecified)/stats->total) * 100);
 
 	if(stats->ipv6unicast){
 		puts("** IPv6 Unicast Addresses **\n");
