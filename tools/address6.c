@@ -77,7 +77,7 @@ int main(int argc, char **argv){
 	static struct option longopts[] = {
 		{"address", required_argument, 0, 'a'},
 		{"stdin", no_argument, 0, 'i'},
-		{"decode", no_argument, 0, 'd'},
+		{"print-decode", no_argument, 0, 'd'},
 		{"print-stats", no_argument, 0, 's'},
 		{"print-unique", no_argument, 0, 'q'},
 		{"block", required_argument, 0, 'j'},
@@ -776,7 +776,7 @@ void print_dec_address_script(struct decode6 *addr){
 			break;
 	}
 
-	printf("%s:%s:%s:%s:%s\n", type, subtype, scope, iidtype, iidsubtype);
+	printf("%s=%s=%s=%s=%s\n", type, subtype, scope, iidtype, iidsubtype);
 }
 
 
@@ -787,10 +787,7 @@ void print_dec_address_script(struct decode6 *addr){
  */
 
 void usage(void){
-	puts("usage: address6 -i INTERFACE (-L | -d) [-s SRC_ADDR[/LEN] | -f] \n"
-	     "       [-S LINK_SRC_ADDR | -F] [-p PROBE_TYPE] [-Z PAYLOAD_SIZE] [-o SRC_PORT]\n"
-	     "       [-Q IPV4_PREFIX[/LEN]] [-T] [-I INC_SIZE] [-r RATE(bps|pps)] [-l]\n"
-	     "       [-z SECONDS] [-c CONFIG_FILE] [-v] [-h]");
+	puts("usage: address6 (-i | -a) [-d | -s | -q] [-v] [-h]");
 }
 
 
@@ -806,10 +803,13 @@ void print_help(void){
 	usage();
     
 	puts("\nOPTIONS:\n"
-	     "  --stdin, -s                 Read IPv6 addresses from stdin (standard input)\n"
-	     "  --decode, -d                Decode IPv6 addresses\n"
-	     "  --help, -h                  Print help for the address6 tool\n"
-	     "  --verbose, -v               Be verbose\n"
+	     "  --address, -a                IPv6 address to be decoded\n"
+	     "  --stdin, -i                  Read IPv6 addresses from stdin (standard input)\n"
+	     "  --print-decode, -d           Decode IPv6 addresses\n"
+	     "  --print-stats, -s            Decode IPv6 addresses\n"
+	     "  --print-unique, -q           Decode IPv6 addresses\n"
+	     "  --verbose, -v                Be verbose\n"
+	     "  --help, -h                   Print help for the address6 tool\n"
 	     "\n"
 	     " Programmed by Fernando Gont for SI6 Networks <http://www.si6networks.com>\n"
 	     " Please send any bug reports to <fgont@si6networks.com>\n"
