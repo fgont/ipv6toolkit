@@ -35,11 +35,12 @@
 #include <unistd.h>
 #include <string.h>
 #include <sys/types.h>
+#include <sys/param.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <sys/resource.h>
+#include <sys/socket.h>
 #include <pwd.h>
-#include <sys/param.h>
 #include "address6.h"
 #include "ipv6toolkit.h"
 
