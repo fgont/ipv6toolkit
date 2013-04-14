@@ -188,7 +188,7 @@ Note: For local-network address scans, using unrecognized IPv6 options of type 1
 .TP
 .BI \-P\  PAYLOAD_SIZE ,\ \-\-payload\-size\  PAYLOAD_SIZE
 
-This options specifies the payload size of the probe packet. It defaults to 0 for TCP (i.e., empty TCP segments), and to 56 for ICMPv6.
+This option specifies the payload size of the probe packet. It defaults to 0 for TCP (i.e., empty TCP segments), and to 56 for ICMPv6.
 
 .TP
 .BI \-o\  SRC_PORT ,\ \-\-src\-port\  SRC_PORT
@@ -326,7 +326,7 @@ This option specifies that the target is IPv6 addresses that embed service ports
 .TP
 .BI -k\  IEEE_OUI ,\ \-\-tgt\-ieee\-oui\  IEEE_OUI
 
-This options is used to specify an IEEE OUI, such that the target of the scan is SLAAC addresses that employ the aforementioned IEEE OUI.
+This option is used to specify an IEEE OUI, such that the target of the scan is SLAAC addresses that employ the aforementioned IEEE OUI.
 
 .TP
 .BI \-K\  VENDOR ,\ \-\-tgt\-vendor\  VENDOR
@@ -359,12 +359,12 @@ This option specifies an IPv6 Interface Identifier (IID), with the same syntax a
 .TP
 .BR \-T ,\  \-\-sort\-ouis 
 
-This options, when used in conjunction with the “--tgt-vendor” option, tells the scan6 tool to “sort” the IEEE OUIs corresponding to a vendor. Namely, OUIs are employed in descending order, with the largest OUI used last (together with the smallest OUI). The rationale for this option is that when a vendor has been assigned multiple OUIs, chances are that the smaller (and “oldest”) OUI was used for devices that have already been put “out of service”, while the largest (and “newest”) OUI has probably not yet been used for deployed devices.
+This option, when used in conjunction with the “--tgt-vendor” option, tells the scan6 tool to “sort” the IEEE OUIs corresponding to a vendor. Namely, OUIs are employed in descending order, with the largest OUI used last (together with the smallest OUI). The rationale for this option is that when a vendor has been assigned multiple OUIs, chances are that the smaller (and “oldest”) OUI was used for devices that have already been put “out of service”, while the largest (and “newest”) OUI has probably not yet been used for deployed devices.
 
 .TP
 .BI \-Q\  PREFIX/LEN ,\ \-\-ipv4\-host\  PREFIX/LEN
 
-This options allows the user to specify an IPv4 prefix. The aforementioned prefix is employed with the “--tgt-virtual-machines” and/or “--tgc-ipv4-embeded” options to reduce the search space.
+This option allows the user to specify an IPv4 prefix. The aforementioned prefix is employed with the “--tgt-virtual-machines” and/or “--tgc-ipv4-embeded” options to reduce the search space.
 
 .TP
 .BI \-I\  INC_SIZE ,\ \-\-inc\-size\  INC_SIZE
