@@ -1,6 +1,6 @@
 .TH ADDRESS6 1
 .SH NAME
-address6 \- An IPv6 address analysis tool
+address6 \- An IPv6 address analysis and manipulation tool
 .SH SYNOPSIS
 .B address6
 .RB [\| \-a
@@ -39,14 +39,45 @@ This option causes the tool to eliminate duplicate addresses from the list of IP
 .TP
 .BR \-d ,\  \-\-print\-decode
 
-This option request the tool to decode the IPv6 address specfied with the '-a' option (or a list of addresses read froom stdin if the '-i' option was set). The amount of information printed for each address depends on the "verbosity" level (that can be increased with the '-v') option. The current version of this tool supports only one verbosity level. The information printed for each address will have the following format:
+This option request the tool to decode the IPv6 address specfied with the '-a' option (or a list of addresses read froom stdin if the '-i' option was set). The current version of the tool supports only decode type, in which information is printed for each address with the following syntax:
 
         AddressType=AddressSubtype=Scope=IIDTYpe=IIDSUbtype
+
+This simple syntax is meant to be easy for scripting purposes. Future versions of the tool will incorporate a human-friendly mode.
 
 .TP
 .BR \-s\|  ,\  \-\-print\-stats
 
-This option requests the tool to produce address statistics from the list of IPv6 addresses read from standard input. This option should be used in conjuction with the '-i' option.
+This option requests the tool to produce address statistics from the list of IPv6 addresses read from standard input. This option should be used in conjuction with the '-i' option, such that multiple addresses can be given as input to address6.
+
+address6 will always print the total number of IPv6 addresses that have been examined, and the percentage of unicast, multicast, and unspecified (::) addresses. If at least one unicast address is identified, unicast-specific statistics will be printed. In the same way, if at least one multicast address is identified, then multicast-specific statistics will be printed.
+
+Unicast-specific statistics include:
+
+  1) Number and percentage of each unicast address type (global
+     unicast, link-local unicast, 6to4, Teredo, etc.).
+
+  2) Number and percentage of each of the different Interface
+     ID types (IEEE-based, low-byte, etc.).
+
+Only those unicast address types for which there are multiple possible types of Interface-IDs will be considered for the Interface-ID assessment. Namely,
+
+  * 6to4
+  * Global Unicast
+  * Link-local Unicast
+  * Site-local unicast addresses (deprecated)
+  * Unique local unicast addresses
+
+Unicast address types such as 'Teredo' are not considered by this analysis, since they have a single type of Interface-ID, as specified by the corresponding specifications.
+
+Multicast-specific statistics include:
+
+  1) Number of addresses and percentage of each multicast
+     address type (Permanent, Embedded-RP, etc).
+  
+  2) Number addresses and percentage of each of the multicast
+     address scope different Interface ID types (Link, Interfa-
+     ce, Global, etc.)
 
 .TP
 .BR \-v\| ,\  \-\-verbose 
