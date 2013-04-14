@@ -482,6 +482,17 @@ void decode_ipv6_address(struct decode6 *addr, struct stats6 *stats){
 			addr->subtype= UCAST_TEREDO;
 			addr->scope= SCOPE_GLOBAL;
 			(stats->ucastteredo)++;
+
+			/* If the U or G bytes are set, the IID type is unknown */
+			if(ntohs(addr->ip6.s6_addr16[4]) & 0x0300){
+				addr->iidtype= IID_TEREDO_UNKNOWN;
+			}
+			else if(ntohs(addr->ip6.s6_addr16[4]) & 0x3cff){
+				addr->iidtype= IID_TEREDO_RFC5991;
+			}
+			else{
+				addr->iidtype= IID_TEREDO_RFC4380;
+			}
 		}
 		else{
 			addr->subtype= UCAST_GLOBAL;
@@ -583,6 +594,9 @@ void print_dec_address_script(struct decode6 *addr){
 	char *iidembeddedipv4_64="embedded-ipv4-64";
 	char *iidpatternbytes="pattern-bytes";
 	char *iidrandom="randomized";
+	char *iidteredorfc4380="rfc4380";
+	char *iidteredorfc5991="rfc5991";
+	char *iidteredounknown="unknown";
 
 	char *scopereserved="reserved";
 	char *scopeinterface="interface";
@@ -652,9 +666,9 @@ void print_dec_address_script(struct decode6 *addr){
 			}
 
 
-			if(addr->subtype==UCAST_GLOBAL || addr->subtype==UCAST_V4MAPPED || addr->subtype==UCAST_V4COMPAT || \
-				addr->subtype==UCAST_LINKLOCAL || addr->subtype==UCAST_SITELOCAL || addr->subtype==UCAST_UNIQUELOCAL ||\
-				addr->subtype == UCAST_6TO4){
+			if(addr->subtype == UCAST_GLOBAL || addr->subtype == UCAST_V4MAPPED || addr->subtype == UCAST_V4COMPAT || \
+			   addr->subtype == UCAST_LINKLOCAL || addr->subtype == UCAST_SITELOCAL || addr->subtype == UCAST_UNIQUELOCAL ||\
+			   addr->subtype == UCAST_6TO4 || addr->subtype == UCAST_TEREDO){
 
 				switch(addr->iidtype){
 					case IID_MACDERIVED:
@@ -699,6 +713,18 @@ void print_dec_address_script(struct decode6 *addr){
 
 					case IID_RANDOM:
 						iidtype= iidrandom;
+						break;
+
+					case IID_TEREDO_RFC4380:
+						iidtype= iidteredorfc4380;
+						break;
+
+					case IID_TEREDO_RFC5991:
+						iidtype= iidteredorfc5991;
+						break;
+
+					case IID_TEREDO_UNKNOWN:
+						iidtype= iidteredounknown;
 						break;
 				}
 			}
@@ -1007,7 +1033,7 @@ void print_stats(struct stats6 *stats){
 
 		puts("+ Multicast Address Scopes +");
 
-		printf("Reserved:    %7u (%.2f%%)\t\tInterface.:    %7u (%.2f%%)\n",\
+		printf("Reserved:    %7u (%.2f%%)\t\tInterface:     %7u (%.2f%%)\n",\
 				stats->mscopereserved, ((float)(stats->mscopereserved)/stats->ipv6multicast) * 100, stats->mscopeinterface, \
 				((float)(stats->mscopeinterface)/stats->ipv6multicast) * 100);
 
@@ -1024,16 +1050,16 @@ void print_stats(struct stats6 *stats){
 				((float)(stats->mscopesite)/stats->ipv6multicast) * 100);
 	}
 
-	totaliids= stats->ucastglobal + stats->ucastv4mapped + stats->ucastv4compat + stats->ucastlinklocal + \
-				stats->ucastsitelocal + stats->ucastuniquelocal + stats->ucast6to4;
+	totaliids= stats->ucastglobal + stats->ucastlinklocal + stats->ucastsitelocal + stats->ucastuniquelocal + \
+	           stats->ucast6to4;
 
 	if(totaliids){
 		puts("** IPv6 Interface IDs **\n");
 
 		printf("Total IIDs analyzed: %u\n", totaliids);
-		printf("IEEE-based: %7u (%.2f%%)\t\tISATAP:          %7u (%.2f%%)\n",\
-				stats->iidmacderived, ((float)(stats->iidmacderived)/totaliids) * 100, stats->iidisatap, \
-				((float)(stats->iidisatap)/totaliids) * 100);
+		printf("IEEE-based: %7u (%.2f%%)\t\tLow-byte:        %7u (%.2f%%)\n",\
+				stats->iidmacderived, ((float)(stats->iidmacderived)/totaliids) * 100, stats->iidlowbyte, 
+				((float)(stats->iidlowbyte)/totaliids) * 100);
 
 		printf("Embed-IPv4: %7u (%.2f%%)\t\tEmbed-IPv4 (64): %7u (%.2f%%)\n", stats->iidmbeddedipv4, \
 				((float)(stats->iidmbeddedipv4)/totaliids) * 100, stats->iidembeddedipv4_64, \
@@ -1044,8 +1070,8 @@ void print_stats(struct stats6 *stats){
 				((float)(stats->iidembeddedportrev)/totaliids) * 100);
 
 
-		printf("Low-byte:   %7u (%.2f%%)\t\tByte-pattern:    %7u (%.2f%%)\n",\
-				stats->iidlowbyte, ((float)(stats->iidlowbyte)/totaliids) * 100, stats->iidpatternbytes, \
+		printf("ISATAP:     %7u (%.2f%%)\t\tByte-pattern:    %7u (%.2f%%)\n", stats->iidisatap, \
+				((float)(stats->iidisatap)/totaliids) * 100, stats->iidpatternbytes, \
 				((float)(stats->iidpatternbytes)/totaliids) * 100);
 
 		printf("Randomized: %7u (%.2f%%)\n\n", stats->iidrandom, ((float)(stats->iidrandom)/totaliids) * 100);
