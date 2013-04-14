@@ -43,7 +43,10 @@
 #define IID_EMBEDDEDIPV4_64		64
 #define IID_PATTERN_BYTES		128
 #define IID_RANDOM				256
-#define IID_UNSPECIFIED			512
+#define IID_TEREDO_RFC4380		512
+#define IID_TEREDO_RFC5991		1024
+#define IID_TEREDO_UNKNOWN		2048
+#define IID_UNSPECIFIED			4096
 
 struct	decode6{
 	struct in6_addr	ip6;
