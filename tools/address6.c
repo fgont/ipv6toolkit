@@ -246,6 +246,13 @@ int main(int argc, char **argv){
 			print_stats(&stats);
 		}
 	}
+	else{
+		/* If we were not asked to decode the address, we should print it on stdout */
+		if(decode_f){
+			decode_ipv6_address(&addr, &stats);
+			print_dec_address_script(&addr);
+		}
+	}
 
 	exit(0);
 }
@@ -611,6 +618,8 @@ void print_dec_address_script(struct decode6 *addr){
 
 	char *type, *subtype, *scope, *iidtype, *iidsubtype;
 
+	type= nullstring;
+	subtype= nullstring;
 	iidtype= nullstring;
 	iidsubtype= nullstring;
 
