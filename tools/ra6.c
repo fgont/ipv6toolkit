@@ -2367,7 +2367,7 @@ void print_filter_result(const u_char *pkt_data, unsigned char fresult){
 unsigned int match_ipv6(struct in6_addr *prefixlist, u_int8_t *prefixlen, unsigned int nprefix, 
 								struct in6_addr *ipv6addr){
 
-    unsigned int 	i;
+    unsigned int 	i, j;
     struct in6_addr	dummyipv6;
     
     for(i=0; i<nprefix; i++){
