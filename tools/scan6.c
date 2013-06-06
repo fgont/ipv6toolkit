@@ -2740,6 +2740,9 @@ int load_vm_entries(struct scan_list *scan, struct scan_entry *dst, struct prefi
 				for(i=0; i< v4host->len; i++)
 					mask32=mask32>>1;
 			}
+			else{
+				mask32= 0;
+			}
 
 			(scan->target[scan->ntarget])->start.s6_addr16[6]= (scan->target[scan->ntarget])->start.s6_addr16[6] | \
 															htons((ntohl(v4host->ip.s_addr) & 0x0000ff00)>>8);
