@@ -59,7 +59,6 @@ int				ether_pton(const char *, struct ether_addr *, unsigned int);
 int				ether_ntop(const struct ether_addr *, char *, size_t);
 u_int16_t		in_chksum(void *, void *, size_t);
 void			print_attack_info(void);
-void			sanitize_ipv6_prefix(struct in6_addr *, u_int8_t);
 
 
 /* Functions used for filter implementation */
@@ -2215,118 +2214,125 @@ int insert_pad_opt(char *ptrhdr, const char *ptrhdrend, unsigned int padn){
  */
 
 void print_filters(void){
-    if(nblocksrc){
-	printf("Block filter for IPv6 Source Addresss: ");
+	if(nblocksrc){
+		printf("Block filter for IPv6 Source Addresss: ");
 	
-	for(i=0; i<nblocksrc; i++){
-	    if(inet_ntop(AF_INET6, &blocksrc[i], pv6addr, sizeof(pv6addr))<=0){
-		puts("inet_ntop(): Error converting IPv6 Src. Addr. filter to presentation format");
-		exit(1);
-	    }
+		for(i=0; i<nblocksrc; i++){
+			if(inet_ntop(AF_INET6, &blocksrc[i], pv6addr, sizeof(pv6addr))<=0){
+				puts("inet_ntop(): Error converting IPv6 Src. Addr. filter to presentation format");
+				exit(1);
+			}
 
-	    printf("%s/%u   ", pv6addr, blocksrclen[i]);
-	}
-	printf("\n");
+			printf("%s/%u   ", pv6addr, blocksrclen[i]);
+		}
+
+		printf("\n");
     }
 
-    if(nblockdst){
-	printf("Block filter for IPv6 Destination Address: ");
+	if(nblockdst){
+		printf("Block filter for IPv6 Destination Address: ");
 	
-	for(i=0; i<nblockdst; i++){
-	    if(inet_ntop(AF_INET6, &blockdst[i], pv6addr, sizeof(pv6addr))<=0){
-		puts("inet_ntop(): Error converting IPv6 Dst. Addr. filter to presentation format");
-		exit(1);
-	    }
+		for(i=0; i<nblockdst; i++){
+			if(inet_ntop(AF_INET6, &blockdst[i], pv6addr, sizeof(pv6addr))<=0){
+				puts("inet_ntop(): Error converting IPv6 Dst. Addr. filter to presentation format");
+				exit(1);
+			}
 
-	    printf("%s/%u   ", pv6addr, blockdstlen[i]);
-	}
-	printf("\n");
+			printf("%s/%u   ", pv6addr, blockdstlen[i]);
+		}
+
+		printf("\n");
     }
 
-    if(nblocklinksrc){
-	printf("Block filter for link-layer Source Address: ");
+	if(nblocklinksrc){
+		printf("Block filter for link-layer Source Address: ");
 	
-	for(i=0; i<nblocklinksrc; i++){
-	    if(ether_ntop(&blocklinksrc[i], plinkaddr, sizeof(plinkaddr)) == 0){
-		puts("ether_ntop(): Error converting address");
-		exit(1);
-	    }
+		for(i=0; i<nblocklinksrc; i++){
+			if(ether_ntop(&blocklinksrc[i], plinkaddr, sizeof(plinkaddr)) == 0){
+				puts("ether_ntop(): Error converting address");
+				exit(1);
+			}
+    
+			printf("%s   ", plinkaddr);
+		}
+
+		printf("\n");
+	}
+
+	if(nblocklinkdst){
+		printf("Block filter for link-layer Destination Address: ");
+	
+		for(i=0; i<nblocklinkdst; i++){
+			if(ether_ntop(&blocklinkdst[i], plinkaddr, sizeof(plinkaddr)) == 0){
+				puts("ether_ntop(): Error converting address");
+				exit(1);
+			}
 	    
-	    printf("%s   ", plinkaddr);
-	}
-	printf("\n");
-    }
+			printf("%s   ", plinkaddr);
+		}
 
-    if(nblocklinkdst){
-	printf("Block filter for link-layer Destination Address: ");
+		printf("\n");
+	}
+
+	if(nacceptsrc){
+		printf("Accept filter for IPv6 Source Addresss: ");
 	
-	for(i=0; i<nblocklinkdst; i++){
-	    if(ether_ntop(&blocklinkdst[i], plinkaddr, sizeof(plinkaddr)) == 0){
-		puts("ether_ntop(): Error converting address");
-		exit(1);
-	    }
-	    
-	    printf("%s   ", plinkaddr);
-	}
-	printf("\n");
-    }
+		for(i=0; i<nacceptsrc; i++){
+			if(inet_ntop(AF_INET6, &acceptsrc[i], pv6addr, sizeof(pv6addr))<=0){
+				puts("inet_ntop(): Error converting IPv6 Src. Addr. filter to presentation format");
+				exit(1);
+			}
 
-    if(nacceptsrc){
-	printf("Accept filter for IPv6 Source Addresss: ");
+			printf("%s/%u   ", pv6addr, acceptsrclen[i]);
+		}
+
+		printf("\n");
+	}
+
+	if(nacceptdst){
+		printf("Accept filter for IPv6 Destination Address: ");
+
+		for(i=0; i<nacceptdst; i++){
+			if(inet_ntop(AF_INET6, &acceptdst[i], pv6addr, sizeof(pv6addr))<=0){
+				puts("inet_ntop(): Error converting IPv6 Dst. Addr. filter to presentation format");
+				exit(1);
+			}
+
+			printf("%s/%u   ", pv6addr, acceptdstlen[i]);
+		}
+
+		printf("\n");
+	}
+
+	if(nacceptlinksrc){
+		printf("Accept filter for link-layer Source Address: ");
 	
-	for(i=0; i<nacceptsrc; i++){
-	    if(inet_ntop(AF_INET6, &acceptsrc[i], pv6addr, sizeof(pv6addr))<=0){
-		puts("inet_ntop(): Error converting IPv6 Src. Addr. filter to presentation format");
-		exit(1);
-	    }
+		for(i=0; i<nacceptlinksrc; i++){
+			if(ether_ntop(&acceptlinksrc[i], plinkaddr, sizeof(plinkaddr)) == 0){
+				puts("ether_ntop(): Error converting address");
+				exit(1);
+			}
+    
+			printf("%s   ", plinkaddr);
+		}
 
-	    printf("%s/%u   ", pv6addr, acceptsrclen[i]);
+		printf("\n");
 	}
-	printf("\n");
-    }
 
-    if(nacceptdst){
-	printf("Accept filter for IPv6 Destination Address: ");
-	
-	for(i=0; i<nacceptdst; i++){
-	    if(inet_ntop(AF_INET6, &acceptdst[i], pv6addr, sizeof(pv6addr))<=0){
-		puts("inet_ntop(): Error converting IPv6 Dst. Addr. filter to presentation format");
-		exit(1);
-	    }
+	if(nacceptlinkdst){
+		printf("Accept filter for link-layer Destination Address: ");
 
-	    printf("%s/%u   ", pv6addr, acceptdstlen[i]);
+		for(i=0; i<nacceptlinkdst; i++){
+			if(ether_ntop(&acceptlinkdst[i], plinkaddr, sizeof(plinkaddr)) == 0){
+				puts("ether_ntop(): Error converting address");
+				exit(1);
+			}
+    
+			printf("%s   ", plinkaddr);
+		}
+
+		printf("\n");
 	}
-	printf("\n");
-    }
-
-    if(nacceptlinksrc){
-	printf("Accept filter for link-layer Source Address: ");
-	
-	for(i=0; i<nacceptlinksrc; i++){
-	    if(ether_ntop(&acceptlinksrc[i], plinkaddr, sizeof(plinkaddr)) == 0){
-		puts("ether_ntop(): Error converting address");
-		exit(1);
-	    }
-	    
-	    printf("%s   ", plinkaddr);
-	}
-	printf("\n");
-    }
-
-    if(nacceptlinkdst){
-	printf("Accept filter for link-layer Destination Address: ");
-	
-	for(i=0; i<nacceptlinkdst; i++){
-	    if(ether_ntop(&acceptlinkdst[i], plinkaddr, sizeof(plinkaddr)) == 0){
-		puts("ether_ntop(): Error converting address");
-		exit(1);
-	    }
-	    
-	    printf("%s   ", plinkaddr);
-	}
-	printf("\n");
-    }
-
 }
 
 
@@ -2398,15 +2404,15 @@ unsigned int match_ether(struct ether_addr *addrlist, unsigned int naddr, \
     unsigned int i, j;
 
     for(i=0; i<naddr; i++){
-	for(j=0; j<6; j++)
-	    if(linkaddr->a[j] != addrlist[i].a[j])
-		break;
+		for(j=0; j<6; j++)
+			if(linkaddr->a[j] != addrlist[i].a[j])
+				break;
 
-	if(j==6)
-	    return 1;
-    }
+		if(j==6)
+			return 1;
+	}
 
-    return 0;
+	return 0;
 }
 
 
@@ -2417,21 +2423,21 @@ unsigned int match_ether(struct ether_addr *addrlist, unsigned int naddr, \
  */
 
 void sanitize_ipv6_prefix(struct in6_addr *ipv6addr, u_int8_t prefixlen){
-    unsigned int skip, i;
-    u_int16_t	mask;
+	unsigned int skip, i;
+	u_int16_t	mask;
     
     skip= (prefixlen+15)/16;
 
     if(prefixlen%16){
-	mask=0;
-    	for(i=0; i<(prefixlen%16); i++)
-	    mask= (mask>>1) | 0x8000;
+		mask=0;
+
+		for(i=0; i<(prefixlen%16); i++)
+			mask= (mask>>1) | 0x8000;
 		    
-	ipv6addr->s6_addr16[skip-1]= ipv6addr->s6_addr16[skip-1] & htons(mask);
+		ipv6addr->s6_addr16[skip-1]= ipv6addr->s6_addr16[skip-1] & htons(mask);
     }
 			
-    for(i=skip;i<8;i++)
-	ipv6addr->s6_addr16[i]=0;
-	
+	for(i=skip;i<8;i++)
+		ipv6addr->s6_addr16[i]=0;
 }
 

@@ -1,5 +1,6 @@
 
 #define MAX_LINE_SIZE			250
+#define MAX_TYPE_SIZE			25
 #define MAX_LIST_ENTRIES		65535
 #define MAX_HOST_ENTRIES		4000000
 
@@ -17,12 +18,12 @@
 #define UCAST_GLOBAL			128
 #define UCAST_LOOPBACK			256
 
-#define MCAST_PERMANENT			256
-#define MCAST_NONPERMANENT		512
-#define MCAST_INVALID			1024
-#define MCAST_UNICASTBASED		2048
-#define MCAST_EMBEDRP			4096
-#define MCAST_UNKNOWN			8192
+#define MCAST_PERMANENT			512
+#define MCAST_NONPERMANENT		1024
+#define MCAST_INVALID			2048
+#define MCAST_UNICASTBASED		4096
+#define MCAST_EMBEDRP			8192
+#define MCAST_UNKNOWN			16384
 
 #define SCOPE_RESERVED			1
 #define SCOPE_INTERFACE			2
@@ -47,6 +48,12 @@
 #define IID_TEREDO_RFC5991		1024
 #define IID_TEREDO_UNKNOWN		2048
 #define IID_UNSPECIFIED			4096
+
+
+/* Filter Constants */
+#define MAX_BLOCK			50
+#define MAX_ACCEPT			50
+
 
 struct	decode6{
 	struct in6_addr	ip6;

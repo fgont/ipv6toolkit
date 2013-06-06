@@ -357,7 +357,7 @@ int main(int argc, char **argv){
 				if(strncmp(optarg, "loopback", MAX_TYPE_SIZE) == 0){
 					accept_utype |= UCAST_LOOPBACK;
 				}
-				else if(strncmp(optarg, "ipv4-compat", MAX_TYPE_SIZE) == 0 || strncmp(optarg, "ipv4-compatble", MAX_TYPE_SIZE) == 0){
+				else if(strncmp(optarg, "ipv4-compat", MAX_TYPE_SIZE) == 0 || strncmp(optarg, "ipv4-compatible", MAX_TYPE_SIZE) == 0){
 					accept_utype |= UCAST_V4COMPAT;
 				}
 				else if(strncmp(optarg, "ipv4-mapped", MAX_TYPE_SIZE) == 0){
@@ -395,7 +395,7 @@ int main(int argc, char **argv){
 				if(strncmp(optarg, "loopback", MAX_TYPE_SIZE) == 0){
 					block_utype |= UCAST_LOOPBACK;
 				}
-				else if(strncmp(optarg, "ipv4-compat", MAX_TYPE_SIZE) == 0 || strncmp(optarg, "ipv4-compatble", MAX_TYPE_SIZE) == 0){
+				else if(strncmp(optarg, "ipv4-compat", MAX_TYPE_SIZE) == 0 || strncmp(optarg, "ipv4-compatible", MAX_TYPE_SIZE) == 0){
 					block_utype |= UCAST_V4COMPAT;
 				}
 				else if(strncmp(optarg, "ipv4-mapped", MAX_TYPE_SIZE) == 0){
@@ -526,6 +526,11 @@ int main(int argc, char **argv){
 
 			case 'v':	/* Be verbose */
 				verbose_f++;
+				break;
+
+			case 'h':	/* Help */
+				print_help();
+				exit(1);
 				break;
 
 			default:
@@ -1374,15 +1379,15 @@ void print_help(void){
 	     "  --print-stats, -s         Print statistics about IPv6 addresses\n"
 	     "  --print-unique, -q        Discard duplicate IPv6 addresses\n"
 	     "  --accept, -j              Accept IPv6 addresses from specified IPv6 prefix\n"
-		 "  --accept-type, -b         Accept IPv6 addresses of specified type\n"
+	     "  --accept-type, -b         Accept IPv6 addresses of specified type\n"
 	     "  --accept-scope, -k        Accept IPv6 addresses of specified scope\n"
-	     "  --accept-utype, -w        Accept IPv6 unicast sddresses of specified type\n"
+	     "  --accept-utype, -w        Accept IPv6 unicast addresses of specified type\n"
 	     "  --accept-iid, -g          Accept IPv6 addresses with IIDs of specified type\n"
 	     "  --block, -J               Block IPv6 addresses from specified IPv6 prefix\n"
 	     "  --block-type, -B          Block IPv6 addresses of specified type\n"
 	     "  --block-scope, -K         Block IPv6 addresses of specified scope\n"
-         "  --block-utype, -W         Block IPv6 unicast sddresses of specified type\n"
-		 "  --block-iid, -G           Block IPv6 addresses with IIDs of specified type\n"
+	     "  --block-utype, -W         Block IPv6 unicast addresses of specified type\n"
+	     "  --block-iid, -G           Block IPv6 addresses with IIDs of specified type\n"
 	     "  --verbose, -v             Be verbose\n"
 	     "  --help, -h                Print help for the address6 tool\n"
 	     "\n"
