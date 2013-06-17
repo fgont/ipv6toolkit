@@ -125,7 +125,8 @@ unsigned int			nfrags, fragsize, max_packet_size;
 char					*prev_nh, *startoffragment;
 
 int main(int argc, char **argv){
-	extern char		*optarg;	
+	extern char		*optarg;
+	int				r;
 	uid_t			ruid;
 	gid_t			rgid;
 	struct passwd	*pwdptr;
