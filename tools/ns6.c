@@ -121,6 +121,7 @@ int main(int argc, char **argv){
 	extern char	*optarg;
 	uid_t		ruid;
 	gid_t		rgid;
+	int			r;
 	struct passwd	*pwdptr;
 
 	static struct option longopts[] = {
