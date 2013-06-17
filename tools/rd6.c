@@ -279,9 +279,10 @@ int main(int argc, char **argv){
 
 	hoplimit=255;
 
-	while((option=getopt_long(argc, argv, shortopts, longopts, NULL)) != -1) {
-		switch(option) {
+	while((r=getopt_long(argc, argv, shortopts, longopts, NULL)) != -1) {
+		option= r;
 
+		switch(option) {
 			case 'i':  /* Interface */
 				strncpy(iface, optarg, IFACE_LENGTH-1);
 				iface_f=1;

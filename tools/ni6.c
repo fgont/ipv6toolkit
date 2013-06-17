@@ -220,7 +220,6 @@ unsigned int		canjump;
 
 int main(int argc, char **argv){
 	extern char		*optarg;	
-	extern int		optind;
 	uid_t			ruid;
 	gid_t			rgid;
 	int				r, sel;
@@ -304,7 +303,9 @@ int main(int argc, char **argv){
 		exit(1);
 	}
 
-	while((option=getopt_long(argc, argv, shortopts, longopts, NULL)) != -1) {
+	while((r=getopt_long(argc, argv, shortopts, longopts, NULL)) != -1) {
+		option= r;
+
 		switch(option){
 			case 'i':  /* Interface */
 				strncpy(idata.iface, optarg, IFACE_LENGTH-1);

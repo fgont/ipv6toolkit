@@ -206,7 +206,6 @@ unsigned int		canjump;
 
 int main(int argc, char **argv){
 	extern char	*optarg;	
-	extern int	optind;
 	char		*endptr; /* Used by strtoul() */
 	uid_t		ruid;
 	gid_t		rgid;
@@ -266,9 +265,10 @@ int main(int argc, char **argv){
 	hoplimit=255;
 	init_iface_data(&idata);
 
-	while((option=getopt_long(argc, argv, shortopts, longopts, NULL)) != -1) {
-		switch(option) {
+	while((r=getopt_long(argc, argv, shortopts, longopts, NULL)) != -1) {
+		option= r;
 
+		switch(option) {
 			case 'i':  /* Interface */
 				strncpy(idata.iface, optarg, IFACE_LENGTH-1);
 				iface_f=1;

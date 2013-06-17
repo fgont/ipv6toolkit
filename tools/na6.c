@@ -199,16 +199,17 @@ int main(int argc, char **argv){
 
     char option;
 
-    if(argc<=1){
-	usage();
-	exit(1);
-    }
+	if(argc<=1){
+		usage();
+		exit(1);
+	}
 
     hoplimit=255;
 
-	while((option=getopt_long(argc, argv, shortopts, longopts, NULL)) != -1) {
-		switch(option) {
+	while((r=getopt_long(argc, argv, shortopts, longopts, NULL)) != -1) {
+		option= r;
 
+		switch(option) {
 			case 'i':  /* Interface */
 				strncpy(iface, optarg, IFACE_LENGTH-1);
 				iface_f=1;

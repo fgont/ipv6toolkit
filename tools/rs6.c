@@ -126,7 +126,6 @@ char					*prev_nh, *startoffragment;
 
 int main(int argc, char **argv){
 	extern char		*optarg;	
-	extern int		optind;
 	uid_t			ruid;
 	gid_t			rgid;
 	struct passwd	*pwdptr;
@@ -161,7 +160,9 @@ int main(int argc, char **argv){
 
     hoplimit=255;
 
-    while((option=getopt_long(argc, argv, shortopts, longopts, NULL)) != -1) {
+	while((r=getopt_long(argc, argv, shortopts, longopts, NULL)) != -1) {
+		option= r;
+
 	switch(option) {
 
 	    case 'i':  /* Interface */

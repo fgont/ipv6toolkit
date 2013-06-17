@@ -275,7 +275,6 @@ unsigned int			canjump;
 
 int main(int argc, char **argv){
 	extern char		*optarg;	
-	extern int		optind;
 	uid_t			ruid;
 	gid_t			rgid;
 	struct passwd	*pwdptr;
@@ -308,8 +307,8 @@ int main(int argc, char **argv){
 		{"rand-link-src-addr", no_argument, 0, 'F'},
 		{"tgt-virtual-machines", required_argument, 0, 'V'},
 		{"tgt-low-byte", no_argument, 0, 'b'},
-		{"tgt-ipv4-embedded", no_argument, 0, 'B'},
-		{"tgt-port-embedded", no_argument, 0, 'g'},
+		{"tgt-ipv4", no_argument, 0, 'B'},
+		{"tgt-port", no_argument, 0, 'g'},
 		{"tgt-ieee-oui", required_argument, 0, 'k'},
 		{"tgt-vendor", required_argument, 0, 'K'},
 		{"tgt-iids-file", required_argument, 0, 'w'},
@@ -356,14 +355,10 @@ int main(int argc, char **argv){
 	iid_list.nprefix=0;
 	iid_list.maxprefix= MAX_IID_ENTRIES;
 
-	while((option=getopt_long(argc, argv, shortopts, longopts, NULL)) != -1) {
-		switch(option) {
-			case 'c':	/* Configuration file */
-				strncpy(configfile, optarg, MAX_FILENAME_SIZE-1);
-				configfile[MAX_FILENAME_SIZE-1]=0;
-				configfile_f=1;
-				break;
+	while((r=getopt_long(argc, argv, shortopts, longopts, NULL)) != -1) {
+		option= r;
 
+		switch(option) {
 			case 'i':  /* Interface */
 				strncpy(idata.iface, optarg, IFACE_LENGTH-1);
 				idata.iface[IFACE_LENGTH-1]=0;
@@ -407,17 +402,23 @@ int main(int argc, char **argv){
 
 					while(*charptr && (optarg - charptr) <= MAX_RANGE_STR_LEN){
 						if(*charptr != '-'){
+							/* If we do not find a dash, just copy this 16-bit word to both the range start and the range end */
 							*charstart= *charptr;
 							*charend= *charptr;
 							charstart++;
 							charend++;
 
+							/*
+							    Record the address of the byte following the colon (in the range end), so that we know what to
+							   "overwrite when we find a "range
+							 */
 							if(*charptr==':')
 								lastcolon= charend;
 
 							charptr++;
 						}
 						else{
+							/* If we found a dash, we must "overwrite" the range end with what follows the dash */
 							charend= lastcolon;
 							charptr++;
 
@@ -429,6 +430,7 @@ int main(int argc, char **argv){
 						}
 					}
 
+					/* Zero-terminate the strings that we have generated from the option arguements */
 					*charstart=0;
 					*charend=0;
 					tgt_range_f=1;
@@ -746,6 +748,10 @@ int main(int argc, char **argv){
 				hdstaddr_f = 1;
 				break;
 
+			case 'L':
+				scan_local_f=1;
+				break;
+
 			case 'p':	/* Probe type */
 				if(strncmp(optarg, "echo", strlen("echo")) == 0){
 					probe_echo_f=1;
@@ -876,10 +882,6 @@ int main(int argc, char **argv){
 
 			case 'O':
 				idata.local_timeout=atoi(optarg);
-				break;
-
-			case 'L':
-				scan_local_f=1;
 				break;
 
 			case 'f':
@@ -1079,6 +1081,12 @@ int main(int argc, char **argv){
 			case 'h':	/* Help */
 				print_help();
 				exit(1);
+				break;
+
+			case 'c':	/* Configuration file */
+				strncpy(configfile, optarg, MAX_FILENAME_SIZE-1);
+				configfile[MAX_FILENAME_SIZE-1]=0;
+				configfile_f=1;
 				break;
 
 			default:

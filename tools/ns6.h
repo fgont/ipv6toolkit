@@ -35,13 +35,6 @@
 #define MAX_HBH_OPT_HDR		MAX_DST_OPT_HDR
 
 /* Constants used with the libpcap functions */
-#define PCAP_SNAP_LEN		65535
-#define	PCAP_TIMEOUT			1
-#define	PCAP_PROMISC			1
-#define	PCAP_OPT				1
-#ifndef PCAP_NETMASK_UNKNOWN
-	#define PCAP_NETMASK_UNKNOWN	0xffffffff
-#endif
 #define PCAP_NOPACKETS_FILTER	"not ip and not ip6 and not arp"
 
 struct ether_addr{

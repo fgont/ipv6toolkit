@@ -91,7 +91,6 @@
 #define BLOCKED				0
 
 /* Constants used with the libcap functions */
-#define PCAP_SNAP_LEN			65535
 #define PCAP_TCPV6_FILTER		"ip6 and tcp"
 #define PCAP_UDPV6_FILTER		"ip6 and udp"
 #define PCAP_ICMPV6_FILTER		"icmp6"
@@ -103,12 +102,6 @@
 #define PCAP_ICMPV6_ERQNSNA_FILTER	"icmp6 and ((ip6[40]==129 and ip6[41]==0) or ((ip6[40]==135 or ip6[40]==136) and ip6[41]==0 and ip6[7]==255))"
 #define PCAP_ICMPV6_ERRORNSNA_FILTER	"icmp6 and ((ip6[40]==4) or ((ip6[7]==255 and ip6[41]==0) and (ip6[40]==135 or ip6[40]==136)))"
 #define PCAP_TCP_NSNA_FILTER		"(ip6 and tcp) or (icmp6 and ip6[7]==255 and ip6[41]==0 and (ip6[40]==135 or ip6[40]==136))"
-#define	PCAP_TIMEOUT			100
-#define	PCAP_PROMISC			1
-#define	PCAP_OPT			1
-#ifndef PCAP_NETMASK_UNKNOWN
-	#define PCAP_NETMASK_UNKNOWN	0xffffffff
-#endif
 
 /* Remote scans */
 #define LOW_BYTE_1ST_WORD_UPPER		0x1500

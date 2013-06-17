@@ -188,7 +188,6 @@ unsigned int				nacceptlinksrc=0, nacceptlinkdst=0;
 
 int main(int argc, char **argv){
 	extern char		*optarg;	
-	extern int		optind;
 	uid_t			ruid;
 	gid_t			rgid;
 	int				r, sel, fd;
@@ -257,7 +256,9 @@ int main(int argc, char **argv){
 	retrans= DEFAULT_ROUTER_RETRANS;
 	srandom(time(NULL));
 
-	while((option=getopt_long(argc, argv, shortopts, longopts, NULL)) != -1) {
+	while((r=getopt_long(argc, argv, shortopts, longopts, NULL)) != -1) {
+		option= r;
+
 		switch(option) {
 
 			case 'i':  /* Interface */

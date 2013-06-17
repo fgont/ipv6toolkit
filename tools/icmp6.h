@@ -69,13 +69,6 @@
 #define BLOCKED				0
 
 /* Constants used with the libpcap functions */
-#define PCAP_SNAP_LEN			65535
-#define	PCAP_TIMEOUT			1
-#define	PCAP_PROMISC			1
-#define	PCAP_OPT			1
-#ifndef PCAP_NETMASK_UNKNOWN
-	#define PCAP_NETMASK_UNKNOWN	0xffffffff
-#endif
 #define PCAP_IPV6_FILTER		"ip6"
 #define PCAP_TCPV6_FILTER		"ip6 and tcp"
 #define PCAP_UDPV6_FILTER		"ip6 and udp"

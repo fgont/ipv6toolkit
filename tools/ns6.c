@@ -118,8 +118,7 @@ char				*prev_nh, *startoffragment;
 
 
 int main(int argc, char **argv){
-	extern char	*optarg;	
-	extern int	optind;
+	extern char	*optarg;
 	uid_t		ruid;
 	gid_t		rgid;
 	struct passwd	*pwdptr;
@@ -156,65 +155,67 @@ int main(int argc, char **argv){
 
     hoplimit=255;
 
-    while((option=getopt_long(argc, argv, shortopts, longopts, NULL)) != -1) {
-	switch(option) {
+	while((r=getopt_long(argc, argv, shortopts, longopts, NULL)) != -1) {
+		option =r:
 
-	    case 'i':  /* Interface */
-		strncpy(iface, optarg, IFACE_LENGTH-1);
-		iface_f=1;
-		break;
+		switch(option) {
+			case 'i':  /* Interface */
+				strncpy(iface, optarg, IFACE_LENGTH-1);
+				iface_f=1;
+				break;
 
-	    case 's':	/* IPv6 Source Address */
-		if((charptr = strtok_r(optarg, "/", &lasts)) == NULL){
-		    puts("inet_pton(): address not valid");
-		    exit(1);
-		}
+			case 's':	/* IPv6 Source Address */
+				if((charptr = strtok_r(optarg, "/", &lasts)) == NULL){
+					puts("inet_pton(): address not valid");
+					exit(1);
+				}
 
-		if ( inet_pton(AF_INET6, charptr, &srcaddr) <= 0){
-		    puts("inet_pton(): address not valid");
-		    exit(1);
-		}
+				if ( inet_pton(AF_INET6, charptr, &srcaddr) <= 0){
+					puts("inet_pton(): address not valid");
+					exit(1);
+				}
 
-		srcaddr_f = 1;
+				srcaddr_f = 1;
 		
-		if((charptr = strtok_r(NULL, " ", &lasts)) != NULL){
-		    srcpreflen = atoi(charptr);
+				if((charptr = strtok_r(NULL, " ", &lasts)) != NULL){
+					srcpreflen = atoi(charptr);
 		
-		    if(srcpreflen>128){
-			puts("Prefix length error in IPv6 Source Address");
-			exit(1);
-		    }
+					if(srcpreflen>128){
+						puts("Prefix length error in IPv6 Source Address");
+						exit(1);
+					}
 
-		    sanitize_ipv6_prefix(&srcaddr, srcpreflen);
-		    srcprefix_f=1;
-		}
+					sanitize_ipv6_prefix(&srcaddr, srcpreflen);
+					srcprefix_f=1;
+				}
 
-		break;
+				break;
 	    
-	    case 'd':	/* IPv6 Destination Address */
-		if( inet_pton(AF_INET6, optarg, &dstaddr) <= 0){
-		    puts("inet_pton(): address not valid");
-		    exit(1);
-		}
+			case 'd':	/* IPv6 Destination Address */
+				if( inet_pton(AF_INET6, optarg, &dstaddr) <= 0){
+					puts("inet_pton(): address not valid");
+					exit(1);
+				}
 		
-		dstaddr_f = 1;
-		break;
+				dstaddr_f = 1;
+				break;
 
-	    case 'A':	/* Hop Limit */
-		hoplimit= atoi(optarg);
-		hoplimit_f=1;
-		break;
+			case 'A':	/* Hop Limit */
+				hoplimit= atoi(optarg);
+				hoplimit_f=1;
+				break;
 
-	    case 'y':	/* Fragment header */
-		nfrags= atoi(optarg);
-		if(nfrags < 8){
-		    puts("Error in Fragmentation option: Fragment Size must be at least 8 bytes");
-		    exit(1);
-		}
+			case 'y':	/* Fragment header */
+				nfrags= atoi(optarg);
+
+				if(nfrags < 8){
+					puts("Error in Fragmentation option: Fragment Size must be at least 8 bytes");
+					exit(1);
+				}
 		
-		nfrags = (nfrags +7) & 0xfff8;
-		fragh_f= 1;
-		break;
+				nfrags = (nfrags +7) & 0xfff8;
+				fragh_f= 1;
+				break;
 
 	    case 'u':	/* Destinations Options Header */
 		if(ndstopthdr >= MAX_DST_OPT_HDR){

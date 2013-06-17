@@ -30,13 +30,6 @@
 
 /* Constants used with the libpcap functions */
 #define PCAP_ICMPV6_FILTER 	"icmp6 and ip6[7]==255 and ip6[40]==135 and ip6[41]==0"
-#define PCAP_SNAP_LEN		65535
-#define	PCAP_TIMEOUT		1
-#define PCAP_PROMISC		1
-#define	PCAP_OPT		1
-#ifndef PCAP_NETMASK_UNKNOWN
-	#define PCAP_NETMASK_UNKNOWN	0xffffffff
-#endif
 
 /* Support for IPv6 extension headers */
 #define FRAG_HDR_SIZE		8

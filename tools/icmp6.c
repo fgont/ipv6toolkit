@@ -212,8 +212,7 @@ sigjmp_buf			env;
 unsigned int		canjump;
 
 int main(int argc, char **argv){
-	extern char		*optarg;	
-	extern int		optind;
+	extern char		*optarg;
 	char			*endptr; /* Used by strtoul() */
 	uid_t			ruid;
 	gid_t			rgid;
@@ -281,7 +280,9 @@ int main(int argc, char **argv){
 
 	hoplimit=64+random()%180;
 
-	while((option=getopt_long(argc, argv, shortopts, longopts, NULL)) != -1) {
+	while((r=getopt_long(argc, argv, shortopts, longopts, NULL)) != -1) {
+		option= r;
+
 		switch(option) {
 
 			case 'i':  /* Interface */
@@ -476,7 +477,7 @@ int main(int argc, char **argv){
 
 			case 'S':	/* Source Ethernet address */
 				if(ether_pton(optarg, &hsrcaddr, sizeof(hsrcaddr)) == 0){
-					puts("Error in Source link-layer address.");
+					puts("Error in link-layer Source Address.");
 					exit(1);
 				}
 		
@@ -485,7 +486,7 @@ int main(int argc, char **argv){
 
 			case 'D':	/* Destination Ethernet Address */
 				if(ether_pton(optarg, &hdstaddr, sizeof(hdstaddr)) == 0){
-					puts("Error in Source link-layer address.");
+					puts("Error in link-layer Destination Address.");
 					exit(1);
 				}
 		
@@ -1224,27 +1225,37 @@ int main(int argc, char **argv){
 	}
 
 	if(idata.type == DLT_EN10MB && !loopback_f){
-		if(!hdstaddr_f && dstaddr_f){
-			ether_to_ipv6_linklocal(&idata.ether, &idata.ip6_local);
-
-			idata.mtu= ETH_DATA_LEN;
-
-			if(find_ipv6_router_full(idata.pd, &idata) != 1){
-				puts("Failed learning default IPv6 router");
-				exit(1);
-			}
-
-			if(match_ipv6_to_prefixes(&dstaddr, &idata.prefix_ol)){
-				/* Must perform Neighbor Discovery for the local address */
-				if(ipv6_to_ether(idata.pd, &idata, &dstaddr, &hdstaddr) != 1){
-					puts("Error while performing Neighbor Discovery for the Destination Address");
+		if(find_ipv6_router_full(idata.pd, &idata) == 1){
+			if(!hdstaddr_f && dstaddr_f){
+				if(IN6_IS_ADDR_MC_LINKLOCAL(&dstaddr)){
+					hdstaddr= ether_multicast(&dstaddr);
+				}
+				else if(match_ipv6_to_prefixes(&dstaddr, &idata.prefix_ol)){
+					/* Must perform Neighbor Discovery for the local address */
+					if(ipv6_to_ether(idata.pd, &idata, &dstaddr, &hdstaddr) != 1){
+						puts("Error while performing Neighbor Discovery for the Destination Address");
+						exit(1);
+					}
+				}
+				else{
+					hdstaddr= idata.router_ether;
 				}
 			}
-			else{
-				hdstaddr= router_ether;
+		}
+		else{
+			if(verbose_f)
+				puts("Couldn't find local router. Now trying Neighbor Discovery for the target node");
+			/*
+			 * If we were not able to find a local router, we assume the destination is "on-link" (as
+			 * a last ressort), and thus perform Neighbor Discovery for that destination
+			 */
+			if(ipv6_to_ether(idata.pd, &idata, &dstaddr, &hdstaddr) != 1){
+				puts("Error while performing Neighbor Discovery for the Destination Address");
+				exit(1);
 			}
 		}
 	}
+
 
 	if(rhtcp_f){
 		if(pcap_compile(idata.pd, &pcap_filter, PCAP_TCPV6_FILTER, PCAP_OPT, PCAP_NETMASK_UNKNOWN) == -1){

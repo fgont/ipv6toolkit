@@ -67,7 +67,6 @@ char					line[MAX_LINE_SIZE];
 
 int main(int argc, char **argv){
 	extern char			*optarg;	
-	extern int			optind;
 	struct decode6		addr;
 	struct stats6		stats;
 	struct host_list	hlist;
@@ -155,7 +154,9 @@ int main(int argc, char **argv){
 		}
 	}
 
-	while((option=getopt_long(argc, argv, shortopts, longopts, NULL)) != -1) {
+	while((r=getopt_long(argc, argv, shortopts, longopts, NULL)) != -1) {
+		option= r;
+
 		switch(option) {
 			case 'a':
 				if( inet_pton(AF_INET6, optarg, &(addr.ip6)) <= 0){
