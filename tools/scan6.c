@@ -274,7 +274,8 @@ sigjmp_buf				env;
 unsigned int			canjump;
 
 int main(int argc, char **argv){
-	extern char		*optarg;	
+	extern char		*optarg;
+	int			r;
 	uid_t			ruid;
 	gid_t			rgid;
 	struct passwd	*pwdptr;
