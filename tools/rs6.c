@@ -163,109 +163,107 @@ int main(int argc, char **argv){
 	while((r=getopt_long(argc, argv, shortopts, longopts, NULL)) != -1) {
 		option= r;
 
-	switch(option) {
+		switch(option) {
+			case 'i':  /* Interface */
+				strncpy(iface, optarg, IFACE_LENGTH-1);
+				iface_f=1;
+				break;
 
-	    case 'i':  /* Interface */
-		strncpy(iface, optarg, IFACE_LENGTH-1);
-		iface_f=1;
-		break;
+			case 's':	/* IPv6 Source Address */
+				if((charptr = strtok_r(optarg, "/", &lasts)) == NULL){
+					puts("inet_pton(): address not valid");
+					exit(1);
+				}
 
-	    case 's':	/* IPv6 Source Address */
-		if((charptr = strtok_r(optarg, "/", &lasts)) == NULL){
-		    puts("inet_pton(): address not valid");
-		    exit(1);
-		}
+				if ( inet_pton(AF_INET6, charptr, &srcaddr) <= 0){
+					puts("inet_pton(): address not valid");
+					exit(1);
+				}
 
-		if ( inet_pton(AF_INET6, charptr, &srcaddr) <= 0){
-		    puts("inet_pton(): address not valid");
-		    exit(1);
-		}
-
-		srcaddr_f = 1;
+				srcaddr_f = 1;
 		
-		if((charptr = strtok_r(NULL, " ", &lasts)) != NULL){
-		    srcpreflen = atoi(charptr);
+				if((charptr = strtok_r(NULL, " ", &lasts)) != NULL){
+					srcpreflen = atoi(charptr);
 		
-		    if(srcpreflen>128){
-			puts("Prefix length error in IPv6 Source Address");
-			exit(1);
-		    }
+					if(srcpreflen>128){
+						puts("Prefix length error in IPv6 Source Address");
+						exit(1);
+					}
 
-		    sanitize_ipv6_prefix(&srcaddr, srcpreflen);
-		    srcprefix_f=1;
-		}
+					sanitize_ipv6_prefix(&srcaddr, srcpreflen);
+					srcprefix_f=1;
+				}
 
-		break;
+				break;
 	    
-	    case 'd':	/* IPv6 Destination Address */
-		if( inet_pton(AF_INET6, optarg, &dstaddr) <= 0){
-		    puts("inet_pton(): address not valid");
-		    exit(1);
-		}
+			case 'd':	/* IPv6 Destination Address */
+				if( inet_pton(AF_INET6, optarg, &dstaddr) <= 0){
+					puts("inet_pton(): address not valid");
+					exit(1);
+				}
 		
-		dstaddr_f = 1;
-		break;
+				dstaddr_f = 1;
+				break;
 
-	    case 'A':	/* Hop Limit */
-		hoplimit= atoi(optarg);
-		hoplimit_f=1;
-		break;
+			case 'A':	/* Hop Limit */
+				hoplimit= atoi(optarg);
+				hoplimit_f=1;
+				break;
 
-	    case 'y':	/* Fragment header */
-		nfrags= atoi(optarg);
-		if(nfrags < 8){
-		    puts("Error in Fragmentation option: Fragment Size must be at least 8 bytes");
-		    exit(1);
-		}
+			case 'y':	/* Fragment header */
+				nfrags= atoi(optarg);
+
+				if(nfrags < 8){
+					puts("Error in Fragmentation option: Fragment Size must be at least 8 bytes");
+					exit(1);
+				}
 		
-		nfrags = (nfrags +7) & 0xfff8;
-		fragh_f= 1;
-		break;
+				nfrags = (nfrags +7) & 0xfff8;
+				fragh_f= 1;
+				break;
 
-	    case 'u':	/* Destinations Options Header */
-		if(ndstopthdr >= MAX_DST_OPT_HDR){
-		    puts("Too many Destination Options Headers");
-		    exit(1);
-		}
+			case 'u':	/* Destinations Options Header */
+				if(ndstopthdr >= MAX_DST_OPT_HDR){
+					puts("Too many Destination Options Headers");
+					exit(1);
+				}
 
-		hdrlen= atoi(optarg);
+				hdrlen= atoi(optarg);
 		
-		if(hdrlen < 8){
-		    puts("Bad length in Destination Options Header");
-		    exit(1);
-		}
-		    
-		hdrlen = ((hdrlen+7)/8) * 8;
-		dstopthdrlen[ndstopthdr]= hdrlen;
+				if(hdrlen < 8){
+					puts("Bad length in Destination Options Header");
+					exit(1);
+				}
 
-		if( (dstopthdr[ndstopthdr]= malloc(hdrlen)) == NULL){
-		    puts("Not enough memory for Destination Options Header");
-		    exit(1);
-		}
+				hdrlen = ((hdrlen+7)/8) * 8;
+				dstopthdrlen[ndstopthdr]= hdrlen;
 
-		ptrhdr= dstopthdr[ndstopthdr] + 2;
-		ptrhdrend= dstopthdr[ndstopthdr] + hdrlen;
+				if( (dstopthdr[ndstopthdr]= malloc(hdrlen)) == NULL){
+					puts("Not enough memory for Destination Options Header");
+					exit(1);
+				}
 
-		while( ptrhdr < ptrhdrend){
+				ptrhdr= dstopthdr[ndstopthdr] + 2;
+				ptrhdrend= dstopthdr[ndstopthdr] + hdrlen;
 
-		    if( (ptrhdrend-ptrhdr)>257)
-			pad= 257;
-		    else
-			pad= ptrhdrend-ptrhdr;
+				while( ptrhdr < ptrhdrend){
+					if( (ptrhdrend-ptrhdr)>257)
+						pad= 257;
+					else
+						pad= ptrhdrend-ptrhdr;
 
-		    if(!insert_pad_opt(ptrhdr, ptrhdrend, pad)){
-			puts("Destination Options Header Too Big");
-			exit(1);
-		    }
-		    
-		    ptrhdr= ptrhdr + pad;
-		}
+					if(!insert_pad_opt(ptrhdr, ptrhdrend, pad)){
+						puts("Destination Options Header Too Big");
+						exit(1);
+					}
 
-		*(dstopthdr[ndstopthdr]+1)= (hdrlen/8)-1;
-		ndstopthdr++;
-		dstopthdr_f=1;
-		break;
+					ptrhdr= ptrhdr + pad;
+				}
 
+				*(dstopthdr[ndstopthdr]+1)= (hdrlen/8)-1;
+				ndstopthdr++;
+				dstopthdr_f=1;
+				break;
 
 	    case 'U':	/* Destination Options Header (Unfragmentable Part) */
 		if(ndstoptuhdr >= MAX_DST_OPT_U_HDR){

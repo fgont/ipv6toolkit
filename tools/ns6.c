@@ -156,7 +156,7 @@ int main(int argc, char **argv){
     hoplimit=255;
 
 	while((r=getopt_long(argc, argv, shortopts, longopts, NULL)) != -1) {
-		option =r:
+		option =r;
 
 		switch(option) {
 			case 'i':  /* Interface */
