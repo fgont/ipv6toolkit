@@ -2906,23 +2906,24 @@ struct ether_addr ether_multicast(const struct in6_addr *ipv6addr){
 int find_ipv6_router(pcap_t *pfd, struct ether_addr *hsrcaddr, struct in6_addr *srcaddr, \
 					struct ether_addr *result_ether, struct in6_addr *result_ipv6){
 
-	struct pcap_pkthdr		*pkthdr;
-	const u_char			*pktdata;
-	struct ip6_hdr			*pkt_ipv6;
+	struct pcap_pkthdr			*pkthdr;
+	const u_char				*pktdata;
+	struct ip6_hdr				*pkt_ipv6;
 	struct nd_router_advert 	*pkt_ra;
-	unsigned char			*pkt_end;
-	unsigned char			*ptr;
+	unsigned char				*pkt_end;
+	unsigned char				*ptr;
+	int							r
 
-	unsigned char			buffer[65556];
-	unsigned int 			rs_max_packet_size;
+	unsigned char				buffer[65556];
+	unsigned int 				rs_max_packet_size;
 	struct ether_header 		*ether;
-	unsigned char 			*v6buffer;
-	struct ip6_hdr 			*ipv6;
+	unsigned char 				*v6buffer;
+	struct ip6_hdr 				*ipv6;
 	struct nd_router_solicit	*rs;
-	struct nd_opt_slla 		*sllaopt;
+	struct nd_opt_slla 			*sllaopt;
 	volatile unsigned int 		tries=0;
 	volatile unsigned int 		foundrouter=0;
-	struct sigaction 		new_sig, old_sig;
+	struct sigaction 			new_sig, old_sig;
 
 	rs_max_packet_size = ETH_DATA_LEN;
 
