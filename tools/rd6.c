@@ -2912,7 +2912,7 @@ int find_ipv6_router(pcap_t *pfd, struct ether_addr *hsrcaddr, struct in6_addr *
 	struct nd_router_advert 	*pkt_ra;
 	unsigned char				*pkt_end;
 	unsigned char				*ptr;
-	int							r
+	int							r;
 
 	unsigned char				buffer[65556];
 	unsigned int 				rs_max_packet_size;
