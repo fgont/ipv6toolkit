@@ -1280,9 +1280,9 @@ int main(int argc, char **argv){
 				sleep(nsleep);
 				send_packet(NULL, NULL);
 			}
-
-			exit(0);
 		}
+
+		exit(0);
 	}
 
 	if(listen_f){
@@ -3027,9 +3027,12 @@ int find_ipv6_router(pcap_t *pfd, struct ether_addr *hsrcaddr, struct in6_addr *
 		alarm(1);
 		
 		while(!foundrouter){
-			if(pcap_next_ex(pfd, &pkthdr, &pktdata) != 1){
+			if( (r=pcap_next_ex(pfd, &pkthdr, &pktdata)) == -1){
 				printf("pcap_next_ex(): %s", pcap_geterr(pfd));
 				exit(1);
+			}
+			else if(r == 0){
+				continue; /* Should never happen */
 			}
 			
 			pkt_ether = (struct ether_header *) pktdata;
