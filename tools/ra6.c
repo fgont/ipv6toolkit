@@ -163,7 +163,7 @@ unsigned char				srcpreflen;
 
 /* FLgas used for option processing */
 unsigned char 				verbose_f=0, managed_f=0, other_f=0, home_f=0, proxy_f=0;
-unsigned char 				mtuopt_f=0, sllopt_f=0, sllopta_f=0, iface_f=0, srcprefix_f=0, prefopt_f=0;;
+unsigned char 				mtuopt_f=0, sllopt_f=0, sllopta_f=0, iface_f=0, srcprefix_f=0, prefopt_f=0;
 unsigned char 				srcaddr_f=0, dstaddr_f=0, hsrcaddr_f=0, hdstaddr_f=0;
 unsigned char				fragh_f=0, hoplimit_f=0;
 unsigned char 				listen_f = 0, floodp_f=0, floods_f=0, floodr_f=0, multicastdst_f=0, floodd_f=0;
@@ -268,7 +268,7 @@ int main(int argc, char **argv){
 
 			case 's':	/* IPv6 Source Address */
 				if((charptr = strtok_r(optarg, "/", &lasts)) == NULL){
-					puts("inet_pton(): address not valid");
+					puts("Error in '-s' (IPv6 Source Address) option");
 					exit(1);
 				}
 
@@ -1996,10 +1996,10 @@ void print_attack_info(void){
     }
 
 
-    if(inet_ntop(AF_INET6, &srcaddr, psrcaddr, sizeof(psrcaddr))<=0){
-	puts("inet_ntop(): Error converting IPv6 Source Address to presentation format");
-	exit(1);
-    }
+	if(inet_ntop(AF_INET6, &srcaddr, psrcaddr, sizeof(psrcaddr)) == NULL){
+		puts("inet_ntop(): Error converting IPv6 Source Address to presentation format");
+		exit(1);
+	}
 
     if(!floods_f){
 	printf("IPv6 Source Address: %s%s\n", psrcaddr, ((!srcaddr_f)?" (randomized)":""));
@@ -2014,7 +2014,7 @@ void print_attack_info(void){
      * address were specified
      */
     if(dstaddr_f || hdstaddr_f){
-	if(inet_ntop(AF_INET6, &dstaddr, pdstaddr, sizeof(pdstaddr))<=0){
+	if(inet_ntop(AF_INET6, &dstaddr, pdstaddr, sizeof(pdstaddr)) == NULL){
 	    perror("inet_ntop()");
 	    exit(1);
 	}
@@ -2061,7 +2061,7 @@ void print_attack_info(void){
 	for(i=0; i<nprefixes; i++){
 	    puts("Prefix Information option ->");		
 
-	    if(inet_ntop(AF_INET6, &prefix[i], pprefix, sizeof(pprefix))<=0){
+	    if(inet_ntop(AF_INET6, &prefix[i], pprefix, sizeof(pprefix)) == NULL){
 		perror("inet_ntop()");
 		exit(1);
 	    }
@@ -2089,7 +2089,7 @@ void print_attack_info(void){
 	for(i=0; i<nroutes; i++){
 	    puts("Route Information option ->");		
 
-	    if(inet_ntop(AF_INET6, &route[i], pprefix, sizeof(pprefix))<=0){
+	    if(inet_ntop(AF_INET6, &route[i], pprefix, sizeof(pprefix)) == NULL){
 		perror("inet_ntop()");
 		exit(1);
 	    }
@@ -2110,7 +2110,7 @@ void print_attack_info(void){
 	    puts("Recursive DNS Server option ->");
 	    printf("Lifetime: %u   Adresses: ", rdnsslife[i]);
 	    for(j=0;j<nrdnssopt[i];j++){
-		if(inet_ntop(AF_INET6, &rdnss[i][j], pprefix, sizeof(pprefix))<=0){
+		if(inet_ntop(AF_INET6, &rdnss[i][j], pprefix, sizeof(pprefix)) == NULL){
 		    perror("inet_ntop()");
 		    exit(1);
 		}
@@ -2219,7 +2219,7 @@ void print_filters(void){
 		printf("Block filter for IPv6 Source Addresss: ");
 	
 		for(i=0; i<nblocksrc; i++){
-			if(inet_ntop(AF_INET6, &blocksrc[i], pv6addr, sizeof(pv6addr))<=0){
+			if(inet_ntop(AF_INET6, &blocksrc[i], pv6addr, sizeof(pv6addr)) == NULL){
 				puts("inet_ntop(): Error converting IPv6 Src. Addr. filter to presentation format");
 				exit(1);
 			}
@@ -2234,7 +2234,7 @@ void print_filters(void){
 		printf("Block filter for IPv6 Destination Address: ");
 	
 		for(i=0; i<nblockdst; i++){
-			if(inet_ntop(AF_INET6, &blockdst[i], pv6addr, sizeof(pv6addr))<=0){
+			if(inet_ntop(AF_INET6, &blockdst[i], pv6addr, sizeof(pv6addr)) == NULL){
 				puts("inet_ntop(): Error converting IPv6 Dst. Addr. filter to presentation format");
 				exit(1);
 			}
@@ -2279,7 +2279,7 @@ void print_filters(void){
 		printf("Accept filter for IPv6 Source Addresss: ");
 	
 		for(i=0; i<nacceptsrc; i++){
-			if(inet_ntop(AF_INET6, &acceptsrc[i], pv6addr, sizeof(pv6addr))<=0){
+			if(inet_ntop(AF_INET6, &acceptsrc[i], pv6addr, sizeof(pv6addr)) == NULL){
 				puts("inet_ntop(): Error converting IPv6 Src. Addr. filter to presentation format");
 				exit(1);
 			}
@@ -2294,7 +2294,7 @@ void print_filters(void){
 		printf("Accept filter for IPv6 Destination Address: ");
 
 		for(i=0; i<nacceptdst; i++){
-			if(inet_ntop(AF_INET6, &acceptdst[i], pv6addr, sizeof(pv6addr))<=0){
+			if(inet_ntop(AF_INET6, &acceptdst[i], pv6addr, sizeof(pv6addr)) == NULL){
 				puts("inet_ntop(): Error converting IPv6 Dst. Addr. filter to presentation format");
 				exit(1);
 			}
@@ -2349,12 +2349,12 @@ void print_filter_result(const u_char *pkt_data, unsigned char fresult){
 	
 	pkt_ipv6 = (struct ip6_hdr *)((char *) pkt_data + ETHER_HDR_LEN);
 
-	if(inet_ntop(AF_INET6, &(pkt_ipv6->ip6_src), psrcaddr, sizeof(psrcaddr))<=0){
+	if(inet_ntop(AF_INET6, &(pkt_ipv6->ip6_src), psrcaddr, sizeof(psrcaddr)) == NULL){
 	    puts("inet_ntop(): Error converting IPv6 Source Address to presentation format");
 	    exit(1);
 	}
 
-	if(inet_ntop(AF_INET6, &(pkt_ipv6->ip6_dst), pdstaddr, sizeof(pdstaddr))<=0){
+	if(inet_ntop(AF_INET6, &(pkt_ipv6->ip6_dst), pdstaddr, sizeof(pdstaddr)) == NULL){
 	    puts("inet_ntop(): Error converting IPv6 Destination Address to presentation format");
 	    exit(1);
 	}
