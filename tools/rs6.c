@@ -100,7 +100,7 @@ char 					*charptr;
     
 char					plinkaddr[ETHER_ADDR_PLEN], phsrcaddr[ETHER_ADDR_PLEN], phdstaddr[ETHER_ADDR_PLEN];
 char		 			psrcaddr[INET6_ADDRSTRLEN], pdstaddr[INET6_ADDRSTRLEN], pprefix[INET6_ADDRSTRLEN];
-unsigned char			verbose_f=0, sllopt_f=0, sllopta_f=0, iface_f=0, srcprefix_f=0;;
+unsigned char			verbose_f=0, sllopt_f=0, sllopta_f=0, iface_f=0, srcprefix_f=0;
 unsigned char			srcaddr_f=0, dstaddr_f=0, hsrcaddr_f=0, hdstaddr_f=0;
 unsigned char			loop_f = 0, sleep_f=0, floods_f=0, hoplimit_f=0;
 unsigned char			newdata_f=0;
@@ -991,43 +991,43 @@ u_int16_t in_chksum(void *ptr_ipv6, void *ptr_icmpv6, size_t len){
  * Print attack details (when the verbose ("-v") option is specified).
  */
 void print_attack_info(void){
-    if(floods_f)
-	printf("Flooding the target from %u different IPv6 Source Addresses\n", nsources);
+	if(floods_f)
+		printf("Flooding the target from %u different IPv6 Source Addresses\n", nsources);
 
-    if(!floods_f){
-	if(ether_ntop(&hsrcaddr, plinkaddr, sizeof(plinkaddr)) == 0){
-	    puts("ether_ntop(): Error converting address");
-	    exit(1);
+	if(!floods_f){
+		if(ether_ntop(&hsrcaddr, plinkaddr, sizeof(plinkaddr)) == 0){
+			puts("ether_ntop(): Error converting address");
+			exit(1);
+		}
+
+		printf("Ethernet Source Address: %s%s\n", plinkaddr, ((!hsrcaddr_f)?" (randomized)":""));
+	}
+    else{
+		if(hsrcaddr_f){
+			if(ether_ntop(&hsrcaddr, plinkaddr, sizeof(plinkaddr)) == 0){
+				puts("ether_ntop(): Error converting address");
+				exit(1);
+			}
+
+			printf("Ethernet Source Address: %s\n", plinkaddr);
+		}
+		else
+			puts("Ethernet Source Address: randomized for each packet");
 	}
 
-	printf("Ethernet Source Address: %s%s\n", plinkaddr, ((!hsrcaddr_f)?" (randomized)":""));
-    }
-    else{
-	if(hsrcaddr_f){
-	    if(ether_ntop(&hsrcaddr, plinkaddr, sizeof(plinkaddr)) == 0){
+	if(ether_ntop(&hdstaddr, phdstaddr, sizeof(phdstaddr)) == 0){
 		puts("ether_ntop(): Error converting address");
 		exit(1);
-	    }
-
-	    printf("Ethernet Source Address: %s\n", plinkaddr);
 	}
-	else
-	    puts("Ethernet Source Address: randomized for each packet");
-    }
-
-    if(ether_ntop(&hdstaddr, phdstaddr, sizeof(phdstaddr)) == 0){
-	puts("ether_ntop(): Error converting address");
-	exit(1);
-    }
 
     printf("Ethernet Destination Address: %s%s\n", phdstaddr, \
 					((!hdstaddr_f)?" (all-routers multicast)":""));
 
 
-    if(inet_ntop(AF_INET6, &srcaddr, psrcaddr, sizeof(psrcaddr))<=0){
-	puts("inet_ntop(): Error converting IPv6 Source Address to presentation format");
-	exit(1);
-    }
+	if(inet_ntop(AF_INET6, &srcaddr, psrcaddr, sizeof(psrcaddr)) == NULL){
+		puts("inet_ntop(): Error converting IPv6 Source Address to presentation format");
+		exit(1);
+	}
 
     if(!floods_f){
 	printf("IPv6 Source Address: %s%s\n", psrcaddr, ((!srcaddr_f)?" (randomized)":""));
@@ -1037,37 +1037,37 @@ void print_attack_info(void){
     									(!srcprefix_f)?" (default)":"");
     }
 
-    if(inet_ntop(AF_INET6, &dstaddr, pdstaddr, sizeof(pdstaddr))<=0){
-	perror("inet_ntop()");
-	exit(1);
-    }
-
-    printf("IPv6 Destination Address: %s%s\n", pdstaddr, \
-				((!dstaddr_f)?" (all-routers link-local multicast)":""));
-
-    printf("IPv6 Hop Limit: %u%s\n", hoplimit, (hoplimit_f)?"":" (default)");
-
-    for(i=0; i<ndstoptuhdr; i++)
-	printf("Destination Options Header (Unfragmentable part): %u bytes\n", dstoptuhdrlen[i]);
-
-    for(i=0; i<nhbhopthdr; i++)
-	printf("Hop by Hop Options Header: %u bytes\n", hbhopthdrlen[i]);
-
-    for(i=0; i<ndstopthdr; i++)
-	printf("Destination Options Header: %u bytes\n", dstopthdrlen[i]);
-
-    if(fragh_f)
-	printf("Sending each packet in fragments of %u bytes (plus the Unfragmentable part)\n", nfrags);
-	
-    for(i=0;i<nlinkaddr;i++){
-	if(ether_ntop(&linkaddr[i], plinkaddr, sizeof(plinkaddr)) == 0){
-	    puts("ether_ntop(): Error converting address");
-	    exit(1);
+	if(inet_ntop(AF_INET6, &dstaddr, pdstaddr, sizeof(pdstaddr)) == NULL){
+		perror("inet_ntop()");
+		exit(1);
 	}
 
-	printf("Source Link-layer Address option -> Address: %s\n", \
-		    ((floods_f && !sllopta_f)?"(randomized for each packet)":plinkaddr));
-    }
+	printf("IPv6 Destination Address: %s%s\n", pdstaddr, \
+				((!dstaddr_f)?" (all-routers link-local multicast)":""));
+
+	printf("IPv6 Hop Limit: %u%s\n", hoplimit, (hoplimit_f)?"":" (default)");
+
+	for(i=0; i<ndstoptuhdr; i++)
+		printf("Destination Options Header (Unfragmentable part): %u bytes\n", dstoptuhdrlen[i]);
+
+	for(i=0; i<nhbhopthdr; i++)
+		printf("Hop by Hop Options Header: %u bytes\n", hbhopthdrlen[i]);
+
+	for(i=0; i<ndstopthdr; i++)
+		printf("Destination Options Header: %u bytes\n", dstopthdrlen[i]);
+
+	if(fragh_f)
+		printf("Sending each packet in fragments of %u bytes (plus the Unfragmentable part)\n", nfrags);
+	
+	for(i=0;i<nlinkaddr;i++){
+		if(ether_ntop(&linkaddr[i], plinkaddr, sizeof(plinkaddr)) == 0){
+			puts("ether_ntop(): Error converting address");
+			exit(1);
+		}
+
+		printf("Source Link-layer Address option -> Address: %s\n", \
+				((floods_f && !sllopta_f)?"(randomized for each packet)":plinkaddr));
+	}
 }
 
 
