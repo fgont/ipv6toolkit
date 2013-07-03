@@ -1,8 +1,8 @@
-.TH ADDRESS6 1
+.TH ADDR6 1
 .SH NAME
-address6 \- An IPv6 address analysis and manipulation tool
+addr6 \- An IPv6 address analysis and manipulation tool
 .SH SYNOPSIS
-.B address6
+.B addr6
 .RB [\| \-a
 .IR IPV6_ADDR\| \ \-i]
 .RB [\| \-q \|]
@@ -13,11 +13,11 @@ address6 \- An IPv6 address analysis and manipulation tool
 
 
 .SH DESCRIPTION
-.B address6
+.B addr6
 is an IPv6 address analysis tool tool. It can employed identify the address type/scope, and infer the type of Interface ID employed by an IPv6 address. Additionally, the tool can filter lists of IPv6 addresses to eliminate duplicates, and can also produce statistics about a set of IPv6 addresses.
 
 .SH OPTIONS
-.B scan6
+.B addr6
 takes its parameters as command-line options. Each of the options can be specified with a short name (one character preceded with the hyphen character, as e.g. “\-i”) or with a long name (a string preceded with two hyphen characters, as e.g. “\-\-stdin”).
 
 
@@ -48,9 +48,9 @@ This simple syntax is meant to be easy for scripting purposes. Future versions o
 .TP
 .BR \-s\|  ,\  \-\-print\-stats
 
-This option requests the tool to produce address statistics from the list of IPv6 addresses read from standard input. This option should be used in conjuction with the '-i' option, such that multiple addresses can be given as input to address6.
+This option requests the tool to produce address statistics from the list of IPv6 addresses read from standard input. This option should be used in conjuction with the '-i' option, such that multiple addresses can be given as input to addr6.
 
-address6 will always print the total number of IPv6 addresses that have been examined, and the percentage of unicast, multicast, and unspecified (::) addresses. If at least one unicast address is identified, unicast-specific statistics will be printed. In the same way, if at least one multicast address is identified, then multicast-specific statistics will be printed.
+addr6 will always print the total number of IPv6 addresses that have been examined, and the percentage of unicast, multicast, and unspecified (::) addresses. If at least one unicast address is identified, unicast-specific statistics will be printed. In the same way, if at least one multicast address is identified, then multicast-specific statistics will be printed.
 
 Unicast-specific statistics include:
 
@@ -88,53 +88,53 @@ This option selects the “verbosity” of the tool. If this option is left unsp
 .BR \-h\| ,\  \-\-help
 
 Print help information for the 
-.B address6
+.B addr6
 tool. 
 
 .SH EXAMPLES
 
 The following sections illustrate typical use cases of the
-.B address6
+.B addr6
 tool.
 
 \fBExample #1\fR
 
-$ cat addresslist.txt | address6 -i -q
+$ cat addresslist.txt | addr6 -i -q
 
-address6 will read IPv6 addresses from stdin ('-i' option), and will only print the first instance of each address ('-q' option), thus effectively removing any duplicates from the list.
+addr6 will read IPv6 addresses from stdin ('-i' option), and will only print the first instance of each address ('-q' option), thus effectively removing any duplicates from the list.
 
     Note: In this particular scenario, the address list results
     from the command 'cat addresslist.txt', that has its output
-    redirected to the standard input of the address6 tool.
+    redirected to the standard input of the addr6 tool.
 
 
 \fBExample #2\fR
 
-$ address6 -a fc00::1
+$ addr6 -a fc00::1
 
 Decode the IPv6 address spcified with the '-a' option. Note that while the '-d' option was not set, this is the default behavior of the tool (unless overriden y another option).
 
 
 \fBExample #3\fR
 
-$ cat addresslist.txt | address6 -i -q -s
+$ cat addresslist.txt | addr6 -i -q -s
 
-address6 will read IPv6 addresses from stdin ('-i' option), will ignore duplicate addresses ('-q' option), and will print statistics about the processed IPv6 addresses.
+addr6 will read IPv6 addresses from stdin ('-i' option), will ignore duplicate addresses ('-q' option), and will print statistics about the processed IPv6 addresses.
 
     Note: In this particular scenario, the address list results
     from the command 'cat addresslist.txt', that has its output
-    redirected to the standard input of the address6 tool.
+    redirected to the standard input of the addr6 tool.
 
 
 \fBExample #4\fR
 
-$ cat addresslist.txt | address6 -i -q -d
+$ cat addresslist.txt | addr6 -i -q -d
 
-address6 will read IPv6 addresses from stdin ('-i' option), will ignore duplicate addresses ('-q' option), and will decode each of the remaining addresses.
+addr6 will read IPv6 addresses from stdin ('-i' option), will ignore duplicate addresses ('-q' option), and will decode each of the remaining addresses.
 
     Note: In this particular scenario, the address list results
     from the command 'cat addresslist.txt', that has its output
-    redirected to the standard input of the address6 tool.
+    redirected to the standard input of the addr6 tool.
 
 
 .SH SEE ALSO
@@ -146,7 +146,7 @@ for a discussion of different IPv6 address patterns.
 
 .SH AUTHOR
 The
-.B address6
+.B addr6
 tool and the corresponding manual pages were produced by Fernando Gont 
 .I <fgont@si6networks.com>
 for SI6 Networks 
