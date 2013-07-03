@@ -636,7 +636,7 @@ int main(int argc, char **argv){
 						print_dec_address_script(&addr);
 				}
 				else{
-					if(inet_ntop(AF_INET6, &(addr.ip6), pv6addr, sizeof(pv6addr))<=0){
+					if(inet_ntop(AF_INET6, &(addr.ip6), pv6addr, sizeof(pv6addr)) == NULL){
 						puts("inet_ntop(): Error converting IPv6 address to presentation format");
 						exit(1);
 					}
