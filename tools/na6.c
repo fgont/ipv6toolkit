@@ -1696,8 +1696,7 @@ void print_attack_info(void){
     }
 
 
-
-    if(inet_ntop(AF_INET6, &srcaddr, psrcaddr, sizeof(psrcaddr))<=0){
+    if(inet_ntop(AF_INET6, &srcaddr, psrcaddr, sizeof(psrcaddr)) == NULL){
 	puts("inet_ntop(): Error converting IPv6 Source Address to presentation format");
 	exit(1);
     }
@@ -1714,7 +1713,7 @@ void print_attack_info(void){
      * address were specified
      */
     if(dstaddr_f || hdstaddr_f){
-	if(inet_ntop(AF_INET6, &dstaddr, pdstaddr, sizeof(pdstaddr))<=0){
+	if(inet_ntop(AF_INET6, &dstaddr, pdstaddr, sizeof(pdstaddr)) == NULL){
 	    puts("inet_ntop(): Error converting IPv6 Destination Address to presentation format");
 	    exit(1);
 	}
@@ -1739,7 +1738,7 @@ void print_attack_info(void){
 
     if(!floodt_f){
 	if(targetaddr_f){
-	    if(inet_ntop(AF_INET6, &targetaddr, pv6addr, sizeof(pv6addr))<=0){
+	    if(inet_ntop(AF_INET6, &targetaddr, pv6addr, sizeof(pv6addr)) == NULL){
 		puts("inet_ntop(): Error converting ND IPv6 Target Address to presentation format");
 		exit(1);
 	    }
@@ -1748,7 +1747,7 @@ void print_attack_info(void){
 	}
     }
     else{
-	if(inet_ntop(AF_INET6, &targetaddr, pv6addr, sizeof(pv6addr))<=0){
+	if(inet_ntop(AF_INET6, &targetaddr, pv6addr, sizeof(pv6addr)) == NULL){
 	    puts("inet_ntop(): Error converting ND IPv6 Target Address to presentation format");
 	    exit(1);
 	}
@@ -1785,7 +1784,7 @@ void print_filters(void){
 	printf("Block filter for IPv6 Source Addresss: ");
 	
 	for(i=0; i<nblocksrc; i++){
-	    if(inet_ntop(AF_INET6, &blocksrc[i], pv6addr, sizeof(pv6addr))<=0){
+	    if(inet_ntop(AF_INET6, &blocksrc[i], pv6addr, sizeof(pv6addr)) == NULL){
 		puts("inet_ntop(): Error converting IPv6 Src. Addr. filter to presentation format");
 		exit(1);
 	    }
@@ -1799,7 +1798,7 @@ void print_filters(void){
 	printf("Block filter for IPv6 Destination Address: ");
 	
 	for(i=0; i<nblockdst; i++){
-	    if(inet_ntop(AF_INET6, &blockdst[i], pv6addr, sizeof(pv6addr))<=0){
+	    if(inet_ntop(AF_INET6, &blockdst[i], pv6addr, sizeof(pv6addr)) == NULL){
 		puts("inet_ntop(): Error converting IPv6 Dst. Addr. filter to presentation format");
 		exit(1);
 	    }
@@ -1841,7 +1840,7 @@ void print_filters(void){
 	printf("Block filter for ND IPv6 Target Address: ");
 	
 	for(i=0; i<nblocktarget; i++){
-	    if(inet_ntop(AF_INET6, &blocktarget[i], pv6addr, sizeof(pv6addr))<=0){
+	    if(inet_ntop(AF_INET6, &blocktarget[i], pv6addr, sizeof(pv6addr)) == NULL){
 		puts("inet_ntop(): Error converting ND Target IPv6 Addr. filter to presentation format");
 		exit(1);
 	    }
@@ -1856,7 +1855,7 @@ void print_filters(void){
 	printf("Accept filter for IPv6 Source Addresss: ");
 	
 	for(i=0; i<nacceptsrc; i++){
-	    if(inet_ntop(AF_INET6, &acceptsrc[i], pv6addr, sizeof(pv6addr))<=0){
+	    if(inet_ntop(AF_INET6, &acceptsrc[i], pv6addr, sizeof(pv6addr)) == NULL){
 		puts("inet_ntop(): Error converting IPv6 Src. Addr. filter to presentation format");
 		exit(1);
 	    }
@@ -1870,7 +1869,7 @@ void print_filters(void){
 	printf("Accept filter for IPv6 Destination Address: ");
 	
 	for(i=0; i<nacceptdst; i++){
-	    if(inet_ntop(AF_INET6, &acceptdst[i], pv6addr, sizeof(pv6addr))<=0){
+	    if(inet_ntop(AF_INET6, &acceptdst[i], pv6addr, sizeof(pv6addr)) == NULL){
 		puts("inet_ntop(): Error converting IPv6 Dst. Addr. filter to presentation format");
 		exit(1);
 	    }
@@ -1912,7 +1911,7 @@ void print_filters(void){
 	printf("Accept filter for ND IPv6 Target Address: ");
 	
 	for(i=0; i<naccepttarget; i++){
-	    if(inet_ntop(AF_INET6, &accepttarget[i], pv6addr, sizeof(pv6addr))<=0){
+	    if(inet_ntop(AF_INET6, &accepttarget[i], pv6addr, sizeof(pv6addr)) == NULL){
 		puts("inet_ntop(): Error converting ND IPv6 Target Addr. filter to presentation format");
 		exit(1);
 	    }
@@ -1938,17 +1937,17 @@ void print_filter_result(const u_char *pkt_data, unsigned char fresult){
 	pkt_ipv6 = (struct ip6_hdr *)((char *) pkt_data + ETHER_HDR_LEN);
 	pkt_ns = (struct nd_neighbor_solicit *) ((char *) pkt_ipv6 + MIN_IPV6_HLEN);
 
-	if(inet_ntop(AF_INET6, &(pkt_ipv6->ip6_src), psrcaddr, sizeof(psrcaddr))<=0){
+	if(inet_ntop(AF_INET6, &(pkt_ipv6->ip6_src), psrcaddr, sizeof(psrcaddr)) == NULL){
 	    puts("inet_ntop(): Error converting IPv6 Source Address to presentation format");
 	    exit(1);
 	}
 
-	if(inet_ntop(AF_INET6, &(pkt_ipv6->ip6_dst), pdstaddr, sizeof(pdstaddr))<=0){
+	if(inet_ntop(AF_INET6, &(pkt_ipv6->ip6_dst), pdstaddr, sizeof(pdstaddr)) == NULL){
 	    puts("inet_ntop(): Error converting IPv6 Destination Address to presentation format");
 	    exit(1);
 	}
 
-	if(inet_ntop(AF_INET6, &(pkt_ns->nd_ns_target), pv6addr, sizeof(pv6addr))<=0){
+	if(inet_ntop(AF_INET6, &(pkt_ns->nd_ns_target), pv6addr, sizeof(pv6addr)) == NULL){
 	    puts("inet_ntop(): Error converting ND IPv6 Target Address to presentation format");
 	    exit(1);
 	}

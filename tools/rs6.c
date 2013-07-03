@@ -172,7 +172,7 @@ int main(int argc, char **argv){
 
 			case 's':	/* IPv6 Source Address */
 				if((charptr = strtok_r(optarg, "/", &lasts)) == NULL){
-					puts("inet_pton(): address not valid");
+					puts("Error in IPv6 Source Address ('-s' option)");
 					exit(1);
 				}
 

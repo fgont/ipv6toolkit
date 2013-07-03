@@ -1751,7 +1751,7 @@ int main(int argc, char **argv){
 
 							if(valid_icmp6_response_remote(&idata, &scan_list, probetype, pkthdr, pktdata, buffer)){
 								/* Print the Source Address of the incoming packet */
-								if(inet_ntop(AF_INET6, &(pkt_ipv6->ip6_src), pv6addr, sizeof(pv6addr))<=0){
+								if(inet_ntop(AF_INET6, &(pkt_ipv6->ip6_src), pv6addr, sizeof(pv6addr)) == NULL){
 									if(verbose_f>1)
 										puts("inet_ntop(): Error converting IPv6 address to presentation format");
 
@@ -1784,7 +1784,7 @@ int main(int argc, char **argv){
 						if(in_chksum(pkt_ipv6, pkt_tcp, pkt_end-((unsigned char *)pkt_tcp), IPPROTO_TCP) != 0)
 							continue;
 
-						if(inet_ntop(AF_INET6, &(pkt_ipv6->ip6_src), pv6addr, sizeof(pv6addr))<=0){
+						if(inet_ntop(AF_INET6, &(pkt_ipv6->ip6_src), pv6addr, sizeof(pv6addr)) == NULL){
 							if(verbose_f>1)
 								puts("inet_ntop(): Error converting IPv6 address to presentation format");
 
@@ -5058,7 +5058,7 @@ int print_host_entries(struct host_list *hlist, unsigned char flag){
 	unsigned int i;
 
 	for(i=0; i < (hlist->nhosts); i++){
-		if(inet_ntop(AF_INET6, &((hlist->host[i])->ip6), pv6addr, sizeof(pv6addr))<=0){
+		if(inet_ntop(AF_INET6, &((hlist->host[i])->ip6), pv6addr, sizeof(pv6addr)) == NULL){
 			if(verbose_f>1)
 				puts("inet_ntop(): Error converting IPv6 address to presentation format");
 
@@ -5110,7 +5110,7 @@ int print_unique_host_entries(struct host_list *hlist, unsigned char flag){
 				continue;
 		}
 			
-		if(inet_ntop(AF_INET6, &((hlist->host[i])->ip6), pv6addr, sizeof(pv6addr))<=0){
+		if(inet_ntop(AF_INET6, &((hlist->host[i])->ip6), pv6addr, sizeof(pv6addr)) == NULL){
 			if(verbose_f>1)
 				puts("inet_ntop(): Error converting IPv6 address to presentation format");
 

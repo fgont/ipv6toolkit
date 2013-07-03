@@ -1117,7 +1117,7 @@ void print_attack_info(void){
     printf("Ethernet Destination Address: %s%s\n", phdstaddr, \
 					((!hdstaddr_f)?" (all-nodes multicast)":""));
 
-    if(inet_ntop(AF_INET6, &srcaddr, psrcaddr, sizeof(psrcaddr))<=0){
+    if(inet_ntop(AF_INET6, &srcaddr, psrcaddr, sizeof(psrcaddr)) == NULL){
 	puts("inet_ntop(): Error converting IPv6 Source Address to presentation format");
 	exit(1);
     }
@@ -1130,7 +1130,7 @@ void print_attack_info(void){
     									(!srcprefix_f)?" (default)":"");
     }
 
-    if(inet_ntop(AF_INET6, &dstaddr, pdstaddr, sizeof(pdstaddr))<=0){
+    if(inet_ntop(AF_INET6, &dstaddr, pdstaddr, sizeof(pdstaddr)) == NULL){
 	puts("Error converting IPv6 Destination Address to presentation format");
 	exit(1);
     }
@@ -1154,7 +1154,7 @@ void print_attack_info(void){
 		
     if(!floodt_f){
 	if(targetaddr_f){
-	    if(inet_ntop(AF_INET6, &targetaddr, pv6addr, sizeof(pv6addr))<=0){
+	    if(inet_ntop(AF_INET6, &targetaddr, pv6addr, sizeof(pv6addr)) == NULL){
 		puts("inet_ntop(): Error converting ND IPv6 Target Address to presentation format");
 		exit(1);
 	    }
@@ -1163,7 +1163,7 @@ void print_attack_info(void){
 	}
     }
     else{
-	if(inet_ntop(AF_INET6, &targetaddr, pv6addr, sizeof(pv6addr))<=0){
+	if(inet_ntop(AF_INET6, &targetaddr, pv6addr, sizeof(pv6addr)) == NULL){
 	    puts("inet_ntop(): Error converting ND IPv6 Target Address to presentation format");
 	    exit(1);
 	}

@@ -976,7 +976,7 @@ void print_attack_info(void){
 
 	printf("Ethernet Destination Address: %s%s\n", plinkaddr, (!hdstaddr_f)?" (automatically selected)":"");
 
-	if(inet_ntop(AF_INET6, &srcaddr, psrcaddr, sizeof(psrcaddr))<=0){
+	if(inet_ntop(AF_INET6, &srcaddr, psrcaddr, sizeof(psrcaddr)) == NULL){
 		puts("inet_ntop(): Error converting IPv6 Source Address to presentation format");
 		exit(1);
 	}
@@ -985,7 +985,7 @@ void print_attack_info(void){
 		printf("IPv6 Source Address: %s%s\n", psrcaddr, ((!srcaddr_f)?" (automatically selected)":""));
 	}
 
-	if(inet_ntop(AF_INET6, &dstaddr, pdstaddr, sizeof(pdstaddr))<=0){
+	if(inet_ntop(AF_INET6, &dstaddr, pdstaddr, sizeof(pdstaddr)) == NULL){
 		puts("inet_ntop(): Error converting IPv6 Destination Address to presentation format");
 		exit(1);
 	}

@@ -1525,7 +1525,7 @@ int	print_ni_addr(const u_char *pktdata, struct pcap_pkthdr * pkthdr){
 	if(!is_eq_in6_addr(&(pkt_ipv6->ip6_dst), &srcaddr))
 		return 0;
 
-	if(inet_ntop(AF_INET6, &(pkt_ipv6->ip6_src), pv6addr, sizeof(pv6addr))<=0){
+	if(inet_ntop(AF_INET6, &(pkt_ipv6->ip6_src), pv6addr, sizeof(pv6addr)) == NULL){
 		if(verbose_f)
 			puts("inet_ntop(): Error converting IPv6 Source Address to presentation format");
 
@@ -1564,7 +1564,7 @@ int	print_ni_addr(const u_char *pktdata, struct pcap_pkthdr * pkthdr){
 	pkt_nidata= (struct ni_reply_ip *) ((char *)pkt_ni + sizeof(struct icmp6_nodeinfo));
 
 	while( (pkt_end - (unsigned char *) pkt_nidata) >= sizeof(struct ni_reply_ip)){
-		if(inet_ntop(AF_INET, &(pkt_nidata->ip), pv6addr, sizeof(pv6addr))<=0){
+		if(inet_ntop(AF_INET, &(pkt_nidata->ip), pv6addr, sizeof(pv6addr)) == NULL){
 			if(verbose_f)
 				puts("inet_ntop(): Error converting IPv4 Address to presentation format");
 
@@ -1611,7 +1611,7 @@ int	print_ni_noop(const u_char *pktdata, struct pcap_pkthdr * pkthdr){
 	if(!is_eq_in6_addr(&(pkt_ipv6->ip6_dst), &srcaddr))
 		return 0;
 
-	if(inet_ntop(AF_INET6, &(pkt_ipv6->ip6_src), pv6addr, sizeof(pv6addr))<=0){
+	if(inet_ntop(AF_INET6, &(pkt_ipv6->ip6_src), pv6addr, sizeof(pv6addr)) == NULL){
 		if(verbose_f)
 			puts("inet_ntop(): Error converting IPv6 Source Address to presentation format");
 
@@ -1667,7 +1667,7 @@ int	print_ni_addr6(const u_char *pktdata, struct pcap_pkthdr * pkthdr){
 	if(!is_eq_in6_addr(&(pkt_ipv6->ip6_dst), &srcaddr))
 		return 0;
 
-	if(inet_ntop(AF_INET6, &(pkt_ipv6->ip6_src), pv6addr, sizeof(pv6addr))<=0){
+	if(inet_ntop(AF_INET6, &(pkt_ipv6->ip6_src), pv6addr, sizeof(pv6addr)) == NULL){
 		if(verbose_f)
 			puts("inet_ntop(): Error converting IPv6 Address to presentation format");
 
@@ -1706,7 +1706,7 @@ int	print_ni_addr6(const u_char *pktdata, struct pcap_pkthdr * pkthdr){
 	pkt_nidata= (struct ni_reply_ip6 *) ((char *)pkt_ni + sizeof(struct icmp6_nodeinfo));
 
 	while( (pkt_end - (unsigned char *) pkt_nidata) >= sizeof(struct ni_reply_ip6)){
-		if(inet_ntop(AF_INET6, &(pkt_nidata->ip6), pv6addr, sizeof(pv6addr))<=0){
+		if(inet_ntop(AF_INET6, &(pkt_nidata->ip6), pv6addr, sizeof(pv6addr)) == NULL){
 			if(verbose_f)
 				puts("inet_ntop(): Error converting IPv6 Source Address to presentation format");
 
@@ -1756,7 +1756,7 @@ int	print_ni_name(const u_char *pktdata, struct pcap_pkthdr * pkthdr){
 	if(!is_eq_in6_addr(&(pkt_ipv6->ip6_dst), &srcaddr))
 		return 0;
 
-	if(inet_ntop(AF_INET6, &(pkt_ipv6->ip6_src), pv6addr, sizeof(pv6addr))<=0){
+	if(inet_ntop(AF_INET6, &(pkt_ipv6->ip6_src), pv6addr, sizeof(pv6addr)) == NULL){
 		if(verbose_f)
 			puts("inet_ntop(): Error converting IPv6 Address to presentation format");
 
@@ -2570,7 +2570,7 @@ void print_attack_info(void){
 	}
 
 	if(srcaddr_f){
-		if(inet_ntop(AF_INET6, &srcaddr, psrcaddr, sizeof(psrcaddr))<=0){
+		if(inet_ntop(AF_INET6, &srcaddr, psrcaddr, sizeof(psrcaddr)) == NULL){
 			puts("inet_ntop(): Error converting IPv6 Source Address to presentation format");
 			exit(1);
 		}
@@ -2579,7 +2579,7 @@ void print_attack_info(void){
 	}
 	else{
 		if(dstaddr_f){
-			if(inet_ntop(AF_INET6, &srcaddr, psrcaddr, sizeof(psrcaddr))<=0){
+			if(inet_ntop(AF_INET6, &srcaddr, psrcaddr, sizeof(psrcaddr)) == NULL){
 				puts("inet_ntop(): Error converting IPv6 Source Address to presentation format");
 				exit(1);
 			}
@@ -2591,7 +2591,7 @@ void print_attack_info(void){
 	}
 
 	if(dstaddr_f){
-		if(inet_ntop(AF_INET6, &dstaddr, pdstaddr, sizeof(pdstaddr))<=0){
+		if(inet_ntop(AF_INET6, &dstaddr, pdstaddr, sizeof(pdstaddr)) == NULL){
 			puts("inet_ntop(): Error converting IPv6 Destination Address to presentation format");
 			exit(1);
 		}
@@ -2621,7 +2621,7 @@ void print_attack_info(void){
 				printf(", Subject is an IPv6 address (Code %u)\n", code);
 
 				if(ipv6addr_f){
-					if(inet_ntop(AF_INET6, &ipv6addr, pv6addr, sizeof(pv6addr))<=0){
+					if(inet_ntop(AF_INET6, &ipv6addr, pv6addr, sizeof(pv6addr)) == NULL){
 						puts("inet_ntop(): Error converting Subject IPv6 Address to presentation format");
 						exit(1);
 					}
@@ -2649,7 +2649,7 @@ void print_attack_info(void){
 				printf(", Subject is an IPv4 Address (Code %u)\n", code);
 
 				if(ipv4addr_f){
-					if(inet_ntop(AF_INET, &ipv4addr, pv6addr, sizeof(pv6addr))<=0){
+					if(inet_ntop(AF_INET, &ipv4addr, pv6addr, sizeof(pv6addr)) == NULL){
 						puts("inet_ntop(): Error converting Subject IPv4 Address to presentation format");
 						exit(1);
 					}
@@ -2717,7 +2717,7 @@ void print_attack_info(void){
 				printf(", Data contains IPv6 address(es) (Qtype %u)\n", qtype);
 
 				if(ipv6addrd_f){
-					if(inet_ntop(AF_INET6, &ipv6addrd, pv6addr, sizeof(pv6addr))<=0){
+					if(inet_ntop(AF_INET6, &ipv6addrd, pv6addr, sizeof(pv6addr)) == NULL){
 						puts("inet_ntop(): Error converting Subject IPv6 Address to presentation format");
 						exit(1);
 					}
@@ -2730,7 +2730,7 @@ void print_attack_info(void){
 				printf(", Data contains IPv4 Address(es) (Qtype %u)\n", qtype);
 
 				if(ipv4addrd_f){
-					if(inet_ntop(AF_INET, &ipv4addrd, pv6addr, sizeof(pv6addr))<=0){
+					if(inet_ntop(AF_INET, &ipv4addrd, pv6addr, sizeof(pv6addr)) == NULL){
 						puts("inet_ntop(): Error converting Data IPv4 Address to presentation format");
 						exit(1);
 					}
@@ -2769,7 +2769,7 @@ void print_filters(void){
 		printf("Block filter for IPv6 Source Addresss: ");
 	
 		for(i=0; i<nblocksrc; i++){
-			if(inet_ntop(AF_INET6, &blocksrc[i], pv6addr, sizeof(pv6addr))<=0){
+			if(inet_ntop(AF_INET6, &blocksrc[i], pv6addr, sizeof(pv6addr)) == NULL){
 				puts("inet_ntop(): Error converting IPv6 Src. Addr. filter to presentation format");
 				exit(1);
 			}
@@ -2783,7 +2783,7 @@ void print_filters(void){
 		printf("Block filter for IPv6 Destination Address: ");
 	
 		for(i=0; i<nblockdst; i++){
-			if(inet_ntop(AF_INET6, &blockdst[i], pv6addr, sizeof(pv6addr))<=0){
+			if(inet_ntop(AF_INET6, &blockdst[i], pv6addr, sizeof(pv6addr)) == NULL){
 				puts("inet_ntop(): Error converting IPv6 Dst. Addr. filter to presentation format");
 				exit(1);
 			}
@@ -2825,7 +2825,7 @@ void print_filters(void){
 		printf("Accept filter for IPv6 Source Addresss: ");
 
 		for(i=0; i<nacceptsrc; i++){
-			if(inet_ntop(AF_INET6, &acceptsrc[i], pv6addr, sizeof(pv6addr))<=0){
+			if(inet_ntop(AF_INET6, &acceptsrc[i], pv6addr, sizeof(pv6addr)) == NULL){
 				puts("inet_ntop(): Error converting IPv6 Src. Addr. filter to presentation format");
 				exit(1);
 			}
@@ -2839,7 +2839,7 @@ void print_filters(void){
 		printf("Accept filter for IPv6 Destination Address: ");
 	
 		for(i=0; i<nacceptdst; i++){
-			if(inet_ntop(AF_INET6, &acceptdst[i], pv6addr, sizeof(pv6addr))<=0){
+			if(inet_ntop(AF_INET6, &acceptdst[i], pv6addr, sizeof(pv6addr)) == NULL){
 				puts("inet_ntop(): Error converting IPv6 Dst. Addr. filter to presentation format");
 				exit(1);
 			}
@@ -2892,12 +2892,12 @@ void print_filter_result(const u_char *pkt_data, unsigned char fresult){
 	
 	pkt_ipv6 = (struct ip6_hdr *)((char *) pkt_data + ETHER_HDR_LEN);
 
-	if(inet_ntop(AF_INET6, &(pkt_ipv6->ip6_src), psrcaddr, sizeof(psrcaddr))<=0){
+	if(inet_ntop(AF_INET6, &(pkt_ipv6->ip6_src), psrcaddr, sizeof(psrcaddr)) == NULL){
 	    puts("inet_ntop(): Error converting IPv6 Source Address to presentation format");
 	    exit(1);
 	}
 
-	if(inet_ntop(AF_INET6, &(pkt_ipv6->ip6_dst), pdstaddr, sizeof(pdstaddr))<=0){
+	if(inet_ntop(AF_INET6, &(pkt_ipv6->ip6_dst), pdstaddr, sizeof(pdstaddr)) == NULL){
 	    puts("inet_ntop(): Error converting IPv6 Destination Address to presentation format");
 	    exit(1);
 	}
