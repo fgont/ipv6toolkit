@@ -350,7 +350,7 @@ int main(int argc, char **argv){
 	} /* while(getopt) */
 
 	if(geteuid()) {
-		puts("frag6 needs root privileges to run.");
+		puts("flow6 needs root privileges to run.");
 		exit(1);
 	}
 
