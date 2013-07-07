@@ -951,7 +951,7 @@ int main(int argc, char **argv){
 	} /* while(getopt) */
 
 	if(geteuid()) {
-		puts("icmp6 needs root privileges to run.");
+		puts("ni6 needs root privileges to run.");
 		exit(1);
 	}
 
@@ -961,7 +961,7 @@ int main(int argc, char **argv){
 	}
 
 	if(listen_f && loop_f){
-		puts("'Error: listen' mode and 'loop' mode are incompatible");
+		puts("'Error: 'listen' mode and 'loop' mode are incompatible");
 		exit(1);
 	}
     
