@@ -96,10 +96,7 @@ int					get_if_addrs(struct iface_data *);
 struct in6_addr *	src_addr_sel(struct iface_data *, struct in6_addr *);
 int 				valid_icmp6_response(struct iface_data *, struct pcap_pkthdr *, const u_char *);
 int					valid_icmp6_response2(struct iface_data *, struct pcap_pkthdr *, const u_char *, unsigned int);
-int 				send_fragment(unsigned int, unsigned int, unsigned int, unsigned int, unsigned int);
-int 				send_fragment2(u_int16_t, unsigned int, unsigned int, unsigned int, unsigned int, char *);
 int					send_fid_probe(void);
-int					test_frag_pattern(unsigned char *, unsigned int, char *);
 int					predict_flow_id(u_int32_t *, unsigned int, u_int32_t *, unsigned int);
 int					inc_sdev(u_int32_t *, unsigned int, u_int32_t *, double *);
 void				change_endianness(u_int32_t *, unsigned int);
@@ -203,7 +200,7 @@ int main(int argc, char **argv){
 	int				r, sel;
 	time_t			curtime, start, lastfrag1=0;
 
-	/* Arrays for storing the Fragment ID samples */
+	/* Arrays for storing the Flow ID samples */
 	u_int32_t		test1[NSAMPLES], test2[NSAMPLES];
 	unsigned int	ntest1=0, ntest2=0;
 	unsigned char	testtype;
@@ -327,7 +324,7 @@ int main(int argc, char **argv){
 				dstport_f=1;
 				break;
 
-			case 'W':	/* Assess the fragment id generation policy of the target */
+			case 'W':	/* Assess the Flow Label generation policy of the target */
 				flowidp_f= 1;
 				break;
 
@@ -2361,7 +2358,7 @@ int send_neighbor_advert(struct iface_data *idata, pcap_t *pfd,  const u_char *p
 /*
  * Function: predict_flow_id()
  *
- * Identifies and prints the Fragment Identification generation policy
+ * Identifies and prints the Flow Label generation policy
 */
 int predict_flow_id(u_int32_t *s1, unsigned int n1, u_int32_t *s2, unsigned int n2){
 	u_int32_t		diff1_avg, diff2_avg;
