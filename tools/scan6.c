@@ -109,7 +109,6 @@ int					valid_icmp6_response(struct iface_data *, unsigned char, struct pcap_pkt
 									const u_char *, unsigned char *);
 int					valid_icmp6_response_remote(struct iface_data *, struct scan_list *, unsigned char, \
 									struct pcap_pkthdr *, const u_char *, unsigned char *);
-int					get_if_ether_addr(const char *, struct ether_addr *);
 int					get_if_addrs(struct iface_data *);
 struct in6_addr		*src_addr_sel(struct iface_data *, struct in6_addr *);
 int					print_scan_entries(struct scan_list *);
@@ -5773,60 +5772,6 @@ int valid_icmp6_response_remote(struct iface_data *idata, struct scan_list *scan
 
 
 /*
- * Function: get_if_ether_addr()
- *
- * Gets the link-layer address of a network interface card
- */
-
-int get_if_ether_addr(const char *iface, struct ether_addr *ether){
-	struct ifaddrs	*ifptr, *ptr;
-#ifdef __linux__
-	struct sockaddr_ll	*sockpptr;
-#elif defined (__FreeBSD__) || defined(__NetBSD__) || defined (__OpenBSD__) || defined(__APPLE__)
-	struct sockaddr_dl	*sockpptr;
-#endif
-
-	if(getifaddrs(&ifptr) != 0){
-		if(verbose_f > 1){
-			printf("Error obtaining link-layer address of interface %s\n", iface);
-		}
-		return(-1);
-	}
-
-	for(ptr=ifptr; ptr != NULL; ptr= ptr->ifa_next){
-
-		if(ptr->ifa_addr != NULL){
-#ifdef __linux__
-			if((ptr->ifa_addr)->sa_family == AF_PACKET){
-#elif defined (__FreeBSD__) || defined(__NetBSD__) || defined (__OpenBSD__) || defined(__APPLE__)
-			if((ptr->ifa_addr)->sa_family == AF_LINK){
-#endif
-				if(strncmp(iface, ptr->ifa_name, IFACE_LENGTH-1) == 0){
-#ifdef __linux__
-					sockpptr = (struct sockaddr_ll *) (ptr->ifa_addr);
-					if(sockpptr->sll_halen == ETHER_ADDR_LEN){
-						*ether= *((struct ether_addr *)sockpptr->sll_addr);
-						return 1;
-					}
-#elif defined (__FreeBSD__) || defined(__NetBSD__) || defined (__OpenBSD__) || defined(__APPLE__)
-					sockpptr = (struct sockaddr_dl *) (ptr->ifa_addr);
-					if(sockpptr->sdl_alen == ETHER_ADDR_LEN){
-						*ether= *((struct ether_addr *)(sockpptr->sdl_data + sockpptr->sdl_nlen));
-						return 1;
-					}
-#endif
-
-				}
-			}
-		}
-	}
-
-	freeifaddrs(ifptr);
-	return(0);
-}
-
-
-/*
  * Function: get_if_addrs()
  *
  * Obtains Ethernet and IPv6 addresses of a network interface card
@@ -5857,8 +5802,8 @@ int get_if_addrs(struct iface_data *idata){
 		if( !(idata->ether_flag) && ((ptr->ifa_addr)->sa_family == AF_PACKET)){
 			if(strncmp(idata->iface, ptr->ifa_name, IFACE_LENGTH-1) == 0){
 				sockpptr = (struct sockaddr_ll *) (ptr->ifa_addr);
-				if(sockpptr->sll_halen == 6){
-					idata->ether = *((struct ether_addr *)sockpptr->sll_addr);
+				if(sockpptr->sll_halen == ETHER_ADDR_LEN){
+					memcpy((idata->ether).a, sockpptr->sll_addr, ETHER_ADDR_LEN);
 					idata->ether_flag=1;
 				}
 			}
@@ -5867,8 +5812,8 @@ int get_if_addrs(struct iface_data *idata){
 		if( !(idata->ether_flag) && ((ptr->ifa_addr)->sa_family == AF_LINK)){
 			if(strncmp(idata->iface, ptr->ifa_name, IFACE_LENGTH-1) == 0){
 				sockpptr = (struct sockaddr_dl *) (ptr->ifa_addr);
-				if(sockpptr->sdl_alen == 6){
-					idata->ether= *((struct ether_addr *)(sockpptr->sdl_data + sockpptr->sdl_nlen));
+				if(sockpptr->sdl_alen == ETHER_ADDR_LEN){
+					memcpy((idata->ether).a, (sockpptr->sdl_data + sockpptr->sdl_nlen), ETHER_ADDR_LEN);
 					idata->ether_flag= 1;
 				}
 			}
@@ -5877,7 +5822,7 @@ int get_if_addrs(struct iface_data *idata){
 		else if((ptr->ifa_addr)->sa_family == AF_INET6){
 			sockin6ptr= (struct sockaddr_in6 *) (ptr->ifa_addr);
 
-			if( !rand_src_f && !(idata->ip6_local_flag) &&  (((sockin6ptr->sin6_addr).s6_addr16[0] & htons(0xffc0)) \
+			if( !(idata->ip6_local_flag) &&  (((sockin6ptr->sin6_addr).s6_addr16[0] & htons(0xffc0)) \
 															== htons(0xfe80))){
 				if(strncmp(idata->iface, ptr->ifa_name, IFACE_LENGTH-1) == 0){
 					idata->ip6_local = sockin6ptr->sin6_addr;
@@ -5890,8 +5835,7 @@ int get_if_addrs(struct iface_data *idata){
 					idata->ip6_local_flag= 1;
 				}
 			}
-			else if( !rand_src_f && (((sockin6ptr->sin6_addr).s6_addr16[0] & htons(0xffc0)) \
-											!= htons(0xfe80))){
+			else if( ((sockin6ptr->sin6_addr).s6_addr16[0] & htons(0xffc0)) != htons(0xfe80)){
 				if(strncmp(idata->iface, ptr->ifa_name, IFACE_LENGTH-1) == 0){
 					if(!is_ip6_in_prefix_list( &(sockin6ptr->sin6_addr), &(idata->ip6_global))){
 						if(idata->ip6_global.nprefix < idata->ip6_global.maxprefix){
@@ -5900,6 +5844,7 @@ int get_if_addrs(struct iface_data *idata){
 								if(verbose_f > 1)
 									puts("Error while storing Source Address");
 
+								freeifaddrs(ifptr);
 								return(-1);
 							}
 

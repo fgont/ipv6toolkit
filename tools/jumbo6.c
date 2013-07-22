@@ -2651,21 +2651,21 @@ int get_if_addrs(struct iface_data *idata){
 			continue;
 
 #ifdef __linux__
-		if( !(idata->ether_flag) && ((ptr->ifa_addr)->sa_family == AF_PACKET) && (ptr->ifa_data != NULL)){
+		if( !(idata->ether_flag) && ((ptr->ifa_addr)->sa_family == AF_PACKET)){
 			if(strncmp(idata->iface, ptr->ifa_name, IFACE_LENGTH-1) == 0){
 				sockpptr = (struct sockaddr_ll *) (ptr->ifa_addr);
-				if(sockpptr->sll_halen == 6){
-					idata->ether = *((struct ether_addr *)sockpptr->sll_addr);
+				if(sockpptr->sll_halen == ETHER_ADDR_LEN){
+					memcpy((idata->ether).a, sockpptr->sll_addr, ETHER_ADDR_LEN);
 					idata->ether_flag=1;
 				}
 			}
 		}
 #elif defined (__FreeBSD__) || defined(__NetBSD__) || defined (__OpenBSD__) || defined(__APPLE__)
-		if( !(idata->ether_flag) && ((ptr->ifa_addr)->sa_family == AF_LINK) && (ptr->ifa_data != NULL)){
+		if( !(idata->ether_flag) && ((ptr->ifa_addr)->sa_family == AF_LINK)){
 			if(strncmp(idata->iface, ptr->ifa_name, IFACE_LENGTH-1) == 0){
 				sockpptr = (struct sockaddr_dl *) (ptr->ifa_addr);
-				if(sockpptr->sdl_alen == 6){
-					idata->ether= *((struct ether_addr *)(sockpptr->sdl_data + sockpptr->sdl_nlen));
+				if(sockpptr->sdl_alen == ETHER_ADDR_LEN){
+					memcpy((idata->ether).a, (sockpptr->sdl_data + sockpptr->sdl_nlen), ETHER_ADDR_LEN);
 					idata->ether_flag= 1;
 				}
 			}
@@ -2674,7 +2674,7 @@ int get_if_addrs(struct iface_data *idata){
 		else if((ptr->ifa_addr)->sa_family == AF_INET6){
 			sockin6ptr= (struct sockaddr_in6 *) (ptr->ifa_addr);
 
-			if(!(idata->ip6_local_flag) &&  (((sockin6ptr->sin6_addr).s6_addr16[0] & htons(0xffc0)) \
+			if( !(idata->ip6_local_flag) &&  (((sockin6ptr->sin6_addr).s6_addr16[0] & htons(0xffc0)) \
 															== htons(0xfe80))){
 				if(strncmp(idata->iface, ptr->ifa_name, IFACE_LENGTH-1) == 0){
 					idata->ip6_local = sockin6ptr->sin6_addr;
@@ -2696,6 +2696,7 @@ int get_if_addrs(struct iface_data *idata){
 								if(verbose_f > 1)
 									puts("Error while storing Source Address");
 
+								freeifaddrs(ifptr);
 								return(-1);
 							}
 
@@ -2713,7 +2714,6 @@ int get_if_addrs(struct iface_data *idata){
 	freeifaddrs(ifptr);
 	return(0);
 }
-
 
 
 
