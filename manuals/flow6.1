@@ -73,7 +73,7 @@ This option specifies the link-layer Destination Address of the probe packets (c
 This option specifies the protocol type of the probe packets. Currently, both “UDP” and “TCP” are supported. If this option is left unspecified, the protocol type defaults to “TCP”.
 
 .TP
-.BI \-p\  PORT ,\ \-\-dst-port\  PORT
+.BI \-p\  PORT ,\ \-\-dst\-port\  PORT
 
 This option specifies the Destination Port of the probe packets. If left unspecified, the Destination Port defaults to “80” when the IPv6 payload is TCP, and to 53 if the IPv6 payload is UDP.
 
@@ -102,13 +102,13 @@ tool.
 
 \fBExample #1\fR
 
-# flow6 -i eth0 --flow-label-policy -d fe80::1 -v
+# flow6 \-i eth0 \-\-flow-label-policy \-d fe80::1 \-v
 
 Assess the Flow Label generation policy of the host “fe80::1”, using the network interface “eth0”. Probe packets are TCP segments directed to port 80 (default). Be verbose.
 
 \fBExample #2\fR
 
-# flow6 -i eth0 -d fe80::1 --flow-label-policy -P TCP -p 22 -vv
+# flow6 \-i eth0 \-d fe80::1 \-\-flow\-label\-policy \-P TCP \-p 22 \-vv
 
 Assess the Flow Label generation policy of the host “fe80::1”, using the network interface “eth0”. Probe packets are TCP segments directed to port 22. Be very verbose (i.e., list the sampled Flow Label values).
 
@@ -118,7 +118,7 @@ The
 tool and the corresponding manual pages were produced by Fernando Gont <fgont@si6networks.com> for SI6 Networks <http://www.si6networks.com>.
 
 .SH COPYRIGHT
-Copyright (c) 2011-2013 Fernando Gont.
+Copyright (c) 2011\-2013 Fernando Gont.
 
 Permission is granted to copy, distribute and/or modify this document under the terms of the GNU Free Documentation License, Version 1.3 or any later version published by the Free Software Foundation; with the Invariant Sections being just "AUTHOR" and "COPYRIGHT", with no Front-Cover Texts, and with no Back-Cover Texts.  A copy of the license is available at
 .IR <http://www.gnu.org/licenses/fdl.html> .

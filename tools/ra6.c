@@ -493,7 +493,7 @@ int main(int argc, char **argv){
 			case 'p':	/* "Preference" bits */
 				preference= atoi(optarg);
 				if(preference<-2 || preference >1){
-					puts("Error in 'preference' paramater");
+					puts("Error in 'preference' parameter");
 					exit(1);
 				}
 		
@@ -2108,7 +2108,7 @@ void print_attack_info(void){
     if(!floodd_f){
 	for(i=0;i<nrdnss;i++){
 	    puts("Recursive DNS Server option ->");
-	    printf("Lifetime: %u   Adresses: ", rdnsslife[i]);
+	    printf("Lifetime: %u   Addresses: ", rdnsslife[i]);
 	    for(j=0;j<nrdnssopt[i];j++){
 		if(inet_ntop(AF_INET6, &rdnss[i][j], pprefix, sizeof(pprefix)) == NULL){
 		    perror("inet_ntop()");
