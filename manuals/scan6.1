@@ -352,7 +352,9 @@ This option specifies the name of a file containing one IPv6 address per line. T
 .TP
 .BI \-W\  IID ,\ \-\-tgt\-iid\  IID
 
+.nf
 This option specifies an IPv6 Interface Identifier (IID), with the same syntax as that of an IPv6 address (only the lowest-order 64 bits of the address will be employed). The specified Interface ID will be employed, together with the any network prefixes specified with the '-d' option (or with the '-m' option), to construct the IPv6 addresses to be probed. Since auto-configured addresses typically employ Interface IDs that are constant across networks, this option can leverage known IIDs to track such nodes across networks. Please see <http://tools.ietf.org/html/draft-ietf-6man-stable-privacy-addresses> for further details. Note: The file can contain comments if they are preceded with the numeral sign ('#'), as in:
+.fi
 
         IPv6_address      # comment
 
@@ -476,11 +478,13 @@ for a discussion of the IPv6 host-tracking technique implemented by
 .B scan6
 , and a proposal on how to mitigate such attacks.
 
+.nf
 draft-ietf-6man-stable-privacy-addresses (available at: 
 .IR <http://tools.ietf.org/html/draft-ietf-6man-stable-privacy-addresses> )
 for a discussion of the scanning techniques implemented by
 .B scan6
 , and a discussion of a number of aspects that should be taken into account when performing address scanning of remote networks.
+.fi
 
 RFC 6583 (available at 
 .IR <http://www.rfc-editor.org/rfc/rfc6583.txt> )
