@@ -22,9 +22,9 @@ takes its parameters as command-line options. Each of the options can be specifi
 
 
 .TP
-.BI -a\  IPV6_ADDRESS ,\ \-\-address\  IPV6_ADDRESS
+.BI \-a\  IPV6_ADDRESS ,\ \-\-address\  IPV6_ADDRESS
 
-This option ca be employed to specify a single IPv6 address that is meant to be processed by the tool. This option is typically employed in conjunction with the '-d' tool, to decode the IPv6 address in question.
+This option ca be employed to specify a single IPv6 address that is meant to be processed by the tool. This option is typically employed in conjunction with the '\-d' tool, to decode the IPv6 address in question.
 
 .TP
 .BR \-i ,\  \-\-stdin
@@ -39,7 +39,7 @@ This option causes the tool to eliminate duplicate addresses from the list of IP
 .TP
 .BR \-d ,\  \-\-print\-decode
 
-This option request the tool to decode the IPv6 address specfied with the '-a' option (or a list of addresses read froom stdin if the '-i' option was set). The current version of the tool supports only decode type, in which information is printed for each address with the following syntax:
+This option request the tool to decode the IPv6 address specfied with the '\-a' option (or a list of addresses read froom stdin if the '\-i' option was set). The current version of the tool supports only decode type, in which information is printed for each address with the following syntax:
 
         AddressType=AddressSubtype=Scope=IIDTYpe=IIDSUbtype
 
@@ -48,7 +48,7 @@ This simple syntax is meant to be easy for scripting purposes. Future versions o
 .TP
 .BR \-s\|  ,\  \-\-print\-stats
 
-This option requests the tool to produce address statistics from the list of IPv6 addresses read from standard input. This option should be used in conjunction with the '-i' option, such that multiple addresses can be given as input to addr6.
+This option requests the tool to produce address statistics from the list of IPv6 addresses read from standard input. This option should be used in conjunction with the '\-i' option, such that multiple addresses can be given as input to addr6.
 
 addr6 will always print the total number of IPv6 addresses that have been examined, and the percentage of unicast, multicast, and unspecified (::) addresses. If at least one unicast address is identified, unicast-specific statistics will be printed. In the same way, if at least one multicast address is identified, then multicast-specific statistics will be printed.
 
@@ -99,9 +99,9 @@ tool.
 
 \fBExample #1\fR
 
-$ cat addresslist.txt | addr6 -i -q
+$ cat addresslist.txt | addr6 \-i \-q
 
-addr6 will read IPv6 addresses from stdin ('-i' option), and will only print the first instance of each address ('-q' option), thus effectively removing any duplicates from the list.
+addr6 will read IPv6 addresses from stdin ('\-i' option), and will only print the first instance of each address ('\-q' option), thus effectively removing any duplicates from the list.
 
     Note: In this particular scenario, the address list results
     from the command 'cat addresslist.txt', that has its output
@@ -110,16 +110,16 @@ addr6 will read IPv6 addresses from stdin ('-i' option), and will only print the
 
 \fBExample #2\fR
 
-$ addr6 -a fc00::1
+$ addr6 \-a fc00::1
 
-Decode the IPv6 address spcified with the '-a' option. Note that while the '-d' option was not set, this is the default behavior of the tool (unless overridden y another option).
+Decode the IPv6 address spcified with the '\-a' option. Note that while the '\-d' option was not set, this is the default behavior of the tool (unless overridden y another option).
 
 
 \fBExample #3\fR
 
-$ cat addresslist.txt | addr6 -i -q -s
+$ cat addresslist.txt | addr6 \-i \-q \-s
 
-addr6 will read IPv6 addresses from stdin ('-i' option), will ignore duplicate addresses ('-q' option), and will print statistics about the processed IPv6 addresses.
+addr6 will read IPv6 addresses from stdin ('\-i' option), will ignore duplicate addresses ('\-q' option), and will print statistics about the processed IPv6 addresses.
 
     Note: In this particular scenario, the address list results
     from the command 'cat addresslist.txt', that has its output
@@ -128,9 +128,9 @@ addr6 will read IPv6 addresses from stdin ('-i' option), will ignore duplicate a
 
 \fBExample #4\fR
 
-$ cat addresslist.txt | addr6 -i -q -d
+$ cat addresslist.txt | addr6 \-i \-q \-d
 
-addr6 will read IPv6 addresses from stdin ('-i' option), will ignore duplicate addresses ('-q' option), and will decode each of the remaining addresses.
+addr6 will read IPv6 addresses from stdin ('\-i' option), will ignore duplicate addresses ('\-q' option), and will decode each of the remaining addresses.
 
     Note: In this particular scenario, the address list results
     from the command 'cat addresslist.txt', that has its output
@@ -140,8 +140,8 @@ addr6 will read IPv6 addresses from stdin ('-i' option), will ignore duplicate a
 .SH SEE ALSO
 .BR ipv6toolkit.conf (5)
 
-draft-ietf-opsec-ipv6-host-scanning (available at: 
-.IR <http://tools.ietf.org/html/draft-ietf-opsec-ipv6-host-scanning> )
+draft-ietf-opsec-ipv6\-host-scanning (available at: 
+.IR <http://tools.ietf.org/html/draft\-ietf\-opsec\-ipv6\-host\-scanning> )
 for a discussion of different IPv6 address patterns.
 
 .SH AUTHOR
@@ -153,7 +153,7 @@ for SI6 Networks
 .IR <http://www.si6networks.com> .
 
 .SH COPYRIGHT
-Copyright (c) 2011-2013 Fernando Gont.
+Copyright (c) 2011\-2013 Fernando Gont.
 
 Permission is granted to copy, distribute and/or modify this document under the terms of the GNU Free Documentation License, Version 1.3 or any later version published by the Free Software Foundation; with the Invariant Sections being just "AUTHOR" and "COPYRIGHT", with no Front-Cover Texts, and with no Back-Cover Texts.  A copy of the license is available at
 .IR <http://www.gnu.org/licenses/fdl.html> .

@@ -3,21 +3,21 @@
 tcp6 \- A security assessment tool for TCP/IPv6 implementations
 .SH SYNOPSIS
 .B tcp6
--i INTERFACE [-S LINK_SRC_ADDR] [-D LINK-DST-ADDR] [-s SRC_ADDR[/LEN]] [-d DST_ADDR] [-A HOP_LIMIT] [-y FRAG_SIZE] [-u DST_OPT_HDR_SIZE] [-U DST_OPT_U_HDR_SIZE] [-H HBH_OPT_HDR_SIZE] [-P PAYLOAD_SIZE] [-o SRC_PORT] [-a DST_PORT] [-X TCP_FLAGS] [-q TCP_SEQ] [-Q TCP_ACK] [-V TCP_URP] [-w TCP_WIN] [-N] [-f] [-j PREFIX[/LEN]] [-k PREFIX[/LEN]] [-J LINK_ADDR] [-K LINK_ADDR] [-b PREFIX[/LEN]] [-g PREFIX[/LEN]] [-B LINK_ADDR] [-G LINK_ADDR] [-F N_SOURCES] [-T N_PORTS] [-L | -l] [-z SECONDS] [-v] [-h]
+\-i INTERFACE [\-S LINK_SRC_ADDR] [\-D LINK-DST-ADDR] [\-s SRC_ADDR[/LEN]] [\-d DST_ADDR] [\-A HOP_LIMIT] [\-y FRAG_SIZE] [\-u DST_OPT_HDR_SIZE] [\-U DST_OPT_U_HDR_SIZE] [\-H HBH_OPT_HDR_SIZE] [\-P PAYLOAD_SIZE] [\-o SRC_PORT] [\-a DST_PORT] [\-X TCP_FLAGS] [\-q TCP_SEQ] [\-Q TCP_ACK] [\-V TCP_URP] [\-w TCP_WIN] [\-N] [\-f] [\-j PREFIX[/LEN]] [\-k PREFIX[/LEN]] [\-J LINK_ADDR] [\-K LINK_ADDR] [\-b PREFIX[/LEN]] [\-g PREFIX[/LEN]] [\-B LINK_ADDR] [\-G LINK_ADDR] [\-F N_SOURCES] [\-T N_PORTS] [\-L | \-l] [\-z SECONDS] [\-v] [\-h]
 
 .SH DESCRIPTION
 .B tcp6
 tool allows the assessment of IPv6 implementations with respect to a variety of attack vectors based on TCP/IPv6 segments. This tool is part of the IPv6 Toolkit v1.3: a security assessment suite for the IPv6 protocols. 
 
-This tool has two modes of operation: active and listening. In active mode, the tool attacks a specific target, while in listening mode the tool listens to TCP traffic on the local network, and launches an attack in response to such traffic. Active mode is employed if an IPv6 Destination Address is specified. Listening mode is employed if the “-L” option (or its long counterpart “--listen”) is set. If both an attack target and the “-L” option are specified, the attack is launched against the specified target, and then the tool enters listening mode to respond incoming packets with TCP segments.
+This tool has two modes of operation: active and listening. In active mode, the tool attacks a specific target, while in listening mode the tool listens to TCP traffic on the local network, and launches an attack in response to such traffic. Active mode is employed if an IPv6 Destination Address is specified. Listening mode is employed if the “\-L” option (or its long counterpart “\-\-listen”) is set. If both an attack target and the “\-L” option are specified, the attack is launched against the specified target, and then the tool enters listening mode to respond incoming packets with TCP segments.
 
 The tool supports filtering of incoming packets based on the Ethernet Source Address, the Ethernet Destination Address, the IPv6 Source Address, and the IPv6 Destination Address.  There are two types of filters: “block filters” and “accept filters”. If any “block filter” is specified, and the incoming packet matches any of those filters, the message is discarded (and thus no TCP segments are sent in response). If any “accept filter” is specified, incoming packets must match the specified filters in order for the tool to respond with TCP segments.
 
 .SH OPTIONS
 .B tcp6
-takes itx parameters as command-line options. Each of the options can be specified with a short name (one character preceded with the hyphen character, as e.g. “-i”) or with a long name (a string preceded with two hyphen characters, as e.g. “--interface”).
+takes itx parameters as command-line options. Each of the options can be specified with a short name (one character preceded with the hyphen character, as e.g. “\-i”) or with a long name (a string preceded with two hyphen characters, as e.g. “\-\-interface”).
 
-If the tool is instructed to e.g. flood the victim with TCP segments from different sources (“--flood-sources” option), multiple packets may need to be generated. 
+If the tool is instructed to e.g. flood the victim with TCP segments from different sources (“\-\-flood\-sources” option), multiple packets may need to be generated. 
 
 tcp6 supports IPv6 Extension Headers, including the IPv6 Fragmentation Header, which might be of use to circumvent layer-2 filtering and/or Network Intrusion Detection Systems (NIDS). However, IPv6 extension headers are not employed by default, and must be explicitly enabled with the corresponding options.
 
@@ -38,14 +38,14 @@ This option specifies the link-layer Destination Address of the probe packets. B
 .TP
 .BI \-s\  SRC_ADDR ,\ \-\-src\-address\  SRC_ADDR
 
-This option specifies the IPv6 source address (or IPv6 prefix) to be used for the Source Address of the attack packets. If the “-F” (“--flood-sources”) option is specified, this option includes an IPv6 prefix, from which random addresses are selected. See the description of the “-F” option for further information on how the “-s” option is processed in that specific case.
+This option specifies the IPv6 source address (or IPv6 prefix) to be used for the Source Address of the attack packets. If the “\-F” (“\-\-flood\-sources”) option is specified, this option includes an IPv6 prefix, from which random addresses are selected. See the description of the “\-F” option for further information on how the “\-s” option is processed in that specific case.
 
 Note: When operating in “listening” mode, the Source Address is automatically set to the Destination Address of the incoming packet.
 
 .TP
 .BI \-d\  DST_ADDR ,\ \-\-dst\-address\  DST_ADDR
 
-This option specifies the IPv6 Destination Address of the victim. It can be left unspecified only if the “-L” option is selected (i.e., if the tool is to operate in “listening” mode).
+This option specifies the IPv6 Destination Address of the victim. It can be left unspecified only if the “\-L” option is selected (i.e., if the tool is to operate in “listening” mode).
 
 Note: When operating in “listening” mode, the Destination Address is automatically set to the Source Address of the incoming packet.
 
@@ -57,17 +57,17 @@ This option specifies the Hop Limit to be used for the IPv6 packets. It defaults
 .TP
 .BI \-u\  HDR_SIZE ,\ \-\-dst\-opt\-hdr\  HDR_SIZE
 
-This option specifies that a Destination Options header is to be included in the outgoing packet(s). The extension header size must be specified as an argument to this option (the header is filled with padding options). Multiple Destination Options headers may be specified by means of multiple “-u” options.
+This option specifies that a Destination Options header is to be included in the outgoing packet(s). The extension header size must be specified as an argument to this option (the header is filled with padding options). Multiple Destination Options headers may be specified by means of multiple “\-u” options.
 
 .TP
 .BI \-U\  HDR_SIZE ,\ \-\-dst\-opt\-u\-hdr\  HDR_SIZE
 
-This option specifies a Destination Options header to be included in the “unfragmentable part” of the outgoing packet(s). The header size must be specified as an argument to this option (the header is filled with padding options). Multiple Destination Options headers may be specified by means of multiple “-U” options. 
+This option specifies a Destination Options header to be included in the “unfragmentable part” of the outgoing packet(s). The header size must be specified as an argument to this option (the header is filled with padding options). Multiple Destination Options headers may be specified by means of multiple “\-U” options. 
 
 .TP
 .BI \-H\  HDR_SIZE ,\ \-\-hbh\-opt\-hdr\  HDR_SIZE
 
-This option specifies that a Hop-by-Hop Options header is to be included in the outgoing packet(s). The header size must be specified as an argument to this option (the header is filled with padding options). Multiple Hop-by-Hop Options headers may be specified by means of multiple “-H” options.
+This option specifies that a Hop-by-Hop Options header is to be included in the outgoing packet(s). The header size must be specified as an argument to this option (the header is filled with padding options). Multiple Hop-by-Hop Options headers may be specified by means of multiple “\-H” options.
 
 .TP
 .BI \-y\  FRAG_SIZE ,\ \-\-frag\-hdr\  FRAG_SIZE
@@ -137,12 +137,12 @@ Note: By default, tcp6 will acknowledge both the payload and the flags of the in
 .TP
 .BI \-j\  SRC_ADDR ,\ \-\-block\-src\  SRC_ADDR
 
-This option sets a block filter for the incoming packets, based on their IPv6 Source Address. It allows the specification of an IPv6 prefix in the form “-j prefix/prefixlen”. If the prefix length is not specified, a prefix length of “/128” is selected (i.e., the option assumes that a single IPv6 address, rather than an IPv6 prefix, has been specified).
+This option sets a block filter for the incoming packets, based on their IPv6 Source Address. It allows the specification of an IPv6 prefix in the form “\-j prefix/prefixlen”. If the prefix length is not specified, a prefix length of “/128” is selected (i.e., the option assumes that a single IPv6 address, rather than an IPv6 prefix, has been specified).
 
 .TP
 .BI \-k\  DST_ADDR ,\ \-\-block\-dst\  DST_ADDR
 
-This option sets a block filter for the incoming packets, based on their IPv6 Destination Address. It allows the specification of an IPv6 prefix in the form “-k prefix/prefixlen”. If the prefix length is not specified, a prefix length of “/128” is selected (i.e., the option assumes that a single IPv6 address, rather than an IPv6 prefix, has been specified).
+This option sets a block filter for the incoming packets, based on their IPv6 Destination Address. It allows the specification of an IPv6 prefix in the form “\-k prefix/prefixlen”. If the prefix length is not specified, a prefix length of “/128” is selected (i.e., the option assumes that a single IPv6 address, rather than an IPv6 prefix, has been specified).
 
 .TP
 .BI \-J\   LINK_ADDR ,\ \-\-block\-link\-src\  LINK_ADDR
@@ -157,12 +157,12 @@ This option sets a block filter for the incoming packets, based on their link-la
 .TP
 .BI \-b\  SRC_ADDR ,\ \-\-accept\-src\  SRC_ADDR
 
-This option sets an accept filter for the incoming packets, based on their IPv6 Source Address. It allows the specification of an IPv6 prefix in the form “-b prefix/prefixlen”. If the prefix length is not specified, a prefix length of “/128” is selected (i.e., the option assumes that a single IPv6 address, rather than an IPv6 prefix, has been specified).
+This option sets an accept filter for the incoming packets, based on their IPv6 Source Address. It allows the specification of an IPv6 prefix in the form “\-b prefix/prefixlen”. If the prefix length is not specified, a prefix length of “/128” is selected (i.e., the option assumes that a single IPv6 address, rather than an IPv6 prefix, has been specified).
 
 .TP
 .BI \-g\  DST_ADDR ,\ \-\-accept\-dst\  DST_ADDR
 
-This option sets a accept filter for the incoming packets, based on their IPv6 Destination Address. It allows the specification of an IPv6 prefix in the form “-g prefix/prefixlen”. If the prefix length is not specified, a prefix length of “/128” is selected (i.e., the option assumes that a single IPv6 address, rather than an IPv6 prefix, has been specified).
+This option sets a accept filter for the incoming packets, based on their IPv6 Destination Address. It allows the specification of an IPv6 prefix in the form “\-g prefix/prefixlen”. If the prefix length is not specified, a prefix length of “/128” is selected (i.e., the option assumes that a single IPv6 address, rather than an IPv6 prefix, has been specified).
 
 .TP
 .BI \-B\   LINK_ADDR ,\ \-\-accept\-link\-src\  LINK_ADDR
@@ -177,27 +177,27 @@ This option sets an accept filter for the incoming packets, based on their link-
 .TP
 .BI \-F\   N_SOURCES ,\ \-\-flood\-sources\  N_SOURCES
 
-This option instructs the tool to send multiple TCP segments with different Source Addresses. The number of different source addresses is specified as “-F number”. The Source Address of each TCP segment is randomly selected from the prefix specified by the “-s” option. If the “-F” option is specified but the “-s” option is left unspecified, the Source Address of the packets is randomly selected from the prefix ::/0.
+This option instructs the tool to send multiple TCP segments with different Source Addresses. The number of different source addresses is specified as “\-F number”. The Source Address of each TCP segment is randomly selected from the prefix specified by the “\-s” option. If the “\-F” option is specified but the “\-s” option is left unspecified, the Source Address of the packets is randomly selected from the prefix ::/0.
 
 .TP
 .BI \-T\   N_PORTS ,\ \-\-flood\-ports\  N_PORTS
 
-This option instructs the tool to send multiple TCP segments with different Source Ports. The Source Port of each TCP segment is randomly selected from the whole port number space (0-65535).
+This option instructs the tool to send multiple TCP segments with different Source Ports. The Source Port of each TCP segment is randomly selected from the whole port number space (0\-65535).
 
 .TP
 .BR \-l\| ,\  \-\-loop
 
-This option instructs the tcp6 tool to send periodic TCP segments to the victim node. The amount of time to pause between sending TCP segments can be specified by means of the “-z” option, and defaults to 1 second. Note that this option cannot be set in conjunction with the “-L” (“--listen”) option.
+This option instructs the tcp6 tool to send periodic TCP segments to the victim node. The amount of time to pause between sending TCP segments can be specified by means of the “\-z” option, and defaults to 1 second. Note that this option cannot be set in conjunction with the “\-L” (“\-\-listen”) option.
 
 .TP
 .BR \-z\| ,\  \-\-sleep
 
-This option specifies the amount of time to pause between sending TCP segments (when the “--loop” option is set). If left unspecified, it defaults to 1 second.
+This option specifies the amount of time to pause between sending TCP segments (when the “\-\-loop” option is set). If left unspecified, it defaults to 1 second.
 
 .TP
 .BR \-L\| ,\  \-\-listen 
 
-This instructs the tcp6 tool to operate in listening mode (possibly after attacking a given node). Note that this option cannot be used in conjunction with the “-l” (“--loop”) option.
+This instructs the tcp6 tool to operate in listening mode (possibly after attacking a given node). Note that this option cannot be used in conjunction with the “\-l” (“\-\-loop”) option.
 
 .TP
 .BR \-v\| ,\  \-\-verbose 
@@ -219,18 +219,18 @@ tool.
 
 \fBExample #1\fR
 
-# tcp6 -i eth0 -s fc00:1::/64 -d fc00:1::1 -a 22 -X S -F 100 -l -z 1 -v
+# tcp6 \-i eth0 \-s fc00:1::/64 \-d fc00:1::1 \-a 22 \-X S \-F 100 \-l \-z 1 \-v
 
-In this example the tcp6 tool is essentially employed to perform a SYN-flood attack against port number 22 of the host fc00:1::1. The tool uses the network interface “eth0” (as specified by the “-i” option), and sends SYN segments (as specified by the “-X” option) from the prefix fc00:1::/64 (as specified by the “-s” option) to port 22 (specified by the “-a” option) at the destination address fc00:1::1 (specified by the “-d” option). The tool sends TCP segments from 100 different addresses (as specified by the “-F” option) every one second (as specified by the “-l” and “-z” options). The tool will be verbose (as specified by the “-v” option).
+In this example the tcp6 tool is essentially employed to perform a SYN-flood attack against port number 22 of the host fc00:1::1. The tool uses the network interface “eth0” (as specified by the “\-i” option), and sends SYN segments (as specified by the “\-X” option) from the prefix fc00:1::/64 (as specified by the “\-s” option) to port 22 (specified by the “\-a” option) at the destination address fc00:1::1 (specified by the “\-d” option). The tool sends TCP segments from 100 different addresses (as specified by the “\-F” option) every one second (as specified by the “\-l” and “\-z” options). The tool will be verbose (as specified by the “\-v” option).
 
 \fBExample #2\fR
 
-## tcp6 -i eth0 -L -X RA -v
+## tcp6 \-i eth0 \-L \-X RA \-v
 
-In this example, the tcp6 tool is employed to perform a TCP connection-reset attack against all  active TCP connections in the local network. The tool listens (“-L”) on the interface eth0 (“-i eth0”), and responds to any TCP segments with a RST packet (with both the RST and ACK bits set). The tool will be verbose.
+In this example, the tcp6 tool is employed to perform a TCP connection-reset attack against all  active TCP connections in the local network. The tool listens (“\-L”) on the interface eth0 (“\-i eth0”), and responds to any TCP segments with a RST packet (with both the RST and ACK bits set). The tool will be verbose.
 
 .SH SEE ALSO
-"Security Assessment of the Transmission Control Protocol (TCP)" (available at: <http://www.gont.com.ar/papers/tn-03-09-security-assessment-TCP.pdf>) for a discussion of TCP vulnerabilities.
+"Security Assessment of the Transmission Control Protocol (TCP)" (available at: <http://www.gont.com.ar/papers/tn-03\-09\-security-assessment-TCP.pdf>) for a discussion of TCP vulnerabilities.
 
 .SH AUTHOR
 The
@@ -241,7 +241,7 @@ for SI6 Networks
 .IR <http://www.si6networks.com> .
 
 .SH COPYRIGHT
-Copyright (c) 2011-2013 Fernando Gont.
+Copyright (c) 2011\-2013 Fernando Gont.
 
 Permission is granted to copy, distribute and/or modify this document under the terms of the GNU Free Documentation License, Version 1.3 or any later version published by the Free Software Foundation; with the Invariant Sections being just "AUTHOR" and "COPYRIGHT", with no Front-Cover Texts, and with no Back-Cover Texts.  A copy of the license is available at
 .IR <http://www.gnu.org/licenses/fdl.html> .
