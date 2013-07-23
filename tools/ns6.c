@@ -427,7 +427,7 @@ int main(int argc, char **argv){
 	    case 'T':	/* Flood targets */
 		ntargets= atoi(optarg);
 		if(ntargets == 0){
-		    puts("Invalid number of Target Addreses in option -T");
+		    puts("Invalid number of Target Addresses in option -T");
 		    exit(1);
 		}
 		
