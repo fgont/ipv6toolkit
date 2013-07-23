@@ -4,9 +4,10 @@
 CC= gcc
 CFLAGS+= -Wall
 LDFLAGS+= -lpcap -lm
-MANPATH= /usr/share/man
-DATAPATH= /usr/share
-BINPATH= /usr/bin
+ETCPATH= $(DESTDIR)/etc
+MANPATH= $(DESTDIR)/usr/share/man
+DATAPATH= $(DESTDIR)/usr/share
+BINPATH= $(DESTDIR)/usr/bin
 SRCPATH= tools
 TOOLS= addr6 flow6 frag6 icmp6 jumbo6 na6 ni6 ns6 ra6 rd6 rs6 scan6 tcp6
 
@@ -60,7 +61,7 @@ install: all
 	install -m0755 $(TOOLS) $(BINPATH)
 
 	# Install the configuration file
-	install -m0644 data/ipv6toolkit.conf /etc	
+	install -m0644 data/ipv6toolkit.conf $(ETCPATH)
 
 	# Install the IEEE OUI database
 	install -m0755 -d $(DATAPATH)/ipv6toolkit
@@ -89,7 +90,7 @@ uninstall:
 	rm -f $(BINPATH)/tcp6
 
 	# Remove the configuration file
-	rm -f /etc/ipv6toolkit.conf
+	rm -f $(ETCPATH)/ipv6toolkit.conf
 
 	# Remove the IEEE OUI database
 	rm -rf $(DATAPATH)/ipv6toolkit
