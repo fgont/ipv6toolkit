@@ -1,0 +1,96 @@
+.TH IPV6TOOLKIT 7
+.SH NAME
+SI6 Networks' IPv6 Toolkit \- An IPv6 security assessment and trouble-shooting toolkit
+
+.SH DESCRIPTION
+The SI6 Networks' IPv6 Toolkit is a security assessment and trouble-shooting toolkit for IPv6 networks and implementations. It provides a number of tools to send abitrary IPv6 packets, perform IPv6 address-scans, analyze IPv6 addresses, etc.
+
+The current version of the toolkit includes the following tools:
+
+  * addr6
+  * flow6
+  * frag6
+  * icmp6
+  * jumbo6
+  * na6
+  * ni6
+  * ns6
+  * ra6
+  * rd6
+  * rs6
+  * scan6
+  * tcp6
+
+.B addr6
+is an IPv6 address analysis and manipulation tool. Given a list of IPv6 addresses, it can filter such list based on different criteria, such as IPv6 address type, IPv6 address scope, IPv6 prefix, etc. Additionally, given a list of IPv6 addresses
+.B addr6
+can produce statistics on such addresses, including address scopes, types, and type of IPv6 interface identifier.
+.B addr6
+can also analyze a single address, producing script-friendly output, such that its analysis can be leveraged by other tools or scripts.
+
+.B flow6
+allows the security assessment of the IPv6 Flow Label. Essentially, it can be leveraged to assess the Flow Label generation policy of a terget implementation.
+
+.B frag6
+is a security assessment tool for the IPv6 fragmentation mechanism. It allows the exploitation of fragmentation-based attacks, and can also be employed to assess the Fragment Identification generation policy, assess support for IPv6 atomic fragments, etc.
+
+.B icmp6
+is a security assessment tool for the ICMPv6 protocol. It can easily produce arbitrary ICMPv6 error messages, and includes the capability to generate such messages in response to received traffic. 
+.B icmp6
+can also be used to send crafted ICMPv6 messages of arbitrary type/code combinations.
+
+.B jumbo6
+is a secuity assessment tool for IPv6 Jumbograms.
+
+.B na6
+is a security assessment tool for attack vectors based on Neighbor Advertisement messages (including Neighbor Cache poisoning attacks, DAD attacks, etc.).
+
+.B ni6
+is a security assessment tool for attacks vectors and reconnaissance techniques based on ICMPv6 Node Information messages.
+
+.B ns6
+is a security assessment tool for attack vectors based on Neighbor Solicitation messages (including Neighbor Cache poisoning attacks, Neighbor Cahe exhaustion attacks, etc.).
+
+.B ra6
+is a security assessment tool for attack vectors based on Router Advertisement messages (including various types of fooding attacks, man-in-the-middle attacks, and Denial of Service attacks, etc.).
+
+.B rd6
+is a security assessment tool for attack vectors based on ICMPv6 Redirect messages.  It can easily produce arbitrary ICMPv6 Redirect messages, and also includes the capability to generate such messages in response to received traffic. 
+
+.B rs6
+is a security assessment tool for attack vectors based on Router Solicitation messages.
+
+.B scan6
+is a full-fledged IPv6 address scanning tool, which can leverage specific IPv6 address patterns to greatly reduce the search space for "alive" nodes.
+
+.B tcp6
+is a security assessment tool for attack vectors based on TCP/IPv6 packets. It can be easily employed to lauch classic TCP-based attacks such as SYN-floods, but can also be employed to launch other more complex attacks such as TCO connection floods, etc.
+
+
+.SH SEE ALSO
+.BR ipv6toolkit.conf (5),
+.BR addr6 (1),
+.BR flow6 (1),
+.BR frag6 (1),
+.BR icmp6 (1),
+.BR jumbo6 (1),
+.BR na6 (1),
+.BR ni6 (1),
+.BR ns6 (1),
+.BR ra6 (1),
+.BR rd6 (1),
+.BR rs6 (1),
+.BR scan6 (1),
+.BR tcp6 (1)
+
+.SH AUTHOR
+The SI6 Networks' IPv6 Toolkit and the corresponding manual pages were produced by Fernando Gont 
+.I <fgont@si6networks.com>
+for SI6 Networks 
+.IR <http://www.si6networks.com> .
+
+.SH COPYRIGHT
+Copyright (c) 2011-2013 Fernando Gont.
+
+Permission is granted to copy, distribute and/or modify this document under the terms of the GNU Free Documentation License, Version 1.3 or any later version published by the Free Software Foundation; with the Invariant Sections being just "AUTHOR" and "COPYRIGHT", with no Front-Cover Texts, and with no Back-Cover Texts.  A copy of the license is available at
+.IR <http://www.gnu.org/licenses/fdl.html> .
