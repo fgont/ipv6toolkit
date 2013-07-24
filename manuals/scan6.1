@@ -13,7 +13,7 @@ scan6 \- An IPv6 host scanner
 .RB [\| \-r \|]
 .RB [\| \-S
 .IR LINK_SRC_ADDR
-| -R\|]
+| \-R\|]
 .RB [\| \-p
 .IR PROBE_TYPE \|]
 .RB [\| \-P
@@ -119,7 +119,7 @@ scan6 employs a number of bran-new techniques for performing address scans of re
 .sp
 .RS 4
 .nf
-\+ SLAAC addresses of specific vendors: Adresses that embedd the MAC
+\+ SLAAC addresses of specific vendors: Addresses that embedd the MAC
 \  address of the corresponding network interface card.
 
 \+ virtual host addresses: Most virtualization technologies select 
@@ -130,21 +130,21 @@ scan6 employs a number of bran-new techniques for performing address scans of re
 \  lowest order) word of the IID contains a small integer (with the
 \  rest of the words being set to zero)
 
-\+ IPv4-based addresses: in which the IID encodes the IPv4-address 
+\+ IPv4\-based addresses: in which the IID encodes the IPv4\-address 
 \  of the network interface (as in 2001:db8::192.168.1.1)
 .fi
 .RE
 
-A thorough discussion of these address patterns can be found in: <http://tools.ietf.org/html/draft-ietf-opsec-ipv6-host-scanning>.
+A thorough discussion of these address patterns can be found in: <http://tools.ietf.org/html/draft-ietf-opsec-ipv6\-host-scanning>.
 
 \fBHOST TRACKING\fR
 
 .B scan6
 can be employed to track IPv6 nodes across networks. Since IPv6 StateLess Address Auto-Configuration (SLAAC) typically results in globally-unique Interface Identifiers (IIDs) that are constant across networks, such identifiers can be leveraged to track nodes across a range of "known" networks, by periodically probing the IPv6 address composed of the IPv6 prefix of the target network, and the (known) Interface ID of the target node.
 
-For host-tracking purposes, the target networks can be specified with the '-d' and/or '-m' options, while the target Interface IDs can be specified with the '-w' and/or the '-W' options (see the documentation of each option for further information).
+For host-tracking purposes, the target networks can be specified with the '\-d' and/or '\-m' options, while the target Interface IDs can be specified with the '\-w' and/or the '\-W' options (see the documentation of each option for further information).
 
-Since for tracking purposes one will continually track the user across networks, the '-l' option will typically be set. Additionally, the '-z' option may be used to specify the number of seconds to sleep between iterations (i.e. each round of probes send to the specified targets). The value specified by the '-z' option represents a trade-off between time-liness of the tracking and bandwidth-consumption.
+Since for tracking purposes one will continually track the user across networks, the '\-l' option will typically be set. Additionally, the '\-z' option may be used to specify the number of seconds to sleep between iterations (i.e. each round of probes send to the specified targets). The value specified by the '\-z' option represents a trade-off between time-liness of the tracking and bandwidth-consumption.
 
 IPv6 host-tracking is discussed in detail in Appendix A of <http://tools.ietf.org/html/draft-ietf-6man-stable-privacy-addresses>.
 
@@ -167,7 +167,7 @@ If this option is left unspecified, the addresses currently configured for the s
 .TP
 .BI \-d\  DST_ADDRESS ,\ \-\-dst\-address\  DST_ADDRESS 
 
-This option specifies the target address prefix/range of the address scan. An IPv6 prefix can be specified in the form 2001:db8::/64, or as 2001:db8:a-b:1-10 (where specific address ranges are specified for the two low order 16-bit words). This option must be specified for remote address scanning attacks.
+This option specifies the target address prefix/range of the address scan. An IPv6 prefix can be specified in the form 2001:db8::/64, or as 2001:db8:a-b:1\-10 (where specific address ranges are specified for the two low order 16\-bit words). This option must be specified for remote address scanning attacks.
 
 .TP
 .BI \-S\  SRC_LINK_ADDR ,\ \-\-link\-src\-address\  SRC_LINK_ADDR
@@ -193,12 +193,12 @@ This option specifies the payload size of the probe packet. It defaults to 0 for
 .TP
 .BI \-o\  SRC_PORT ,\ \-\-src\-port\  SRC_PORT
 
-This option specifies the TCP/UDP Source Port. If left unspecified, the Source Port is randomized from the range 1024-65535.
+This option specifies the TCP/UDP Source Port. If left unspecified, the Source Port is randomized from the range 1024\-65535.
 
 .TP
 .BI \-a\   DST_PORT ,\ \-\-dst\-port\  DST_PORT
 
-This option specifies the TCP/UDP Destination Port. If left unspecified, the Destination Port is randomized from the range 1-1024.
+This option specifies the TCP/UDP Destination Port. If left unspecified, the Destination Port is randomized from the range 1\-1024.
 
 .TP
 .BI \-X\   TCP_FLAGS ,\ \-\-tcp\-flags\  TCP_FLAGS
@@ -248,7 +248,7 @@ Note: this option might be useful when scanning hosts on long-delay links.
 .TP
 .BR \-L ,\  \-\-local
 
-This option specifies that host scanning should be performed on the local subnet. The type of probe packets to be used can be specified with the “-p” option.
+This option specifies that host scanning should be performed on the local subnet. The type of probe packets to be used can be specified with the “\-p” option.
 
 .TP
 .BR \-r\| ,\  \-\-rand\-src\-addr
@@ -263,17 +263,17 @@ This option specifies that the Ethernet Source Address should be randomized.
 .TP
 .BI \-V\  VM_TYPE ,\ \-\-tgt-virtual\-machines\  VM_TYPE
 
-This option specifies that the target is virtual machines. Possible options are: 'vbox' (VirtualBox), 'vmware' (vmware), and 'all' (both VirtualBox and vmware). When this option is specified, scan6 can narrow dow the search space by targetting only those IEEE OUIs employed by the aforementioned virtualization software. Note: For vmware, the search space can be further reduced if the '--ipv4-host' option is specified.
+This option specifies that the target is virtual machines. Possible options are: 'vbox' (VirtualBox), 'vmware' (vmware), and 'all' (both VirtualBox and vmware). When this option is specified, scan6 can narrow dow the search space by targeting only those IEEE OUIs employed by the aforementioned virtualization software. Note: For vmware, the search space can be further reduced if the '\-\-ipv4\-host' option is specified.
 
 .TP
 .BR \-b\| ,\  \-\-tgt\-low-byte
 
-This option specifies that the target is IPv6 nodes employing “low-byte” addresses. Low byte addresses are generated by concatenating the IPv6 prefix specified by the "-d" option with an Interface I-D of the form "0:0:0-100:0-1500".
+This option specifies that the target is IPv6 nodes employing “low-byte” addresses. Low byte addresses are generated by concatenating the IPv6 prefix specified by the "\-d" option with an Interface I-D of the form "0:0:0\-100:0\-1500".
 
 .TP
 .BR \-B\| ,\  \-\-tgt\-ipv4\-embedded
 
-This option specifies that the target is IPv6 addresses that embed an IPv4 address. When this option is set, a prefix should be specified with the '--ipv4-host' option, such that the search space is reduced.
+This option specifies that the target is IPv6 addresses that embed an IPv4 address. When this option is set, a prefix should be specified with the '\-\-ipv4\-host' option, such that the search space is reduced.
 
 .TP
 .BR \-g\| ,\  \-\-tgt\-port\-embedded
@@ -295,7 +295,7 @@ This option specifies that the target is IPv6 addresses that embed service ports
         220 (imap3)
         389 (ldap)
         443 (https)
-        547 (dhcpv6-server)
+        547 (dhcpv6\-server)
         993 (imaps)
         995 (pop3s)
        1194 (openvpn)
@@ -310,13 +310,13 @@ This option specifies that the target is IPv6 addresses that embed service ports
 .RE
       Note: The target IPv6 addresses are generated by concatenating 
       the service port to an IPv6 prefix/range specified by means of
-      the "-d" option. For each service port, four target address
+      the "\-d" option. For each service port, four target address
       ranges will be generated:
 
-         * PREFIX::0-5:HEX_PORT,
-         * PREFIX::HEX_PORT:0-5,
-         * PREFIX::0-5:DEC_PORT, and,
-         * PREFIX::DEC_PORT:0-5
+         * PREFIX::0\-5:HEX_PORT,
+         * PREFIX::HEX_PORT:0\-5,
+         * PREFIX::0\-5:DEC_PORT, and,
+         * PREFIX::DEC_PORT:0\-5
 
       That is, IPv6 address ranges will be generated with both the
       service port in hexadecimal notation, and the service port in
@@ -324,7 +324,7 @@ This option specifies that the target is IPv6 addresses that embed service ports
       in the wild.
 
 .TP
-.BI -k\  IEEE_OUI ,\ \-\-tgt\-ieee\-oui\  IEEE_OUI
+.BI \-k\  IEEE_OUI ,\ \-\-tgt\-ieee\-oui\  IEEE_OUI
 
 This option is used to specify an IEEE OUI, such that the target of the scan is SLAAC addresses that employ the aforementioned IEEE OUI.
 
@@ -336,7 +336,7 @@ This option allows the user to specify a vendor name. scan6 will look-up all the
 .TP
 .BI \-m\  PREFIXES_FILE ,\ \-\-prefixes\-file\  PREFIXES_FILE
 
-This option specifies the name of a file containing a list of IPv6 addresses and/or IPv6 prefixes, one per line, in the same format as that used with the '-d' option. Note: The file can contain comments if they are preceded with the numeral sign ('#'), as in:
+This option specifies the name of a file containing a list of IPv6 addresses and/or IPv6 prefixes, one per line, in the same format as that used with the '\-d' option. Note: The file can contain comments if they are preceded with the numeral sign ('#'), as in:
 
         IPv6_address/len      # comment
         # comment
@@ -345,26 +345,28 @@ This option specifies the name of a file containing a list of IPv6 addresses and
 .TP
 .BI \-w\  IIDS_FILE ,\ \-\-tgt\-iids\-file\  IIDS_FILE
 
-This option specifies the name of a file containing one IPv6 address per line. The Interface ID of each of those IPv6 addresses will be employed, together with the network prefix specified with the '-d' option, to construct the IPv6 addresses to be probed. Since auto-configured addresses typically employ Interface IDs that are constant across networks, this option can leverage known IIDs to track such nodes across networks. Please see <http://tools.ietf.org/html/draft-ietf-6man-stable-privacy-addresses> for further details. Note: The file can contain comments if they are preceded with the numeral sign ('#'), as in:
+This option specifies the name of a file containing one IPv6 address per line. The Interface ID of each of those IPv6 addresses will be employed, together with the network prefix specified with the '\-d' option, to construct the IPv6 addresses to be probed. Since auto-configured addresses typically employ Interface IDs that are constant across networks, this option can leverage known IIDs to track such nodes across networks. Please see <http://tools.ietf.org/html/draft-ietf-6man-stable-privacy-addresses> for further details. Note: The file can contain comments if they are preceded with the numeral sign ('#'), as in:
 
         IPv6_address      # comment
 
 .TP
 .BI \-W\  IID ,\ \-\-tgt\-iid\  IID
 
-This option specifies an IPv6 Interface Identifier (IID), with the same syntax as that of an IPv6 address (only the lowest-order 64 bits of the address will be employed). The specified Interface ID will be employed, together with the any network prefixes specified with the '-d' option (or with the '-m' option), to construct the IPv6 addresses to be probed. Since auto-configured addresses typically employ Interface IDs that are constant across networks, this option can leverage known IIDs to track such nodes across networks. Please see <http://tools.ietf.org/html/draft-ietf-6man-stable-privacy-addresses> for further details. Note: The file can contain comments if they are preceded with the numeral sign ('#'), as in:
+.nf
+This option specifies an IPv6 Interface Identifier (IID), with the same syntax as that of an IPv6 address (only the lowest-order 64 bits of the address will be employed). The specified Interface ID will be employed, together with the any network prefixes specified with the '\-d' option (or with the '\-m' option), to construct the IPv6 addresses to be probed. Since auto-configured addresses typically employ Interface IDs that are constant across networks, this option can leverage known IIDs to track such nodes across networks. Please see <http://tools.ietf.org/html/draft-ietf-6man-stable-privacy-addresses> for further details. Note: The file can contain comments if they are preceded with the numeral sign ('#'), as in:
+.fi
 
         IPv6_address      # comment
 
 .TP
 .BR \-T ,\  \-\-sort\-ouis 
 
-This option, when used in conjunction with the “--tgt-vendor” option, tells the scan6 tool to “sort” the IEEE OUIs corresponding to a vendor. Namely, OUIs are employed in descending order, with the largest OUI used last (together with the smallest OUI). The rationale for this option is that when a vendor has been assigned multiple OUIs, chances are that the smaller (and “oldest”) OUI was used for devices that have already been put “out of service”, while the largest (and “newest”) OUI has probably not yet been used for deployed devices.
+This option, when used in conjunction with the “\-\-tgt\-vendor” option, tells the scan6 tool to “sort” the IEEE OUIs corresponding to a vendor. Namely, OUIs are employed in descending order, with the largest OUI used last (together with the smallest OUI). The rationale for this option is that when a vendor has been assigned multiple OUIs, chances are that the smaller (and “oldest”) OUI was used for devices that have already been put “out of service”, while the largest (and “newest”) OUI has probably not yet been used for deployed devices.
 
 .TP
 .BI \-Q\  PREFIX/LEN ,\ \-\-ipv4\-host\  PREFIX/LEN
 
-This option allows the user to specify an IPv4 prefix. The aforementioned prefix is employed with the “--tgt-virtual-machines” and/or “--tgc-ipv4-embeded” options to reduce the search space.
+This option allows the user to specify an IPv4 prefix. The aforementioned prefix is employed with the “\-\-tgt\-virtual\-machines” and/or “\-\-tgc\-ipv4\-embeded” options to reduce the search space.
 
 .TP
 .BI \-I\  INC_SIZE ,\ \-\-inc\-size\  INC_SIZE
@@ -386,7 +388,7 @@ This option specifies that the tool should periodically loop through the specifi
 .TP
 .BI \-z\  SECONDS ,\ \-\-sleep\  SECONDS
 
-This option specifies the amount of time (in seconds) that the tool should sleep in-between iterations over the specified targets. It is only meaningful when the '-l' option is set.
+This option specifies the amount of time (in seconds) that the tool should sleep in-between iterations over the specified targets. It is only meaningful when the '\-l' option is set.
 
 .TP
 .BI \-c\  CONFIG_FILE ,\ \-\-config-file\  CONFIG_FILE
@@ -413,74 +415,76 @@ tool.
 
 \fBExample #1\fR
 
-# ./scan6 -i eth0 -L -e -v
+# ./scan6 \-i eth0 \-L \-e \-v
 
-Perform host scanning on the local network (“-L” option) using interface “eth0” (“-i” option). Use both ICMPv6 echo requests and unrecognized IPv6 options of type 10xxxxxx (default). Print link-link layer addresses along with IPv6 addresses (“-e” option). Be verbose (“-v” option).
+Perform host scanning on the local network (“\-L” option) using interface “eth0” (“\-i” option). Use both ICMPv6 echo requests and unrecognized IPv6 options of type 10xxxxxx (default). Print link-link layer addresses along with IPv6 addresses (“\-e” option). Be verbose (“\-v” option).
 
 
 \fBExample #2\fR
 
-# ./scan6 -i eth0 -d 2001:db8::/64 --tgt-virtual-machines all –ipv4-host 10.10.10.0/24
+# ./scan6 \-i eth0 \-d 2001:db8::/64 \-\-tgt\-virtual\-machines all –ipv4\-host 10.10.10.0/24
 
-Use the “eth0” interface (“-i” option) to scan for virtual machines (both VirtualBox and vmware) in the prefix 2001:db8::/64. The additional information about the IPv4 prefix employed by the host system is leveraged to reduce the search space.
+Use the “eth0” interface (“\-i” option) to scan for virtual machines (both VirtualBox and vmware) in the prefix 2001:db8::/64. The additional information about the IPv4 prefix employed by the host system is leveraged to reduce the search space.
 
 \fBExample #3\fR
 
-# ./scan6 -i eth0 -d 2001:db8::/64 --tgt-ipv4-embedded --ipv4-host 10.10.10.0/24
+# ./scan6 \-i eth0 \-d 2001:db8::/64 \-\-tgt\-ipv4\-embedded \-\-ipv4\-host 10.10.10.0/24
 
-Use the “eth0” interface (“-i” option) to scan for IPv6 addresses of the network 2001:db8::/64 that embed the IPv4 prefix 10.10.10.0/24.
+Use the “eth0” interface (“\-i” option) to scan for IPv6 addresses of the network 2001:db8::/64 that embed the IPv4 prefix 10.10.10.0/24.
 
 \fBExample #4\fR
 
-# ./scan6 -i eth0 -d 2001:db8:0-500:0-1000
+# ./scan6 \-i eth0 \-d 2001:db8:0\-500:0\-1000
 
-Use the “eth0” interface (“-i” option) to scan for IPv6 addresses of the network 2001:db8::/64, varying the two lowest order 16-bit words of the addresses in the range 0-500 and 0-1000, respectively.
+Use the “eth0” interface (“\-i” option) to scan for IPv6 addresses of the network 2001:db8::/64, varying the two lowest order 16\-bit words of the addresses in the range 0\-500 and 0\-1000, respectively.
 
 \fBExample #5\fR
 
-# ./scan6 -i eth0 -d fc00::/64 --tgt-vendor 'Dell Inc' -p tcp
+# ./scan6 \-i eth0 \-d fc00::/64 \-\-tgt\-vendor 'Dell Inc' \-p tcp
 
 Use the “eth0” interface to scan for network devices manufactured by 'Dell Inc' in the target prefix fc00::/64. The tool will employ TCP segments as the probe packets (rather than the default ICMPv6 echo requests).
 
 \fBExample #6\fR
 
-# scan6 -i eth0 -L -S 66:55:44:33:22:11 -p unrec -P global -v
+# scan6 \-i eth0 \-L \-S 66:55:44:33:22:11 \-p unrec \-P global \-v
 
-Use the “eth0” interface (“-i” option) to perform host-scanning on the local network (“-L” option). The Ethernet Source Address is set to “66:55:44:33:22:11” (“-S” option). The probe packets will be IPv6 packets with unrecognized options of type 10xxxxxx (“-p” option). The tool will only print IPv6 global addresses (“-P” option). The tool will be verbose.
+Use the “eth0” interface (“\-i” option) to perform host-scanning on the local network (“\-L” option). The Ethernet Source Address is set to “66:55:44:33:22:11” (“\-S” option). The probe packets will be IPv6 packets with unrecognized options of type 10xxxxxx (“\-p” option). The tool will only print IPv6 global addresses (“\-P” option). The tool will be verbose.
 
 \fBExample #7\fR
 
-# scan6 -i eth0 -d 2001:db8::/64 -w KNOWN_IIDS
+# scan6 \-i eth0 \-d 2001:db8::/64 \-w KNOWN_IIDS
 
-Use the “eth0” interface (“-i” option) to perform an address scan of a set of known hosts listed in the file KNOWN_IIDS, at remote network 2001:db8::/64. The target addresses are obtaining by concatenating the network prefix 2001:db8::/64 with the interface IDs of each of the addresses fund in the file KNOWN_IIDS.
+Use the “eth0” interface (“\-i” option) to perform an address scan of a set of known hosts listed in the file KNOWN_IIDS, at remote network 2001:db8::/64. The target addresses are obtaining by concatenating the network prefix 2001:db8::/64 with the interface IDs of each of the addresses fund in the file KNOWN_IIDS.
 
 \fBExample #8\fR
 
-# scan6 -i eth0 -L -P global --print-unique -e
+# scan6 \-i eth0 \-L \-P global \-\-print\-unique \-e
 
-Use the “eth0” interface (“-i” option) to perform host-scanning on the local network (“-L” option). Print only global unicast addresses (“-P” option), and at most one IPv6 address per Ethernet address (“--print-unique” option). Ethernet addresses will be printed along with the corresponiding IPv6 address (“-e” option).
+Use the “eth0” interface (“\-i” option) to perform host-scanning on the local network (“\-L” option). Print only global unicast addresses (“\-P” option), and at most one IPv6 address per Ethernet address (“\-\-print\-unique” option). Ethernet addresses will be printed along with the corresponiding IPv6 address (“\-e” option).
 
 \fBExample #9\fR
 
-# scan6 -i eth0 -m knownprefixes.txt -w knowniids.txt -l -z 60 -t -v
+# scan6 \-i eth0 \-m knownprefixes.txt \-w knowniids.txt \-l \-z 60 \-t \-v
 
-Use the “eth0” interface (“-i” option). Build the list of targets from the IPv6 prefixes contained in the file 'knownprefixes.txt' and the Interface IDs (IIDs) contained in the file 'knowniids.txt'. Poll the targets periodically ("-l" option), and sleep 60 seconds after each iteration ("-z" option). Print a timestamp along the IPv6 address of each alive node ("-t" option). Be verbose ("-v" option).
+Use the “eth0” interface (“\-i” option). Build the list of targets from the IPv6 prefixes contained in the file 'knownprefixes.txt' and the Interface IDs (IIDs) contained in the file 'knowniids.txt'. Poll the targets periodically ("\-l" option), and sleep 60 seconds after each iteration ("\-z" option). Print a timestamp along the IPv6 address of each alive node ("\-t" option). Be verbose ("\-v" option).
 
 
 .SH SEE ALSO
 .BR ipv6toolkit.conf (5)
 
-draft-ietf-opsec-ipv6-host-scanning (available at: 
-.IR <http://tools.ietf.org/html/draft-ietf-opsec-ipv6-host-scanning> )
+draft-ietf-opsec-ipv6\-host-scanning (available at: 
+.IR <http://tools.ietf.org/html/draft-ietf-opsec-ipv6\-host-scanning> )
 for a discussion of the IPv6 host-tracking technique implemented by
 .B scan6
 , and a proposal on how to mitigate such attacks.
 
+.nf
 draft-ietf-6man-stable-privacy-addresses (available at: 
 .IR <http://tools.ietf.org/html/draft-ietf-6man-stable-privacy-addresses> )
 for a discussion of the scanning techniques implemented by
 .B scan6
 , and a discussion of a number of aspects that should be taken into account when performing address scanning of remote networks.
+.fi
 
 RFC 6583 (available at 
 .IR <http://www.rfc-editor.org/rfc/rfc6583.txt> )
@@ -495,7 +499,7 @@ for SI6 Networks
 .IR <http://www.si6networks.com> .
 
 .SH COPYRIGHT
-Copyright (c) 2011-2013 Fernando Gont.
+Copyright (c) 2011\-2013 Fernando Gont.
 
 Permission is granted to copy, distribute and/or modify this document under the terms of the GNU Free Documentation License, Version 1.3 or any later version published by the Free Software Foundation; with the Invariant Sections being just "AUTHOR" and "COPYRIGHT", with no Front-Cover Texts, and with no Back-Cover Texts.  A copy of the license is available at
 .IR <http://www.gnu.org/licenses/fdl.html> .
