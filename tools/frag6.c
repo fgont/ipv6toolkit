@@ -1365,6 +1365,7 @@ int main(int argc, char **argv){
 		start= time(NULL); 
 
 		while(1){
+printf("Este codigo\n");
 			curtime=time(NULL);
 
 			if(!loop_f && ((curtime - start) >= QUERY_TIMEOUT || (!resp_f && lastfrag != 0))){
