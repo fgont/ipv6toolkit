@@ -1,14 +1,45 @@
 #
 # SI6 Networks' IPv6 toolkit Makefile
 #
+# Notes to package developers:
+#
+# By default, binaries will be installed in /usr/local/bin, manual pages in
+# /usr/local/man, data files in /usr/local/share/ipv6toolkit, and configuration
+# files in /etc
+#
+# The path of the binaries and data files can be overriden by setting "PREFIX"
+# variable accordingly. The path of the manual pages can be overriden by setting
+# the MANPREFIX variable. Typically, packages will set these variables as follows:
+#
+# PREFIX=usr/
+# MANPREFIX=usr/share
+#
+# Finally, please note that this makefile supports the DESTDIR variable, as 
+# typically employed by package developers.
+
+
 CC= gcc
 CFLAGS+= -Wall
 LDFLAGS+= -lpcap -lm
+
+.ifndef(PREFIX)
+PREFIX=usr/local/
+.ifndef(MANPREFIX)
+MANPREFIX=usr/local/
+.endif
+.else
+.ifndef(MANPREFIX)
+MANPREFIX=usr/share/
+.endif
+.endif 
+
 ETCPATH= $(DESTDIR)/etc
-MANPATH= $(DESTDIR)/usr/share/man
-DATAPATH= $(DESTDIR)/usr/share
-BINPATH= $(DESTDIR)/usr/bin
+MANPATH= $(DESTDIR)/$(MANPREFIX)man
+DATAPATH= $(DESTDIR)/$(PREFIX)share/ipv6toolkit
+BINPATH= $(DESTDIR)/$(PREFIX)bin
 SRCPATH= tools
+
+
 TOOLS= addr6 flow6 frag6 icmp6 jumbo6 na6 ni6 ns6 ra6 rd6 rs6 scan6 tcp6
 
 all: $(TOOLS)
@@ -64,14 +95,16 @@ install: all
 	install -m0644 data/ipv6toolkit.conf $(ETCPATH)
 
 	# Install the IEEE OUI database
-	install -m0755 -d $(DATAPATH)/ipv6toolkit
-	install -m0644 data/oui.txt $(DATAPATH)/ipv6toolkit
+	install -m0755 -d $(DATAPATH)
+	install -m0644 data/oui.txt $(DATAPATH)
 
 	# Install the manual pages
 	install -m0755 -d $(MANPATH)/man1
 	install -m0644 manuals/*.1 $(MANPATH)/man1
 	install -m0755 -d $(MANPATH)/man5
 	install -m0644 manuals/*.5 $(MANPATH)/man5
+	install -m0755 -d $(MANPATH)/man7
+	install -m0644 manuals/*.7 $(MANPATH)/man7
 
 uninstall:
 	# Remove the binaries
@@ -93,7 +126,7 @@ uninstall:
 	rm -f $(ETCPATH)/ipv6toolkit.conf
 
 	# Remove the IEEE OUI database
-	rm -rf $(DATAPATH)/ipv6toolkit
+	rm -rf $(DATAPATH)
 
 	# Remove the manual pages
 	rm -f $(MANPATH)/man1/addr6.1
@@ -110,4 +143,5 @@ uninstall:
 	rm -f $(MANPATH)/man1/scan6.1
 	rm -f $(MANPATH)/man1/tcp6.1
 	rm -f $(MANPATH)/man5/ipv6toolkit.conf.5
+	rm -f $(MANPATH)/man7/ipv6toolkit.7
 
