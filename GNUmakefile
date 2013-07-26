@@ -94,7 +94,6 @@ clean:
 	rm -f data/ipv6toolkit.conf
 
 install: all
-# GNU make
 	# Install the binaries
 	install -m0755 -d $(BINPATH)
 	install -m0755 $(TOOLS) $(BINPATH)
