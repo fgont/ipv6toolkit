@@ -23,26 +23,26 @@ CFLAGS+= -Wall
 LDFLAGS+= -lpcap -lm
 
 .ifndef(PREFIX)
-PREFIX=usr/local/
+PREFIX=/usr/local
 .ifndef(MANPREFIX)
-MANPREFIX=usr/local/
+MANPREFIX=/usr/local
 .endif
 .else
 .ifndef(MANPREFIX)
-MANPREFIX=usr/share/
+MANPREFIX=/usr/share
 .endif
 .endif 
 
 ETCPATH= $(DESTDIR)/etc
-MANPATH= $(DESTDIR)/$(MANPREFIX)man
-DATAPATH= $(DESTDIR)/$(PREFIX)share/ipv6toolkit
-BINPATH= $(DESTDIR)/$(PREFIX)bin
+MANPATH= $(DESTDIR)$(MANPREFIX)/man
+DATAPATH= $(DESTDIR)$(PREFIX)/share/ipv6toolkit
+BINPATH= $(DESTDIR)$(PREFIX)/bin
 SRCPATH= tools
 
 
 TOOLS= addr6 flow6 frag6 icmp6 jumbo6 na6 ni6 ns6 ra6 rd6 rs6 scan6 tcp6
 
-all: $(TOOLS)
+all: $(TOOLS) ipv6toolkit.conf
 
 addr6: $(SRCPATH)/addr6.c $(SRCPATH)/addr6.h $(SRCPATH)/ipv6toolkit.h
 	$(CC) $(CPPFLAGS) $(CFLAGS) -o addr6 $(SRCPATH)/addr6.c $(LDFLAGS) 
@@ -83,8 +83,15 @@ scan6: $(SRCPATH)/scan6.c $(SRCPATH)/scan6.h $(SRCPATH)/ipv6toolkit.h
 tcp6: $(SRCPATH)/tcp6.c $(SRCPATH)/tcp6.h $(SRCPATH)/ipv6toolkit.h
 	$(CC) $(CPPFLAGS) $(CFLAGS) -o tcp6 $(SRCPATH)/tcp6.c $(LDFLAGS)
 
+ipv6toolkit.conf:
+	echo "# SI6 Networks' IPv6 Toolkit Configuration File" > \
+           data/ipv6toolkit.conf
+	echo OUI-Database=$(PREFIX)/share/ipv6toolkit/oui.txt >> \
+           data/ipv6toolkit.conf 
+
 clean: 
 	rm -f $(TOOLS)
+	rm -f data/ipv6toolkit.conf
 
 install: all
 	# Install the binaries
