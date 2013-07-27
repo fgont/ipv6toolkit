@@ -261,7 +261,8 @@ char					vendor[MAX_IEEE_OUIS_LINE_SIZE];
 unsigned int			nsleep;
 int						sel;
 fd_set					sset, rset, wset, eset;
-struct timeval			curtime, lastprobe;
+struct timeval			curtime, pcurtime, lastprobe;
+struct tm				pcurtimetm;
 u_int16_t				service_ports_hex[]={0x21, 0x22, 0x23, 0x25, 0x49, 0x53, 0x80, 0x110, 0x123, 0x179, 0x220, 0x389, \
 						                 0x443, 0x547, 0x993, 0x995, 0x1194, 0x3306, 0x5060, 0x5061, 0x5432, 0x6446, 0x8080};
 u_int16_t				service_ports_dec[]={21, 22, 23, 25, 49, 53, 80, 110, 123, 179, 220, 389, \
@@ -279,7 +280,7 @@ int main(int argc, char **argv){
 	gid_t			rgid;
 	struct passwd	*pwdptr;
 	struct timeval	timeout;
-	char			date[30];
+	char			date[DATE_STR_LEN];
 
 	static struct option longopts[] = {
 		{"interface", required_argument, 0, 'i'},
@@ -1758,8 +1759,27 @@ int main(int argc, char **argv){
 								}
 
 								if(timestamps_f){
-									ctime_r(&(curtime.tv_sec), date);
-									date[24]=0;
+									if(gettimeofday(&pcurtime, NULL) == -1){
+										if(verbose_f)
+											perror("scan6");
+
+										exit(1);
+									}
+
+									if(localtime_r( (time_t *) &(pcurtime.tv_sec), &pcurtimetm) == NULL){
+										if(verbose_f>1)
+											puts("localtime_r(): Error obtaining local time.");
+
+										exit(1);
+									}
+
+									if(strftime(date, DATE_STR_LEN, "%a %b %d %T %Y", &pcurtimetm) == 0){
+										if(verbose_f>1)
+											puts("strftime(): Error converting current time to text");
+
+										exit(1);
+									}
+
 									printf("%s (%s)\n", pv6addr, date);
 								}
 								else{
@@ -1791,8 +1811,27 @@ int main(int argc, char **argv){
 						}
 
 						if(timestamps_f){
-							ctime_r(&(curtime.tv_sec), date);
-							date[24]=0;
+							if(gettimeofday(&pcurtime, NULL) == -1){
+								if(verbose_f)
+									perror("scan6");
+
+								exit(1);
+							}
+
+							if(localtime_r((time_t *) &(pcurtime.tv_sec), &pcurtimetm) == NULL){
+								if(verbose_f>1)
+									puts("localtime_r(): Error obtaining local time.");
+
+								exit(1);
+								}
+
+							if(strftime(date, DATE_STR_LEN, "%a %b %d %T %Y", &pcurtimetm) == 0){
+								if(verbose_f>1)
+									puts("strftime(): Error converting current time to text");
+
+								exit(1);
+							}
+
 							printf("%s (%s)\n", pv6addr, date);
 						}
 						else{
