@@ -731,6 +731,8 @@ int main(int argc, char **argv){
 	if(!floodf_f)
 		nfrags=1;
 
+	if(!forder_f)
+		forder= MIDDLE_FRAGMENT;
 
 	/* Assess the Fragment Reassembly policy */
 	if(fragp_f){
@@ -1365,7 +1367,6 @@ int main(int argc, char **argv){
 		start= time(NULL); 
 
 		while(1){
-printf("Este codigo\n");
 			curtime=time(NULL);
 
 			if(!loop_f && ((curtime - start) >= QUERY_TIMEOUT || (!resp_f && lastfrag != 0))){
@@ -1377,9 +1378,17 @@ printf("Este codigo\n");
 
 				frags=0;
 
+				if(!foffset_f){
+					foffset= random();
+				}
+
+				if(forder != LAST_FRAGMENT){
+					foffset= (foffset >> 3) << 3;
+				}
+
 				while(frags < nfrags){
-					if(send_fragment(fid_f?fid:random(), foffset_f?foffset:random(), \
-									fsize_f?fsize:( ((MIN_FRAG_SIZE+(random()%400))>>3)<<3), forder, tstamp_f) == -1){
+					if(send_fragment(fid_f?fid:random(), foffset, fsize_f?fsize:( ((MIN_FRAG_SIZE+(random()%400))>>3)<<3), \
+						forder, tstamp_f) == -1){
 
 						puts("Error sending packet");
 						exit(1);
