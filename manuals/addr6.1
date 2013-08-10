@@ -5,16 +5,41 @@ addr6 \- An IPv6 address analysis and manipulation tool
 .B addr6
 .RB [\| \-a
 .IR IPV6_ADDR\| \ \-i]
-.RB [\| \-q \|]
 .RB [\| \-d \|]
+.RB [\| \-q \|]
 .RB [\| \-s \|]
+.RB [\| \-j
+.IR PREFIX \|]
+.RB [\| \-b
+.IR TYPE \|]
+.RB [\| \-k
+.IR SCOPE \|]
+.RB [\| \-w
+.IR UNICAST_TYPE \|]
+.RB [\| \-g
+.IR IID_TYPE \|]
+.RB [\| \-J
+.IR PREFIX \|]
+.RB [\| \-B
+.IR TYPE \|]
+.RB [\| \-K
+.IR SCOPE \|]
+.RB [\| \-W
+,IR UNICAST_TYPE \|]
+.RB [\| \-G
+.IR IID_TYPE \|]
 .RB [\| \-v \|]
 .RB [\| \-h \|]
 
 
 .SH DESCRIPTION
 .B addr6
-is an IPv6 address analysis tool tool. It can employed identify the address type/scope, and infer the type of Interface ID employed by an IPv6 address. Additionally, the tool can filter lists of IPv6 addresses to eliminate duplicates, and can also produce statistics about a set of IPv6 addresses.
+is an IPv6 address analysis tool tool. It can employed identify the address type/scope, and infer the type of Interface ID employed by an IPv6 address. Additionally, 
+.B addr6
+can also produce statistics about a set of IPv6 addresses.
+
+.B addr6
+can filter lists of IPv6 addresses based on a number of criteria (address type, address scope, prefixes, duplicate addresses, etc.). There are two types of filters: “block filters” and “accept filters”. If any “block filter” is specified, and IPv6 addresses matching any of those filters will be discarded. If any “accept filter” is specified, any IPv6 address matching that filter will be accepted (and printed on stdout).
 
 .SH OPTIONS
 .B addr6
@@ -30,6 +55,141 @@ This option ca be employed to specify a single IPv6 address that is meant to be 
 .BR \-i ,\  \-\-stdin
 
 This option request the tool to read IPv6 addresses from standard input (stdin), until an EOF (End-Of-File) condition is found.
+
+
+
+.TP
+.BI \-j\  PREFIX ,\ \-\-address\  PREFIX
+
+Accept IPv6 addresses belonging to the specified IPv6 prefix (PREFIX/LEN).
+
+
+.TP
+.BI \-b\  TYPE ,\ \-\-address\  TYPE
+
+Accept IPv6 addresses belonging to the specified address type. Valid address types are:
+
+  * unicast
+  * unspec
+  * multicast
+
+
+.TP
+.BI \-k\  SCOPE ,\ \-\-address\  SCOPE
+
+Accept IPv6 addresses belonging to the specified address scope. Valid address scopes are:
+
+  * reserved
+  * interface (or "interface-local)
+  * link (or "link-local")
+  * admin (or "admin-local")
+  * site (or "site-local")
+  * admin (or "admin-local")
+  * organization (or "organization-local")
+  * global
+  * unassigned
+  * unspecified
+
+.TP
+.BI \-w\  UNICAST_TYPE ,\ \-\-address\  UNICAST_TYPE
+
+Accept IPv6 addresses belonging to the specified unicast type. Valid unicast address types are:
+
+  * loopback
+  * ipv4-compat
+  * ipv4-mapped
+  * link-local
+  * site-local
+  * unique-local
+  * 6to4
+  * teredo
+  * global
+
+
+.TP
+.BI \-g\  IID_TYPE ,\ \-\-address\  IID_TYPE
+
+Accept unicast IPv6 addresses with an Interface ID of the specified type. Valid Interface ID types are:
+
+  * ieee
+  * isatap
+  * ipv4-32
+  * ipv4-64
+  * ipv4-all
+  * embed-port
+  * embed-port-rev
+  * embed-port-all
+  * low-byte
+  * byte-pattern
+  * random
+
+
+.TP
+.BI \-J\  PREFIX ,\ \-\-address\  PREFIX
+
+Block IPv6 addresses belonging to the specified IPv6 prefix (PREFIX/LEN).
+
+
+.TP
+.BI \-B\  TYPE ,\ \-\-address\  TYPE
+
+Block IPv6 addresses belonging to the specified address type. Valid address types are:
+
+  * unicast
+  * unspec
+  * multicast
+
+
+.TP
+.BI \-K\  SCOPE ,\ \-\-address\  SCOPE
+
+Block IPv6 addresses belonging to the specified address scope. Valid address scopes are:
+
+  * reserved
+  * interface (or "interface-local)
+  * link (or "link-local")
+  * admin (or "admin-local")
+  * site (or "site-local")
+  * admin (or "admin-local")
+  * organization (or "organization-local")
+  * global
+  * unassigned
+  * unspecified
+
+
+.TP
+.BI \-W\  UNICAST_TYPE ,\ \-\-address\  UNICAST_TYPE
+
+Block IPv6 addresses belonging to the specified unicast type. Valid unicast address types are:
+
+  * loopback
+  * ipv4-compat
+  * ipv4-mapped
+  * link-local
+  * site-local
+  * unique-local
+  * 6to4
+  * teredo
+  * global
+
+
+.TP
+.BI \-G\  IPV6_ADDRESS ,\ \-\-address\  IID_TYPE
+
+Block unicast IPv6 addresses with an Interface ID of the specified type. Valid Interface ID types are:
+
+  * ieee
+  * isatap
+  * ipv4-32
+  * ipv4-64
+  * ipv4-all
+  * embed-port
+  * embed-port-rev
+  * embed-port-all
+  * low-byte
+  * byte-pattern
+  * random
+
 
 .TP
 .BR \-q ,\  \-\-print\-unique
@@ -131,6 +291,17 @@ addr6 will read IPv6 addresses from stdin ('\-i' option), will ignore duplicate 
 $ cat addresslist.txt | addr6 \-i \-q \-d
 
 addr6 will read IPv6 addresses from stdin ('\-i' option), will ignore duplicate addresses ('\-q' option), and will decode each of the remaining addresses.
+
+    Note: In this particular scenario, the address list results
+    from the command 'cat addresslist.txt', that has its output
+    redirected to the standard input of the addr6 tool.
+
+
+\fBExample #5\fR
+
+$ cat addresslist.txt | addr6 \-i \-j 2001:db8::/16
+
+addr6 will read IPv6 addresses from stdin ('\-i' option), will discard any addresses that do not belong to the prefix 2001:db8::/16 (i.e., it will "accept" addresses belonging to such prefix).
 
     Note: In this particular scenario, the address list results
     from the command 'cat addresslist.txt', that has its output
