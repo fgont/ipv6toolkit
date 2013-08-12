@@ -3148,7 +3148,7 @@ void print_help(void){
 	     "  --tgt-virtual-machines, -V  Target virtual machines\n"
 	     "  --tgt-low-byte, -b          Target low-byte addresses\n"
 	     "  --tgt-ipv4-embedded, -B     Target embedded-IPv4 addresses\n"
-	     "  --tgt-port-embedded         Target embedded-port addresses\n"
+	     "  --tgt-port-embedded, -g     Target embedded-port addresses\n"
 	     "  --tgt-ieee-oui, -k          Target IPv6 addresses embedding IEEE OUI\n"
 	     "  --tgt-vendor, -K            Target IPv6 addresses for vendor's IEEE OUIs\n"
 	     "  --tgt-iids-file, -w         Target Interface IDs (IIDs) in specified file\n"
