@@ -139,6 +139,7 @@ int					process_config_file(const char *);
 int					keyval(char *, unsigned int, char **, char **);
 size_t				Strnlen(const char *, size_t);
 int					is_ip6_in_scan_list(struct scan_list *, struct in6_addr *);
+u_int16_t			dec_to_hex(u_int16_t);
 
 /* Used for multiscan */
 struct host_list			host_local, host_global, host_candidate;
@@ -2216,6 +2217,11 @@ int load_ipv4mapped64_entries(struct scan_list *scan, struct scan_entry *dst, st
 	(scan->target[scan->ntarget])->end.s6_addr16[5]= (scan->target[scan->ntarget])->end.s6_addr16[5] | htons( (u_int16_t)(mask32>>16 & 0x000000ff));
 	(scan->target[scan->ntarget])->end.s6_addr16[6]= (scan->target[scan->ntarget])->end.s6_addr16[6] | htons( (u_int16_t)(mask32>>8 & 0x000000ff));
 	(scan->target[scan->ntarget])->end.s6_addr16[7]= (scan->target[scan->ntarget])->end.s6_addr16[7] | htons((u_int16_t)(mask32 & 0x000000ff));
+
+	for(i=4; i<=7; i++){
+		(scan->target[scan->ntarget])->start.s6_addr16[i]= htons( dec_to_hex(ntohs((scan->target[scan->ntarget])->start.s6_addr16[i])));
+		(scan->target[scan->ntarget])->end.s6_addr16[i]= htons( dec_to_hex(ntohs((scan->target[scan->ntarget])->end.s6_addr16[i])));
+	}
 
 	scan->ntarget++;
 
@@ -6163,5 +6169,28 @@ int	is_ip6_in_scan_list(struct scan_list *scan, struct in6_addr *ip6){
 	}
 
 	return(0);
+}
+
+
+/*
+ * Function: dec_to_hex()
+ *
+ * Convert a decimal number into a number that has the same representation in hexadecimal
+ */
+u_int16_t dec_to_hex(u_int16_t n){
+	u_int16_t	r=0;
+	unsigned int	d;
+
+	/* The source number is truncated to the first four digits */
+	n= n%10000;
+	d=1000;
+
+	for(i=0; i<4; i++){
+		r= (r << 4) | (n/d);
+		n= n%d;
+		d=d/10;
+	}
+
+	return(r);
 }
 
