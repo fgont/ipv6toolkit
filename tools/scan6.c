@@ -112,7 +112,8 @@ int					valid_icmp6_response_remote(struct iface_data *, struct scan_list *, uns
 int					get_if_addrs(struct iface_data *);
 struct in6_addr		*src_addr_sel(struct iface_data *, struct in6_addr *);
 int					print_scan_entries(struct scan_list *);
-int					load_ipv4mapped_entries(struct scan_list *, struct scan_entry *, struct prefix4_entry *);
+int					load_ipv4mapped32_entries(struct scan_list *, struct scan_entry *, struct prefix4_entry *);
+int					load_ipv4mapped64_entries(struct scan_list *, struct scan_entry *, struct prefix4_entry *);
 int					load_embeddedport_entries(struct scan_list *, struct scan_entry *);
 int					load_lowbyte_entries(struct scan_list *, struct scan_entry *);
 int					load_oui_entries(struct scan_list *, struct scan_entry *, struct ether_addr *);
@@ -236,9 +237,9 @@ struct scan_entry		*target_list[MAX_SCAN_ENTRIES];
 struct	scan_entry		*tgt_pref_list[MAX_PREF_ENTRIES];
 struct prefix_list		iid_list;
 struct prefix_entry		*tgt_iid_list[MAX_IID_ENTRIES];
-unsigned char			dst_f=0, tgt_ipv4mapped_f=0, tgt_lowbyte_f=0, tgt_oui_f=0, tgt_vendor_f=0, tgt_vm_f=0;
-unsigned char			tgt_bruteforce_f=0, tgt_range_f=0, tgt_portembedded_f=0, tgt_knowniids_f=0, tgt_knowniidsfile_f=0;
-unsigned char			knownprefixes_f=0;
+unsigned char			dst_f=0, tgt_ipv4mapped32_f=0, tgt_ipv4mapped64_f=0, tgt_lowbyte_f=0, tgt_oui_f=0;
+unsigned char			tgt_vendor_f=0, tgt_vm_f=0, tgt_bruteforce_f=0, tgt_range_f=0, tgt_portembedded_f=0;
+unsigned char			tgt_knowniids_f=0, tgt_knowniidsfile_f=0, knownprefixes_f=0;
 unsigned char			vm_vbox_f=0, vm_vmware_f=0, vm_vmwarem_f=0, v4hostaddr_f=0;
 unsigned char			v4hostprefix_f=0, sort_ouis_f=0, rnd_probes_f=0, inc_f=0, end_f=0, donesending_f=0;
 unsigned char			onlink_f=0, pps_f=0, bps_f=0, tcpflags_f=0, rhbytes_f=0, srcport_f=0, dstport_f=0, probetype;
@@ -308,7 +309,7 @@ int main(int argc, char **argv){
 		{"rand-link-src-addr", no_argument, 0, 'F'},
 		{"tgt-virtual-machines", required_argument, 0, 'V'},
 		{"tgt-low-byte", no_argument, 0, 'b'},
-		{"tgt-ipv4", no_argument, 0, 'B'},
+		{"tgt-ipv4", required_argument, 0, 'B'},
 		{"tgt-port", no_argument, 0, 'g'},
 		{"tgt-ieee-oui", required_argument, 0, 'k'},
 		{"tgt-vendor", required_argument, 0, 'K'},
@@ -327,7 +328,7 @@ int main(int argc, char **argv){
 		{"help", no_argument, 0, 'h'}
 	};
 
-	char shortopts[]= "i:s:d:u:U:H:y:S:D:Lp:Z:o:a:X:P:qetx:O:fFV:bBgk:K:w:W:m:Q:TNI:r:lz:c:vh";
+	char shortopts[]= "i:s:d:u:U:H:y:S:D:Lp:Z:o:a:X:P:qetx:O:fFV:bB:gk:K:w:W:m:Q:TNI:r:lz:c:vh";
 
 	char option;
 
@@ -924,7 +925,21 @@ int main(int argc, char **argv){
 				break;
 
 			case 'B':
-				tgt_ipv4mapped_f=1;
+				if(strncmp("all", optarg, MAX_LINE_SIZE) == 0){
+					tgt_ipv4mapped32_f=1;
+					tgt_ipv4mapped64_f=1;
+				}
+				else if(strncmp("32", optarg, MAX_LINE_SIZE) == 0){
+					tgt_ipv4mapped32_f=1;
+				}
+				else if(strncmp("64", optarg, MAX_LINE_SIZE) == 0){
+					tgt_ipv4mapped64_f=1;
+				}
+				else{
+					puts("Unknown encoding of IPv4-embedded IPv6 addresses in '-B' option");
+					exit(1);
+				}
+
 				break;
 
 			case 'g':
@@ -1004,7 +1019,7 @@ int main(int argc, char **argv){
 				}
 
 				if(inet_pton(AF_INET, charptr, &(v4host.ip)) != 1){
-					puts("Error in Virtual Host IPv4 Address");
+					puts("Error in Host IPv4 Address");
 					exit(1);
 				}
 
@@ -1014,7 +1029,7 @@ int main(int argc, char **argv){
 					v4host.len = atoi(charptr);
 
 					if(v4host.len>32){
-						puts("Prefix length error in IPv4 host address");
+						puts("Prefix length error in Host IPv4 address");
 						exit(1);
 					}
 
@@ -1254,13 +1269,13 @@ int main(int argc, char **argv){
 		exit(1);
 	}
 
-	if(dst_f && !(tgt_ipv4mapped_f || tgt_lowbyte_f || tgt_oui_f || tgt_vendor_f || tgt_vm_f || tgt_range_f || \
-			tgt_portembedded_f || tgt_knowniids_f || tgt_knowniidsfile_f)){
+	if(dst_f && !(tgt_ipv4mapped32_f || tgt_ipv4mapped64_f || tgt_lowbyte_f || tgt_oui_f || tgt_vendor_f || \
+			tgt_vm_f || tgt_range_f || tgt_portembedded_f || tgt_knowniids_f || tgt_knowniidsfile_f)){
 
 		tgt_bruteforce_f=1;
 	}
 
-	if(tgt_ipv4mapped_f && !v4hostaddr_f){
+	if( (tgt_ipv4mapped32_f || tgt_ipv4mapped64_f) && !v4hostaddr_f){
 		puts("Error: Must IPv4 host address/prefix (with '--ipv4-host') if '--tgt-ipv4-embedded' is set");
 		exit(1);
 	}
@@ -1477,10 +1492,19 @@ int main(int argc, char **argv){
 			}
 		}
 
-		if(tgt_ipv4mapped_f){
+		if(tgt_ipv4mapped32_f){
 			for(i=0; i < prefix_list.ntarget; i++){
-				if(!load_ipv4mapped_entries(&scan_list, prefix_list.target[i], &v4host)){
-					puts("Couldn't load prefixes for IPv4-embeded IPv6 addresses");
+				if(!load_ipv4mapped32_entries(&scan_list, prefix_list.target[i], &v4host)){
+					puts("Couldn't load prefixes for IPv4-embeded (32-bit) IPv6 addresses");
+					exit(1);
+				}
+			}
+		}
+
+		if(tgt_ipv4mapped64_f){
+			for(i=0; i < prefix_list.ntarget; i++){
+				if(!load_ipv4mapped64_entries(&scan_list, prefix_list.target[i], &v4host)){
+					puts("Couldn't load prefixes for IPv4-embeded (64-bit) IPv6 addresses");
 					exit(1);
 				}
 			}
@@ -2103,12 +2127,12 @@ int print_scan_entries(struct scan_list *scan){
 
 
 /*
- * Function: load_ipv4mapped_prefixes()
+ * Function: load_ipv4mapped32_prefixes()
  *
- * Generate scan_entry's for IPv4-mapped addresses
+ * Generate scan_entry's for IPv4-mapped (32-bits) addresses
  */
 
-int load_ipv4mapped_entries(struct scan_list *scan, struct scan_entry *dst, struct prefix4_entry *v4host){
+int load_ipv4mapped32_entries(struct scan_list *scan, struct scan_entry *dst, struct prefix4_entry *v4host){
 	unsigned int i;
 	u_int32_t	mask32;
 
@@ -2122,7 +2146,7 @@ int load_ipv4mapped_entries(struct scan_list *scan, struct scan_entry *dst, stru
 	(scan->target[scan->ntarget])->start= dst->start;
 
 	for(i=4; i<=5; i++)
-		(scan->target[scan->ntarget])->end.s6_addr16[i]= htons(0);
+		(scan->target[scan->ntarget])->start.s6_addr16[i]= htons(0);
 
 	(scan->target[scan->ntarget])->start.s6_addr16[6]= htons( (u_int16_t) (ntohl(v4host->ip.s_addr) >> 16));
 	(scan->target[scan->ntarget])->start.s6_addr16[7]= htons( (u_int16_t) (ntohl(v4host->ip.s_addr) & 0x0000ffff));
@@ -2143,6 +2167,55 @@ int load_ipv4mapped_entries(struct scan_list *scan, struct scan_entry *dst, stru
 
 	(scan->target[scan->ntarget])->end.s6_addr16[6]= (scan->target[scan->ntarget])->end.s6_addr16[6] | htons( (u_int16_t)(mask32>>16));
 	(scan->target[scan->ntarget])->end.s6_addr16[7]= (scan->target[scan->ntarget])->end.s6_addr16[7] | htons((u_int16_t)(mask32 & 0x0000ffff));
+
+	scan->ntarget++;
+
+	return(1);
+}
+
+
+/*
+ * Function: load_ipv4mapped64_prefixes()
+ *
+ * Generate scan_entry's for IPv4-mapped (64-bits) addresses
+ */
+
+int load_ipv4mapped64_entries(struct scan_list *scan, struct scan_entry *dst, struct prefix4_entry *v4host){
+	unsigned int i;
+	u_int32_t	mask32;
+
+	if(scan->ntarget >= scan->maxtarget){
+		return(0);
+	}
+
+	if( (scan->target[scan->ntarget] = malloc(sizeof(struct scan_entry))) == NULL)
+		return(0);
+
+	(scan->target[scan->ntarget])->start= dst->start;
+
+	(scan->target[scan->ntarget])->start.s6_addr16[4]= htons( (u_int16_t) (ntohl(v4host->ip.s_addr) >> 24));
+	(scan->target[scan->ntarget])->start.s6_addr16[5]= htons( ((u_int16_t) (ntohl(v4host->ip.s_addr) >> 16)) & 0x00ff);
+	(scan->target[scan->ntarget])->start.s6_addr16[6]= htons( (u_int16_t) ((ntohl(v4host->ip.s_addr) >> 8) & 0x000000ff));
+	(scan->target[scan->ntarget])->start.s6_addr16[7]= htons( (u_int16_t) (ntohl(v4host->ip.s_addr) & 0x000000ff));
+	(scan->target[scan->ntarget])->cur= (scan->target[scan->ntarget])->start;
+
+	(scan->target[scan->ntarget])->end= dst->end;
+
+	for(i=4; i<=7; i++)
+		(scan->target[scan->ntarget])->end.s6_addr16[i]= (scan->target[scan->ntarget])->start.s6_addr16[i];
+
+	mask32= 0xffffffff;
+
+	for(i=0; i< v4host->len; i++)
+		mask32=mask32<<1;
+
+	for(i=0; i< v4host->len; i++)
+		mask32=mask32>>1;
+
+	(scan->target[scan->ntarget])->end.s6_addr16[4]= (scan->target[scan->ntarget])->end.s6_addr16[4] | htons( (u_int16_t)(mask32>>24));
+	(scan->target[scan->ntarget])->end.s6_addr16[5]= (scan->target[scan->ntarget])->end.s6_addr16[5] | htons( (u_int16_t)(mask32>>16 & 0x000000ff));
+	(scan->target[scan->ntarget])->end.s6_addr16[6]= (scan->target[scan->ntarget])->end.s6_addr16[6] | htons( (u_int16_t)(mask32>>8 & 0x000000ff));
+	(scan->target[scan->ntarget])->end.s6_addr16[7]= (scan->target[scan->ntarget])->end.s6_addr16[7] | htons((u_int16_t)(mask32 & 0x000000ff));
 
 	scan->ntarget++;
 
