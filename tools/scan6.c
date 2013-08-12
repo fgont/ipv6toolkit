@@ -926,14 +926,14 @@ int main(int argc, char **argv){
 				break;
 
 			case 'B':
-				if(strncmp("all", optarg, MAX_LINE_SIZE) == 0){
+				if(strncmp("ipv4-all", optarg, MAX_LINE_SIZE) == 0){
 					tgt_ipv4mapped32_f=1;
 					tgt_ipv4mapped64_f=1;
 				}
-				else if(strncmp("32", optarg, MAX_LINE_SIZE) == 0){
+				else if(strncmp("ipv4-32", optarg, MAX_LINE_SIZE) == 0){
 					tgt_ipv4mapped32_f=1;
 				}
-				else if(strncmp("64", optarg, MAX_LINE_SIZE) == 0){
+				else if(strncmp("ipv4-64", optarg, MAX_LINE_SIZE) == 0){
 					tgt_ipv4mapped64_f=1;
 				}
 				else{
@@ -3186,8 +3186,8 @@ void usage(void){
 	puts("usage: scan6 -i INTERFACE (-L | -d) [-s SRC_ADDR[/LEN] | -f] \n"
 	     "       [-S LINK_SRC_ADDR | -F] [-p PROBE_TYPE] [-Z PAYLOAD_SIZE] [-o SRC_PORT]\n"
 	     "       [-a DST_PORT] [-X TCP_FLAGS] [-P ADDRESS_TYPE] [-q] [-e] [-t]\n"
-	     "       [-x RETRANS] [-o TIMEOUT] [-V VM_TYPE] [-b] [-B] [-g] [-k IEEE_OUI]\n"
-	     "       [-K VENDOR] [-m PREFIXES_FILE] [-w IIDS_FILE] [-W IID]\n"
+	     "       [-x RETRANS] [-o TIMEOUT] [-V VM_TYPE] [-b] [-B ENCODING] [-g]\n"
+	     "       [-k IEEE_OUI] [-K VENDOR] [-m PREFIXES_FILE] [-w IIDS_FILE] [-W IID]\n"
 	     "       [-Q IPV4_PREFIX[/LEN]] [-T] [-I INC_SIZE] [-r RATE(bps|pps)] [-l]\n"
 	     "       [-z SECONDS] [-c CONFIG_FILE] [-v] [-h]");
 }
