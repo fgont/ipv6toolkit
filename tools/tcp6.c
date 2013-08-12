@@ -233,7 +233,7 @@ int main(int argc, char **argv){
 		{"tcp-urg", required_argument, 0, 'V'},
 		{"tcp-win", required_argument, 0, 'w'},
 		{"not-ack-data", no_argument, 0, 'N'},
-		{"not-ack-flags", no_argument, 0, 'f'},
+		{"not-ack-flags", no_argument, 0, 'n'},
 		{"block-src-addr", required_argument, 0, 'j'},
 		{"block-dst-addr", required_argument, 0, 'k'},
 		{"block-link-src-addr", required_argument, 0, 'J'},
@@ -253,7 +253,7 @@ int main(int argc, char **argv){
 		{"help", no_argument, 0, 'h'}
 	};
 
-	char shortopts[]= "i:s:d:A:u:U:H:y:S:D:P:o:a:X:q:Q:V:w:Nfj:k:J:K:b:g:B:G:F:T:rRlz:Lvh";
+	char shortopts[]= "i:s:d:A:u:U:H:y:S:D:P:o:a:X:q:Q:V:w:Nnj:k:J:K:b:g:B:G:F:T:rRlz:Lvh";
 
 	char option;
 
@@ -577,7 +577,7 @@ int main(int argc, char **argv){
 				ackdata_f= 0;
 				break;
 
-			case 'f':	/* Do not ack flags */
+			case 'n':	/* Do not ack flags */
 				ackflags_f= 0;
 				break;
 

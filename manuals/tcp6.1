@@ -3,7 +3,7 @@
 tcp6 \- A security assessment tool for TCP/IPv6 implementations
 .SH SYNOPSIS
 .B tcp6
-\-i INTERFACE [\-S LINK_SRC_ADDR] [\-D LINK-DST-ADDR] [\-s SRC_ADDR[/LEN]] [\-d DST_ADDR] [\-A HOP_LIMIT] [\-y FRAG_SIZE] [\-u DST_OPT_HDR_SIZE] [\-U DST_OPT_U_HDR_SIZE] [\-H HBH_OPT_HDR_SIZE] [\-P PAYLOAD_SIZE] [\-o SRC_PORT] [\-a DST_PORT] [\-X TCP_FLAGS] [\-q TCP_SEQ] [\-Q TCP_ACK] [\-V TCP_URP] [\-w TCP_WIN] [\-N] [\-f] [\-j PREFIX[/LEN]] [\-k PREFIX[/LEN]] [\-J LINK_ADDR] [\-K LINK_ADDR] [\-b PREFIX[/LEN]] [\-g PREFIX[/LEN]] [\-B LINK_ADDR] [\-G LINK_ADDR] [\-F N_SOURCES] [\-T N_PORTS] [\-L | \-l] [\-z SECONDS] [\-v] [\-h]
+\-i INTERFACE [\-S LINK_SRC_ADDR] [\-D LINK-DST-ADDR] [\-s SRC_ADDR[/LEN]] [\-d DST_ADDR] [\-A HOP_LIMIT] [\-y FRAG_SIZE] [\-u DST_OPT_HDR_SIZE] [\-U DST_OPT_U_HDR_SIZE] [\-H HBH_OPT_HDR_SIZE] [\-P PAYLOAD_SIZE] [\-o SRC_PORT] [\-a DST_PORT] [\-X TCP_FLAGS] [\-q TCP_SEQ] [\-Q TCP_ACK] [\-V TCP_URP] [\-w TCP_WIN] [\-N] [\-n] [\-j PREFIX[/LEN]] [\-k PREFIX[/LEN]] [\-J LINK_ADDR] [\-K LINK_ADDR] [\-b PREFIX[/LEN]] [\-g PREFIX[/LEN]] [\-B LINK_ADDR] [\-G LINK_ADDR] [\-F N_SOURCES] [\-T N_PORTS] [\-L | \-l] [\-z SECONDS] [\-v] [\-h]
 
 .SH DESCRIPTION
 .B tcp6
@@ -128,7 +128,7 @@ This option instructs tcp6 not to acknowledge the TCP payload of incoming segmen
 Note: By default, tcp6 will acknowledge both the payload and the flags of the incoming TCP segments.
 
 .TP
-.BR \-f\| ,\  \-\-not\-ack\-flags
+.BR \-n\| ,\  \-\-not\-ack\-flags
 
 This option instructs tcp6 not to acknowledge the TCP flags (SYN and/or FIN) of incoming segments (when operating in listening mode). 
 
