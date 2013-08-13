@@ -37,10 +37,13 @@ ETCPATH= $(DESTDIR)/etc
 MANPATH= $(DESTDIR)$(MANPREFIX)/man
 DATAPATH= $(DESTDIR)$(PREFIX)/share/ipv6toolkit
 BINPATH= $(DESTDIR)$(PREFIX)/bin
+SBINPATH= $(DESTDIR)$(PREFIX)/sbin
 SRCPATH= tools
 
 
-TOOLS= addr6 flow6 frag6 icmp6 jumbo6 na6 ni6 ns6 ra6 rd6 rs6 scan6 tcp6
+SBINTOOLS= flow6 frag6 icmp6 jumbo6 na6 ni6 ns6 ra6 rd6 rs6 scan6 tcp6
+BINTOOLS= addr6
+TOOLS= $(BINTOLS) $(SBINTOOLS)
 
 all: $(TOOLS) ipv6toolkit.conf
 
@@ -96,7 +99,9 @@ clean:
 install: all
 	# Install the binaries
 	install -m0755 -d $(BINPATH)
-	install -m0755 $(TOOLS) $(BINPATH)
+	install -m0755 -d $(SBINPATH)
+	install -m0755 $(BINTOOLS) $(BINPATH)
+	install -m0755 $(SBINTOOLS) $(SBINPATH)
 
 	# Install the configuration file
 	install -m0644 data/ipv6toolkit.conf $(ETCPATH)
@@ -116,18 +121,18 @@ install: all
 uninstall:
 	# Remove the binaries
 	rm -f $(BINPATH)/addr6
-	rm -f $(BINPATH)/flow6
-	rm -f $(BINPATH)/frag6
-	rm -f $(BINPATH)/icmp6
-	rm -f $(BINPATH)/jumbo6
-	rm -f $(BINPATH)/na6
-	rm -f $(BINPATH)/ni6
-	rm -f $(BINPATH)/ns6
-	rm -f $(BINPATH)/ra6
-	rm -f $(BINPATH)/rd6
-	rm -f $(BINPATH)/rs6
-	rm -f $(BINPATH)/scan6
-	rm -f $(BINPATH)/tcp6
+	rm -f $(SBINPATH)/flow6
+	rm -f $(SBINPATH)/frag6
+	rm -f $(SBINPATH)/icmp6
+	rm -f $(SBINPATH)/jumbo6
+	rm -f $(SBINPATH)/na6
+	rm -f $(SBINPATH)/ni6
+	rm -f $(SBINPATH)/ns6
+	rm -f $(SBINPATH)/ra6
+	rm -f $(SBINPATH)/rd6
+	rm -f $(SBINPATH)/rs6
+	rm -f $(SBINPATH)/scan6
+	rm -f $(SBINPATH)/tcp6
 
 	# Remove the configuration file
 	rm -f $(ETCPATH)/ipv6toolkit.conf
