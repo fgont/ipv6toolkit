@@ -441,7 +441,7 @@ int main(int argc, char **argv){
 				else if(strncmp(optarg, "ipv4-64", MAX_TYPE_SIZE) == 0){
 					accept_itype |= IID_EMBEDDEDIPV4_64;
 				}
-				else if(strncmp(optarg, "ipv4", MAX_TYPE_SIZE) == 0){
+				else if(strncmp(optarg, "ipv4-all", MAX_TYPE_SIZE) == 0){
 					accept_itype |= IID_EMBEDDEDIPV4;
 					accept_itype |= IID_EMBEDDEDIPV4_64;
 				}
@@ -486,7 +486,7 @@ int main(int argc, char **argv){
 				else if(strncmp(optarg, "ipv4-64", MAX_TYPE_SIZE) == 0){
 					block_itype |= IID_EMBEDDEDIPV4_64;
 				}
-				else if(strncmp(optarg, "ipv4", MAX_TYPE_SIZE) == 0){
+				else if(strncmp(optarg, "ipv4-all", MAX_TYPE_SIZE) == 0){
 					block_itype |= IID_EMBEDDEDIPV4;
 					block_itype |= IID_EMBEDDEDIPV4_64;
 				}
