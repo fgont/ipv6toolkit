@@ -162,6 +162,14 @@ struct stats6{
     #ifndef s6_addr32
 	    #define s6_addr32	__u6_addr.__u6_addr32
     #endif
+#elif defined __linux__
+    #ifndef s6_addr16
+	    #define s6_addr16	__in6_u.__u6_addr16
+    #endif
+
+	#ifndef s6_addr32
+		#define s6_addr32	__in6_u.__u6_addr32
+	#endif
 #endif
 
 
