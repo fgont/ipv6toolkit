@@ -1,12 +1,17 @@
-********************************************************************************
-*                       SI6 Networks IPv6 Toolkit v1.3.4                       *
-********************************************************************************
+*******************************************************************************
+*                       SI6 Networks IPv6 Toolkit v1.4                        *
+*******************************************************************************
 
-Description of each of the directories:
----------------------------------------
+Description of each of the files and directories:
+-------------------------------------------------
 
-manuals: Contains the manual pages for the security assessment tools.
-tools:   Contains the source code for the security assessment tools.
+ manuals:     Contains the manual pages for the security assessment tools.
+ tools:       Contains the source code for the security assessment tools.
+ CHANGES.TXT: Contains the changelog of the toolkit
+ CONTRIB.TXT: Contains the list of people that have contributed to this 
+              project.
+ LICENSE.TXT: Contains the license for this software (GPLv3)
+ README.TXT:  This file.
 
 
 Building the tools
