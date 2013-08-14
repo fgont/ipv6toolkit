@@ -1,0 +1,34 @@
+SI6 Networks' IPv6 Toolkit v1.4 release
+
+   * frag6: Fixed the flooding option
+     Fixed the fragment size used when employing the flooding option. It was 
+     prevously sending fragment sizes that where not a multiple of eight, and
+     hence these fragments were dropped.
+
+   * scan6: Option "--tgt-ipv4" was augmented to support both encodings (32 bit
+     and 64 bit) of embedded IPv4 addresses.
+
+   * Many improvements to the manual pages.
+     Fixed the troff encoding of many manual pages. Added ipv6toolkit(7), that
+     describes a general description of the toolkit
+
+   * All: Fixed bug in option handling
+     Incorrect data type was used for the return value of getopt_long(), thus 
+     leading to problems in some architectures
+
+   * All: Fixed a number of issues with pcap_next_ex()
+     The timeout parameter of pcap_next_ex() is now based on the platform (the
+     previous constant value had different semantics in different platforms).
+     Additionally, handle the case where pcap_next_ex() returns no packets.
+
+   * All: General improvements and clean-up
+     The development process now includes building the toolkit with the clang
+     compiler (in addition to gcc), which has lead to the identification of a
+     number of issues.
+
+   * Improved support for building the toolkit. The toolkit now contains one
+     makefile for pmake, and another for GNU make. Added support for the
+     DESTDIR variable. Appropriate paths are selected based on the value of 
+     a number of variables. Configuration file is dynamically generated,
+     with the right path to the oui.txt file.
+
