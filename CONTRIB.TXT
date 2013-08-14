@@ -1,0 +1,24 @@
+CONTRIBUTORS
+------------
+
+** Package maintainers **
+
+Availability of packages for different operating systems makes it easier for
+users to install and update the toolkit, and for the toolkit to integrate
+better with the operating systems.
+
+These are the maintainers for each of the different packages:
+
+  + Debian
+
+    Octavio Alvarez <alvarezp@alvarezp.com>, sponsored by Luciano Bello
+    <luciano@debian.org>
+
+  + FreeBSD
+
+    Hiroki Sato <hrs@FreeBSD.org>
+
+  + NetBSD (pkgsr framework)
+
+    Alistair Crooks <agc@pkgsrc.org>
+
