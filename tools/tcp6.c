@@ -162,7 +162,7 @@ unsigned char 		verbose_f=0, iface_f=0, acceptfilters_f=0, floodt_f=0;
 unsigned char 		srcaddr_f=0, dstaddr_f=0, hsrcaddr_f=0, hdstaddr_f=0;
 unsigned char 		listen_f=0, accepted_f=0, loop_f=0, sleep_f=0;
 unsigned char		srcprefix_f=0, hoplimit_f=0, rand_link_src_f=0, rand_src_f=0;
-unsigned char		floods_f=0, floodp_f=0, tunnel_f=0, loopback_f=0;
+unsigned char		floods_f=0, floodp_f=0, tunnel_f=0, loopback_f=0, filein_f=0, fileout_f=0;
 
 /* Support for Extension Headers */
 unsigned int		dstopthdrs, dstoptuhdrs, hbhopthdrs;
@@ -212,6 +212,7 @@ int main(int argc, char **argv){
 	fd_set		sset, rset;
 	int			r, sel;
 	struct passwd	*pwdptr;
+	FILE		*filein, *fileout;
 
 	static struct option longopts[] = {
 		{"interface", required_argument, 0, 'i'},
@@ -234,6 +235,8 @@ int main(int argc, char **argv){
 		{"tcp-win", required_argument, 0, 'w'},
 		{"not-ack-data", no_argument, 0, 'N'},
 		{"not-ack-flags", no_argument, 0, 'n'},
+		{"input-file", required_argument, 0, 'I'},
+		{"output-file", required_argument, 0, 'O'},
 		{"block-src-addr", required_argument, 0, 'j'},
 		{"block-dst-addr", required_argument, 0, 'k'},
 		{"block-link-src-addr", required_argument, 0, 'J'},
@@ -253,7 +256,7 @@ int main(int argc, char **argv){
 		{"help", no_argument, 0, 'h'}
 	};
 
-	char shortopts[]= "i:s:d:A:u:U:H:y:S:D:P:o:a:X:q:Q:V:w:Nnj:k:J:K:b:g:B:G:F:T:rRlz:Lvh";
+	char shortopts[]= "i:s:d:A:u:U:H:y:S:D:P:o:a:X:q:Q:V:w:NnI:O:j:k:J:K:b:g:B:G:F:T:rRlz:Lvh";
 
 	char option;
 
@@ -868,6 +871,20 @@ int main(int argc, char **argv){
 	if( (pfd= pcap_open_live(idata.iface, PCAP_SNAP_LEN, PCAP_PROMISC, PCAP_TIMEOUT, errbuf)) == NULL){
 		printf("pcap_open_live(): %s\n", errbuf);
 		exit(1);
+	}
+
+	if(filein_f){
+		if( (filein=fopen(path, "r")) == NULL){
+			perror("Error opening input file")
+			exit(1);
+		}
+	}
+
+	if(fileout_f){
+		if( (filein=fopen(path, "w+")) == NULL){
+			perror("Error opening output file")
+			exit(1);
+		}
 	}
 
 	/* 
