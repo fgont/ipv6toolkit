@@ -63,7 +63,6 @@
 /* Function prototypes */
 int					init_iface_data(struct iface_data *);
 int					insert_pad_opt(unsigned char *ptrhdr, const unsigned char *, unsigned int);
-int					send_packet(struct pcap_pkthdr *, const u_char *);
 void 				print_icmp6_echo(struct pcap_pkthdr *, const u_char *);
 void 				process_icmp6_echo(struct pcap_pkthdr *, const u_char *, unsigned char *, unsigned int *);
 void 				print_icmp6_timed(struct pcap_pkthdr *, const u_char *);
@@ -164,7 +163,6 @@ unsigned char 		srcaddr_f=0, dstaddr_f=0, hsrcaddr_f=0, hdstaddr_f=0, floodf_f=0
 unsigned char 		loop_f=0, sleep_f=0, localaddr_f=0, tstamp_f=1, pod_f;
 unsigned char		srcprefix_f=0, hoplimit_f=0, ip6length_f=0, icmp6psize_f=0;
 unsigned char		fsize_f=0, forder_f=0, foffset_f=0, fid_f=0, fragp_f=0, fragidp_f=0, resp_f=1;
-unsigned char		loopback_f=0, tunnel_f=0;
 
 u_int32_t			fsize, foffset, fid, id;
 unsigned int		forder, overlap, minfragsize;
@@ -645,12 +643,12 @@ int main(int argc, char **argv){
 	else if( idata.type == DLT_RAW){
 		linkhsize=0;
 		idata.mtu= MIN_IPV6_MTU;
-		tunnel_f=1;
+		idata.flags= IFACE_TUNNEL;
 	}
 	else if(idata.type == DLT_NULL){
 		linkhsize=4;
 		idata.mtu= MIN_IPV6_MTU;
-		tunnel_f=1;
+		idata.flags= IFACE_TUNNEL;
 	}
 	else{
 		printf("Error: Interface %s is not an Ethernet or tunnel interface", iface);
@@ -672,22 +670,41 @@ int main(int argc, char **argv){
 		ether_to_ipv6_linklocal(&idata.ether, &idata.ip6_local);
 	}
 
-	if(idata.type == DLT_EN10MB && !loopback_f){
-		if(find_ipv6_router_full(idata.pd, &idata) == 1){
-			if(!hdstaddr_f && dstaddr_f){
-				if(IN6_IS_ADDR_MC_LINKLOCAL(&dstaddr)){
-					hdstaddr= ether_multicast(&dstaddr);
+	/*
+	   Select link-layer destination address
+
+	   + If the underlying interface is loopback or tunnel, there is no need 
+	     to select a link-layer destination address
+	   + If a link-layer Destination Address has been specified, we do not need to
+	     select one
+	   + If the destination address is link-local, there is no need to perform
+	     next-hop determination
+	   + Otherwise we need to learn the local router or do ND as a last ressort
+	 */
+	if((idata.type == DLT_EN10MB && idata.flags != IFACE_LOOPBACK) && (!hdstaddr_f && dstaddr_f)){
+		if(IN6_IS_ADDR_LINKLOCAL(&dstaddr)){
+			/*
+			   If the IPv6 Destination Address is a multicast address, there is no need
+			   to perform Neighbor Discovery
+			 */
+			if(IN6_IS_ADDR_MC_LINKLOCAL(&dstaddr)){
+				hdstaddr= ether_multicast(&dstaddr);
+			}
+			else if(ipv6_to_ether(idata.pd, &idata, &dstaddr, &hdstaddr) != 1){
+				puts("Error while performing Neighbor Discovery for the Destination Address");
+				exit(1);
+			}
+		}
+		else if(find_ipv6_router_full(idata.pd, &idata) == 1){
+			if(match_ipv6_to_prefixes(&dstaddr, &idata.prefix_ol)){
+				/* If address is on-link, we must perform Neighbor Discovery */
+				if(ipv6_to_ether(idata.pd, &idata, &dstaddr, &hdstaddr) != 1){
+					puts("Error while performing Neighbor Discovery for the Destination Address");
+					exit(1);
 				}
-				else if(match_ipv6_to_prefixes(&dstaddr, &idata.prefix_ol)){
-					/* Must perform Neighbor Discovery for the local address */
-					if(ipv6_to_ether(idata.pd, &idata, &dstaddr, &hdstaddr) != 1){
-						puts("Error while performing Neighbor Discovery for the Destination Address");
-						exit(1);
-					}
-				}
-				else{
-					hdstaddr= idata.router_ether;
-				}
+			}
+			else{
+				hdstaddr= idata.router_ether;
 			}
 		}
 		else{
@@ -956,7 +973,7 @@ int main(int argc, char **argv){
 				continue;
 
 			if(pkt_ipv6->ip6_nxt == IPPROTO_ICMPV6){
-				if(idata.type == DLT_EN10MB && !loopback_f && pkt_icmp6->icmp6_type == ND_NEIGHBOR_SOLICIT){
+				if(idata.type == DLT_EN10MB && idata.flags != IFACE_LOOPBACK && pkt_icmp6->icmp6_type == ND_NEIGHBOR_SOLICIT){
 					if( (pkt_end - (unsigned char *) pkt_ns) < sizeof(struct nd_neighbor_solicit))
 						continue;
 					/* 
@@ -965,7 +982,8 @@ int main(int argc, char **argv){
 					    one of our addresses, and respond with a Neighbor Advertisement. Otherwise, the kernel
 					    will take care of that.
 					 */
-					if(idata.type == DLT_EN10MB && !loopback_f && !localaddr_f && is_eq_in6_addr(&(pkt_ns->nd_ns_target), &srcaddr)){
+					if(idata.type == DLT_EN10MB && idata.flags != IFACE_LOOPBACK && !localaddr_f && \
+									is_eq_in6_addr(&(pkt_ns->nd_ns_target), &srcaddr)){
 							if(send_neighbor_advert(&idata, idata.pd, pktdata) == -1){
 								puts("Error sending Neighbor Advertisement");
 								exit(1);
@@ -1151,7 +1169,8 @@ int main(int argc, char **argv){
 			if( (pkt_end -  pktdata) < (linkhsize + MIN_IPV6_HLEN))
 				continue;
 
-			if(idata.type == DLT_EN10MB && !loopback_f && pkt_ipv6->ip6_nxt == IPPROTO_ICMPV6 && pkt_icmp6->icmp6_type == ND_NEIGHBOR_SOLICIT){
+			if(idata.type == DLT_EN10MB && idata.flags != IFACE_LOOPBACK && \
+							pkt_ipv6->ip6_nxt == IPPROTO_ICMPV6 && pkt_icmp6->icmp6_type == ND_NEIGHBOR_SOLICIT){
 				pkt_ns= (struct nd_neighbor_solicit *) pkt_icmp6;
 
 				if( (pkt_end - (unsigned char *) pkt_ns) < sizeof(struct nd_neighbor_solicit))
@@ -1163,14 +1182,15 @@ int main(int argc, char **argv){
 				    will take care of that.
 				 */
 				if(testtype==FIXED_ORIGIN){
-					if(idata.type == DLT_EN10MB && !loopback_f && !localaddr_f && is_eq_in6_addr(&(pkt_ns->nd_ns_target), &srcaddr)){
+					if(idata.type == DLT_EN10MB && idata.flags != IFACE_LOOPBACK && \
+							 !localaddr_f && is_eq_in6_addr(&(pkt_ns->nd_ns_target), &srcaddr)){
 						if(send_neighbor_advert(&idata, idata.pd, pktdata) == -1){
 							puts("Error sending Neighbor Advertisement");
 							exit(1);
 						}
 					}
 				}
-				else if(idata.type == DLT_EN10MB && !loopback_f){
+				else if(idata.type == DLT_EN10MB && idata.flags != IFACE_LOOPBACK){
 					if(pkt_ns->nd_ns_target.s6_addr16[5] != addr_sig || \
 						pkt_ns->nd_ns_target.s6_addr16[7] !=  (pkt_ns->nd_ns_target.s6_addr16[6] ^ addr_key))
 						continue;
@@ -1437,7 +1457,7 @@ int main(int argc, char **argv){
 				continue;
 
 			if(pkt_ipv6->ip6_nxt == IPPROTO_ICMPV6){
-				if(idata.type == DLT_EN10MB && !loopback_f && pkt_icmp6->icmp6_type == ND_NEIGHBOR_SOLICIT){
+				if(idata.type == DLT_EN10MB && idata.flags != IFACE_LOOPBACK && pkt_icmp6->icmp6_type == ND_NEIGHBOR_SOLICIT){
 					if( (pkt_end - (unsigned char *) pkt_ns) < sizeof(struct nd_neighbor_solicit))
 						continue;
 					/* 
@@ -1446,7 +1466,8 @@ int main(int argc, char **argv){
 					    one of our addresses, and respond with a Neighbor Advertisement. Otherwise, the kernel
 					    will take care of that.
 					 */
-					if(idata.type == DLT_EN10MB && !loopback_f && !localaddr_f && is_eq_in6_addr(&(pkt_ns->nd_ns_target), &srcaddr)){
+					if(idata.type == DLT_EN10MB && idata.flags != IFACE_LOOPBACK && !localaddr_f && \
+									is_eq_in6_addr(&(pkt_ns->nd_ns_target), &srcaddr)){
 							if(send_neighbor_advert(&idata, idata.pd, pktdata) == -1){
 								puts("Error sending Neighbor Advertisement");
 								exit(1);
@@ -1844,7 +1865,7 @@ int send_fragment2(u_int16_t ip6len, unsigned int id, unsigned int offset, unsig
 	ipv6 = (struct ip6_hdr *) v6buffer;
 	fsize= (fsize>>3) << 3;
 
-	if(idata.type == DLT_EN10MB && !loopback_f){
+	if(idata.type == DLT_EN10MB && idata.type != IFACE_LOOPBACK){
 		ethernet->src = hsrcaddr;
 		ethernet->dst = hdstaddr;
 		ethernet->ether_type = htons(0x86dd);
@@ -1979,7 +2000,7 @@ int send_fragment(unsigned int id, unsigned int offset, unsigned int fsize, unsi
 	v6buffer = buffer + linkhsize;
 	ipv6 = (struct ip6_hdr *) v6buffer;
 
-	if(idata.type == DLT_EN10MB && !loopback_f){
+	if(idata.type == DLT_EN10MB && idata.type != IFACE_LOOPBACK){
 		ethernet->src = hsrcaddr;
 		ethernet->dst = hdstaddr;
 		ethernet->ether_type = htons(0x86dd);
@@ -2212,7 +2233,7 @@ int send_fid_probe(void){
 	v6buffer = buffer + linkhsize;
 	ipv6 = (struct ip6_hdr *) v6buffer;
 
-	if(idata.type == DLT_EN10MB && !loopback_f){
+	if(idata.type == DLT_EN10MB && idata.flags != IFACE_LOOPBACK){
 		ethernet->src = hsrcaddr;
 		ethernet->dst = hdstaddr;
 		ethernet->ether_type = htons(0x86dd);
@@ -2436,7 +2457,7 @@ u_int16_t in_chksum(void *ptr_ipv6, void *ptr_icmpv6, size_t len, u_int8_t proto
  */
  
 void print_attack_info(void){
-	if(idata.type == DLT_EN10MB && !loopback_f){
+	if(idata.type == DLT_EN10MB && idata.flags != IFACE_LOOPBACK){
 		if(ether_ntop(&hsrcaddr, plinkaddr, sizeof(plinkaddr)) == 0){
 			puts("ether_ntop(): Error converting address");
 			exit(1);
@@ -3522,6 +3543,9 @@ int get_if_addrs(struct iface_data *idata){
 			}
 			else if( ((sockin6ptr->sin6_addr).s6_addr16[0] & htons(0xffc0)) != htons(0xfe80)){
 				if(strncmp(idata->iface, ptr->ifa_name, IFACE_LENGTH-1) == 0){
+					if(IN6_IS_ADDR_LOOPBACK(&(sockin6ptr->sin6_addr)))
+						idata->flags= IFACE_LOOPBACK;
+
 					if(!is_ip6_in_prefix_list( &(sockin6ptr->sin6_addr), &(idata->ip6_global))){
 						if(idata->ip6_global.nprefix < idata->ip6_global.maxprefix){
 							if( (idata->ip6_global.prefix[idata->ip6_global.nprefix] = \
@@ -3547,7 +3571,6 @@ int get_if_addrs(struct iface_data *idata){
 	freeifaddrs(ifptr);
 	return(0);
 }
-
 
 
 /*

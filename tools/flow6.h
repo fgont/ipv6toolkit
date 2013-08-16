@@ -118,6 +118,12 @@ struct ether_addr{
 	u_int8_t a[ETHER_ADDR_LEN];
 } __attribute__ ((__packed__));
 
+/* For DLT_NULL encapsulation */
+struct dlt_null
+{
+  u_int32_t	family;	/* Protocol Family	*/
+} __attribute__ ((__packed__));
+
 struct	nd_opt_slla{
 	u_int8_t	type;
 	u_int8_t	length;
@@ -160,7 +166,10 @@ struct prefix_list{
 
 struct iface_data{
 	char			iface[IFACE_LENGTH];
+	int			type;
+	int			flags;
 	int			fd;
+	pcap_t			*pd;
 	struct ether_addr	ether;
 	unsigned int		ether_flag;
 	struct in6_addr		ip6_local;

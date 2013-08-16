@@ -47,6 +47,13 @@
 #include <netinet/ip6.h>
 #include <netinet/icmp6.h>
 #include <pwd.h>
+#include <net/if.h>
+#include <ifaddrs.h>
+#ifdef __linux__
+	#include <netpacket/packet.h>
+#elif defined (__FreeBSD__) || defined(__NetBSD__) || defined (__OpenBSD__) || defined(__APPLE__)
+	#include <net/if_dl.h>
+#endif
 #include <sys/socket.h>
 #include "icmp6.h"
 #include "ipv6toolkit.h"
@@ -55,6 +62,7 @@
 
 
 /* Function prototypes */
+int					init_iface_data(struct iface_data *);
 void				init_packet_data(void);
 int					insert_pad_opt(unsigned char *ptrhdr, const unsigned char *, unsigned int);
 void				send_packet(const u_char *, struct pcap_pkthdr *);
@@ -65,7 +73,8 @@ void				usage(void);
 void				print_help(void);
 int					ether_pton(const char *, struct ether_addr *, unsigned int);
 int					ether_ntop(const struct ether_addr *, char *, size_t);
-u_int16_t			in_chksum(void *, void *, size_t);
+void				generate_slaac_address(struct in6_addr *, struct ether_addr *, struct in6_addr *);
+u_int16_t			in_chksum(void *, void *, size_t, u_int8_t);
 unsigned int		match_ipv6(struct in6_addr *, u_int8_t *, unsigned int, struct in6_addr *);
 unsigned int		match_ether(struct ether_addr *, unsigned int, struct ether_addr *);
 void				sanitize_ipv6_prefix(struct in6_addr *, u_int8_t);
@@ -80,6 +89,7 @@ int					ipv6_to_ether(pcap_t *, struct iface_data *, struct in6_addr *, struct e
 int					send_neighbor_advert(struct iface_data *, pcap_t *,  const u_char *);
 struct in6_addr		solicited_node(const struct in6_addr *);
 struct ether_addr	ether_multicast(const struct in6_addr *);
+int					get_if_addrs(struct iface_data *);
 int					match_ipv6_to_prefixes(struct in6_addr *, struct prefix_list *);
 
 /* Flags used for the ICMPv6 Redirect (specifically) */
@@ -117,6 +127,7 @@ unsigned char		rhbuff[100]; /* This one must be able to hold the IPv6 header and
 /* Variables used for learning the default router */
 struct iface_data	idata;
 struct prefix_entry	*prefix_ols[MAX_PREFIXES_ONLINK], *prefix_acs[MAX_PREFIXES_AUTO];
+struct prefix_entry	*prefix_local[MAX_LOCAL_ADDRESSES];
 struct ether_addr	router_ether, rs_ether;
 struct in6_addr		router_ipv6, rs_ipv6;
 struct in6_addr		randprefix;
@@ -166,7 +177,7 @@ u_int8_t			hoplimit;
 char 				plinkaddr[ETHER_ADDR_PLEN];
 char 				psrcaddr[INET6_ADDRSTRLEN], pdstaddr[INET6_ADDRSTRLEN], pv6addr[INET6_ADDRSTRLEN];
 unsigned char 		verbose_f=0, iface_f=0, acceptfilters_f=0, floodt_f=0;
-unsigned char 		srcaddr_f=0, dstaddr_f=0, hsrcaddr_f=0, hdstaddr_f=0, loopback_f=0, tunnel_f=0;
+unsigned char 		srcaddr_f=0, dstaddr_f=0, hsrcaddr_f=0, hdstaddr_f=0;
 unsigned char 		listen_f = 0, multicastdst_f=0, accepted_f=0, loop_f=0, sleep_f=0;
 unsigned char		targetprefix_f=0, srcprefix_f=0, hoplimit_f=0;
 unsigned char		newdata_f=0, floods_f=0;
@@ -278,6 +289,7 @@ int main(int argc, char **argv){
 		exit(1);
 	}
 
+	init_iface_data(&idata);
 	hoplimit=64+random()%180;
 
 	while((r=getopt_long(argc, argv, shortopts, longopts, NULL)) != -1) {
@@ -1075,23 +1087,28 @@ int main(int argc, char **argv){
 	else if( idata.type == DLT_RAW){
 		linkhsize=0;
 		idata.mtu= MIN_IPV6_MTU;
-		tunnel_f=1;
+		idata.flags= IFACE_TUNNEL;
 	}
 	else if(idata.type == DLT_NULL){
 		linkhsize=4;
 		idata.mtu= MIN_IPV6_MTU;
-		tunnel_f=1;
+		idata.flags= IFACE_TUNNEL;
 	}
 	else{
 		printf("Error: Interface %s is not an Ethernet or tunnel interface", idata.iface);
 		exit(1);
 	}
 
-	srandom(time(NULL));
+	if(get_if_addrs(&idata) == -1){
+		puts("Error obtaining local addresses");
+		exit(1);
+	}
 
 	if(!hsrcaddr_f){
-		randomize_ether_addr(&hsrcaddr);
+		hsrcaddr= idata.ether;
 	}
+
+	srandom(time(NULL));
 
 	if(!srcaddr_f || srcprefix_f){
 		if(srcprefix_f){
@@ -1224,22 +1241,41 @@ int main(int argc, char **argv){
 			break;
 	}
 
-	if(idata.type == DLT_EN10MB && !loopback_f){
-		if(find_ipv6_router_full(idata.pd, &idata) == 1){
-			if(!hdstaddr_f && dstaddr_f){
-				if(IN6_IS_ADDR_MC_LINKLOCAL(&dstaddr)){
-					hdstaddr= ether_multicast(&dstaddr);
+	/*
+	   Select link-layer destination address
+
+	   + If the underlying interface is loopback or tunnel, there is no need 
+	     to select a link-layer destination address
+	   + If a link-layer Destination Address has been specified, we do not need to
+	     select one
+	   + If the destination address is link-local, there is no need to perform
+	     next-hop determination
+	   + Otherwise we need to learn the local router or do ND as a last ressort
+	 */
+	if((idata.type == DLT_EN10MB && (idata.flags != IFACE_LOOPBACK && idata.flags != IFACE_TUNNEL)) && (!hdstaddr_f && dstaddr_f)){
+		if(IN6_IS_ADDR_LINKLOCAL(&dstaddr)){
+			/*
+			   If the IPv6 Destination Address is a multicast address, there is no need
+			   to perform Neighbor Discovery
+			 */
+			if(IN6_IS_ADDR_MC_LINKLOCAL(&dstaddr)){
+				hdstaddr= ether_multicast(&dstaddr);
+			}
+			else if(ipv6_to_ether(idata.pd, &idata, &dstaddr, &hdstaddr) != 1){
+				puts("Error while performing Neighbor Discovery for the Destination Address");
+				exit(1);
+			}
+		}
+		else if(find_ipv6_router_full(idata.pd, &idata) == 1){
+			if(match_ipv6_to_prefixes(&dstaddr, &idata.prefix_ol)){
+				/* If address is on-link, we must perform Neighbor Discovery */
+				if(ipv6_to_ether(idata.pd, &idata, &dstaddr, &hdstaddr) != 1){
+					puts("Error while performing Neighbor Discovery for the Destination Address");
+					exit(1);
 				}
-				else if(match_ipv6_to_prefixes(&dstaddr, &idata.prefix_ol)){
-					/* Must perform Neighbor Discovery for the local address */
-					if(ipv6_to_ether(idata.pd, &idata, &dstaddr, &hdstaddr) != 1){
-						puts("Error while performing Neighbor Discovery for the Destination Address");
-						exit(1);
-					}
-				}
-				else{
-					hdstaddr= idata.router_ether;
-				}
+			}
+			else{
+				hdstaddr= idata.router_ether;
 			}
 		}
 		else{
@@ -1255,7 +1291,6 @@ int main(int argc, char **argv){
 			}
 		}
 	}
-
 
 	if(rhtcp_f){
 		if(pcap_compile(idata.pd, &pcap_filter, PCAP_TCPV6_FILTER, PCAP_OPT, PCAP_NETMASK_UNKNOWN) == -1){
@@ -1365,7 +1400,7 @@ int main(int argc, char **argv){
 
 			accepted_f=0;
 
-			if(idata.type == DLT_EN10MB && !loopback_f){
+			if(idata.type == DLT_EN10MB && idata.flags != IFACE_LOOPBACK){
 				if(nblocklinksrc){
 					if(match_ether(blocklinksrc, nblocklinksrc, &(pkt_ether->src))){
 						if(verbose_f>2)
@@ -1403,7 +1438,7 @@ int main(int argc, char **argv){
 				}
 			}
 	
-			if(idata.type == DLT_EN10MB && !loopback_f){
+			if(idata.type == DLT_EN10MB && idata.type != IFACE_LOOPBACK){
 				if(nacceptlinksrc){
 					if(match_ether(acceptlinksrc, nacceptlinksrc, &(pkt_ether->src)))
 						accepted_f=1;
@@ -1465,7 +1500,7 @@ void init_packet_data(void){
 	v6buffer = buffer + linkhsize;
 	ipv6 = (struct ip6_hdr *) v6buffer;
 
-	if(idata.type == DLT_EN10MB && !loopback_f){
+	if(idata.type == DLT_EN10MB && idata.type != IFACE_LOOPBACK){
 		ethernet->src = hsrcaddr;
 		ethernet->dst = hdstaddr;
 		ethernet->ether_type = htons(0x86dd);
@@ -1621,7 +1656,7 @@ void send_packet(const u_char *pktdata, struct pcap_pkthdr * pkthdr){
 		else{
 			ipv6->ip6_dst = pkt_ipv6->ip6_src;
 
-			if(idata.type == DLT_EN10MB && !loopback_f)
+			if(idata.type == DLT_EN10MB && idata.type != IFACE_LOOPBACK)
 				ethernet->dst = pkt_ether->src;
 		}
 
@@ -1793,7 +1828,7 @@ void send_packet(const u_char *pktdata, struct pcap_pkthdr * pkthdr){
 			}
 
 			icmp6->icmp6_cksum = 0;
-			icmp6->icmp6_cksum = in_chksum(v6buffer, icmp6, ptr-((unsigned char *)icmp6));
+			icmp6->icmp6_cksum = in_chksum(v6buffer, icmp6, ptr-((unsigned char *)icmp6), IPPROTO_ICMPV6);
 
 			if(!fragh_f){
 				ipv6->ip6_plen = htons((ptr - v6buffer) - MIN_IPV6_HLEN);
@@ -1966,7 +2001,7 @@ void print_help(void){
  * Calculate the 16-bit ICMPv6 checksum
  */
 
-u_int16_t in_chksum(void *ptr_ipv6, void *ptr_icmpv6, size_t len){
+u_int16_t in_chksum(void *ptr_ipv6, void *ptr_icmpv6, size_t len, u_int8_t proto){
 	struct ipv6pseudohdr pseudohdr;
 	struct ip6_hdr *v6packet;
 	size_t nleft;
@@ -1980,7 +2015,7 @@ u_int16_t in_chksum(void *ptr_ipv6, void *ptr_icmpv6, size_t len){
 	pseudohdr.srcaddr= v6packet->ip6_src;
 	pseudohdr.dstaddr= v6packet->ip6_dst;
 	pseudohdr.len = htons(len);
-	pseudohdr.nh = IPPROTO_ICMPV6;
+	pseudohdr.nh = proto;
 
 	nleft=40;
 	w= (u_int16_t *) &pseudohdr;
@@ -2003,13 +2038,11 @@ u_int16_t in_chksum(void *ptr_ipv6, void *ptr_icmpv6, size_t len){
 		sum += answer;
 	}
 
-
 	sum = (sum >> 16) + (sum & 0xffff);
 	sum += (sum >> 16);
 	answer = ~sum;
 	return(answer);
 }
-
 
 
 
@@ -2023,7 +2056,7 @@ void print_attack_info(void){
 
 	puts( "icmp6 version 1.1\nAssessment tool for attack vectors based on ICMPv6 error messages\n");
 
-	if(idata.type == DLT_EN10MB && !loopback_f){
+	if(idata.type == DLT_EN10MB && idata.flags != IFACE_LOOPBACK){
 		if(ether_ntop(&hsrcaddr, plinkaddr, sizeof(plinkaddr)) == 0){
 			puts("ether_ntop(): Error converting address");
 			exit(1);
@@ -2294,7 +2327,7 @@ void print_filters(void){
 		printf("\n");
 	}
 
-	if(idata.type == DLT_EN10MB && !loopback_f){
+	if(idata.type == DLT_EN10MB && idata.flags != IFACE_LOOPBACK){
 		if(nblocklinksrc){
 			printf("Block filter for link-layer Source Address: ");
 	
@@ -2352,7 +2385,7 @@ void print_filters(void){
 		printf("\n");
 	}
 
-	if(idata.type == DLT_EN10MB && !loopback_f){
+	if(idata.type == DLT_EN10MB && idata.flags != IFACE_LOOPBACK){
 		if(nacceptlinksrc){
 			printf("Accept filter for link-layer Source Address: ");
 
@@ -2633,7 +2666,7 @@ int ipv6_to_ether(pcap_t *pfd, struct iface_data *idata, struct in6_addr *target
 	struct ip6_hdr			*pkt_ipv6;
 	struct nd_neighbor_advert 	*pkt_na;
 	unsigned char			*pkt_end;
-	unsigned char			*ptr;
+	volatile unsigned char	*ptr, *p;
 
 	unsigned char			buffer[65556];
 	unsigned int 			ns_max_packet_size;
@@ -2651,19 +2684,21 @@ int ipv6_to_ether(pcap_t *pfd, struct iface_data *idata, struct in6_addr *target
 	ns_max_packet_size = idata->mtu;
 
 	ether = (struct ether_header *) buffer;
-	v6buffer = buffer + linkhsize;
+	v6buffer = buffer + sizeof(struct ether_header);
 	ipv6 = (struct ip6_hdr *) v6buffer;
 
 	if(pfd == NULL){
 		if( (pfd= pcap_open_live(idata->iface, PCAP_SNAP_LEN, PCAP_PROMISC, PCAP_TIMEOUT, errbuf)) == NULL){
 			if(verbose_f>1)
 				printf("pcap_open_live(): %s\n", errbuf);
+
 			return(-1);
 		}
 
 		if( pcap_datalink(pfd) != DLT_EN10MB){
 			if(verbose_f>1)
 				printf("Error: Interface %s is not an Ethernet interface", idata->iface);
+
 			return(-1);
 		}
 
@@ -2744,7 +2779,7 @@ int ipv6_to_ether(pcap_t *pfd, struct iface_data *idata, struct in6_addr *target
 
 	ipv6->ip6_plen = htons((ptr - v6buffer) - MIN_IPV6_HLEN);
 	ns->nd_ns_cksum = 0;
-	ns->nd_ns_cksum = in_chksum(v6buffer, ns, ptr-((unsigned char *)ns));
+	ns->nd_ns_cksum = in_chksum(v6buffer, ns, ptr-((unsigned char *)ns), IPPROTO_ICMPV6);
 
 	/* We set the signal handler, and the anchor for siglongjump() */
 	canjump=0;
@@ -2781,12 +2816,12 @@ int ipv6_to_ether(pcap_t *pfd, struct iface_data *idata, struct in6_addr *target
 		if(nw != (ptr-buffer)){
 			if(verbose_f>1)
 				printf("pcap_inject(): only wrote %lu bytes (rather than %lu bytes)\n", (LUI) nw, \
-											(LUI) (ptr-buffer));
+												(LUI) (ptr-buffer));
 			error_f=1;
 			break;
 		}
 
-		alarm(2);
+		alarm(idata->local_timeout);
 		
 		while(!foundaddr && !error_f){
 			do{
@@ -2835,31 +2870,31 @@ int ipv6_to_ether(pcap_t *pfd, struct iface_data *idata, struct in6_addr *target
 				continue;
 
 			/* Check that the ICMPv6 checksum is correct */
-			if(in_chksum(pkt_ipv6, pkt_na, pkt_end-((unsigned char *)pkt_na)) != 0)
+			if(in_chksum(pkt_ipv6, pkt_na, pkt_end-((unsigned char *)pkt_na), IPPROTO_ICMPV6) != 0)
 				continue;
 
 			/* Check that the ICMPv6 Target Address is the one we had asked for */
 			if(!is_eq_in6_addr(&(pkt_na->nd_na_target), targetaddr))
 				continue;
 
-			ptr= (unsigned char *) pkt_na + sizeof(struct nd_neighbor_advert);
+			p= (unsigned char *) pkt_na + sizeof(struct nd_neighbor_advert);
 
 			/* Process Neighbor Advertisement options */
-			while( (ptr+sizeof(struct nd_opt_tlla)) <= pkt_end && (*(ptr+1) != 0)){
-				if(*ptr == ND_OPT_TARGET_LINKADDR){
-					if( (*(ptr+1) * 8) != sizeof(struct nd_opt_tlla))
+			while( (p+sizeof(struct nd_opt_tlla)) <= pkt_end && (*(p+1) != 0)){
+				if(*p == ND_OPT_TARGET_LINKADDR){
+					if( (*(p+1) * 8) != sizeof(struct nd_opt_tlla))
 						break;
 
 					/* Got a response, so we shouln't time out */
 					alarm(0);
 
 					/* Save the link-layer address */
-					*result_ether= *(struct ether_addr *) (ptr+2);
+					*result_ether= *(struct ether_addr *) (p+2);
 					foundaddr=1;
 					break;
 				}
 
-				ptr= ptr + *(ptr+1) * 8;
+				p= p + *(p+1) * 8;
 			} /* Processing options */
 
 		} /* Processing packets */
@@ -2874,6 +2909,7 @@ int ipv6_to_ether(pcap_t *pfd, struct iface_data *idata, struct in6_addr *target
 	if( sigaction(SIGALRM, &old_sig, NULL) == -1){
 		if(verbose_f>1)
 			puts("Error setting up 'Alarm' signal");
+
 		return(-1);
 	}
 
@@ -2933,54 +2969,45 @@ struct ether_addr ether_multicast(const struct in6_addr *ipv6addr){
  */
 
 int find_ipv6_router_full(pcap_t *pfd, struct iface_data *idata){
-	struct pcap_pkthdr		*pkthdr;
-	const u_char			*pktdata;
-	struct ip6_hdr			*pkt_ipv6;
+	struct pcap_pkthdr			*pkthdr;
+	const u_char				*pktdata;
+	struct ip6_hdr				*pkt_ipv6;
 	struct nd_router_advert 	*pkt_ra;
-	unsigned char			*pkt_end;
-	unsigned char			*ptr;
+	unsigned char				*pkt_end;
+	volatile unsigned char		*ptr;
+	volatile unsigned char		*p;
 
-	unsigned char			buffer[65556];
-	unsigned int 			rs_max_packet_size;
+	unsigned char				buffer[65556];
+	unsigned int 				rs_max_packet_size;
 	struct ether_header 		*ether;
-	unsigned char 			*v6buffer;
-	struct ip6_hdr 			*ipv6;
+	unsigned char 				*v6buffer;
+	struct ip6_hdr 				*ipv6;
 	struct nd_router_solicit	*rs;
-	struct nd_opt_slla 		*sllaopt;
+	struct nd_opt_slla 			*sllaopt;
 	struct nd_opt_prefix_info	*pio;
 	volatile unsigned int 		tries=0;
 	volatile unsigned int 		foundrouter=0;
-	struct sigaction 		new_sig, old_sig;
-	unsigned char			closefd_f=0, error_f=0;
-	int				result;
-
-	/* Initializing the relevant fields of the idata structure */
-	bzero(&(idata->router_ip6), sizeof(struct in6_addr));
-	bzero(&(idata->router_ether), sizeof(struct ether_addr));
-
-	idata->prefix_ol.prefix= prefix_ols;
-	idata->prefix_ol.nprefix= 0;
-	idata->prefix_ol.maxprefix= MAX_PREFIXES_ONLINK;
-
-	idata->prefix_ac.prefix= prefix_acs;
-	idata->prefix_ac.nprefix= 0;
-	idata->prefix_ac.maxprefix= MAX_PREFIXES_AUTO;
+	struct sigaction 			new_sig, old_sig;
+	unsigned char				closefd_f=0, error_f=0;
+	int							result;
 
 	rs_max_packet_size = idata->mtu;
 	ether = (struct ether_header *) buffer;
-	v6buffer = buffer + linkhsize;
+	v6buffer = buffer + sizeof(struct ether_header);
 	ipv6 = (struct ip6_hdr *) v6buffer;
 
 	if(pfd == NULL){
 		if( (pfd= pcap_open_live(idata->iface, PCAP_SNAP_LEN, PCAP_PROMISC, PCAP_TIMEOUT, errbuf)) == NULL){
 			if(verbose_f>1)
 				printf("pcap_open_live(): %s\n", errbuf);
+
 			return(-1);
 		}
 
 		if( pcap_datalink(pfd) != DLT_EN10MB){
 			if(verbose_f>1)
 				printf("Error: Interface %s is not an Ethernet interface", idata->iface);
+
 			return(-1);
 		}
 
@@ -2993,6 +3020,7 @@ int find_ipv6_router_full(pcap_t *pfd, struct iface_data *idata){
 
 		if(closefd_f)
 			pcap_close(pfd);
+
 		return(-1);
 	}
     
@@ -3002,6 +3030,7 @@ int find_ipv6_router_full(pcap_t *pfd, struct iface_data *idata){
 
 		if(closefd_f)
 			pcap_close(pfd);
+
 		return(-1);
 	}
 
@@ -3047,6 +3076,7 @@ int find_ipv6_router_full(pcap_t *pfd, struct iface_data *idata){
 
 		if(closefd_f)
 			pcap_close(pfd);
+
 		return(-1);
 	}
 
@@ -3076,7 +3106,7 @@ int find_ipv6_router_full(pcap_t *pfd, struct iface_data *idata){
 
 	ipv6->ip6_plen = htons((ptr - v6buffer) - MIN_IPV6_HLEN);
 	rs->nd_rs_cksum = 0;
-	rs->nd_rs_cksum = in_chksum(v6buffer, rs, ptr-((unsigned char *)rs));
+	rs->nd_rs_cksum = in_chksum(v6buffer, rs, ptr-((unsigned char *)rs), IPPROTO_ICMPV6);
 
 	/* We set the signal handler, and the anchor for siglongjump() */
 	canjump=0;
@@ -3113,13 +3143,13 @@ int find_ipv6_router_full(pcap_t *pfd, struct iface_data *idata){
 		if(nw != (ptr-buffer)){
 			if(verbose_f>1)
 				printf("pcap_inject(): only wrote %lu bytes (rather than %lu bytes)\n", (LUI) nw, \
-											(LUI) (ptr-buffer));
+												(LUI) (ptr-buffer));
 
 			error_f=1;
 			break;
 		}
 
-		alarm(1);
+		alarm(idata->local_timeout + 1);
 		
 		while(!foundrouter && !error_f){
 
@@ -3182,38 +3212,40 @@ int find_ipv6_router_full(pcap_t *pfd, struct iface_data *idata){
 			   and we compute the checksum over the received packet (including the Checkdum field)
 			   the result is 0. Otherwise, the packet has been corrupted.
 			*/
-			if(in_chksum(pkt_ipv6, pkt_ra, pkt_end- (unsigned char *)pkt_ra) != 0)
+			if(in_chksum(pkt_ipv6, pkt_ra, pkt_end- (unsigned char *)pkt_ra, IPPROTO_ICMPV6) != 0)
 				continue;
 
-			ptr= (unsigned char *) pkt_ra + sizeof(struct nd_router_advert);
+			p= (unsigned char *) pkt_ra + sizeof(struct nd_router_advert);
 
 			/* Process Router Advertisement options */
-			while( (ptr+ *(ptr+1) * 8) <= pkt_end && *(ptr+1)!=0 && !error_f){
-				switch(*ptr){
+			while( (p+ *(p+1) * 8) <= pkt_end && *(p+1)!=0 && !error_f){
+				switch(*p){
 					case ND_OPT_SOURCE_LINKADDR:
-						if( (*(ptr+1) * 8) != sizeof(struct nd_opt_tlla))
+						if( (*(p+1) * 8) != sizeof(struct nd_opt_tlla))
 							break;
 
 						/* Got a response, so we shouln't time out */
 						alarm(0);
 
 						/* Save the link-layer address */
-						idata->router_ether = *(struct ether_addr *) (ptr+2);
+						idata->router_ether = *(struct ether_addr *) (p+2);
 						idata->router_ip6= pkt_ipv6->ip6_src;
 						foundrouter=1;
 						break;
 
 					case ND_OPT_PREFIX_INFORMATION:
-						if(*(ptr+1) != 4)
+						if(*(p+1) != 4)
 							break;
 
-						pio= (struct nd_opt_prefix_info *) ptr;
+						pio= (struct nd_opt_prefix_info *) p;
 
 						if((idata->prefix_ol.nprefix) < idata->prefix_ol.maxprefix){
 							if( (pio->nd_opt_pi_flags_reserved & ND_OPT_PI_FLAG_ONLINK) && \
-								(pio->nd_opt_pi_prefix_len <= 128) && !is_ip6_in_prefix_list(&(pio->nd_opt_pi_prefix), &(idata->prefix_ol))){
+								(pio->nd_opt_pi_prefix_len <= 128) && !is_ip6_in_prefix_list(&(pio->nd_opt_pi_prefix), \
+								&(idata->prefix_ol))){
 
-								if( (idata->prefix_ol.prefix[idata->prefix_ol.nprefix] = malloc(sizeof(struct prefix_entry))) == NULL){
+								if( (idata->prefix_ol.prefix[idata->prefix_ol.nprefix] = \
+																		malloc(sizeof(struct prefix_entry))) == NULL){
 									if(verbose_f>1)
 										puts("Error in malloc() while learning prefixes");
 
@@ -3221,22 +3253,24 @@ int find_ipv6_router_full(pcap_t *pfd, struct iface_data *idata){
 									break;
 								}
 
-								(idata->prefix_ol.prefix[idata->prefix_ol.nprefix])->ip6= \
-												pio->nd_opt_pi_prefix;
-								(idata->prefix_ol.prefix[idata->prefix_ol.nprefix])->len= \
-												pio->nd_opt_pi_prefix_len;
-								sanitize_ipv6_prefix(&((idata->prefix_ol.prefix[idata->prefix_ol.nprefix])->ip6), (idata->prefix_ol.prefix[idata->prefix_ol.nprefix])->len);
+								(idata->prefix_ol.prefix[idata->prefix_ol.nprefix])->ip6= pio->nd_opt_pi_prefix;
+								(idata->prefix_ol.prefix[idata->prefix_ol.nprefix])->len= pio->nd_opt_pi_prefix_len;
+								sanitize_ipv6_prefix(&((idata->prefix_ol.prefix[idata->prefix_ol.nprefix])->ip6), \
+														(idata->prefix_ol.prefix[idata->prefix_ol.nprefix])->len);
 								(idata->prefix_ol.nprefix)++;
 							}
 						}
 
 						if(idata->prefix_ac.nprefix < idata->prefix_ac.maxprefix){
 							if( (pio->nd_opt_pi_flags_reserved & ND_OPT_PI_FLAG_AUTO) && \
-								(pio->nd_opt_pi_prefix_len == 64) && !is_ip6_in_prefix_list(&(pio->nd_opt_pi_prefix), &(idata->prefix_ac))){
+								(pio->nd_opt_pi_prefix_len == 64) && !is_ip6_in_prefix_list(&(pio->nd_opt_pi_prefix), \
+																							&(idata->prefix_ac))){
 
-								if((idata->prefix_ac.prefix[idata->prefix_ac.nprefix] = malloc(sizeof(struct prefix_entry))) == NULL){
+								if((idata->prefix_ac.prefix[idata->prefix_ac.nprefix] = \
+																		malloc(sizeof(struct prefix_entry))) == NULL){
 									if(verbose_f>1)
 										puts("Error in malloc() while learning prefixes");
+
 									error_f=1;
 									break;
 								}
@@ -3246,17 +3280,24 @@ int find_ipv6_router_full(pcap_t *pfd, struct iface_data *idata){
 								(idata->prefix_ac.prefix[idata->prefix_ac.nprefix])->len= \
 												pio->nd_opt_pi_prefix_len;
 
-								sanitize_ipv6_prefix(&((idata->prefix_ac.prefix[idata->prefix_ac.nprefix])->ip6), (idata->prefix_ac.prefix[idata->prefix_ac.nprefix])->len);
+								sanitize_ipv6_prefix(&((idata->prefix_ac.prefix[idata->prefix_ac.nprefix])->ip6), \
+														(idata->prefix_ac.prefix[idata->prefix_ac.nprefix])->len);
 
-								if(idata->prefix_ac.nprefix == 0 && !idata->ip6_global_flag){
-									for(i=0; i<4; i++)
-										idata->ip6_global.s6_addr16[i]= (idata->prefix_ac.prefix[0])->ip6.s6_addr16[i];
+								if(!idata->ip6_global_flag && idata->ip6_global.nprefix < idata->ip6_global.maxprefix){
+								
+									if( (idata->ip6_global.prefix[idata->ip6_global.nprefix] = \
+																	malloc(sizeof(struct prefix_entry))) == NULL){
+										if(verbose_f>1)
+											puts("Error in malloc() creating local SLAAC addresses");
 
-									for(i=4; i<8; i++)
-										idata->ip6_global.s6_addr16[i]= idata->ip6_local.s6_addr16[i];
+										error_f=1;
+										break;
+									}
 
-									idata->ip6_global_flag=1;
-
+									generate_slaac_address(&(idata->prefix_ac.prefix[idata->prefix_ac.nprefix]->ip6), \
+										&(idata->ether), &((idata->ip6_global.prefix[idata->ip6_global.nprefix])->ip6));
+									(idata->ip6_global.prefix[idata->ip6_global.nprefix])->len = 64;
+									(idata->ip6_global.nprefix)++;
 								}
 								(idata->prefix_ac.nprefix)++;
 							}
@@ -3265,12 +3306,16 @@ int find_ipv6_router_full(pcap_t *pfd, struct iface_data *idata){
 						break;
 				}
 
-				ptr= ptr + *(ptr+1) * 8;
+				p= p + *(p+1) * 8;
 			} /* Processing options */
 
 		} /* Processing packets */
 
 	} /* Resending Router Solicitations */
+
+	/* If we added at least one global address, we set the corresponding flag to 1 */
+	if(idata->ip6_global.nprefix)
+		idata->ip6_global_flag=1;
 
 	if(closefd_f)
 		pcap_close(pfd);
@@ -3305,6 +3350,8 @@ int send_neighbor_advert(struct iface_data *idata, pcap_t *pfd,  const u_char *p
 	struct ip6_hdr			*ipv6;
 	struct nd_neighbor_advert	*na;
 	struct	nd_opt_tlla		*tllaopt;
+	u_int16_t	mask16;
+	unsigned int	i, j, full16, rest16;
 
 
 	ethernet= (struct ether_header *) buffer;
@@ -3394,20 +3441,47 @@ int send_neighbor_advert(struct iface_data *idata, pcap_t *pfd,  const u_char *p
 
 	pkt_ipv6addr = &(pkt_ipv6->ip6_dst);
 
-	if(IN6_IS_ADDR_MULTICAST(pkt_ipv6addr)){
-		ipv6->ip6_src = idata->ip6_local;
+
+	/* XXX Should be replaced with t call to a function to select the Source Address */
+	/*
+	   If the destination address is a link-local address, we select our link-local
+	   address as the Source Address. If the dst address is a global unicast address
+	   we select our first matching address, or else our first global address.
+	   Worst case scenario, we don't have global address and must use our link-local
+	   address.
+	*/   
+
+	if(IN6_IS_ADDR_MC_LINKLOCAL(pkt_ipv6addr) || IN6_IS_ADDR_LINKLOCAL(pkt_ipv6addr)){
+		ipv6->ip6_src= idata->ip6_local;
+	}
+	else if(idata->ip6_global_flag){
+		for(i=0; i < idata->ip6_global.nprefix; i++){
+				full16=(idata->ip6_global.prefix[i])->len / 16;
+				rest16=(idata->ip6_global.prefix[i])->len % 16;
+				mask16 = 0xffff;
+
+				for(j=0; j < full16; j++)
+					if( pkt_ipv6addr->s6_addr16[j] != (idata->ip6_global.prefix[i])->ip6.s6_addr16[j])
+						break;
+
+				if( (j == full16) && rest16){
+					mask16 = mask16 << (16 - rest16);
+
+					if( (pkt_ipv6addr->s6_addr16[full16] & mask16) == ((idata->ip6_global.prefix[i])->ip6.s6_addr16[full16] & mask16))
+						ipv6->ip6_src= (idata->ip6_global.prefix[i])->ip6;
+				}
+		}
+
+		ipv6->ip6_src= (idata->ip6_global.prefix[0])->ip6;
 	}
 	else{
-		if(idata->ip6_global_flag && is_eq_in6_addr(pkt_ipv6addr, &(idata->ip6_global)))
-			ipv6->ip6_src = idata->ip6_global;
-		else
-			ipv6->ip6_src = idata->ip6_local;
+		ipv6->ip6_src= idata->ip6_local;
 	}
 
 	na->nd_na_target= pkt_ns->nd_ns_target;
 
 	na->nd_na_cksum = 0;
-	na->nd_na_cksum = in_chksum(v6buffer, na, ptr-((unsigned char *)na));
+	na->nd_na_cksum = in_chksum(v6buffer, na, ptr-((unsigned char *)na), IPPROTO_ICMPV6);
 
 
 	if(!fragh_f){
@@ -3593,6 +3667,149 @@ int match_ipv6_to_prefixes(struct in6_addr *ipv6addr, struct prefix_list *pf){
 			}
 		}
 	}
+
+	return 0;
+}
+
+
+/*
+ * Function: get_if_addrs()
+ *
+ * Obtains Ethernet and IPv6 addresses of a network interface card
+ */
+
+int get_if_addrs(struct iface_data *idata){
+	struct ifaddrs	*ifptr, *ptr;
+	struct sockaddr_in6	*sockin6ptr;
+
+#ifdef __linux__
+	struct sockaddr_ll	*sockpptr;
+#elif defined (__FreeBSD__) || defined(__NetBSD__) || defined (__OpenBSD__) || defined(__APPLE__)
+	struct sockaddr_dl	*sockpptr;
+#endif
+
+	if(getifaddrs(&ifptr) != 0){
+		if(verbose_f > 1){
+			printf("Error while learning addresses of the %s interface\n", idata->iface);
+		}
+		return(-1);
+	}
+
+	for(ptr=ifptr; ptr != NULL; ptr= ptr->ifa_next){
+		if(ptr->ifa_addr == NULL)
+			continue;
+
+#ifdef __linux__
+		if( !(idata->ether_flag) && ((ptr->ifa_addr)->sa_family == AF_PACKET)){
+			if(strncmp(idata->iface, ptr->ifa_name, IFACE_LENGTH-1) == 0){
+				sockpptr = (struct sockaddr_ll *) (ptr->ifa_addr);
+				if(sockpptr->sll_halen == ETHER_ADDR_LEN){
+					memcpy((idata->ether).a, sockpptr->sll_addr, ETHER_ADDR_LEN);
+					idata->ether_flag=1;
+				}
+			}
+		}
+#elif defined (__FreeBSD__) || defined(__NetBSD__) || defined (__OpenBSD__) || defined(__APPLE__)
+		if( !(idata->ether_flag) && ((ptr->ifa_addr)->sa_family == AF_LINK)){
+			if(strncmp(idata->iface, ptr->ifa_name, IFACE_LENGTH-1) == 0){
+				sockpptr = (struct sockaddr_dl *) (ptr->ifa_addr);
+				if(sockpptr->sdl_alen == ETHER_ADDR_LEN){
+					memcpy((idata->ether).a, (sockpptr->sdl_data + sockpptr->sdl_nlen), ETHER_ADDR_LEN);
+					idata->ether_flag= 1;
+				}
+			}
+		}
+#endif
+		else if((ptr->ifa_addr)->sa_family == AF_INET6){
+			sockin6ptr= (struct sockaddr_in6 *) (ptr->ifa_addr);
+
+			if( !(idata->ip6_local_flag) &&  (((sockin6ptr->sin6_addr).s6_addr16[0] & htons(0xffc0)) \
+															== htons(0xfe80))){
+				if(strncmp(idata->iface, ptr->ifa_name, IFACE_LENGTH-1) == 0){
+					idata->ip6_local = sockin6ptr->sin6_addr;
+#if defined (__FreeBSD__) || defined(__NetBSD__) || defined (__OpenBSD__) || defined(__APPLE__)
+					/* BSDs store the interface index in s6_addr16[1], so we must clear it */
+					idata->ip6_local.s6_addr16[1] =0;
+					idata->ip6_local.s6_addr16[2] =0;
+					idata->ip6_local.s6_addr16[3] =0;					
+#endif
+					idata->ip6_local_flag= 1;
+				}
+			}
+			else if( ((sockin6ptr->sin6_addr).s6_addr16[0] & htons(0xffc0)) != htons(0xfe80)){
+				if(strncmp(idata->iface, ptr->ifa_name, IFACE_LENGTH-1) == 0){
+					if(IN6_IS_ADDR_LOOPBACK(&(sockin6ptr->sin6_addr)))
+						idata->flags= IFACE_LOOPBACK;
+
+					if(!is_ip6_in_prefix_list( &(sockin6ptr->sin6_addr), &(idata->ip6_global))){
+						if(idata->ip6_global.nprefix < idata->ip6_global.maxprefix){
+							if( (idata->ip6_global.prefix[idata->ip6_global.nprefix] = \
+												malloc(sizeof(struct prefix_entry))) == NULL){
+								if(verbose_f > 1)
+									puts("Error while storing Source Address");
+
+								freeifaddrs(ifptr);
+								return(-1);
+							}
+
+							(idata->ip6_global.prefix[idata->ip6_global.nprefix])->len = 64;
+							(idata->ip6_global.prefix[idata->ip6_global.nprefix])->ip6 = sockin6ptr->sin6_addr;
+							idata->ip6_global.nprefix++;
+							idata->ip6_global_flag= 1;
+						}
+					}
+				}
+			}
+		}
+	}
+
+	freeifaddrs(ifptr);
+	return(0);
+}
+
+
+/*
+ * Function: generate_slaac_address()
+ *
+ * Generates an IPv6 address (with modified EUI-64 identifiers) based on
+ * a IPv6 prefix and an Ethernet address.
+ */
+
+void generate_slaac_address(struct in6_addr *prefix, struct ether_addr *etheraddr, struct in6_addr *ipv6addr){
+	ipv6addr->s6_addr16[0]= htons(0xfe80); /* Link-local unicast prefix */
+
+	for(i=0;i<4;i++)
+		ipv6addr->s6_addr16[i]= prefix->s6_addr16[i];
+
+	ipv6addr->s6_addr16[4]=  htons(((u_int16_t) (etheraddr->a[0] | 0x02) << 8) | etheraddr->a[1]);
+	ipv6addr->s6_addr16[5]=  htons( ((u_int16_t)etheraddr->a[2] << 8) | 0xff);
+	ipv6addr->s6_addr16[6]=  htons((u_int16_t) 0xfe00 | etheraddr->a[3]);
+	ipv6addr->s6_addr16[7]=  htons(((u_int16_t)etheraddr->a[4] << 8) | etheraddr->a[5]);
+}
+
+
+/*
+ * Function: init_iface_data()
+ *
+ * Initializes the contents of "iface_data" structure
+ */
+
+int init_iface_data(struct iface_data *idata){
+	bzero(idata, sizeof(struct iface_data));
+	idata->local_retrans = 0;
+	idata->local_timeout = 1;
+
+	idata->ip6_global.prefix= prefix_local;
+	idata->ip6_global.nprefix=0;
+	idata->ip6_global.maxprefix= MAX_LOCAL_ADDRESSES;
+
+	idata->prefix_ol.prefix= prefix_ols;
+	idata->prefix_ol.nprefix= 0;
+	idata->prefix_ol.maxprefix= MAX_PREFIXES_ONLINK;
+
+	idata->prefix_ac.prefix= prefix_acs;
+	idata->prefix_ac.nprefix= 0;
+	idata->prefix_ac.maxprefix= MAX_PREFIXES_AUTO;
 
 	return 0;
 }

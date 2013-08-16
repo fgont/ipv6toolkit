@@ -76,6 +76,11 @@
 #define PCAP_ICMPV6_NA_FILTER		"icmp6 and ip6[7]==255 and ip6[40]==136 and ip6[41]==0"
 #define PCAP_ICMPV6_RANS_FILTER		"icmp6 and ip6[7]==255 and ((ip6[40]==134 and ip6[41]==0) or (ip6[40]==135 and ip6[41]==0))"
 
+/* Constants used for Router Discovery */
+#define MAX_PREFIXES_ONLINK		100
+#define MAX_PREFIXES_AUTO		100
+#define MAX_LOCAL_ADDRESSES		256
+
 struct ether_addr{
   u_int8_t a[ETHER_ADDR_LEN];
 } __attribute__ ((__packed__));
@@ -131,11 +136,14 @@ struct prefix_list{
 struct iface_data{
 	char			iface[IFACE_LENGTH];
 	int			type;
+	int			flags;
 	int			fd;
 	pcap_t			*pd;
 	struct ether_addr	ether;
+	unsigned int		ether_flag;
 	struct in6_addr		ip6_local;
-	struct in6_addr		ip6_global;
+	unsigned int		ip6_local_flag;
+	struct prefix_list	ip6_global;
 	unsigned int		ip6_global_flag;
 	struct in6_addr		router_ip6;
 	struct ether_addr	router_ether;
@@ -145,6 +153,7 @@ struct iface_data{
 	unsigned int		local_timeout;
 	unsigned int		mtu;
 };
+
 
 #if defined (__FreeBSD__) || defined(__NetBSD__) || defined (__OpenBSD__) || defined(__APPLE__)
     #ifndef s6_addr16

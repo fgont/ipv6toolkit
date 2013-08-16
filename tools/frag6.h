@@ -169,6 +169,7 @@ struct prefix_list{
 struct iface_data{
 	char			iface[IFACE_LENGTH];
 	int			type;
+	int			flags;
 	int			fd;
 	pcap_t			*pd;
 	struct ether_addr	ether;

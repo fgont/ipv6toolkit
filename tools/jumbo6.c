@@ -104,7 +104,6 @@ struct in6_addr		randprefix;
 unsigned char		randpreflen;
 
 /* Data structures for packets read from the wire */
-pcap_t				*pfd;
 struct pcap_pkthdr	*pkthdr;
 const u_char		*pktdata;
 unsigned char		*pkt_end;
@@ -158,7 +157,6 @@ unsigned char 		listen_f=0, accepted_f=0, loop_f=0, sleep_f=0, localaddr_f=0;
 unsigned char		srcprefix_f=0, hoplimit_f=0, ip6length_f=0, jplength_f=0, icmp6psize_f=0;
 
 
-
 /* Support for Extension Headers */
 unsigned int		dstopthdrs, dstoptuhdrs, hbhopthdrs;
 char				hbhopthdr_f=0, dstoptuhdr_f=0, dstopthdr_f=0;
@@ -173,7 +171,7 @@ unsigned char		fragh_f=0;
 unsigned char		fragbuffer[ETHER_HDR_LEN+MIN_IPV6_HLEN+MAX_IPV6_PAYLOAD];
 unsigned char		*fragpart, *fptr, *fptrend, *ptrend, *ptrhdr, *ptrhdrend;
 unsigned int		hdrlen, ndstopthdr=0, nhbhopthdr=0, ndstoptuhdr=0;
-unsigned int		nfrags, fragsize, max_packet_size;
+unsigned int		nfrags, fragsize, max_packet_size, linkhsize;
 unsigned char		*prev_nh, *startoffragment;
 
 
@@ -750,7 +748,7 @@ int main(int argc, char **argv){
 		exit(1);
 	}
 
-	if( (pfd= pcap_open_live(idata.iface, PCAP_SNAP_LEN, PCAP_PROMISC, PCAP_TIMEOUT, errbuf)) == NULL){
+	if( (idata.pd= pcap_open_live(idata.iface, PCAP_SNAP_LEN, PCAP_PROMISC, PCAP_TIMEOUT, errbuf)) == NULL){
 		printf("pcap_open_live(): %s\n", errbuf);
 		exit(1);
 	}
@@ -790,8 +788,22 @@ int main(int argc, char **argv){
 		}
 	}
 
-	if(pcap_datalink(pfd) != DLT_EN10MB){
-		printf("Error: Interface %s is not an Ethernet interface", iface);
+	if( (idata.type = pcap_datalink(idata.pd)) == DLT_EN10MB){
+		linkhsize= ETH_HLEN;
+		idata.mtu= ETH_DATA_LEN;
+	}
+	else if( idata.type == DLT_RAW){
+		linkhsize=0;
+		idata.mtu= MIN_IPV6_MTU;
+		idata.flags= IFACE_TUNNEL;
+	}
+	else if(idata.type == DLT_NULL){
+		linkhsize=4;
+		idata.mtu= MIN_IPV6_MTU;
+		idata.flags= IFACE_TUNNEL;
+	}
+	else{
+		printf("Error: Interface %s is not an Ethernet or tunnel interface", idata.iface);
 		exit(1);
 	}
 
@@ -824,22 +836,57 @@ int main(int argc, char **argv){
 
 	idata.mtu= ETH_DATA_LEN;
 
-	if(find_ipv6_router_full(pfd, &idata) != 1){
-		puts("Failed learning default IPv6 router");
-		exit(1);
-	}
+	/*
+	   Select link-layer destination address
 
-	if(!hdstaddr_f && dstaddr_f){
-		if(match_ipv6_to_prefixes(&dstaddr, &idata.prefix_ol)){
-			/* Must perform Neighbor Discovery for the local address */
-			if(ipv6_to_ether(pfd, &idata, &dstaddr, &hdstaddr) != 1){
+	   + If the underlying interface is loopback or tunnel, there is no need 
+	     to select a link-layer destination address
+	   + If a link-layer Destination Address has been specified, we do not need to
+	     select one
+	   + If the destination address is link-local, there is no need to perform
+	     next-hop determination
+	   + Otherwise we need to learn the local router or do ND as a last ressort
+	 */
+	if((idata.type == DLT_EN10MB && (idata.flags != IFACE_LOOPBACK && idata.flags != IFACE_TUNNEL)) && (!hdstaddr_f && dstaddr_f)){
+		if(IN6_IS_ADDR_LINKLOCAL(&dstaddr)){
+			/*
+			   If the IPv6 Destination Address is a multicast address, there is no need
+			   to perform Neighbor Discovery
+			 */
+			if(IN6_IS_ADDR_MC_LINKLOCAL(&dstaddr)){
+				hdstaddr= ether_multicast(&dstaddr);
+			}
+			else if(ipv6_to_ether(idata.pd, &idata, &dstaddr, &hdstaddr) != 1){
 				puts("Error while performing Neighbor Discovery for the Destination Address");
+				exit(1);
+			}
+		}
+		else if(find_ipv6_router_full(idata.pd, &idata) == 1){
+			if(match_ipv6_to_prefixes(&dstaddr, &idata.prefix_ol)){
+				/* If address is on-link, we must perform Neighbor Discovery */
+				if(ipv6_to_ether(idata.pd, &idata, &dstaddr, &hdstaddr) != 1){
+					puts("Error while performing Neighbor Discovery for the Destination Address");
+					exit(1);
+				}
+			}
+			else{
+				hdstaddr= idata.router_ether;
 			}
 		}
 		else{
-			hdstaddr= idata.router_ether;
+			if(verbose_f)
+				puts("Couldn't find local router. Now trying Neighbor Discovery for the target node");
+			/*
+			 * If we were not able to find a local router, we assume the destination is "on-link" (as
+			 * a last ressort), and thus perform Neighbor Discovery for that destination
+			 */
+			if(ipv6_to_ether(idata.pd, &idata, &dstaddr, &hdstaddr) != 1){
+				puts("Error while performing Neighbor Discovery for the Destination Address");
+				exit(1);
+			}
 		}
 	}
+
 
 	if(srcprefix_f){
 		randprefix=srcaddr;
@@ -872,13 +919,13 @@ int main(int argc, char **argv){
 	/*
 	   Set filter for receiving Neighbor Solicitations, ICMPv6 Echo Responses, and ICMPv6 Parameter Problem
 	 */
-	if(pcap_compile(pfd, &pcap_filter, PCAP_ICMPV6NS_FILTER, PCAP_OPT, PCAP_NETMASK_UNKNOWN) == -1){
-		printf("pcap_compile(): %s", pcap_geterr(pfd));
+	if(pcap_compile(idata.pd, &pcap_filter, PCAP_ICMPV6NS_FILTER, PCAP_OPT, PCAP_NETMASK_UNKNOWN) == -1){
+		printf("pcap_compile(): %s", pcap_geterr(idata.pd));
 		exit(1);
 	}
     
-	if(pcap_setfilter(pfd, &pcap_filter) == -1){
-		printf("pcap_setfilter(): %s", pcap_geterr(pfd));
+	if(pcap_setfilter(idata.pd, &pcap_filter) == -1){
+		printf("pcap_setfilter(): %s", pcap_geterr(idata.pd));
 		exit(1);
 	}
 
@@ -889,7 +936,7 @@ int main(int argc, char **argv){
     
 	/* Fire a TCP segment if an IPv6 Destination Address was specified */
 	if(dstaddr_f){
-		if( (idata.fd= pcap_fileno(pfd)) == -1){
+		if( (idata.fd= pcap_fileno(idata.pd)) == -1){
 			puts("Error obtaining descriptor number for pcap_t");
 			exit(1);
 		}
@@ -934,8 +981,8 @@ int main(int argc, char **argv){
 				continue;
 
 			/* Read a packet (Echo Reply, Neighbor Solicitation, or ICMPv6 Error */
-			if((r=pcap_next_ex(pfd, &pkthdr, &pktdata)) == -1){
-				printf("pcap_next_ex(): %s", pcap_geterr(pfd));
+			if((r=pcap_next_ex(idata.pd, &pkthdr, &pktdata)) == -1){
+				printf("pcap_next_ex(): %s", pcap_geterr(idata.pd));
 				exit(1);
 			}
 			else if(r == 0){
@@ -962,7 +1009,7 @@ int main(int argc, char **argv){
 					    will take care of that.
 					 */
 					if(!localaddr_f && is_eq_in6_addr(&(pkt_ns->nd_ns_target), &srcaddr)){
-							if(send_neighbor_advert(&idata, pfd, pktdata) == -1){
+							if(send_neighbor_advert(&idata, idata.pd, pktdata) == -1){
 								puts("Error sending Neighbor Advertisement");
 								exit(1);
 							}
@@ -1066,13 +1113,20 @@ void print_icmp6_error(struct pcap_pkthdr *pkthdr, const u_char *pktdata){
  * that are expected to remain constant for the specified attack.
  */
 void init_packet_data(void){
+	struct dlt_null *dlt_null;
 	ethernet= (struct ether_header *) buffer;
-	v6buffer = buffer + sizeof(struct ether_header);
+	dlt_null= (struct dlt_null *) buffer;
+	v6buffer = buffer + linkhsize;
 	ipv6 = (struct ip6_hdr *) v6buffer;
 
-	ethernet->src = hsrcaddr;
-	ethernet->dst = hdstaddr;
-	ethernet->ether_type = htons(0x86dd);
+	if(idata.type == DLT_EN10MB && idata.flags != IFACE_LOOPBACK){
+		ethernet->src = hsrcaddr;
+		ethernet->dst = hdstaddr;
+		ethernet->ether_type = htons(0x86dd);
+	}
+	else if(idata.type == DLT_NULL){
+		dlt_null->family= PF_INET6;
+	}
 
 	ipv6->ip6_flow=0;
 	ipv6->ip6_vfc= 0x60;
@@ -1219,8 +1273,8 @@ int send_packet(struct pcap_pkthdr *pkthdr, const u_char *pktdata){
 		else
 			*jplengthptr= htonl((ptr - v6buffer) - MIN_IPV6_HLEN);
 
-		if((nw=pcap_inject(pfd, buffer, ptr - buffer)) == -1){
-			printf("pcap_inject(): %s\n", pcap_geterr(pfd));
+		if((nw=pcap_inject(idata.pd, buffer, ptr - buffer)) == -1){
+			printf("pcap_inject(): %s\n", pcap_geterr(idata.pd));
 			exit(1);
 		}
 
@@ -1290,8 +1344,8 @@ int send_packet(struct pcap_pkthdr *pkthdr, const u_char *pktdata){
 				*fjplengthptr= htonl((fptr - fragbuffer) - MIN_IPV6_HLEN - ETHER_HDR_LEN);
 
 
-			if((nw=pcap_inject(pfd, fragbuffer, fptr - fragbuffer)) == -1){
-				printf("pcap_inject(): %s\n", pcap_geterr(pfd));
+			if((nw=pcap_inject(idata.pd, fragbuffer, fptr - fragbuffer)) == -1){
+				printf("pcap_inject(): %s\n", pcap_geterr(idata.pd));
 				exit(1);
 			}
 
@@ -2689,6 +2743,9 @@ int get_if_addrs(struct iface_data *idata){
 			}
 			else if( ((sockin6ptr->sin6_addr).s6_addr16[0] & htons(0xffc0)) != htons(0xfe80)){
 				if(strncmp(idata->iface, ptr->ifa_name, IFACE_LENGTH-1) == 0){
+					if(IN6_IS_ADDR_LOOPBACK(&(sockin6ptr->sin6_addr)))
+						idata->flags= IFACE_LOOPBACK;
+
 					if(!is_ip6_in_prefix_list( &(sockin6ptr->sin6_addr), &(idata->ip6_global))){
 						if(idata->ip6_global.nprefix < idata->ip6_global.maxprefix){
 							if( (idata->ip6_global.prefix[idata->ip6_global.nprefix] = \
@@ -2714,7 +2771,6 @@ int get_if_addrs(struct iface_data *idata){
 	freeifaddrs(ifptr);
 	return(0);
 }
-
 
 
 /*
