@@ -4,7 +4,7 @@
  */
 
 #define LUI		long unsigned int
-
+#define	MAX_CMDLINE_OPT_LEN	40
 #define ETH_ALEN	6		/* Octets in one ethernet addr	 */
 #define ETH_HLEN	14		/* Total octets in header.	 */
 #define ETH_DATA_LEN	1500		/* Max. octets in payload	 */
@@ -59,13 +59,26 @@
 #define PCAP_ICMPV6_NA_FILTER "icmp6 and ip6[7]==255 and ip6[40]==136 and ip6[41]==0"
 #define PCAP_ICMPV6_RANS_FILTER		"icmp6 and ip6[7]==255 and ((ip6[40]==134 and ip6[41]==0) or (ip6[40]==135 and ip6[41]==0))"
 #define PCAP_ICMPV6_NA_FILTER "icmp6 and ip6[7]==255 and ip6[40]==136 and ip6[41]==0"
-#define PCAP_TCPIPV6_FILTER "ip6 and tcp"
+#define PCAP_TCPIPV6_NS_FILTER "ip6 and (tcp or (icmp6 and ip6[7]==255 and ip6[40]==135 and ip6[41]==0))"
 #define PCAP_IPV6_FILTER "ip6"
 
 /* Constants used for Router Discovery */
 #define MAX_PREFIXES_ONLINK		100
 #define MAX_PREFIXES_AUTO		100
 #define MAX_LOCAL_ADDRESSES		256
+
+
+/* Constants used for specification of TCP connection establishment */
+#define	OPEN_PASSIVE			1
+#define OPEN_SIMULTANEOUS		2
+#define OPEN_ABORT			3
+
+
+/* Constants used for specification of TCP connection termination */
+#define CLOSE_ACTIVE			1
+#define CLOSE_PASSIVE			2
+#define CLOSE_SIMULTANEOUS		3
+#define CLOSE_ABORT			4
 
 
 struct ether_addr{
@@ -122,7 +135,9 @@ struct prefix_list{
 struct iface_data{
 	char			iface[IFACE_LENGTH];
 	int			type;
+	int			flags;
 	int			fd;
+	pcap_t			*pd;
 	struct ether_addr	ether;
 	unsigned int		ether_flag;
 	struct in6_addr		ip6_local;
@@ -137,6 +152,7 @@ struct iface_data{
 	unsigned int		local_timeout;
 	unsigned int		mtu;
 };
+
 
 #if defined (__FreeBSD__) || defined(__NetBSD__) || defined (__OpenBSD__) || defined(__APPLE__)
     #ifndef s6_addr16

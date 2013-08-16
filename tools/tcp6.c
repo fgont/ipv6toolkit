@@ -63,7 +63,7 @@
 
 /* Function prototypes */
 int					init_iface_data(struct iface_data *);
-void				init_packet_data(void);
+void				init_packet_data(struct iface_data *);
 int					insert_pad_opt(unsigned char *ptrhdr, const unsigned char *, unsigned int);
 void				send_packet(const u_char *);
 void				print_attack_info(void);
@@ -91,19 +91,27 @@ struct ether_addr	ether_multicast(const struct in6_addr *);
 int 				match_ipv6_to_prefixes(struct in6_addr *, struct prefix_list *);
 int					get_if_addrs(struct iface_data *);
 struct in6_addr *	src_addr_sel(struct iface_data *, struct in6_addr *);
+int					is_time_elapsed(struct timeval *, struct timeval *, unsigned long);
+int 				send_neighbor_advert(struct iface_data *, pcap_t *,  const u_char *);
+void				frag_and_send(void);
 
 
 /* Flags used for TCP (specifically) */ 
 unsigned int		srcport_f=0, dstport_f=0;
 unsigned int		tcpseq_f=0, tcpack_f=0, tcpurg_f=0, tcpflags_f=0, tcpwin_f=0;
-unsigned int		rhbytes_f=0;
+unsigned int		rhbytes_f=0, tcpflags_auto_f=0, tcpopen_f=0, tcpclose_f=0;
+unsigned int		tcpopen=0, tcpclose=0;
 unsigned int		ackdata_f=1, ackflags_f=1;
 u_int16_t			srcport, dstport, tcpurg, tcpwin;
 u_int32_t			tcpseq, tcpack;
 u_int8_t			tcpflags=0;
 struct tcphdr		*rhtcp;
 unsigned int		rhbytes, currentsize;
-
+/*
+u_int32_t			tcpseqs[MAX_TCP_ENTRIES];
+u_int32_t			ipaddrs[MAX_TCP_ENTRIES];
+unsigned int		in=0, out=0;
+*/
 
 /* Used for router discovery */
 struct iface_data	idata;
@@ -112,15 +120,15 @@ struct prefix_entry	*prefix_local[MAX_LOCAL_ADDRESSES];
 
 
 /* Data structures for packets read from the wire */
-pcap_t				*pfd;
-struct pcap_pkthdr	*pkthdr;
-const u_char		*pktdata;
-unsigned char		*pkt_end;
-struct ether_header	*pkt_ether;
-struct ip6_hdr		*pkt_ipv6;
-struct tcphdr		*pkt_tcp;
-struct in6_addr		*pkt_ipv6addr;
-unsigned int		pktbytes;
+struct pcap_pkthdr		*pkthdr;
+const u_char			*pktdata;
+unsigned char			*pkt_end;
+struct ether_header		*pkt_ether;
+struct nd_neighbor_solicit	*pkt_ns;
+struct ip6_hdr			*pkt_ipv6;
+struct tcphdr			*pkt_tcp;
+struct in6_addr			*pkt_ipv6addr;
+unsigned int			pktbytes;
 
 
 bpf_u_int32			my_netmask;
@@ -155,6 +163,7 @@ unsigned char		srcpreflen, randpreflen;
 
 u_int16_t			mask;
 u_int8_t			hoplimit;
+u_int16_t			addr_key;
 
 char 				plinkaddr[ETHER_ADDR_PLEN];
 char 				psrcaddr[INET6_ADDRSTRLEN], pdstaddr[INET6_ADDRSTRLEN], pv6addr[INET6_ADDRSTRLEN];
@@ -162,7 +171,7 @@ unsigned char 		verbose_f=0, iface_f=0, acceptfilters_f=0, floodt_f=0;
 unsigned char 		srcaddr_f=0, dstaddr_f=0, hsrcaddr_f=0, hdstaddr_f=0;
 unsigned char 		listen_f=0, accepted_f=0, loop_f=0, sleep_f=0;
 unsigned char		srcprefix_f=0, hoplimit_f=0, rand_link_src_f=0, rand_src_f=0;
-unsigned char		floods_f=0, floodp_f=0, tunnel_f=0, loopback_f=0, filein_f=0, fileout_f=0;
+unsigned char		floods_f=0, floodp_f=0, donesending_f=0, startclose_f=0;
 
 /* Support for Extension Headers */
 unsigned int		dstopthdrs, dstoptuhdrs, hbhopthdrs;
@@ -205,20 +214,23 @@ sigjmp_buf			env;
 unsigned int		canjump;
 
 int main(int argc, char **argv){
-	extern char	*optarg;	
-	char		*endptr; /* Used by strtoul() */
-	uid_t		ruid;
-	gid_t		rgid;
-	fd_set		sset, rset;
-	int			r, sel;
+	extern char		*optarg;	
+	char			*endptr; /* Used by strtoul() */
+	uid_t			ruid;
+	gid_t			rgid;
+	fd_set			sset, rset;
+	int				r, sel;
+	struct timeval	timeout, stimeout, curtime, lastprobe;
+	unsigned long	pktinterval;
 	struct passwd	*pwdptr;
-	FILE		*filein, *fileout;
 
 	static struct option longopts[] = {
 		{"interface", required_argument, 0, 'i'},
 		{"src-address", required_argument, 0, 's'},
 		{"dst-address", required_argument, 0, 'd'},
 		{"hop-limit", required_argument, 0, 'A'},
+		{"open", required_argument, 0, 'c'},
+		{"close", required_argument, 0, 'C'},
 		{"dst-opt-hdr", required_argument, 0, 'u'},
 		{"dst-opt-u-hdr", required_argument, 0, 'U'},
 		{"hbh-opt-hdr", required_argument, 0, 'H'},
@@ -256,7 +268,7 @@ int main(int argc, char **argv){
 		{"help", no_argument, 0, 'h'}
 	};
 
-	char shortopts[]= "i:s:d:A:u:U:H:y:S:D:P:o:a:X:q:Q:V:w:NnI:O:j:k:J:K:b:g:B:G:F:T:rRlz:Lvh";
+	char shortopts[]= "i:s:d:A:c:C:u:U:H:y:S:D:P:o:a:X:q:Q:V:w:NnI:O:j:k:J:K:b:g:B:G:F:T:rRlz:Lvh";
 
 	char option;
 
@@ -316,6 +328,37 @@ int main(int argc, char **argv){
 			case 'A':	/* Hop Limit */
 				hoplimit= atoi(optarg);
 				hoplimit_f=1;
+				break;
+
+			case 'c':
+				if(strncmp(optarg, "simultaneous", MAX_CMDLINE_OPT_LEN) == 0){
+					tcpopen= OPEN_SIMULTANEOUS;
+				}
+				if(strncmp(optarg, "passive", MAX_CMDLINE_OPT_LEN) == 0){
+					tcpopen= OPEN_PASSIVE;
+				}
+				else if(strncmp(optarg, "abort", MAX_CMDLINE_OPT_LEN) == 0){
+					tcpopen= OPEN_ABORT;
+				}
+
+				tcpopen_f=1;
+				break;
+
+			case 'C':
+				if(strncmp(optarg, "simultaneous", MAX_CMDLINE_OPT_LEN) == 0){
+					tcpclose= CLOSE_SIMULTANEOUS;
+				}
+				if(strncmp(optarg, "passive", MAX_CMDLINE_OPT_LEN) == 0){
+					tcpclose= CLOSE_PASSIVE;
+				}
+				else if(strncmp(optarg, "abort", MAX_CMDLINE_OPT_LEN) == 0){
+					tcpclose= CLOSE_ABORT;
+				}
+				else if(strncmp(optarg, "active", MAX_CMDLINE_OPT_LEN) == 0){
+					tcpclose= CLOSE_ACTIVE;
+				}
+
+				tcpclose_f=1;
 				break;
 
 			case 'u':	/* Destinations Options Header */
@@ -496,6 +539,11 @@ int main(int argc, char **argv){
 				break;
 
 			case 'X':
+				if(strncmp(optarg, "auto", 4) == 0){
+					tcpflags_auto_f=1;
+					break;
+				}
+
 				charptr = optarg;
 				while(*charptr){
 					switch(*charptr){
@@ -868,23 +916,9 @@ int main(int argc, char **argv){
 		exit(1);
 	}
 
-	if( (pfd= pcap_open_live(idata.iface, PCAP_SNAP_LEN, PCAP_PROMISC, PCAP_TIMEOUT, errbuf)) == NULL){
+	if( (idata.pd= pcap_open_live(idata.iface, PCAP_SNAP_LEN, PCAP_PROMISC, PCAP_TIMEOUT, errbuf)) == NULL){
 		printf("pcap_open_live(): %s\n", errbuf);
 		exit(1);
-	}
-
-	if(filein_f){
-		if( (filein=fopen(path, "r")) == NULL){
-			perror("Error opening input file")
-			exit(1);
-		}
-	}
-
-	if(fileout_f){
-		if( (filein=fopen(path, "w+")) == NULL){
-			perror("Error opening output file")
-			exit(1);
-		}
 	}
 
 	/* 
@@ -922,19 +956,19 @@ int main(int argc, char **argv){
 		}
 	}
 
-	if( (idata.type = pcap_datalink(pfd)) == DLT_EN10MB){
+	if( (idata.type = pcap_datalink(idata.pd)) == DLT_EN10MB){
 		linkhsize= ETH_HLEN;
 		idata.mtu= ETH_DATA_LEN;
 	}
 	else if( idata.type == DLT_RAW){
 		linkhsize=0;
 		idata.mtu= MIN_IPV6_MTU;
-		tunnel_f=1;
+		idata.flags= IFACE_TUNNEL;
 	}
 	else if(idata.type == DLT_NULL){
 		linkhsize=4;
 		idata.mtu= MIN_IPV6_MTU;
-		tunnel_f=1;
+		idata.flags= IFACE_TUNNEL;
 	}
 	else{
 		printf("Error: Interface %s is not an Ethernet or tunnel interface", iface);
@@ -964,10 +998,6 @@ int main(int argc, char **argv){
 		exit(1);
 	}
 
-/* XXX: Borrowed from frag.c
-	if((idata.ip6_local_flag && idata.ip6_global_flag) && !srcaddr_f)
-		localaddr_f=1;
-*/
 	if(!idata.ether_flag){
 		randomize_ether_addr(&idata.ether);
 		idata.ether_flag=1;
@@ -980,22 +1010,42 @@ int main(int argc, char **argv){
 		ether_to_ipv6_linklocal(&idata.ether, &idata.ip6_local);
 	}
 
-	if(idata.type == DLT_EN10MB && !loopback_f){
-		if(find_ipv6_router_full(pfd, &idata) == 1){
-			if(!hdstaddr_f && dstaddr_f){
-				if(IN6_IS_ADDR_MC_LINKLOCAL(&dstaddr)){
-					hdstaddr= ether_multicast(&dstaddr);
+
+	/*
+	   Select link-layer destination address
+
+	   + If the underlying interface is loopback or tunnel, there is no need 
+	     to select a link-layer destination address
+	   + If a link-layer Destination Address has been specified, we do not need to
+	     select one
+	   + If the destination address is link-local, there is no need to perform
+	     next-hop determination
+	   + Otherwise we need to learn the local router or do ND as a last ressort
+	 */
+	if((idata.type == DLT_EN10MB && (idata.flags != IFACE_LOOPBACK && idata.flags != IFACE_TUNNEL)) && (!hdstaddr_f && dstaddr_f)){
+		if(IN6_IS_ADDR_LINKLOCAL(&dstaddr)){
+			/*
+			   If the IPv6 Destination Address is a multicast address, there is no need
+			   to perform Neighbor Discovery
+			 */
+			if(IN6_IS_ADDR_MC_LINKLOCAL(&dstaddr)){
+				hdstaddr= ether_multicast(&dstaddr);
+			}
+			else if(ipv6_to_ether(idata.pd, &idata, &dstaddr, &hdstaddr) != 1){
+				puts("Error while performing Neighbor Discovery for the Destination Address");
+				exit(1);
+			}
+		}
+		else if(find_ipv6_router_full(idata.pd, &idata) == 1){
+			if(match_ipv6_to_prefixes(&dstaddr, &idata.prefix_ol)){
+				/* If address is on-link, we must perform Neighbor Discovery */
+				if(ipv6_to_ether(idata.pd, &idata, &dstaddr, &hdstaddr) != 1){
+					puts("Error while performing Neighbor Discovery for the Destination Address");
+					exit(1);
 				}
-				else if(match_ipv6_to_prefixes(&dstaddr, &idata.prefix_ol)){
-					/* Must perform Neighbor Discovery for the local address */
-					if(ipv6_to_ether(pfd, &idata, &dstaddr, &hdstaddr) != 1){
-						puts("Error while performing Neighbor Discovery for the Destination Address");
-						exit(1);
-					}
-				}
-				else{
-					hdstaddr= idata.router_ether;
-				}
+			}
+			else{
+				hdstaddr= idata.router_ether;
 			}
 		}
 		else{
@@ -1005,12 +1055,13 @@ int main(int argc, char **argv){
 			 * If we were not able to find a local router, we assume the destination is "on-link" (as
 			 * a last ressort), and thus perform Neighbor Discovery for that destination
 			 */
-			if(ipv6_to_ether(pfd, &idata, &dstaddr, &hdstaddr) != 1){
+			if(ipv6_to_ether(idata.pd, &idata, &dstaddr, &hdstaddr) != 1){
 				puts("Error while performing Neighbor Discovery for the Destination Address");
 				exit(1);
 			}
 		}
 	}
+
 
 	if(srcprefix_f){
 		randprefix=srcaddr;
@@ -1045,7 +1096,7 @@ int main(int argc, char **argv){
 	 *  If we are going to send packets to a specified target, we must set some default values
 	 */
 	if(dstaddr_f){
-		if(!tcpflags_f)
+		if(!tcpflags_auto_f && !tcpflags_f && !tcpopen_f && !tcpclose_f)
 			tcpflags= tcpflags | TH_ACK;
 
 		if(!tcpack_f)
@@ -1064,7 +1115,7 @@ int main(int argc, char **argv){
 			tcpurg= 0;
 	}
 
-	/* BY default, we randomize the TCP Window */
+	/* By default, we randomize the TCP Window */
 	if(!tcpwin_f)
 		tcpwin= ((u_int16_t) random() + 1500) & (u_int16_t)0x7f00;
 
@@ -1078,43 +1129,56 @@ int main(int argc, char **argv){
 	/*
 	   Set filter for IPv6 packets (find_ipv6_router() set its own filter fore receiving RAs)
 	 */
-	if(pcap_compile(pfd, &pcap_filter, PCAP_TCPIPV6_FILTER, PCAP_OPT, PCAP_NETMASK_UNKNOWN) == -1){
-		printf("pcap_compile(): %s", pcap_geterr(pfd));
+	if(pcap_compile(idata.pd, &pcap_filter, PCAP_TCPIPV6_NS_FILTER, PCAP_OPT, PCAP_NETMASK_UNKNOWN) == -1){
+		printf("pcap_compile(): %s", pcap_geterr(idata.pd));
 		exit(1);
 	}
     
-	if(pcap_setfilter(pfd, &pcap_filter) == -1){
-		printf("pcap_setfilter(): %s", pcap_geterr(pfd));
+	if(pcap_setfilter(idata.pd, &pcap_filter) == -1){
+		printf("pcap_setfilter(): %s", pcap_geterr(idata.pd));
 		exit(1);
 	}
 
 	pcap_freecode(&pcap_filter);
 
 	/* Set initial contents of the attack packet */
-	init_packet_data();
+	init_packet_data(&idata);
+	addr_key= random();
+
+	pktinterval= (nsleep * 1000000)/(nsources * nports);
+	timeout.tv_sec=  pktinterval / 1000000 ;	
+	timeout.tv_usec= pktinterval % 1000000;
+	stimeout= timeout;
     
 	/* Fire a TCP segment if an IPv6 Destination Address was specified */
-	if(dstaddr_f){
-		send_packet(NULL);
+	if(!listen_f && dstaddr_f){
+		if(loop_f){
+			if(verbose_f)
+				printf("Sending TCP segments every %u second%s...\n", nsleep, \
+											((nsleep>1)?"s":""));
+		}
+
+		while(!donesending_f){
+				send_packet(NULL);
+
+				if((sel=select(0, NULL, NULL, NULL, &timeout)) == -1){
+					if(errno == EINTR){
+						continue;
+					}
+					else{
+						puts("Error in select()");
+						exit(1);
+					}
+				}
+		}
 
 		if(verbose_f)    
 			puts("Initial attack packet(s) sent successfully.");
 
-		if(loop_f){
-			if(verbose_f)
-				printf("Now sending TCP segments every %u second%s...\n", nsleep, \
-											((nsleep>1)?"s":""));
-			while(loop_f){
-				sleep(nsleep);
-				send_packet(NULL);
-			}
-
-			exit(0);
-		}
+		exit(0);
 	}
-
-	if(listen_f){
-		if( (idata.fd= pcap_fileno(pfd)) == -1){
+	else if(listen_f){
+		if( (idata.fd= pcap_fileno(idata.pd)) == -1){
 			puts("Error obtaining descriptor number for pcap_t");
 			exit(1);
 		}
@@ -1130,7 +1194,9 @@ int main(int argc, char **argv){
 		while(listen_f){
 			rset= sset;
 
-			if((sel=select(idata.fd+1, &rset, NULL, NULL, NULL)) == -1){
+			timeout= stimeout;
+
+			if((sel=select(idata.fd+1, &rset, NULL, NULL, ((floods_f || floodp_f) && !donesending_f)?(&timeout):NULL)) == -1){
 				if(errno == EINTR){
 					continue;
 				}
@@ -1140,23 +1206,68 @@ int main(int argc, char **argv){
 				}
 			}
 
-			/* Read a TCP segment */
-			if((r=pcap_next_ex(pfd, &pkthdr, &pktdata)) == -1){
-				printf("pcap_next_ex(): %s", pcap_geterr(pfd));
-				exit(1);
-			}
-			else if(r == 0){
-				continue; /* Should never happen */
-			}
+			/* If there are some bits set, we need to check whether it's time to send packets */
+			if(sel)
+				if(gettimeofday(&curtime, NULL) == -1){
+					if(verbose_f)
+						perror("tcp6");
 
-			pkt_ether = (struct ether_header *) pktdata;
-			pkt_ipv6 = (struct ip6_hdr *)((char *) pkt_ether + linkhsize);
+					exit(1);
+				}
 
-			accepted_f=0;
+			if(FD_ISSET(idata.fd, &rset)){
+				/* Read a packet */
+				if((r=pcap_next_ex(idata.pd, &pkthdr, &pktdata)) == -1){
+					printf("pcap_next_ex(): %s", pcap_geterr(idata.pd));
+					exit(1);
+				}
+				else if(r == 0){
+					continue; /* Should never happen */
+				}
 
-			if(idata.type == DLT_EN10MB && !loopback_f){
-				if(nblocklinksrc){
-					if(match_ether(blocklinksrc, nblocklinksrc, &(pkt_ether->src))){
+				pkt_ether = (struct ether_header *) pktdata;
+				pkt_ipv6 = (struct ip6_hdr *)((char *) pkt_ether + linkhsize);
+				pkt_tcp= (struct tcphdr *) ( (char *) pkt_ipv6 + MIN_IPV6_HLEN);
+				pkt_ns= (struct nd_neighbor_solicit *) ( (char *) pkt_ipv6 + MIN_IPV6_HLEN);
+				pkt_end = (unsigned char *) pktdata + pkthdr->caplen;
+
+				/* Check that we are able to look into the IPv6 header */
+				if( (pkt_end -  pktdata) < (linkhsize + MIN_IPV6_HLEN))
+					continue;
+
+				accepted_f=0;
+
+				if(idata.type == DLT_EN10MB && idata.flags != IFACE_LOOPBACK){
+					if(nblocklinksrc){
+						if(match_ether(blocklinksrc, nblocklinksrc, &(pkt_ether->src))){
+							if(verbose_f>1)
+								print_filter_result(pktdata, BLOCKED);
+		
+							continue;
+						}
+					}
+
+					if(nblocklinkdst){
+						if(match_ether(blocklinkdst, nblocklinkdst, &(pkt_ether->dst))){
+							if(verbose_f>1)
+								print_filter_result(pktdata, BLOCKED);
+		
+							continue;
+						}
+					}
+				}
+	
+				if(nblocksrc){
+					if(match_ipv6(blocksrc, blocksrclen, nblocksrc, &(pkt_ipv6->ip6_src))){
+						if(verbose_f>1)
+							print_filter_result(pktdata, BLOCKED);
+		
+						continue;
+					}
+				}
+	
+				if(nblockdst){
+					if(match_ipv6(blockdst, blockdstlen, nblockdst, &(pkt_ipv6->ip6_dst))){
 						if(verbose_f>1)
 							print_filter_result(pktdata, BLOCKED);
 		
@@ -1164,73 +1275,114 @@ int main(int argc, char **argv){
 					}
 				}
 
-				if(nblocklinkdst){
-					if(match_ether(blocklinkdst, nblocklinkdst, &(pkt_ether->dst))){
-						if(verbose_f>1)
-							print_filter_result(pktdata, BLOCKED);
-		
-						continue;
+				if(idata.type == DLT_EN10MB && idata.flags != IFACE_LOOPBACK){	
+					if(nacceptlinksrc){
+						if(match_ether(acceptlinksrc, nacceptlinksrc, &(pkt_ether->src)))
+							accepted_f=1;
+					}
+
+					if(nacceptlinkdst && !accepted_f){
+						if(match_ether(acceptlinkdst, nacceptlinkdst, &(pkt_ether->dst)))
+							accepted_f= 1;
 					}
 				}
-			}
-	
-			if(nblocksrc){
-				if(match_ipv6(blocksrc, blocksrclen, nblocksrc, &(pkt_ipv6->ip6_src))){
-					if(verbose_f>1)
-						print_filter_result(pktdata, BLOCKED);
-		
-					continue;
-				}
-			}
-	
-			if(nblockdst){
-				if(match_ipv6(blockdst, blockdstlen, nblockdst, &(pkt_ipv6->ip6_dst))){
-					if(verbose_f>1)
-						print_filter_result(pktdata, BLOCKED);
-		
-					continue;
-				}
-			}
 
-			if(idata.type == DLT_EN10MB && !loopback_f){	
-				if(nacceptlinksrc){
-					if(match_ether(acceptlinksrc, nacceptlinksrc, &(pkt_ether->src)))
-						accepted_f=1;
-				}
-
-				if(nacceptlinkdst && !accepted_f){
-					if(match_ether(acceptlinkdst, nacceptlinkdst, &(pkt_ether->dst)))
+				if(nacceptsrc && !accepted_f){
+					if(match_ipv6(acceptsrc, acceptsrclen, nacceptsrc, &(pkt_ipv6->ip6_src)))
 						accepted_f= 1;
 				}
-			}
 
-			if(nacceptsrc && !accepted_f){
-				if(match_ipv6(acceptsrc, acceptsrclen, nacceptsrc, &(pkt_ipv6->ip6_src)))
-					accepted_f= 1;
-			}
-
-			if(nacceptdst && !accepted_f){
-				if(match_ipv6(acceptdst, acceptdstlen, nacceptdst, &(pkt_ipv6->ip6_dst)))
-					accepted_f=1;
-			}
+				if(nacceptdst && !accepted_f){
+					if(match_ipv6(acceptdst, acceptdstlen, nacceptdst, &(pkt_ipv6->ip6_dst)))
+						accepted_f=1;
+				}
 	
-			if(acceptfilters_f && !accepted_f){
+				if(acceptfilters_f && !accepted_f){
+					if(verbose_f>1)
+						print_filter_result(pktdata, BLOCKED);
+
+					continue;
+				}
+
 				if(verbose_f>1)
-					print_filter_result(pktdata, BLOCKED);
+					print_filter_result(pktdata, ACCEPTED);
 
-				continue;
+				if(pkt_ipv6->ip6_nxt == IPPROTO_TCP){
+					/* Check that we are able to look into the TCP header */
+					if( (pkt_end -  pktdata) < (linkhsize + MIN_IPV6_HLEN + sizeof(struct tcphdr))){
+						continue;
+					}
+
+					if(dstaddr_f){
+						if(!floods_f){
+							/* Discard our own packets */
+							if(is_eq_in6_addr(&(pkt_ipv6->ip6_src), &srcaddr)){
+								continue;
+							}
+
+							if(!is_eq_in6_addr(&(pkt_ipv6->ip6_dst), &srcaddr)){
+								continue;
+							}
+						}
+						else{
+							/* Discard our own packets */
+							if(pkt_ipv6->ip6_src.s6_addr16[5] ==  (pkt_ipv6->ip6_src.s6_addr16[4] ^ addr_key) && \
+								pkt_ipv6->ip6_src.s6_addr16[7] ==  (pkt_ipv6->ip6_src.s6_addr16[6] ^ addr_key)){
+								continue;
+							}
+
+							if(pkt_ipv6->ip6_dst.s6_addr16[5] !=  (pkt_ipv6->ip6_dst.s6_addr16[4] ^ addr_key) || \
+								pkt_ipv6->ip6_dst.s6_addr16[7] !=  (pkt_ipv6->ip6_dst.s6_addr16[6] ^ addr_key)){
+								continue;
+							}
+						}
+
+						if(pkt_tcp->th_sport != htons(dstport)){
+							continue;
+						}
+
+						if(!floodp_f && pkt_tcp->th_dport != htons(srcport)){
+							continue;
+						}
+					}
+
+					/* Send a TCP segment */
+					send_packet(pktdata);
+				}
+				else if(dstaddr_f && pkt_ipv6->ip6_nxt == IPPROTO_ICMPV6){
+					/* Check that we are able to look into the NS header */
+					if( (pkt_end -  pktdata) < (linkhsize + MIN_IPV6_HLEN + sizeof(struct nd_neighbor_solicit))){
+						continue;
+					}
+
+					if(idata.type == DLT_EN10MB && idata.flags != IFACE_LOOPBACK){
+						if(floods_f){
+							if(pkt_ns->nd_ns_target.s6_addr16[5] !=  (pkt_ns->nd_ns_target.s6_addr16[4] ^ addr_key) || \
+								pkt_ns->nd_ns_target.s6_addr16[7] !=  (pkt_ns->nd_ns_target.s6_addr16[6] ^ addr_key)){
+								continue;
+							}
+						}
+						else{
+							if(!is_eq_in6_addr( &(pkt_ns->nd_ns_target), &srcaddr) ){
+								continue;
+							}
+						}
+
+						if(send_neighbor_advert(&idata, idata.pd, pktdata) == -1){
+							puts("Error sending Neighbor Advertisement");
+							exit(1);
+						}
+					}
+				}
 			}
-
-			if(verbose_f>1)
-				print_filter_result(pktdata, ACCEPTED);
-
-			/* Send a TCP segment */
-			send_packet(pktdata);
+			if((!sel || is_time_elapsed(&curtime, &lastprobe, pktinterval)) && !donesending_f){
+				lastprobe= curtime;
+				send_packet(NULL);
+			}
 		}
     
 		exit(0);
 	}
-    
 
 	if(!dstaddr_f && !listen_f){
 		puts("Error: Nothing to send! (Destination Address left unspecified, and not using listening mode)");
@@ -1248,12 +1400,12 @@ int main(int argc, char **argv){
  * Initialize the contents of the attack packet (Ethernet header, IPv6 Header, and ICMPv6 header)
  * that are expected to remain constant for the specified attack.
  */
-void init_packet_data(void){
+void init_packet_data(struct iface_data *idata){
 	ethernet= (struct ether_header *) buffer;
 	v6buffer = buffer + linkhsize;
 	ipv6 = (struct ip6_hdr *) v6buffer;
 
-	if(!tunnel_f){
+	if(idata->flags != IFACE_TUNNEL && idata->flags != IFACE_LOOPBACK){
 		ethernet->src = hsrcaddr;
 		ethernet->dst = hdstaddr;
 		ethernet->ether_type = htons(0x86dd);
@@ -1273,7 +1425,7 @@ void init_packet_data(void){
 		hbhopthdrs=0;
 	
 		while(hbhopthdrs < nhbhopthdr){
-			if((ptr+ hbhopthdrlen[hbhopthdrs]) > (v6buffer+ idata.mtu)){
+			if((ptr+ hbhopthdrlen[hbhopthdrs]) > (v6buffer+ idata->mtu)){
 				puts("Packet too large while processing HBH Opt. Header");
 				exit(1);
 			}
@@ -1290,7 +1442,7 @@ void init_packet_data(void){
 		dstoptuhdrs=0;
 	
 		while(dstoptuhdrs < ndstoptuhdr){
-			if((ptr+ dstoptuhdrlen[dstoptuhdrs]) > (v6buffer+ idata.mtu)){
+			if((ptr+ dstoptuhdrlen[dstoptuhdrs]) > (v6buffer+ idata->mtu)){
 				puts("Packet too large while processing Dest. Opt. Header (Unfrag. Part)");
 				exit(1);
 			}
@@ -1310,7 +1462,7 @@ void init_packet_data(void){
 		/* Check that we are able to send the Unfragmentable Part, together with a 
 		   Fragment Header and a chunk data over our link layer
 		 */
-		if( (fragpart+sizeof(fraghdr)+nfrags) > (v6buffer+idata.mtu)){
+		if( (fragpart+sizeof(fraghdr)+nfrags) > (v6buffer+idata->mtu)){
 			puts("Unfragmentable part too large for current MTU");
 			exit(1);
 		}
@@ -1355,9 +1507,11 @@ void init_packet_data(void){
  * Initialize the remaining fields of the TCP segment, and send the attack packet(s).
  */
 void send_packet(const u_char *pktdata){
+	static unsigned int	sources=0, ports=0;	
 	ptr=startofprefixes;
 
 	if(pktdata != NULL){   /* Sending a TCP segment in response to a received packet */
+		startclose_f= 0;
 		pkt_ether = (struct ether_header *) pktdata;
 		pkt_ipv6 = (struct ip6_hdr *)((char *) pkt_ether + linkhsize);
 		pkt_tcp= (struct tcphdr *)( (char *) pkt_ipv6 + sizeof(struct ip6_hdr));
@@ -1382,7 +1536,7 @@ void send_packet(const u_char *pktdata){
 		else{
 			ipv6->ip6_dst = pkt_ipv6->ip6_src;
 
-			if(idata.type == DLT_EN10MB && !loopback_f)
+			if(idata.type == DLT_EN10MB && idata.flags != IFACE_LOOPBACK)
 				ethernet->dst = pkt_ether->src;
 		}
 
@@ -1398,7 +1552,7 @@ void send_packet(const u_char *pktdata){
 		else{
 			ipv6->ip6_src = pkt_ipv6->ip6_dst;
 
-			if(idata.type == DLT_EN10MB && !loopback_f)
+			if(idata.type == DLT_EN10MB && idata.flags != IFACE_LOOPBACK)
 				ethernet->src = pkt_ether->dst;
 		}
 
@@ -1407,6 +1561,10 @@ void send_packet(const u_char *pktdata){
 			puts("Packet Too Large while inserting TCP header");
 			exit(1);
 		}
+
+		/* If we are setting the flags automatically, do not respond to RST segments */
+		if((tcpflags_auto_f || tcpopen_f || tcpclose_f) && pkt_tcp->th_flags & TH_RST)
+			return;
 
 		tcp = (struct tcphdr *) ptr;
 		bzero(tcp, sizeof(struct tcphdr));
@@ -1419,30 +1577,215 @@ void send_packet(const u_char *pktdata){
 		else
 			tcp->th_seq = pkt_tcp->th_ack;
 
-		if(tcpack_f){
-			tcp->th_ack= htonl(tcpack);
-		}
-		else{
-			tcp->th_ack= pkt_tcp->th_seq;
 
-			if(ackdata_f){
-				tcp->th_ack= htonl(ntohl(tcp->th_ack) + ((pkt_end - (unsigned char *)pkt_tcp) - (tcp->th_off << 2)));
+		if( pkt_tcp->th_flags & TH_SYN){
+			if(tcpopen_f){
+				if(tcpopen == OPEN_PASSIVE){
+					/* If it is a pure SYN, respond with a SYN/ACK */
+					if(!(pkt_tcp->th_flags & TH_ACK)){
+						tcp->th_flags = tcp->th_flags | TH_SYN | TH_ACK;
+						tcp->th_seq= random();
+						tcp->th_ack= htonl(ntohl(pkt_tcp->th_seq) + ((pkt_end - (unsigned char *)pkt_tcp) - (pkt_tcp->th_off << 2)));
+						tcp->th_ack= htonl(ntohl(tcp->th_ack) + ((pkt_tcp->th_flags & TH_FIN)?1:0) + \
+							((pkt_tcp->th_flags & TH_SYN)?1:0));
+					}
+				}
+				else if(tcpopen == OPEN_SIMULTANEOUS){
+					/* If it is a pure SYN, respond with a SYN */
+					if(!(pkt_tcp->th_flags & TH_ACK)){
+						tcp->th_flags = tcp->th_flags | TH_SYN;
+						tcp->th_seq= random();
+						tcp->th_ack= 0;
+					}
+					else{
+					/* If we receive a SYN/ACK (product of the above SYN), send a SYN/ACK */
+						tcp->th_flags = tcp->th_flags | TH_SYN | TH_ACK;
+						tcp->th_seq= pkt_tcp->th_ack;
+						tcp->th_ack= htonl(ntohl(pkt_tcp->th_seq) + ((pkt_end - (unsigned char *)pkt_tcp) - (pkt_tcp->th_off << 2)));
+						tcp->th_ack= htonl(ntohl(tcp->th_ack) + ((pkt_tcp->th_flags & TH_FIN)?1:0) + \
+							((pkt_tcp->th_flags & TH_SYN)?1:0));
+					}
+				}
+				else if(tcpopen == OPEN_ABORT){
+					/* If we receive a SYN, send RST */
+					tcp->th_flags = tcp->th_flags | TH_RST | TH_ACK;
+					if(pkt_tcp->th_flags & TH_ACK)
+						tcp->th_seq= pkt_tcp->th_ack;
+					else
+						tcp->th_seq= 0;
+
+					tcp->th_ack= htonl(ntohl(pkt_tcp->th_seq) + ((pkt_end - (unsigned char *)pkt_tcp) - (pkt_tcp->th_off << 2)));
+					tcp->th_ack= htonl(ntohl(tcp->th_ack) + ((pkt_tcp->th_flags & TH_FIN)?1:0) + \
+							((pkt_tcp->th_flags & TH_SYN)?1:0));
+				}
 			}
+			else{
+				/* We have received a SYN/ACK */
+				if(pkt_tcp->th_flags & TH_ACK){
+					/* It's a SYN/ACK, and we are doing an active open */
+					if(tcpack_f){
+						tcp->th_ack= htonl(tcpack);
+					}
+					else{
+						if( !tcpflags_f || (tcpflags_f && (tcpflags & TH_ACK))){
+							tcp->th_ack= pkt_tcp->th_seq;
 
-			if(ackflags_f){
-				tcp->th_ack= htonl(ntohl(tcp->th_ack) + ((pkt_tcp->th_flags & TH_FIN)?1:0) + \
-						((pkt_tcp->th_flags & TH_SYN)?1:0));
+							if(ackdata_f){
+								tcp->th_ack= htonl(ntohl(tcp->th_ack) + ((pkt_end - (unsigned char *)pkt_tcp) - (pkt_tcp->th_off << 2)));
+							}
+
+							if(ackflags_f){
+								tcp->th_ack= htonl(ntohl(tcp->th_ack) + ((pkt_tcp->th_flags & TH_FIN)?1:0) + \
+										((pkt_tcp->th_flags & TH_SYN)?1:0));
+							}
+						}
+					}
+
+					if(tcpflags_f){
+						tcp->th_flags= tcpflags;
+					}
+					else{
+						tcp->th_flags= TH_ACK;
+
+						/* If the incoming packet was a SYN, we should respond with a SYN/ACK */
+						if( (pkt_tcp->th_flags & TH_SYN) && !(pkt_tcp->th_flags & TH_ACK))
+								tcp->th_flags = tcp->th_flags | TH_SYN;
+					}
+
+					startclose_f= 1;
+				}
+				else{
+					/* Simple SYN segment */
+					if(tcpack_f){
+						tcp->th_ack= htonl(tcpack);
+					}
+					else{
+						if( !tcpflags_f || (tcpflags_f && (tcpflags & TH_ACK))){
+							tcp->th_ack= pkt_tcp->th_seq;
+
+							if(ackdata_f){
+								tcp->th_ack= htonl(ntohl(tcp->th_ack) + ((pkt_end - (unsigned char *)pkt_tcp) - (pkt_tcp->th_off << 2)));
+							}
+
+							if(ackflags_f){
+								tcp->th_ack= htonl(ntohl(tcp->th_ack) + ((pkt_tcp->th_flags & TH_FIN)?1:0) + \
+										((pkt_tcp->th_flags & TH_SYN)?1:0));
+							}
+						}
+					}
+
+					if(tcpflags_f){
+						tcp->th_flags= tcpflags;
+					}
+					else{
+						tcp->th_flags= TH_ACK;
+
+						/* If the incoming packet was a SYN, we should respond with a SYN/ACK */
+						if( (pkt_tcp->th_flags & TH_SYN) && !(pkt_tcp->th_flags & TH_ACK))
+								tcp->th_flags = tcp->th_flags | TH_SYN;
+					}
+				}
 			}
 		}
+		else if(pkt_tcp->th_flags & TH_FIN){
+			if(tcpclose_f){
+				if(tcpclose == CLOSE_SIMULTANEOUS){
+					tcp->th_flags = TH_ACK | TH_FIN;
+					tcp->th_seq= pkt_tcp->th_ack;
+					tcp->th_ack= pkt_tcp->th_seq;
+				}
+				else if(tcpclose == CLOSE_PASSIVE){
+					tcp->th_flags = TH_ACK | TH_FIN;
+					tcp->th_seq= pkt_tcp->th_ack;
+					tcp->th_ack= htonl(ntohl(pkt_tcp->th_seq) + ((pkt_end - (unsigned char *)pkt_tcp) - (pkt_tcp->th_off << 2)));
+					tcp->th_ack= htonl(ntohl(tcp->th_ack) + ((pkt_tcp->th_flags & TH_FIN)?1:0) + \
+								((pkt_tcp->th_flags & TH_SYN)?1:0));
+				}
+				else if(tcpclose == CLOSE_ABORT){
+					tcp->th_flags = TH_ACK | TH_RST;
+					tcp->th_seq= pkt_tcp->th_ack;
+					tcp->th_ack= htonl(ntohl(pkt_tcp->th_seq) + ((pkt_end - (unsigned char *)pkt_tcp) - (pkt_tcp->th_off << 2)));
+					tcp->th_ack= htonl(ntohl(tcp->th_ack) + ((pkt_tcp->th_flags & TH_FIN)?1:0) + \
+							((pkt_tcp->th_flags & TH_SYN)?1:0));
+				}
+			}
+			else{
+				if(tcpack_f){
+					tcp->th_ack= htonl(tcpack);
+				}
+				else{
+					if( !tcpflags_f || (tcpflags_f && (tcpflags & TH_ACK))){
+						tcp->th_ack= pkt_tcp->th_seq;
 
-		if(tcpflags_f)
-			tcp->th_flags= tcpflags;
-		else{
-			tcp->th_flags= TH_ACK;
+						if(ackdata_f){
+							tcp->th_ack= htonl(ntohl(tcp->th_ack) + ((pkt_end - (unsigned char *)pkt_tcp) - (pkt_tcp->th_off << 2)));
+						}
 
-			/* If the incoming packet was a SYN, we should respond with a SYN/ACK */
-			if( (pkt_tcp->th_flags & TH_SYN) && !(pkt_tcp->th_flags & TH_ACK))
-					tcp->th_flags = tcp->th_flags | TH_SYN;
+						if(ackflags_f){
+							tcp->th_ack= htonl(ntohl(tcp->th_ack) + ((pkt_tcp->th_flags & TH_FIN)?1:0) + \
+									((pkt_tcp->th_flags & TH_SYN)?1:0));
+						}
+					}
+				}
+
+				if(tcpflags_f){
+					tcp->th_flags= tcpflags;
+				}
+				else{
+					tcp->th_flags= TH_ACK;
+
+					/* If the incoming packet was a SYN, we should respond with a SYN/ACK */
+					if( (pkt_tcp->th_flags & TH_SYN) && !(pkt_tcp->th_flags & TH_ACK))
+							tcp->th_flags = tcp->th_flags | TH_SYN;
+				}
+			}
+		}
+		else if(pkt_tcp->th_flags & TH_ACK){
+			if(tcpclose_f){
+				if(tcpclose == CLOSE_ACTIVE){
+					tcp->th_flags = TH_ACK | TH_FIN;
+					tcp->th_seq= pkt_tcp->th_ack;
+					tcp->th_ack= htonl(ntohl(pkt_tcp->th_seq) + ((pkt_end - (unsigned char *)pkt_tcp) - (pkt_tcp->th_off << 2)));
+					tcp->th_ack= htonl(ntohl(tcp->th_ack) + ((pkt_tcp->th_flags & TH_FIN)?1:0) + \
+								((pkt_tcp->th_flags & TH_SYN)?1:0));
+				}
+				else if(tcpclose == CLOSE_ABORT){
+					tcp->th_flags = TH_ACK | TH_RST;
+					tcp->th_seq= pkt_tcp->th_ack;
+					tcp->th_ack= htonl(ntohl(pkt_tcp->th_seq) + ((pkt_tcp->th_flags & TH_FIN)?1:0) + \
+								((pkt_tcp->th_flags & TH_SYN)?1:0));
+				}
+			}
+			else{
+				if(tcpack_f){
+					tcp->th_ack= htonl(tcpack);
+				}
+				else{
+					if( !tcpflags_f || (tcpflags_f && (tcpflags & TH_ACK))){
+						tcp->th_ack= pkt_tcp->th_seq;
+
+						if(ackdata_f){
+							tcp->th_ack= htonl(ntohl(tcp->th_ack) + ((pkt_end - (unsigned char *)pkt_tcp) - (pkt_tcp->th_off << 2)));
+						}
+
+						if(ackflags_f){
+							tcp->th_ack= htonl(ntohl(tcp->th_ack) + ((pkt_tcp->th_flags & TH_FIN)?1:0) + \
+									((pkt_tcp->th_flags & TH_SYN)?1:0));
+						}
+					}
+				}
+
+				if(tcpflags_f){
+					tcp->th_flags= tcpflags;
+				}
+				else{
+					tcp->th_flags= TH_ACK;
+
+					/* If the incoming packet was a SYN, we should respond with a SYN/ACK */
+					if( (pkt_tcp->th_flags & TH_SYN) && !(pkt_tcp->th_flags & TH_ACK))
+							tcp->th_flags = tcp->th_flags | TH_SYN;
+				}
+			}
 		}
 
 		tcp->th_urp= htons(tcpurg);
@@ -1451,8 +1794,62 @@ void send_packet(const u_char *pktdata){
 		/* Current version of tcp6 does not support sending TCP options */
 		tcp->th_off= sizeof(struct tcphdr) >> 2;
 		ptr+= tcp->th_off << 2;
+
+		if( (ptr + rhbytes) > v6buffer+max_packet_size){
+			puts("Packet Too Large while inserting TCP segment");
+			exit(1);
+		}
+
+		while(rhbytes>=4){
+			*(u_int32_t *)ptr = random();
+			ptr += sizeof(u_int32_t);
+			rhbytes -= sizeof(u_int32_t);
+		}
+
+		while(rhbytes>0){
+			*(u_int8_t *) ptr= (u_int8_t) random();
+			ptr++;
+			rhbytes--;
+		}
+
+		tcp->th_sum = 0;
+		tcp->th_sum = in_chksum(v6buffer, tcp, ptr-((unsigned char *)tcp), IPPROTO_TCP);
+
+		frag_and_send();
+
+		if(startclose_f){
+			tcp->th_seq= htonl( ntohl(tcp->th_seq) + ptr-((unsigned char *)tcp));
+
+			if(tcpclose == CLOSE_ABORT){
+				tcp->th_flags= TH_ACK | TH_RST;
+			}
+			else if(tcpclose == CLOSE_ACTIVE){
+				tcp->th_flags= TH_ACK | TH_FIN;
+			}
+
+			tcp->th_sum = 0;
+			tcp->th_sum = in_chksum(v6buffer, tcp, ptr-((unsigned char *)tcp), IPPROTO_TCP);
+			frag_and_send();
+		}	
+
+		return;
 	}
 	else{
+		if(ports >= nports){
+			sources++;
+			ports= 0;
+		}
+
+		if(sources >= nsources){
+			if(loop_f){
+				sources= 0;
+			}
+			else{
+				donesending_f= 1;
+				return;
+			}
+		}
+
 		if( (ptr+sizeof(struct tcphdr)) > (v6buffer+max_packet_size)){
 			puts("Packet Too Large while inserting TCP header");
 			exit(1);
@@ -1469,154 +1866,152 @@ void send_packet(const u_char *pktdata){
 		else
 			tcp->th_ack= 0;
 
-		tcp->th_flags= tcpflags;
+		if(tcpflags_auto_f || tcpopen_f || tcpclose_f){
+			tcp->th_flags= TH_SYN;
+		}
+		else{
+			tcp->th_flags= tcpflags;
+		}
+
 		tcp->th_urp= htons(tcpurg);
 		tcp->th_win= htons(tcpwin);
 		tcp->th_off= sizeof(struct tcphdr) >> 2;
 
 		ptr += tcp->th_off << 2;
-	}
 
-	if( (ptr + rhbytes) > v6buffer+max_packet_size){
-		puts("Packet Too Large while inserting TCP segment");
-		exit(1);
-	}
+		if( (ptr + rhbytes) > v6buffer+max_packet_size){
+			puts("Packet Too Large while inserting TCP segment");
+			exit(1);
+		}
 
-	while(rhbytes>=4){
-		*(u_int32_t *)ptr = random();
-		ptr += sizeof(u_int32_t);
-		rhbytes -= sizeof(u_int32_t);
-	}
+		while(rhbytes>=4){
+			*(u_int32_t *)ptr = random();
+			ptr += sizeof(u_int32_t);
+			rhbytes -= sizeof(u_int32_t);
+		}
 
-	while(rhbytes>0){
-		*(u_int8_t *) ptr= (u_int8_t) random();
-		ptr++;
-		rhbytes--;
-	}
+		while(rhbytes>0){
+			*(u_int8_t *) ptr= (u_int8_t) random();
+			ptr++;
+			rhbytes--;
+		}
 
-	sources=0;
 
-	do{
-		if(floods_f){
+		if(pktdata == NULL && (floods_f && ports== 0)){
 			/* 
 			   Randomizing the IPv6 Source address based on the prefix specified by 
 			   "srcaddr" and srcpreflen.
 			 */  
-			startrand= srcpreflen/16;
 
-			for(i=0; i<startrand; i++)
-				ipv6->ip6_src.s6_addr16[i]= 0;
+			randomize_ipv6_addr( &(ipv6->ip6_src), &srcaddr, srcpreflen);
 
-			for(i=startrand; i<8; i++)
-				ipv6->ip6_src.s6_addr16[i]=random();
-
-			if(srcpreflen%16){
-				mask=0xffff;
-	    
-				for(i=0; i<(srcpreflen%16); i++)
-					mask= mask>>1;
-
-				ipv6->ip6_src.s6_addr16[startrand]= ipv6->ip6_src.s6_addr16[startrand] \
-											& htons(mask);
+			/*
+			   If we need to respond to incomming packets, we set the Interface ID such that we can
+			   detect which IPv6 addresses we have used.
+			 */
+			if(listen_f){
+				ipv6->ip6_src.s6_addr16[4]= random();
+				ipv6->ip6_src.s6_addr16[5]= ipv6->ip6_src.s6_addr16[4] ^ addr_key;
+				ipv6->ip6_src.s6_addr16[6]= random();
+				ipv6->ip6_src.s6_addr16[7]= ipv6->ip6_src.s6_addr16[6] ^ addr_key;
 			}
 
-			for(i=0; i<=(srcpreflen/16); i++)
-				ipv6->ip6_src.s6_addr16[i]= ipv6->ip6_src.s6_addr16[i] | srcaddr.s6_addr16[i];
-
-			if(idata.type == DLT_EN10MB && !loopback_f && !hsrcaddr_f){
+			if(idata.type == DLT_EN10MB && idata.flags != IFACE_LOOPBACK && !hsrcaddr_f){
 				for(i=0; i<6; i++)
 					ethernet->src.a[i]= random();
 			}
 		}
 
-		ports=0;
+		if(pktdata == NULL && floodp_f){
+			tcp->th_sport= random();
+		}
 
-		do{
-			if(floodp_f){
-				tcp->th_sport= random();
-			}
-			tcp->th_sum = 0;
-			tcp->th_sum = in_chksum(v6buffer, tcp, ptr-((unsigned char *)tcp), IPPROTO_TCP);
+		tcp->th_sum = 0;
+		tcp->th_sum = in_chksum(v6buffer, tcp, ptr-((unsigned char *)tcp), IPPROTO_TCP);
 
-			if(!fragh_f){
-				ipv6->ip6_plen = htons((ptr - v6buffer) - MIN_IPV6_HLEN);
+		frag_and_send();
 
-				if((nw=pcap_inject(pfd, buffer, ptr - buffer)) == -1){
-					printf("pcap_inject(): %s\n", pcap_geterr(pfd));
-					exit(1);
-				}
-
-				if(nw != (ptr-buffer)){
-					printf("pcap_inject(): only wrote %lu bytes (rather than %lu bytes)\n", \
-								(LUI) nw, (LUI) (ptr-buffer));
-					exit(1);
-				}
-			}
-			else{
-				ptrend= ptr;
-				ptr= fragpart;
-				fptr = fragbuffer;
-				fipv6 = (struct ip6_hdr *) (fragbuffer + linkhsize);
-				fptrend = fptr + linkhsize+MIN_IPV6_HLEN+MAX_IPV6_PAYLOAD;
-				memcpy(fptr, buffer, fragpart-buffer);
-				fptr = fptr + (fragpart-buffer);
-
-				if( (fptr+FRAG_HDR_SIZE)> fptrend){
-					puts("Unfragmentable Part is Too Large");
-					exit(1);
-				}
-
-				memcpy(fptr, (char *) &fraghdr, FRAG_HDR_SIZE);
-				fh= (struct ip6_frag *) fptr;
-				fh->ip6f_ident=random();
-				startoffragment = fptr + FRAG_HDR_SIZE;
-
-				/*
-				 * Check that the selected fragment size is not larger than the largest 
-				 * fragment size that can be sent
-				 */
-				if(nfrags <= (fptrend - fptr))
-					fragsize=nfrags;
-				else
-					fragsize= (fptrend-fptr) & IP6F_OFF_MASK;
-
-				m=IP6F_MORE_FRAG;
-
-				while((ptr< ptrend) && m==IP6F_MORE_FRAG){
-					fptr= startoffragment;
-
-					if( (ptrend-ptr) <= fragsize){
-						fragsize= ptrend-ptr;
-						m=0;
-					}
-
-					memcpy(fptr, ptr, fragsize);
-					fh->ip6f_offlg = (htons(ptr-fragpart) & IP6F_OFF_MASK) | m;
-					ptr+=fragsize;
-					fptr+=fragsize;
-
-					fipv6->ip6_plen = htons((fptr - fragbuffer) - MIN_IPV6_HLEN - linkhsize);
-		
-					if((nw=pcap_inject(pfd, fragbuffer, fptr - fragbuffer)) == -1){
-						printf("pcap_inject(): %s\n", pcap_geterr(pfd));
-						exit(1);
-					}
-
-					if(nw != (fptr- fragbuffer)){
-						printf("pcap_inject(): only wrote %lu bytes (rather than %lu bytes)\n", \
-										(LUI) nw, (LUI) (ptr-buffer));
-						exit(1);
-					}
-				} /* Sending fragments */
-			} /* Sending fragmented datagram */
-
+		if(pktdata == NULL)	
 			ports++;
-		}while(ports<nports);
 
-		sources++;
-	}while(sources<nsources);
+		return;
+	}
 }
 
+
+void frag_and_send(void){
+	if(!fragh_f){
+		ipv6->ip6_plen = htons((ptr - v6buffer) - MIN_IPV6_HLEN);
+
+		if((nw=pcap_inject(idata.pd, buffer, ptr - buffer)) == -1){
+			printf("pcap_inject(): %s\n", pcap_geterr(idata.pd));
+			exit(1);
+		}
+
+		if(nw != (ptr-buffer)){
+			printf("pcap_inject(): only wrote %lu bytes (rather than %lu bytes)\n", \
+						(LUI) nw, (LUI) (ptr-buffer));
+			exit(1);
+		}
+	}
+	else{
+		ptrend= ptr;
+		ptr= fragpart;
+		fptr = fragbuffer;
+		fipv6 = (struct ip6_hdr *) (fragbuffer + linkhsize);
+		fptrend = fptr + linkhsize+MIN_IPV6_HLEN+MAX_IPV6_PAYLOAD;
+		memcpy(fptr, buffer, fragpart-buffer);
+		fptr = fptr + (fragpart-buffer);
+
+		if( (fptr+FRAG_HDR_SIZE)> fptrend){
+			puts("Unfragmentable Part is Too Large");
+			exit(1);
+		}
+
+		memcpy(fptr, (char *) &fraghdr, FRAG_HDR_SIZE);
+		fh= (struct ip6_frag *) fptr;
+		fh->ip6f_ident=random();
+		startoffragment = fptr + FRAG_HDR_SIZE;
+
+		/*
+		 * Check that the selected fragment size is not larger than the largest 
+		 * fragment size that can be sent
+		 */
+		if(nfrags <= (fptrend - fptr))
+			fragsize=nfrags;
+		else
+			fragsize= (fptrend-fptr) & IP6F_OFF_MASK;
+
+		m=IP6F_MORE_FRAG;
+
+		while((ptr< ptrend) && m==IP6F_MORE_FRAG){
+			fptr= startoffragment;
+
+			if( (ptrend-ptr) <= fragsize){
+				fragsize= ptrend-ptr;
+				m=0;
+			}
+
+			memcpy(fptr, ptr, fragsize);
+			fh->ip6f_offlg = (htons(ptr-fragpart) & IP6F_OFF_MASK) | m;
+			ptr+=fragsize;
+			fptr+=fragsize;
+
+			fipv6->ip6_plen = htons((fptr - fragbuffer) - MIN_IPV6_HLEN - linkhsize);
+		
+			if((nw=pcap_inject(idata.pd, fragbuffer, fptr - fragbuffer)) == -1){
+				printf("pcap_inject(): %s\n", pcap_geterr(idata.pd));
+				exit(1);
+			}
+
+			if(nw != (fptr- fragbuffer)){
+				printf("pcap_inject(): only wrote %lu bytes (rather than %lu bytes)\n", \
+								(LUI) nw, (LUI) (ptr-buffer));
+				exit(1);
+			}
+		} /* Sending fragments */
+	} /* Sending fragmented datagram */
+}
 
 
 /*
@@ -1756,7 +2151,7 @@ void print_attack_info(void){
 	if(floods_f)
 		printf("Flooding the target from %u different TCP ports\n", nports);
 
-	if(idata.type == DLT_EN10MB && !loopback_f){
+	if(idata.type == DLT_EN10MB && idata.flags != IFACE_LOOPBACK){
 		if(hsrcaddr_f){
 				if(ether_ntop(&hsrcaddr, plinkaddr, sizeof(plinkaddr)) == 0){
 					puts("ether_ntop(): Error converting address");
@@ -1914,7 +2309,7 @@ void print_filters(void){
 		printf("\n");
 	}
 
-	if(idata.type == DLT_EN10MB && !loopback_f){
+	if(idata.type == DLT_EN10MB && idata.flags != IFACE_LOOPBACK){
 		if(nblocklinksrc){
 			printf("Block filter for link-layer Source Address: ");
 	
@@ -1972,7 +2367,7 @@ void print_filters(void){
 		printf("\n");
 	}
 
-	if(idata.type == DLT_EN10MB && !loopback_f){
+	if(idata.type == DLT_EN10MB && idata.flags != IFACE_LOOPBACK){
 		if(nacceptlinksrc){
 			printf("Accept filter for link-layer Source Address: ");
 
@@ -3067,6 +3462,9 @@ int get_if_addrs(struct iface_data *idata){
 			}
 			else if( ((sockin6ptr->sin6_addr).s6_addr16[0] & htons(0xffc0)) != htons(0xfe80)){
 				if(strncmp(idata->iface, ptr->ifa_name, IFACE_LENGTH-1) == 0){
+					if(IN6_IS_ADDR_LOOPBACK(&(sockin6ptr->sin6_addr)))
+						idata->flags= IFACE_LOOPBACK;
+
 					if(!is_ip6_in_prefix_list( &(sockin6ptr->sin6_addr), &(idata->ip6_global))){
 						if(idata->ip6_global.nprefix < idata->ip6_global.maxprefix){
 							if( (idata->ip6_global.prefix[idata->ip6_global.nprefix] = \
@@ -3227,4 +3625,184 @@ struct in6_addr *src_addr_sel(struct iface_data *idata, struct in6_addr *dst){
 	}
 }
 
+
+/*
+ * Function: is_time_elapsed()
+ *
+ * Checks whether a specific amount of time has elapsed. (i.e., whether curtime >= lastprobe + delta
+ */
+
+int is_time_elapsed(struct timeval *curtime, struct timeval *lastprobe, unsigned long delta){
+		if( curtime->tv_sec > (lastprobe->tv_sec + delta / 1000000) ){
+			return(1);
+		}else if( curtime->tv_sec == (lastprobe->tv_sec + delta / 1000000)){
+			if( curtime->tv_usec > (lastprobe->tv_usec + delta % 1000000) ){
+				return(1);
+			}
+		}
+
+		return(0);
+
+}
+
+
+/*
+ * Function: send_neighbor_advertisement()
+ *
+ * Send a Neighbor advertisement in response to a Neighbor Solicitation message
+ */
+
+int send_neighbor_advert(struct iface_data *idata, pcap_t *pfd,  const u_char *pktdata){
+	struct ether_header			*pkt_ether;
+	struct ip6_hdr				*pkt_ipv6;
+	struct nd_neighbor_solicit	*pkt_ns;
+	unsigned char				*ptr;
+	struct ether_header			*ethernet;
+	unsigned char 				*v6buffer;
+	struct ip6_hdr				*ipv6;
+	struct nd_neighbor_advert	*na;
+	struct nd_opt_tlla			*tllaopt;
+	unsigned char				wbuffer[2500];
+
+	if(idata->mtu > sizeof(wbuffer)){
+		if(verbose_f)
+			puts("send_neighbor_advert(): Internal buffer too small");
+
+		return(-1);
+	}
+
+	ethernet= (struct ether_header *) wbuffer;
+	v6buffer = (unsigned char *) ethernet + sizeof(struct ether_header);
+	ipv6 = (struct ip6_hdr *) v6buffer;
+	na= (struct nd_neighbor_advert *) ((char *) v6buffer + MIN_IPV6_HLEN);
+	ptr = (unsigned char *) na;
+
+	pkt_ether = (struct ether_header *) pktdata;
+	pkt_ipv6 = (struct ip6_hdr *)((char *) pkt_ether + ETHER_HDR_LEN);
+	pkt_ns = (struct nd_neighbor_solicit *) ((char *) pkt_ipv6 + MIN_IPV6_HLEN);
+
+	ethernet->ether_type = htons(0x86dd);
+	ipv6->ip6_flow=0;
+	ipv6->ip6_vfc= 0x60;
+	ipv6->ip6_hlim= 255;
+	ipv6->ip6_nxt= IPPROTO_ICMPV6;
+
+	if( (ptr+sizeof(struct nd_neighbor_advert)) > (v6buffer+idata->mtu)){
+		if(verbose_f)
+			puts("send_neighbor_advert(): Packet too large when sending Neighbor Advertisement");
+
+		return(-1);
+	}
+
+	na->nd_na_type = ND_NEIGHBOR_ADVERT;
+	na->nd_na_code = 0;
+	ptr += sizeof(struct nd_neighbor_advert);
+
+	if( (ptr+sizeof(struct nd_opt_tlla)) <= (v6buffer+idata->mtu) ){
+		tllaopt = (struct nd_opt_tlla *) ptr;
+		tllaopt->type= ND_OPT_TARGET_LINKADDR;
+		tllaopt->length= TLLA_OPT_LEN;
+		bcopy(idata->ether.a, tllaopt->address, ETH_ALEN);
+		ptr += sizeof(struct nd_opt_tlla);
+	}
+	else{
+		if(verbose_f)
+			puts("send_neighbor_advert(): Packet Too Large while inserting TLLA option in NA message");
+
+		return(-1);
+	}
+
+	/* If the IPv6 Source Address of the incoming Neighbor Solicitation is the unspecified 
+	   address (::), the Neighbor Advertisement must be directed to the IPv6 all-nodes 
+	   multicast address (and the Ethernet Destination address should be 33:33:33:00:00:01). 
+	   Otherwise, the Neighbor Advertisement is sent to the IPv6 Source Address (and 
+	   Ethernet Source Address) of the incoming Neighbor Solicitation message
+	 */
+	pkt_ipv6addr = &(pkt_ipv6->ip6_src);
+
+	if(IN6_IS_ADDR_UNSPECIFIED(pkt_ipv6addr)){
+		na->nd_na_flags_reserved = 0;
+
+		if ( inet_pton(AF_INET6, ALL_NODES_MULTICAST_ADDR, &(ipv6->ip6_dst)) <= 0){
+			if(verbose_f)
+				puts("send_neighbor_advert(): Error converting all-nodes multicast address");
+
+			return(-1);
+		}
+
+		if(ether_pton(ETHER_ALLNODES_LINK_ADDR, &(ethernet->dst), ETHER_ADDR_LEN) == 0){
+			if(verbose_f)
+				puts("send_neighbor_advert(): Error converting all-nodes link-local address");
+
+			return(-1);
+		}
+	}
+	else{
+		ipv6->ip6_dst = pkt_ipv6->ip6_src;
+		ethernet->dst = pkt_ether->src;
+
+		/* 
+		   Set the "Solicited" flag if NS was sent from an address other than the unspecified
+		   address (i.e., the response will be unicast). 
+		 */ 
+
+		na->nd_na_flags_reserved =  ND_NA_FLAG_OVERRIDE | ND_NA_FLAG_SOLICITED;
+	}
+
+	ethernet->src = idata->ether;
+
+	/* 
+	   If the Neighbor Solicitation message was directed to one of our unicast addresses, the IPv6 Source
+	   Address is set to that address. Otherwise, we set the IPv6 Source Address to our link-local address.
+	 */
+
+	pkt_ipv6addr = &(pkt_ipv6->ip6_dst);
+
+	if(IN6_IS_ADDR_MULTICAST(pkt_ipv6addr)){
+		ipv6->ip6_src = idata->ip6_local;
+	}
+	else{
+		if(is_eq_in6_addr(pkt_ipv6addr, &(idata->ip6_local))){
+			ipv6->ip6_src = idata->ip6_local;	
+		}
+		else if(idata->ip6_global_flag){
+			for(i=0; i < idata->ip6_global.nprefix; i++){
+				if(is_eq_in6_addr(pkt_ipv6addr, &((idata->ip6_global.prefix[i])->ip6))){
+					ipv6->ip6_src = (idata->ip6_global.prefix[i])->ip6;	
+					break;
+				}
+			}
+
+			if(i == idata->ip6_global.nprefix)
+				return 0;
+		}
+		else{
+			return 0;
+ 		}
+	}
+
+	na->nd_na_target= pkt_ns->nd_ns_target;
+
+	na->nd_na_cksum = 0;
+	na->nd_na_cksum = in_chksum(v6buffer, na, ptr-((unsigned char *)na), IPPROTO_ICMPV6);
+
+	ipv6->ip6_plen = htons((ptr - v6buffer) - MIN_IPV6_HLEN);
+
+	if((nw=pcap_inject(pfd, wbuffer, ptr - wbuffer)) == -1){
+		if(verbose_f)
+			printf("send_neighbor_advert(): pcap_inject(): %s", pcap_geterr(pfd));
+
+		return(-1);
+	}
+
+	if(nw != (ptr-wbuffer)){
+		if(verbose_f)
+			printf("send_neighbor_advert(): pcap_inject(): only wrote %lu bytes "
+							"(rather than %lu bytes)\n", (LUI) nw, (LUI) (ptr-wbuffer));
+
+		return(-1);
+	}
+
+	return 0;
+}
 
