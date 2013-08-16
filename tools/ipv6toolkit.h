@@ -1,5 +1,9 @@
 #define SI6_TOOLKIT "SI6 Networks' IPv6 Toolkit v1.3.4"
 
+/* Constants to signal special interface types */
+#define	IFACE_LOOPBACK			1
+#define IFACE_TUNNEL			2
+
 
 /* Constants used with the libpcap functions */
 #define PCAP_SNAP_LEN			65535
