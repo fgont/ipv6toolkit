@@ -11,11 +11,11 @@ is a security assessment tool for attack vectors based on IPv6 fragments. It is 
 
 .SH OPTIONS
 .B frag6
-takes it parameters as command-line options. Each of the options can be specified with a short name (one character preceded with the hyphen character, as e.g. “\-i”) or with a long name (a string preceded with two hyphen characters, as e.g. “\-\-interface”).
+takes it parameters as command-line options. Each of the options can be specified with a short name (one character preceded with the hyphen character, as e.g. "\-i") or with a long name (a string preceded with two hyphen characters, as e.g. "\-\-interface").
 
 .TP
 .BI \-i\  INTERFACE ,\ \-\-interface\  INTERFACE
-This option specifies the network interface that the tool will use. The network interface must be specified (i.e., the tool does not select any network interface “by default”).
+This option specifies the network interface that the tool will use. The network interface must be specified (i.e., the tool does not select any network interface "by default").
 
 .TP
 .BI \-S\  SRC_LINK_ADDR ,\ \-\-src\-link\-address\  SRC_LINK_ADDR
@@ -45,17 +45,17 @@ This option specifies the Hop Limit to be used for the IPv6 packets. By default,
 .TP
 .BI \-u\  HDR_SIZE ,\ \-\-dst\-opt\-hdr\  HDR_SIZE
 
-This option specifies that a Destination Options header is to be included in the outgoing packet(s). The extension header size must be specified as an argument to this option (the header is filled with padding options). Multiple Destination Options headers may be specified by means of multiple “\-u” options.
+This option specifies that a Destination Options header is to be included in the outgoing packet(s). The extension header size must be specified as an argument to this option (the header is filled with padding options). Multiple Destination Options headers may be specified by means of multiple "\-u" options.
 
 .TP
 .BI \-U\  HDR_SIZE ,\ \-\-dst\-opt\-u\-hdr\  HDR_SIZE
 
-This option specifies a Destination Options header to be included in the “unfragmentable part” of the outgoing packet(s). The header size must be specified as an argument to this option (the header is filled with padding options). Multiple Destination Options headers may be specified by means of multiple “\-U” options. 
+This option specifies a Destination Options header to be included in the "unfragmentable part" of the outgoing packet(s). The header size must be specified as an argument to this option (the header is filled with padding options). Multiple Destination Options headers may be specified by means of multiple "\-U" options. 
 
 .TP
 .BI \-H\  HDR_SIZE ,\ \-\-hbh\-opt\-hdr\  HDR_SIZE
 
-This option specifies that a Hop-by-Hop Options header is to be included in the outgoing packet(s). The header size must be specified as an argument to this option (the header is filled with padding options). Multiple Hop-by-Hop Options headers may be specified by means of multiple “\-H” options.
+This option specifies that a Hop-by-Hop Options header is to be included in the outgoing packet(s). The header size must be specified as an argument to this option (the header is filled with padding options). Multiple Hop-by-Hop Options headers may be specified by means of multiple "\-H" options.
 
 .TP
 .BI \-P\  FRAG_SIZE ,\ \-\-frag\-size\  FRAG_SIZE
@@ -65,17 +65,17 @@ This option specifies the IPv6 fragment payload size.
 .TP
 .BI \-O\  FRAG_TYPE ,\ \-\-frag\-type\  FRAG_TYPE
 
-This option specifies the fragment “type”. Possible types are “first”, “middle”, “last”, and “atomic”. If the selected fragment type is “first”, the Fragment Offset is automatically set to 0, and the “M” (“More fragments”) bit is set to 1. If the selected fragment type is “middle”, the Fragment Offset is set to a non-zero value, and the “M” bit is set to 1. If the selected fragment type is “last”, the Fragment Offset is set to a non-zero value, and the “M” bit is set to 0. Finally, if the selected fragment type is “atomic”, the Fragment Offset is set to 0, and the “M” bit is set to 0.  
+This option specifies the fragment "type". Possible types are "first", "middle", "last", and "atomic". If the selected fragment type is "first", the Fragment Offset is automatically set to 0, and the "M" ("More fragments") bit is set to 1. If the selected fragment type is "middle", the Fragment Offset is set to a non-zero value, and the "M" bit is set to 1. If the selected fragment type is "last", the Fragment Offset is set to a non-zero value, and the "M" bit is set to 0. Finally, if the selected fragment type is "atomic", the Fragment Offset is set to 0, and the "M" bit is set to 0.  
 
 .TP
 .BI \-o\  FRAG_OFFSET ,\ \-\-frag\-offset\  FRAG_OFFSET
 
-This option specifies the Fragment Offset. The Fragment Offset specified by means of this option overrides the value implicitly specified by means of the “\-O” option.
+This option specifies the Fragment Offset. The Fragment Offset specified by means of this option overrides the value implicitly specified by means of the "\-O" option.
 
 .TP
 .BI \-I\  FRAG_ID ,\ \-\-frag\-id\  FRAG_ID
 
-This option specifies the fragment “Identification” value. If left unspecified, the “Identification” value is randomized. 
+This option specifies the fragment "Identification" value. If left unspecified, the "Identification" value is randomized. 
 
 .TP
 .BR \-T\| ,\  \-\-no\-timestamp 
@@ -154,33 +154,33 @@ This option instructs the tool to determine the IPv6 fragment reassembly policy 
 .TP
 .BR \-W\| ,\  \-\-frag\-id\-policy 
 
-This option instructs the tool to determine the fragment “Identification” generation policy. The tool sends a number of probe packets to the target node, and samples the “Identification” values of the corresponding response packets. Based on the sampled values, it tries to infer the fragment Identification generation policy of the target.
+This option instructs the tool to determine the fragment "Identification" generation policy. The tool sends a number of probe packets to the target node, and samples the "Identification" values of the corresponding response packets. Based on the sampled values, it tries to infer the fragment Identification generation policy of the target.
 
-The tool will first send a number of fragments from single IPv6 address, such that the per-destination policy is determined. The tool will then send a number of fragments from random IPv6 addresses (from the same prefix as the first fragments) such that the “global” fragment Identification generation policy can be inferred.
+The tool will first send a number of fragments from single IPv6 address, such that the per-destination policy is determined. The tool will then send a number of fragments from random IPv6 addresses (from the same prefix as the first fragments) such that the "global" fragment Identification generation policy can be inferred.
 
 The tool computes the expected value and the standard deviation of the difference between consecutive-sampled Identification values (IDn – IDn-1), with the intent of inferring the fragment Identification algorithm at the target node. 
 
-For small values of the standard deviation, the fragment Identification is assumed to be a monotonically-increasing function with increments of the “expected value”. For large values of the standard deviation, the fragment Identification is assumed to be randomized, and the expected value and standard deviation are informed to the user, as indicators of the “quality” of the fragment Identification generation algorithm.
+For small values of the standard deviation, the fragment Identification is assumed to be a monotonically-increasing function with increments of the "expected value". For large values of the standard deviation, the fragment Identification is assumed to be randomized, and the expected value and standard deviation are informed to the user, as indicators of the "quality" of the fragment Identification generation algorithm.
 
 .TP
 .BR \-X\| ,\  \-\-pod\-attack 
 
-This option instructs the tool to perform a “Ping of Death” attack against the specified target. 
+This option instructs the tool to perform a "Ping of Death" attack against the specified target. 
 
 .TP
 .BI \-F\  FRAG_NUMBER ,\ \-\-flood\-frags\  FRAG_NUMBER
 
-This option instructs the tool to send the specified number of fragments back-to-back to the target node. This option is likely to be used in conjunction with the “\-l” option, such that the process is repeated in a loop. 
+This option instructs the tool to send the specified number of fragments back-to-back to the target node. This option is likely to be used in conjunction with the "\-l" option, such that the process is repeated in a loop. 
 
 .TP
 .BR \-l\| ,\  \-\-loop 
 
-This option instructs the frag6 tool to periodically send IPv6 fragments to the target node. The amount of time to pause between sending a batch of fragments can be specified by means of the “\-z” option, and defaults to 1 second.
+This option instructs the frag6 tool to periodically send IPv6 fragments to the target node. The amount of time to pause between sending a batch of fragments can be specified by means of the "\-z" option, and defaults to 1 second.
 
 .TP
 .BI \-z\  SECONDS ,\ \-\-sleep\  SECONDS
 
-This option specifies the amount of time that the tool should pause between sending btaches of IPv6 fragments (when the “\-\-loop” option is set). If left unspecified, it defaults to 1 second.
+This option specifies the amount of time that the tool should pause between sending btaches of IPv6 fragments (when the "\-\-loop" option is set). If left unspecified, it defaults to 1 second.
 
 .TP
 .BR \-v\| ,\  \-\-verbose 
@@ -203,19 +203,19 @@ tool.
 
 # frag6 \-i eth0 \-\-frag\-id\-policy \-d fc00:1::1 \-v
 
-Assess the fragment Identification generation policy of the host “fc00:1::1”, using the network interface “eth0”. Be verbose.
+Assess the fragment Identification generation policy of the host "fc00:1::1", using the network interface "eth0". Be verbose.
 
 \fBExample #2\fR
 
 # frag6 \-i eth0 \-\-frag\-reass\-policy \-d fc00:1::1 \-v
 
-Assess the fragment reassembly policy of the host “fc00:1::1”, using the network interface “eth0”. Be verbose.
+Assess the fragment reassembly policy of the host "fc00:1::1", using the network interface "eth0". Be verbose.
 
 \fBExample #3\fR
 
 # frag6 \-i eth0 –frag-type atomic \-d fc00:1::1 \-v
 
-Send an IPv6 atomic fragment to the host “fc00:1::1”, using the network interface “eth0”. Be verbose.
+Send an IPv6 atomic fragment to the host "fc00:1::1", using the network interface "eth0". Be verbose.
 
 \fBExample #4\fR
 
