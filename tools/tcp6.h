@@ -4,7 +4,10 @@
  */
 
 #define LUI		long unsigned int
+#define	CHAR_CR			0x0d
+#define CHAR_LF			0x0a
 #define	MAX_CMDLINE_OPT_LEN	40
+#define	DATA_BUFFER_LEN		1000
 #define ETH_ALEN	6		/* Octets in one ethernet addr	 */
 #define ETH_HLEN	14		/* Total octets in header.	 */
 #define ETH_DATA_LEN	1500		/* Max. octets in payload	 */
@@ -79,6 +82,15 @@
 #define CLOSE_PASSIVE			2
 #define CLOSE_SIMULTANEOUS		3
 #define CLOSE_ABORT			4
+
+
+/* Constants for TCP window operation */
+#define WIN_CLOSED			1
+#define	WIN_MODULATE			2
+#define WIN_MODULATE_CLOSED_SIZE	0
+#define WIN_MODULATE_CLOSED_LEN		60
+#define WIN_MODULATE_OPEN_SIZE		10
+#define WIN_MODULATE_OPEN_LEN		30
 
 
 struct ether_addr{

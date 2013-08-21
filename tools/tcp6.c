@@ -94,24 +94,29 @@ struct in6_addr *	src_addr_sel(struct iface_data *, struct in6_addr *);
 int					is_time_elapsed(struct timeval *, struct timeval *, unsigned long);
 int 				send_neighbor_advert(struct iface_data *, pcap_t *,  const u_char *);
 void				frag_and_send(void);
+size_t				Strnlen(const char *, size_t);
+int					string_escapes(char *, unsigned int *);
 
+/* Flags */
+unsigned char 		verbose_f=0, iface_f=0, acceptfilters_f=0, floodt_f=0;
+unsigned char 		srcaddr_f=0, dstaddr_f=0, hsrcaddr_f=0, hdstaddr_f=0;
+unsigned char 		listen_f=0, accepted_f=0, loop_f=0, sleep_f=0;
+unsigned char		srcprefix_f=0, hoplimit_f=0, rand_link_src_f=0, rand_src_f=0;
+unsigned char		floods_f=0, floodp_f=0, donesending_f=0, startclose_f=0;
+unsigned char		data_f=0, senddata_f=0, useaddrkey_f=0, window_f=0, winmodulate_f=0;
 
 /* Flags used for TCP (specifically) */ 
 unsigned int		srcport_f=0, dstport_f=0;
 unsigned int		tcpseq_f=0, tcpack_f=0, tcpurg_f=0, tcpflags_f=0, tcpwin_f=0;
 unsigned int		rhbytes_f=0, tcpflags_auto_f=0, tcpopen_f=0, tcpclose_f=0;
-unsigned int		tcpopen=0, tcpclose=0;
-unsigned int		ackdata_f=1, ackflags_f=1;
-u_int16_t			srcport, dstport, tcpurg, tcpwin;
+unsigned int		tcpopen=0, tcpclose=0, win1_size=0, win2_size=0;
+unsigned int		ackdata_f=1, ackflags_f=1, window=0, time1_len=0, time2_len=0;
+u_int16_t			srcport, dstport, tcpurg, tcpwin, tcpwinm;
 u_int32_t			tcpseq, tcpack;
 u_int8_t			tcpflags=0;
 struct tcphdr		*rhtcp;
 unsigned int		rhbytes, currentsize;
-/*
-u_int32_t			tcpseqs[MAX_TCP_ENTRIES];
-u_int32_t			ipaddrs[MAX_TCP_ENTRIES];
-unsigned int		in=0, out=0;
-*/
+
 
 /* Used for router discovery */
 struct iface_data	idata;
@@ -138,6 +143,8 @@ char 				dev[64], errbuf[PCAP_ERRBUF_SIZE];
 unsigned char		buffer[65556], buffrh[MIN_IPV6_HLEN + MIN_TCP_HLEN];
 unsigned char		*v6buffer, *ptr, *startofprefixes;
 char				*pref;
+char				data[DATA_BUFFER_LEN];
+unsigned int		datalen;
 char 				iface[IFACE_LENGTH];
     
 struct ip6_hdr		*ipv6;
@@ -167,11 +174,7 @@ u_int16_t			addr_key;
 
 char 				plinkaddr[ETHER_ADDR_PLEN];
 char 				psrcaddr[INET6_ADDRSTRLEN], pdstaddr[INET6_ADDRSTRLEN], pv6addr[INET6_ADDRSTRLEN];
-unsigned char 		verbose_f=0, iface_f=0, acceptfilters_f=0, floodt_f=0;
-unsigned char 		srcaddr_f=0, dstaddr_f=0, hsrcaddr_f=0, hdstaddr_f=0;
-unsigned char 		listen_f=0, accepted_f=0, loop_f=0, sleep_f=0;
-unsigned char		srcprefix_f=0, hoplimit_f=0, rand_link_src_f=0, rand_src_f=0;
-unsigned char		floods_f=0, floodp_f=0, donesending_f=0, startclose_f=0;
+
 
 /* Support for Extension Headers */
 unsigned int		dstopthdrs, dstoptuhdrs, hbhopthdrs;
@@ -220,7 +223,7 @@ int main(int argc, char **argv){
 	gid_t			rgid;
 	fd_set			sset, rset;
 	int				r, sel;
-	struct timeval	timeout, stimeout, curtime, lastprobe;
+	struct timeval	timeout, stimeout, curtime, lastprobe, wmtimeout;
 	unsigned long	pktinterval;
 	struct passwd	*pwdptr;
 
@@ -231,6 +234,7 @@ int main(int argc, char **argv){
 		{"hop-limit", required_argument, 0, 'A'},
 		{"open", required_argument, 0, 'c'},
 		{"close", required_argument, 0, 'C'},
+		{"data", required_argument, 0, 'Z'},
 		{"dst-opt-hdr", required_argument, 0, 'u'},
 		{"dst-opt-u-hdr", required_argument, 0, 'U'},
 		{"hbh-opt-hdr", required_argument, 0, 'H'},
@@ -245,6 +249,8 @@ int main(int argc, char **argv){
 		{"tcp-ack", required_argument, 0, 'Q'},
 		{"tcp-urg", required_argument, 0, 'V'},
 		{"tcp-win", required_argument, 0, 'w'},
+		{"window", required_argument, 0, 'W'},
+		{"win-modulation", required_argument, 0, 'M'},
 		{"not-ack-data", no_argument, 0, 'N'},
 		{"not-ack-flags", no_argument, 0, 'n'},
 		{"input-file", required_argument, 0, 'I'},
@@ -268,7 +274,7 @@ int main(int argc, char **argv){
 		{"help", no_argument, 0, 'h'}
 	};
 
-	char shortopts[]= "i:s:d:A:c:C:u:U:H:y:S:D:P:o:a:X:q:Q:V:w:NnI:O:j:k:J:K:b:g:B:G:F:T:rRlz:Lvh";
+	char shortopts[]= "i:s:d:A:c:C:Z:u:U:H:y:S:D:P:o:a:X:q:Q:V:w:W:M:NnI:O:j:k:J:K:b:g:B:G:F:T:rRlz:Lvh";
 
 	char option;
 
@@ -290,6 +296,11 @@ int main(int argc, char **argv){
 				break;
 
 			case 's':	/* IPv6 Source Address */
+				if(srcaddr_f){
+					puts("Error: Multiple '-s' options have been specified");
+					exit(1);
+				}
+
 				if((charptr = strtok_r(optarg, "/", &lasts)) == NULL){
 					puts("Error in Source Address");
 					exit(1);
@@ -309,6 +320,9 @@ int main(int argc, char **argv){
 						puts("Prefix length error in IPv6 Source Address");
 						exit(1);
 					}
+
+					if(srcpreflen == 64)
+						useaddrkey_f= 1;
 
 					sanitize_ipv6_prefix(&srcaddr, srcpreflen);
 					srcprefix_f=1;
@@ -340,6 +354,10 @@ int main(int argc, char **argv){
 				else if(strncmp(optarg, "abort", MAX_CMDLINE_OPT_LEN) == 0){
 					tcpopen= OPEN_ABORT;
 				}
+				else{
+					puts("Error: Unknown open option ('-c')");
+					exit(1);
+				}
 
 				tcpopen_f=1;
 				break;
@@ -357,8 +375,22 @@ int main(int argc, char **argv){
 				else if(strncmp(optarg, "active", MAX_CMDLINE_OPT_LEN) == 0){
 					tcpclose= CLOSE_ACTIVE;
 				}
+				else{
+					puts("Error: Unknown close option ('-C')");
+					exit(1);
+				}
 
 				tcpclose_f=1;
+				break;
+
+			case 'Z': /* Data */
+				datalen= Strnlen(optarg, MAX_CMDLINE_OPT_LEN);
+
+				if(datalen > DATA_BUFFER_LEN)
+					datalen= DATA_BUFFER_LEN;
+
+				strncpy(data, optarg, DATA_BUFFER_LEN);
+				data_f=1;
 				break;
 
 			case 'u':	/* Destinations Options Header */
@@ -622,6 +654,27 @@ int main(int argc, char **argv){
 			case 'w':	/* TCP Window */
 				tcpwin= atoi(optarg);
 				tcpwin_f=1;
+				break;
+
+			case 'W':	/* TCP Window */
+				if(strncmp(optarg, "close", MAX_CMDLINE_OPT_LEN) == 0 || strncmp(optarg, "closed", MAX_CMDLINE_OPT_LEN) == 0){
+					window= WIN_CLOSED;
+				}
+				else if(strncmp(optarg, "modulate", MAX_CMDLINE_OPT_LEN) == 0 || strncmp(optarg, "modulation", MAX_CMDLINE_OPT_LEN) == 0){
+					window= WIN_MODULATE;
+				}
+				else{
+					puts("Error: Unknown window option ('-W')");
+					exit(1);
+				}
+
+				window_f=1;
+				break;
+
+			case 'M':
+puts("Voy a procesar la opcion M");
+				sscanf(optarg, "%u:%u:%u:%u", &win1_size, &time1_len, &win2_size, &time2_len);
+				winmodulate_f= 1;
 				break;
 
 			case 'N':	/* Do not ack data */
@@ -889,7 +942,6 @@ int main(int argc, char **argv){
 		
 			case 'h':	/* Help */
 				print_help();
-		
 				exit(1);
 				break;
 
@@ -908,11 +960,6 @@ int main(int argc, char **argv){
 
 	if(!iface_f){
 		puts("Must specify the network interface with the -i option");
-		exit(1);
-	}
-
-	if(listen_f && loop_f){
-		puts("'Error: listen' mode and 'loop' mode are incompatible");
 		exit(1);
 	}
 
@@ -991,7 +1038,7 @@ int main(int argc, char **argv){
 	}
 
 	if(!hsrcaddr_f)	/* Source link-layer address is randomized by default */
-			randomize_ether_addr(&hsrcaddr);
+		randomize_ether_addr(&hsrcaddr);
 
 	if(get_if_addrs(&idata) == -1){
 		puts("Error obtaining local addresses");
@@ -1010,6 +1057,16 @@ int main(int argc, char **argv){
 		ether_to_ipv6_linklocal(&idata.ether, &idata.ip6_local);
 	}
 
+	if(data_f){
+		data[datalen]=0;
+
+		if(!string_escapes(data, &datalen)){
+			puts("Error in data string option ('-Z')");
+			exit(1);
+		}
+
+		data[datalen]=0;
+	}
 
 	/*
 	   Select link-layer destination address
@@ -1062,8 +1119,7 @@ int main(int argc, char **argv){
 		}
 	}
 
-
-	if(srcprefix_f){
+	if(srcprefix_f && !floods_f){
 		randprefix=srcaddr;
 		randpreflen=srcpreflen;
 		randomize_ipv6_addr(&srcaddr, &randprefix, randpreflen);
@@ -1149,6 +1205,26 @@ int main(int argc, char **argv){
 	timeout.tv_sec=  pktinterval / 1000000 ;	
 	timeout.tv_usec= pktinterval % 1000000;
 	stimeout= timeout;
+
+	if(window_f){
+		if(window == WIN_MODULATE && !winmodulate_f){
+			win1_size= WIN_MODULATE_CLOSED_SIZE;
+			time1_len= WIN_MODULATE_CLOSED_LEN;
+			win2_size= WIN_MODULATE_OPEN_SIZE;
+			time2_len= WIN_MODULATE_OPEN_LEN;
+		}
+	}
+
+	if(window_f && window == WIN_MODULATE){
+		if(gettimeofday(&wmtimeout, NULL) == -1){
+			if(verbose_f)
+				perror("tcp6");
+
+			exit(1);
+		}
+
+		tcpwinm= win1_size;
+	}
     
 	/* Fire a TCP segment if an IPv6 Destination Address was specified */
 	if(!listen_f && dstaddr_f){
@@ -1207,13 +1283,29 @@ int main(int argc, char **argv){
 			}
 
 			/* If there are some bits set, we need to check whether it's time to send packets */
-			if(sel)
+			if(sel){
 				if(gettimeofday(&curtime, NULL) == -1){
 					if(verbose_f)
 						perror("tcp6");
 
 					exit(1);
 				}
+
+				if(window == WIN_MODULATE){
+					if(tcpwinm == win1_size){
+						if( (curtime.tv_sec - wmtimeout.tv_sec) >= time1_len){
+							wmtimeout= curtime;
+							tcpwinm = win2_size;
+						}
+					}
+					else{
+						if( (curtime.tv_sec - wmtimeout.tv_sec) >= time2_len){
+							wmtimeout= curtime;
+							tcpwinm = win1_size;
+						}
+					}
+				}
+			}
 
 			if(FD_ISSET(idata.fd, &rset)){
 				/* Read a packet */
@@ -1326,14 +1418,20 @@ int main(int argc, char **argv){
 						}
 						else{
 							/* Discard our own packets */
-							if(pkt_ipv6->ip6_src.s6_addr16[5] ==  (pkt_ipv6->ip6_src.s6_addr16[4] ^ addr_key) && \
-								pkt_ipv6->ip6_src.s6_addr16[7] ==  (pkt_ipv6->ip6_src.s6_addr16[6] ^ addr_key)){
+							if(!is_eq_in6_addr(&(pkt_ipv6->ip6_src), &dstaddr)){
 								continue;
 							}
 
-							if(pkt_ipv6->ip6_dst.s6_addr16[5] !=  (pkt_ipv6->ip6_dst.s6_addr16[4] ^ addr_key) || \
-								pkt_ipv6->ip6_dst.s6_addr16[7] !=  (pkt_ipv6->ip6_dst.s6_addr16[6] ^ addr_key)){
-								continue;
+							if(useaddrkey_f){
+								if(pkt_ipv6->ip6_src.s6_addr16[5] ==  (pkt_ipv6->ip6_src.s6_addr16[4] ^ addr_key) && \
+									pkt_ipv6->ip6_src.s6_addr16[7] ==  (pkt_ipv6->ip6_src.s6_addr16[6] ^ addr_key)){
+									continue;
+								}
+
+								if(pkt_ipv6->ip6_dst.s6_addr16[5] !=  (pkt_ipv6->ip6_dst.s6_addr16[4] ^ addr_key) || \
+									pkt_ipv6->ip6_dst.s6_addr16[7] !=  (pkt_ipv6->ip6_dst.s6_addr16[6] ^ addr_key)){
+									continue;
+								}
 							}
 						}
 
@@ -1357,8 +1455,15 @@ int main(int argc, char **argv){
 
 					if(idata.type == DLT_EN10MB && idata.flags != IFACE_LOOPBACK){
 						if(floods_f){
-							if(pkt_ns->nd_ns_target.s6_addr16[5] !=  (pkt_ns->nd_ns_target.s6_addr16[4] ^ addr_key) || \
-								pkt_ns->nd_ns_target.s6_addr16[7] !=  (pkt_ns->nd_ns_target.s6_addr16[6] ^ addr_key)){
+							if(useaddrkey_f){
+								if(pkt_ns->nd_ns_target.s6_addr16[5] !=  (pkt_ns->nd_ns_target.s6_addr16[4] ^ addr_key) || \
+									pkt_ns->nd_ns_target.s6_addr16[7] !=  (pkt_ns->nd_ns_target.s6_addr16[6] ^ addr_key)){
+									continue;
+								}
+							}
+
+							/* Check that the target address belongs to the prefix from which we are sending packets */
+							if(!match_ipv6(&srcaddr, &srcpreflen, 1, &(pkt_ns->nd_ns_target))){
 								continue;
 							}
 						}
@@ -1510,8 +1615,10 @@ void send_packet(const u_char *pktdata){
 	static unsigned int	sources=0, ports=0;	
 	ptr=startofprefixes;
 
+	startclose_f= 0;
+	senddata_f= 0;
+
 	if(pktdata != NULL){   /* Sending a TCP segment in response to a received packet */
-		startclose_f= 0;
 		pkt_ether = (struct ether_header *) pktdata;
 		pkt_ipv6 = (struct ip6_hdr *)((char *) pkt_ether + linkhsize);
 		pkt_tcp= (struct tcphdr *)( (char *) pkt_ipv6 + sizeof(struct ip6_hdr));
@@ -1577,7 +1684,6 @@ void send_packet(const u_char *pktdata){
 		else
 			tcp->th_seq = pkt_tcp->th_ack;
 
-
 		if( pkt_tcp->th_flags & TH_SYN){
 			if(tcpopen_f){
 				if(tcpopen == OPEN_PASSIVE){
@@ -1604,6 +1710,9 @@ void send_packet(const u_char *pktdata){
 						tcp->th_ack= htonl(ntohl(pkt_tcp->th_seq) + ((pkt_end - (unsigned char *)pkt_tcp) - (pkt_tcp->th_off << 2)));
 						tcp->th_ack= htonl(ntohl(tcp->th_ack) + ((pkt_tcp->th_flags & TH_FIN)?1:0) + \
 							((pkt_tcp->th_flags & TH_SYN)?1:0));
+
+						if(data_f)
+							senddata_f= 1;
 					}
 				}
 				else if(tcpopen == OPEN_ABORT){
@@ -1652,7 +1761,11 @@ void send_packet(const u_char *pktdata){
 								tcp->th_flags = tcp->th_flags | TH_SYN;
 					}
 
-					startclose_f= 1;
+					if(data_f)
+						senddata_f= 1;
+
+					if(tcpclose_f)
+						startclose_f= 1;
 				}
 				else{
 					/* Simple SYN segment */
@@ -1686,9 +1799,11 @@ void send_packet(const u_char *pktdata){
 					}
 				}
 			}
+
+			tcp->th_win= htons(tcpwin);
 		}
 		else if(pkt_tcp->th_flags & TH_FIN){
-			if(tcpclose_f){
+			if(tcpclose_f && (tcpclose == CLOSE_SIMULTANEOUS || tcpclose == CLOSE_PASSIVE || tcpclose == CLOSE_ABORT)){
 				if(tcpclose == CLOSE_SIMULTANEOUS){
 					tcp->th_flags = TH_ACK | TH_FIN;
 					tcp->th_seq= pkt_tcp->th_ack;
@@ -1710,6 +1825,13 @@ void send_packet(const u_char *pktdata){
 				}
 			}
 			else{
+				if(tcpflags_f){
+					tcp->th_flags= tcpflags;
+				}
+				else{
+					tcp->th_flags= TH_ACK;
+				}
+
 				if(tcpack_f){
 					tcp->th_ack= htonl(tcpack);
 				}
@@ -1726,37 +1848,24 @@ void send_packet(const u_char *pktdata){
 									((pkt_tcp->th_flags & TH_SYN)?1:0));
 						}
 					}
-				}
-
-				if(tcpflags_f){
-					tcp->th_flags= tcpflags;
-				}
-				else{
-					tcp->th_flags= TH_ACK;
-
-					/* If the incoming packet was a SYN, we should respond with a SYN/ACK */
-					if( (pkt_tcp->th_flags & TH_SYN) && !(pkt_tcp->th_flags & TH_ACK))
-							tcp->th_flags = tcp->th_flags | TH_SYN;
 				}
 			}
 		}
 		else if(pkt_tcp->th_flags & TH_ACK){
-			if(tcpclose_f){
-				if(tcpclose == CLOSE_ACTIVE){
-					tcp->th_flags = TH_ACK | TH_FIN;
-					tcp->th_seq= pkt_tcp->th_ack;
-					tcp->th_ack= htonl(ntohl(pkt_tcp->th_seq) + ((pkt_end - (unsigned char *)pkt_tcp) - (pkt_tcp->th_off << 2)));
-					tcp->th_ack= htonl(ntohl(tcp->th_ack) + ((pkt_tcp->th_flags & TH_FIN)?1:0) + \
+			if(tcpclose_f && tcpclose == CLOSE_ABORT){
+				tcp->th_flags = TH_ACK | TH_RST;
+				tcp->th_seq= pkt_tcp->th_ack;
+				tcp->th_ack= htonl(ntohl(pkt_tcp->th_seq) + ((pkt_tcp->th_flags & TH_FIN)?1:0) + \
 								((pkt_tcp->th_flags & TH_SYN)?1:0));
-				}
-				else if(tcpclose == CLOSE_ABORT){
-					tcp->th_flags = TH_ACK | TH_RST;
-					tcp->th_seq= pkt_tcp->th_ack;
-					tcp->th_ack= htonl(ntohl(pkt_tcp->th_seq) + ((pkt_tcp->th_flags & TH_FIN)?1:0) + \
-								((pkt_tcp->th_flags & TH_SYN)?1:0));
-				}
 			}
 			else{
+				if(tcpflags_f){
+					tcp->th_flags= tcpflags;
+				}
+				else{
+					tcp->th_flags= TH_ACK;
+				}
+
 				if(tcpack_f){
 					tcp->th_ack= htonl(tcpack);
 				}
@@ -1775,41 +1884,40 @@ void send_packet(const u_char *pktdata){
 					}
 				}
 
-				if(tcpflags_f){
-					tcp->th_flags= tcpflags;
-				}
-				else{
-					tcp->th_flags= TH_ACK;
-
-					/* If the incoming packet was a SYN, we should respond with a SYN/ACK */
-					if( (pkt_tcp->th_flags & TH_SYN) && !(pkt_tcp->th_flags & TH_ACK))
-							tcp->th_flags = tcp->th_flags | TH_SYN;
+				if(window_f){
+					if(window == WIN_CLOSED){
+						tcp->th_win= htons(0);
+					}
+					else if(window == WIN_MODULATE){
+						tcp->th_win= htons(tcpwinm);
+					}
 				}
 			}
 		}
 
 		tcp->th_urp= htons(tcpurg);
-		tcp->th_win= htons(tcpwin);
 
 		/* Current version of tcp6 does not support sending TCP options */
 		tcp->th_off= sizeof(struct tcphdr) >> 2;
 		ptr+= tcp->th_off << 2;
 
-		if( (ptr + rhbytes) > v6buffer+max_packet_size){
-			puts("Packet Too Large while inserting TCP segment");
-			exit(1);
-		}
+		if(rhbytes){
+			if( (ptr + rhbytes) > v6buffer+max_packet_size){
+				puts("Packet Too Large while inserting TCP segment");
+				exit(1);
+			}
 
-		while(rhbytes>=4){
-			*(u_int32_t *)ptr = random();
-			ptr += sizeof(u_int32_t);
-			rhbytes -= sizeof(u_int32_t);
-		}
+			while(rhbytes>=4){
+				*(u_int32_t *)ptr = random();
+				ptr += sizeof(u_int32_t);
+				rhbytes -= sizeof(u_int32_t);
+			}
 
-		while(rhbytes>0){
-			*(u_int8_t *) ptr= (u_int8_t) random();
-			ptr++;
-			rhbytes--;
+			while(rhbytes>0){
+				*(u_int8_t *) ptr= (u_int8_t) random();
+				ptr++;
+				rhbytes--;
+			}
 		}
 
 		tcp->th_sum = 0;
@@ -1817,8 +1925,37 @@ void send_packet(const u_char *pktdata){
 
 		frag_and_send();
 
+		if(senddata_f){
+			tcp->th_seq= htonl( ntohl(tcp->th_seq) + ptr-((unsigned char *)tcp + (tcp->th_off << 2)));
+			ptr= (unsigned char *)tcp + sizeof(struct tcphdr);
+
+			if((ptr+ datalen) > (v6buffer+max_packet_size)){
+				if(verbose_f)
+					puts("Packet too large while inserting TCP data");
+				exit(1);
+			}
+
+			memcpy(ptr, data, datalen);
+			ptr+= datalen;
+
+			if(window_f){
+				if(window == WIN_CLOSED)
+					tcp->th_win = htons(0);
+				else
+					tcp->th_win = htons((u_int16_t) win1_size);
+			}
+			else{
+				tcp->th_win = htons(tcpwin);
+			}
+
+			tcp->th_sum = 0;
+			tcp->th_sum = in_chksum(v6buffer, tcp, ptr-((unsigned char *)tcp), IPPROTO_TCP);
+			frag_and_send();
+		}
+
 		if(startclose_f){
-			tcp->th_seq= htonl( ntohl(tcp->th_seq) + ptr-((unsigned char *)tcp));
+			tcp->th_seq= htonl( ntohl(tcp->th_seq) + ptr-((unsigned char *)tcp + (tcp->th_off << 2)));
+			ptr= (unsigned char *) tcp + sizeof(struct tcphdr);
 
 			if(tcpclose == CLOSE_ABORT){
 				tcp->th_flags= TH_ACK | TH_RST;
@@ -1897,7 +2034,7 @@ void send_packet(const u_char *pktdata){
 		}
 
 
-		if(pktdata == NULL && (floods_f && ports== 0)){
+		if(pktdata == NULL && (floods_f && ports == 0)){
 			/* 
 			   Randomizing the IPv6 Source address based on the prefix specified by 
 			   "srcaddr" and srcpreflen.
@@ -1909,7 +2046,7 @@ void send_packet(const u_char *pktdata){
 			   If we need to respond to incomming packets, we set the Interface ID such that we can
 			   detect which IPv6 addresses we have used.
 			 */
-			if(listen_f){
+			if(listen_f && useaddrkey_f){
 				ipv6->ip6_src.s6_addr16[4]= random();
 				ipv6->ip6_src.s6_addr16[5]= ipv6->ip6_src.s6_addr16[4] ^ addr_key;
 				ipv6->ip6_src.s6_addr16[6]= random();
@@ -1939,6 +2076,11 @@ void send_packet(const u_char *pktdata){
 }
 
 
+/*
+ * Function: frag_and_send()
+ *
+ * Send an IPv6 datagram, and fragment if selected
+ */
 void frag_and_send(void){
 	if(!fragh_f){
 		ipv6->ip6_plen = htons((ptr - v6buffer) - MIN_IPV6_HLEN);
@@ -2143,12 +2285,12 @@ u_int16_t in_chksum(void *ptr_ipv6, void *ptr_icmpv6, size_t len, u_int8_t proto
  */
  
 void print_attack_info(void){
-	puts( "tcp6\nAssessment tool for attack vectors based on TCP/IPv6 packets\n");
+	puts( "tcp6\nSecurity assessment tool for attack vectors based on TCP/IPv6 packets\n");
 
 	if(floods_f)
 		printf("Flooding the target from %u different IPv6 Source Addresses\n", nsources);
 
-	if(floods_f)
+	if(floodp_f)
 		printf("Flooding the target from %u different TCP ports\n", nports);
 
 	if(idata.type == DLT_EN10MB && idata.flags != IFACE_LOOPBACK){
@@ -2161,7 +2303,7 @@ void print_attack_info(void){
 				printf("Ethernet Source Address: %s\n", plinkaddr);
 		}
 		else{
-			if(!floods_f && dstaddr_f){
+			if(dstaddr_f){
 				if(ether_ntop(&hsrcaddr, plinkaddr, sizeof(plinkaddr)) == 0){
 					puts("ether_ntop(): Error converting address");
 					exit(1);
@@ -2226,19 +2368,49 @@ void print_attack_info(void){
 		printf("Sending each packet in fragments of %u bytes (plus the Unfragmentable part)\n", nfrags);
 
 	if(dstaddr_f){
-		printf("Source Port: %u%s\tDestination Port: %u%s\n",  srcport, (srcport_f?"":" (randomized)"),\
-							dstport, (dstport_f?"":" (randomized)"));
+		if(!floodp_f || (floodp_f && nports ==1)){
+			printf("Source Port: %u%s\t",  srcport, (srcport_f?"":" (randomized)"));
+		}
+		else{
+			printf("Source Port: (randomized)\t");
+		}
 
-		printf("SEQ Number: %u%s\tACK Number: %u%s\n", tcpseq, (tcpseq_f?"":" (randomized)"), \
-								tcpack, (tcpack_f?"":" (randomized)"));
+		printf("Destination Port: %u%s\n", dstport, (dstport_f?"":" (randomized)"));
 
-		printf("Flags: %s%s%s%s%s%s%s%s\t", ((tcpflags & TH_FIN)?"F":""), ((tcpflags & TH_SYN)?"S":""), \
-					((tcpflags & TH_RST)?"R":""), ((tcpflags & TH_PUSH)?"P":""),\
-					((tcpflags & TH_ACK)?"A":""), ((tcpflags & TH_URG)?"U":""),\
-					((!tcpflags)?"none":""), ((!tcpflags_f)?" (default)":""));
+		if( (floods_f || floodp_f) && (nsources != 1 || nports != 1)){
+			printf("SEQ Number: (randomized)\t");
+		}
+		else{
+			printf("SEQ Number: %u%s\t", tcpseq, (tcpseq_f?"":" (randomized)"));
+		}
 
-		printf("Window: %u%s\tURG Pointer: %u%s\n", tcpwin, (tcpwin_f?"":" (randomized)"), \
-								tcpurg, (tcpurg_f?"":" (default)"));
+		printf("ACK Number: %u%s\n", tcpack, (tcpack_f?"":" (randomized)"));
+
+		if(tcpflags_f){
+			printf("Flags: %s%s%s%s%s%s%s%s\t", ((tcpflags & TH_FIN)?"F":""), ((tcpflags & TH_SYN)?"S":""), \
+						((tcpflags & TH_RST)?"R":""), ((tcpflags & TH_PUSH)?"P":""),\
+						((tcpflags & TH_ACK)?"A":""), ((tcpflags & TH_URG)?"U":""),\
+						((!tcpflags)?"none":""), ((!tcpflags_f)?" (default)":""));
+		}
+		else{
+			printf("Flags: Auto\t");
+		}
+
+		if(window_f){
+			printf("Window (initial): %u%s\t", tcpwin, (tcpwin_f?"":" (randomized)"));
+
+			if(window == WIN_CLOSED)
+				printf("Window: Closed\n");
+			else if(window == WIN_MODULATE)
+				printf("\nWindow: Modulated (%u byte%s (%u second%s), %u byte%s (%u second%s))\n",\
+						win1_size, ((win1_size>1)?"s":""), time1_len, ((time1_len>1)?"s":""), \
+						win2_size, ((win2_size>1)?"s":""), time2_len, ((time2_len>1)?"s":""));
+		}
+		else{
+			printf("Window: %u%s\t", tcpwin, (tcpwin_f?"":" (randomized)"));
+		}
+
+		printf("URG Pointer: %u%s\n", tcpurg, (tcpurg_f?"":" (default)"));
 	}
 	else{
 		printf("Source Port: Auto\tDestination Port: Auto\n");
@@ -2267,8 +2439,20 @@ void print_attack_info(void){
 			printf("Flags: Auto\t");
 		}
 
-		printf("Window: %u%s\tURG Pointer: %u%s\n", tcpwin, (tcpwin_f?"":" (randomized)"), \
-								tcpurg, (tcpurg_f?"":" (default)"));
+		if(window_f){
+			printf("Window (initial): %u%s\t", tcpwin, (tcpwin_f?"":" (randomized)"));
+
+			if(window == WIN_CLOSED)
+				printf("Window: Closed\n");
+			else if(window == WIN_MODULATE)
+				printf("\nWindow: Modulated (%u byte%s (%u second%s), %u byte%s (%u second%s))\n",\
+						win1_size, ((win1_size>1)?"s":""), time1_len, ((time1_len>1)?"s":""), \
+						win2_size, ((win2_size>1)?"s":""), time2_len, ((time2_len>1)?"s":""));
+		}
+		else{
+			printf("Window: %u%s\t", tcpwin, (tcpwin_f?"":" (randomized)"));
+		}
+
 	}
 }
 
@@ -3804,5 +3988,75 @@ int send_neighbor_advert(struct iface_data *idata, pcap_t *pfd,  const u_char *p
 	}
 
 	return 0;
+}
+
+
+/*
+ * Function: Strnlen()
+ *
+ * Our own version of strnlen(), since some OSes do not support it.
+ */
+
+size_t Strnlen(const char *s, size_t maxlen){
+	size_t i=0;
+
+	while(s[i] != 0 && i < maxlen)
+		i++;
+
+	if(i < maxlen)
+		return(i);
+	else
+		return(maxlen);
+}
+
+
+
+/*
+ * Function: string_escapes()
+ *
+ * Replace some escape sequences in a string
+ */
+
+int string_escapes(char *data, unsigned int *datalen){
+	char *org, *dst;
+	org=data;
+	dst=data;
+
+	while(org < (data+ *datalen)){
+		if(*org == '\\'){
+			if((org+1) < (data+ *datalen)){
+				org++;
+
+				switch(*org){
+					case '\\':
+						*dst= '\\';
+						break;
+
+					case 'n':
+						*dst= CHAR_LF;
+						break;
+
+					case 'r':
+						*dst= CHAR_CR;
+						break;
+
+					default:
+						return 0;
+				}
+			}
+			else
+				*dst= *org;
+		}
+		else{
+			if(org != dst)
+				*dst = *org;
+		}
+
+		org++;
+		dst++;
+	}
+
+	*datalen= dst - data;
+	return 1;
 }
 
