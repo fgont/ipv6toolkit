@@ -5,16 +5,41 @@ SI6 Networks' IPv6 Toolkit v1.4 release
      prevously sending fragment sizes that where not a multiple of eight, and
      hence these fragments were dropped.
 
-   * scan6: Option "--tgt-ipv4" was augmented to support both encodings (32 bit
+   * scan6: Added support for 64-bit encoding of IPv4 addresses
+     Option "--tgt-ipv4" was augmented to support both encodings (32 bit
      and 64 bit) of embedded IPv4 addresses.
+
+   * tcp6: Added support for TCP Window-based attacks
+     tcp6 can now close the window after sending an app-layer command, and
+     also "modulate" the TCP window to circumvent trivial mitigations for these
+     attacks ("--window" and "--win-modulate" options).
+
+   * tcp6: Fixed response to Neighbor Solicitations
+     tcp6 was not responding to incomming Neighbor Solicitations. Hence, when
+     packets were sent from spoofed addresses, tcp6 would never receive the
+     response packets, because the NSs sent by the local router or target node
+     would never be responded.
+
+   * tcp6: Support for multiple connection-establishment types
+     tcp6 can now cause e.g. TCP simultaneous opens (see the "--open" option).
+
+   * tcp6: Support for multiple connection-termination types
+     tcp6 can now perform multiple connection-termination types (see the
+     "--close" option).
 
    * Many improvements to the manual pages.
      Fixed the troff encoding of many manual pages. Added ipv6toolkit(7), that
-     describes a general description of the toolkit
+     describes a general description of the toolkit.
+
+   * All: Fixed bug in link-layer destination address selection
+     Tools now try to find a local router or perform Neighbor Discovery only
+     when necessary (i.e., underlying link-layer is *not* loopback or tunnel,
+     destination address is *not* link-local, and a link-layer destination
+     address has *not* been specified).
 
    * All: Fixed bug in option handling
      Incorrect data type was used for the return value of getopt_long(), thus 
-     leading to problems in some architectures
+     leading to problems in some architectures.
 
    * All: Fixed a number of issues with pcap_next_ex()
      The timeout parameter of pcap_next_ex() is now based on the platform (the
@@ -26,9 +51,9 @@ SI6 Networks' IPv6 Toolkit v1.4 release
      compiler (in addition to gcc), which has lead to the identification of a
      number of issues.
 
-   * Improved support for building the toolkit. The toolkit now contains one
-     makefile for pmake, and another for GNU make. Added support for the
-     DESTDIR variable. Appropriate paths are selected based on the value of 
-     a number of variables. Configuration file is dynamically generated,
-     with the right path to the oui.txt file.
+   * All: Improved support for building the toolkit.
+     The toolkit now contains one makefile for pmake, and another for GNU make.
+     Added support for the DESTDIR variable. Appropriate paths are selected
+     based on the value of a number of variables. Configuration file is
+     dynamically generated, with the right path to the oui.txt file.
 
