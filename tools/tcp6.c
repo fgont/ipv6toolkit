@@ -109,13 +109,13 @@ unsigned char		data_f=0, senddata_f=0, useaddrkey_f=0, window_f=0, winmodulate_f
 unsigned int		srcport_f=0, dstport_f=0;
 unsigned int		tcpseq_f=0, tcpack_f=0, tcpurg_f=0, tcpflags_f=0, tcpwin_f=0;
 unsigned int		rhbytes_f=0, tcpflags_auto_f=0, tcpopen_f=0, tcpclose_f=0;
-unsigned int		tcpopen=0, tcpclose=0, win1_size=0, win2_size=0;
+unsigned int		tcpopen=0, tcpclose=0, win1_size=0, win2_size=0, pps_f=0, bps_f=0;
 unsigned int		ackdata_f=1, ackflags_f=1, window=0, time1_len=0, time2_len=0;
 u_int16_t			srcport, dstport, tcpurg, tcpwin, tcpwinm;
 u_int32_t			tcpseq, tcpack;
 u_int8_t			tcpflags=0;
 struct tcphdr		*rhtcp;
-unsigned int		rhbytes, currentsize;
+unsigned int		rhbytes, currentsize, packetsize;
 
 
 /* Used for router discovery */
@@ -146,6 +146,7 @@ char				*pref;
 char				data[DATA_BUFFER_LEN];
 unsigned int		datalen;
 char 				iface[IFACE_LENGTH];
+char				line[LINE_BUFFER_SIZE];
     
 struct ip6_hdr		*ipv6;
 struct tcphdr		*tcp;
@@ -162,7 +163,7 @@ char				*lasts, *rpref;
 char				*charptr;
 
 size_t				nw;
-unsigned long		ul_res, ul_val;
+unsigned long		ul_res, ul_val, rate;
 unsigned int		i, j, startrand;
 unsigned int		skip;
 unsigned int		sources, nsources, ports, nports, nsleep;
@@ -253,8 +254,6 @@ int main(int argc, char **argv){
 		{"win-modulation", required_argument, 0, 'M'},
 		{"not-ack-data", no_argument, 0, 'N'},
 		{"not-ack-flags", no_argument, 0, 'n'},
-		{"input-file", required_argument, 0, 'I'},
-		{"output-file", required_argument, 0, 'O'},
 		{"block-src-addr", required_argument, 0, 'j'},
 		{"block-dst-addr", required_argument, 0, 'k'},
 		{"block-link-src-addr", required_argument, 0, 'J'},
@@ -265,16 +264,17 @@ int main(int argc, char **argv){
 		{"accept-link-dst-addr", required_argument, 0, 'G'},
 		{"flood-sources", required_argument, 0, 'F'},
 		{"flood-ports", required_argument, 0, 'T'},
-		{"rand-src-addr", no_argument, 0, 'r'},
+		{"rand-src-addr", no_argument, 0, 'f'},
 		{"rand-link-src-addr", no_argument, 0, 'R'},
 		{"loop", no_argument, 0, 'l'},
+		{"rate-limit", required_argument, 0, 'r'},
 		{"sleep", required_argument, 0, 'z'},
 		{"listen", no_argument, 0, 'L'},
 		{"verbose", no_argument, 0, 'v'},
 		{"help", no_argument, 0, 'h'}
 	};
 
-	char shortopts[]= "i:s:d:A:c:C:Z:u:U:H:y:S:D:P:o:a:X:q:Q:V:w:W:M:NnI:O:j:k:J:K:b:g:B:G:F:T:rRlz:Lvh";
+	char shortopts[]= "i:s:d:A:c:C:Z:u:U:H:y:S:D:P:o:a:X:q:Q:V:w:W:M:Nnj:k:J:K:b:g:B:G:F:T:fRlr:z:Lvh";
 
 	char option;
 
@@ -913,6 +913,7 @@ int main(int argc, char **argv){
 
 			case 'T':	/* Flood source ports */
 				nports= atoi(optarg);
+
 				if(nports == 0){
 					puts("Invalid number of source ports in option -T");
 					exit(1);
@@ -921,7 +922,7 @@ int main(int argc, char **argv){
 				floodp_f= 1;
 				break;
 
-			case 'r':
+			case 'f':
 				rand_src_f=1;
 				break;
 
@@ -932,6 +933,27 @@ int main(int argc, char **argv){
 			case 'l':	/* "Loop mode */
 				loop_f = 1;
 				break;
+
+			case 'r':
+				if( Strnlen(optarg, LINE_BUFFER_SIZE-1) >= (LINE_BUFFER_SIZE-1)){
+					puts("tcp6: -r option is too long");
+					exit(1);
+				}
+
+				sscanf(optarg, "%lu%s", &rate, line);
+				line[LINE_BUFFER_SIZE-1]=0;
+
+				if(strncmp(line, "pps", 3) == 0)
+					pps_f=1;
+				else if(strncmp(line, "bps", 3) == 0)
+					bps_f=1;
+				else{
+					puts("tcp6: Unknown unit of for the rate limit ('-r' option). Unit should be 'bps' or 'pps'");
+					exit(1);
+				}
+
+				break;
+
 
 			case 'z':	/* Sleep option */
 				nsleep=atoi(optarg);
@@ -1043,6 +1065,11 @@ int main(int argc, char **argv){
 		srcpreflen=0;
 	}
 
+	if(srcprefix_f && !floods_f && loop_f){
+		floods_f=1;
+		nsources= 1;
+	}
+
 	if(!dstaddr_f && !listen_f){	/* Must specify IPv6 Destination Address if listening mode not used */
 		puts("IPv6 Destination Address not specified (and listening mode not selected)");
 		exit(1);
@@ -1052,9 +1079,6 @@ int main(int argc, char **argv){
 		puts("Cannot set '--data' and '--payload-size' at the same time");
 		exit(1);
 	}
-
-	if(!hsrcaddr_f)	/* Source link-layer address is randomized by default */
-		randomize_ether_addr(&hsrcaddr);
 
 	if(get_if_addrs(&idata) == -1){
 		puts("Error obtaining local addresses");
@@ -1066,8 +1090,12 @@ int main(int argc, char **argv){
 		idata.ether_flag=1;
 	}
 
-	if(!hsrcaddr_f)
-		hsrcaddr=idata.ether;
+	if(!hsrcaddr_f){
+		if(idata.ether_flag)
+			hsrcaddr=idata.ether;
+		else
+			randomize_ether_addr(&hsrcaddr);
+	}
 
 	if(!idata.ip6_local_flag){
 		ether_to_ipv6_linklocal(&idata.ether, &idata.ip6_local);
@@ -1154,6 +1182,48 @@ int main(int argc, char **argv){
 	if(!sleep_f)
 		nsleep=1;
 
+	if(sleep_f && (pps_f || bps_f)){
+		puts("Cannot specify a rate-limit (-r) and a sleep time at the same time");
+		exit(1);
+	}
+
+	if(pps_f && bps_f){
+		puts("Cannot specify a rate-limit in bps and pps at the same time");
+		exit(1);
+	}
+
+	if(pps_f){
+		if(rate < 1)
+			rate=1;
+
+		pktinterval= 1000000/rate;
+	}
+
+	if(bps_f){
+		packetsize= MIN_IPV6_HLEN +  sizeof(struct tcphdr) + rhbytes;
+
+		for(i=0; i < ndstopthdr; i++)
+			packetsize+= dstopthdrlen[i];
+
+		for(i=0; i < ndstoptuhdr; i++)
+			packetsize+= dstoptuhdrlen[i];
+
+		for(i=0; i < nhbhopthdr; i++)
+			packetsize+= hbhopthdrlen[i];
+
+		if(fragh_f)
+			packetsize+= sizeof(struct ip6_frag);			
+
+		if(rate == 0 || ((packetsize * 8)/rate) <= 0)
+			pktinterval= 1000000;
+		else
+			pktinterval= ((packetsize * 8)/rate) * 1000000;
+	}
+
+	/* We Default to 1000 pps */
+	if(!pps_f && !bps_f)
+		pktinterval= 1000;
+
 	if( !fragh_f && dstoptuhdr_f){
 		puts("Dst. Options Header (Unfragmentable Part) set, but Fragmentation not specified");
 		exit(1);
@@ -1217,7 +1287,9 @@ int main(int argc, char **argv){
 	init_packet_data(&idata);
 	addr_key= random();
 
-	pktinterval= (nsleep * 1000000)/(nsources * nports);
+	if(sleep_f)
+		pktinterval= (nsleep * 1000000)/(nsources * nports);
+
 	timeout.tv_sec=  pktinterval / 1000000 ;	
 	timeout.tv_usec= pktinterval % 1000000;
 	stimeout= timeout;

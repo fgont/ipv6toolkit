@@ -8,6 +8,7 @@
 #define CHAR_LF			0x0a
 #define	MAX_CMDLINE_OPT_LEN	40
 #define	DATA_BUFFER_LEN		1000
+#define LINE_BUFFER_SIZE	80
 #define ETH_ALEN	6		/* Octets in one ethernet addr	 */
 #define ETH_HLEN	14		/* Total octets in header.	 */
 #define ETH_DATA_LEN	1500		/* Max. octets in payload	 */
