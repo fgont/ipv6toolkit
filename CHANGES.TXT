@@ -9,23 +9,27 @@ SI6 Networks' IPv6 Toolkit v1.4 release
      Option "--tgt-ipv4" was augmented to support both encodings (32 bit
      and 64 bit) of embedded IPv4 addresses.
 
-   * tcp6: Added support for TCP Window-based attacks
-     tcp6 can now close the window after sending an app-layer command, and
-     also "modulate" the TCP window to circumvent trivial mitigations for these
-     attacks ("--window" and "--win-modulate" options).
-
    * tcp6: Fixed response to Neighbor Solicitations
      tcp6 was not responding to incomming Neighbor Solicitations. Hence, when
      packets were sent from spoofed addresses, tcp6 would never receive the
      response packets, because the NSs sent by the local router or target node
      would never be responded.
 
+   * tcp6: Added support for TCP Window-based attacks
+     tcp6 can now close the window after sending an app-layer command, and
+     also "modulate" the TCP window to circumvent trivial mitigations for these
+     attacks ("--window-mode" and "--win-modulate" options).
+
    * tcp6: Support for multiple connection-establishment types
-     tcp6 can now cause e.g. TCP simultaneous opens (see the "--open" option).
+     tcp6 can now cause e.g. TCP simultaneous opens (see the "--open-mode"
+     option).
 
    * tcp6: Support for multiple connection-termination types
      tcp6 can now perform multiple connection-termination types (see the
-     "--close" option).
+     "--close-mode" option).
+
+   * tcp6: Support for sending application layer requests
+     tcp6 can now send application-layer requests with the "--data" option.
 
    * Many improvements to the manual pages.
      Fixed the troff encoding of many manual pages. Added ipv6toolkit(7), that
