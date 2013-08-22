@@ -284,6 +284,10 @@ int main(int argc, char **argv){
 	}
 
 	hoplimit=255;
+	pktinterval= 0;
+	lastprobe.tv_sec= 0;
+	lastprobe.tv_usec= 0;
+
 	init_iface_data(&idata);
 
 	while((r=getopt_long(argc, argv, shortopts, longopts, NULL)) != -1) {
