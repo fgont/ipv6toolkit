@@ -672,7 +672,6 @@ int main(int argc, char **argv){
 				break;
 
 			case 'M':
-puts("Voy a procesar la opcion M");
 				sscanf(optarg, "%u:%u:%u:%u", &win1_size, &time1_len, &win2_size, &time2_len);
 				winmodulate_f= 1;
 				break;
