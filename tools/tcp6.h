@@ -82,6 +82,9 @@
 #define CLOSE_PASSIVE			2
 #define CLOSE_SIMULTANEOUS		3
 #define CLOSE_ABORT			4
+#define CLOSE_FIN_WAIT_1		5
+#define CLOSE_FIN_WAIT_2		6
+#define CLOSE_LAST_ACK			7
 
 
 /* Constants for TCP window operation */

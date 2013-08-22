@@ -4423,8 +4423,8 @@ int dns_decode(unsigned char *start, unsigned int size, unsigned char *ptr, \
 				char *out, unsigned int outsize, unsigned char **next){
 	unsigned char *end;
 	char *w;
-	end= start+size;
 	unsigned int clabels=0, nlabels=0;
+	end= start+size;
 	w= out;
 
 	while(nlabels <= MAX_DNS_LABELS){

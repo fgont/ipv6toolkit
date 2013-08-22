@@ -232,8 +232,8 @@ int main(int argc, char **argv){
 		{"src-address", required_argument, 0, 's'},
 		{"dst-address", required_argument, 0, 'd'},
 		{"hop-limit", required_argument, 0, 'A'},
-		{"open", required_argument, 0, 'c'},
-		{"close", required_argument, 0, 'C'},
+		{"open-mode", required_argument, 0, 'c'},
+		{"close-mode", required_argument, 0, 'C'},
 		{"data", required_argument, 0, 'Z'},
 		{"dst-opt-hdr", required_argument, 0, 'u'},
 		{"dst-opt-u-hdr", required_argument, 0, 'U'},
@@ -249,7 +249,7 @@ int main(int argc, char **argv){
 		{"tcp-ack", required_argument, 0, 'Q'},
 		{"tcp-urg", required_argument, 0, 'V'},
 		{"tcp-win", required_argument, 0, 'w'},
-		{"window", required_argument, 0, 'W'},
+		{"window-mode", required_argument, 0, 'W'},
 		{"win-modulation", required_argument, 0, 'M'},
 		{"not-ack-data", no_argument, 0, 'N'},
 		{"not-ack-flags", no_argument, 0, 'n'},
@@ -348,14 +348,14 @@ int main(int argc, char **argv){
 				if(strncmp(optarg, "simultaneous", MAX_CMDLINE_OPT_LEN) == 0){
 					tcpopen= OPEN_SIMULTANEOUS;
 				}
-				if(strncmp(optarg, "passive", MAX_CMDLINE_OPT_LEN) == 0){
+				else if(strncmp(optarg, "passive", MAX_CMDLINE_OPT_LEN) == 0){
 					tcpopen= OPEN_PASSIVE;
 				}
 				else if(strncmp(optarg, "abort", MAX_CMDLINE_OPT_LEN) == 0){
 					tcpopen= OPEN_ABORT;
 				}
 				else{
-					puts("Error: Unknown open option ('-c')");
+					puts("Error: Unknown open mode in '-c' option");
 					exit(1);
 				}
 
@@ -366,7 +366,7 @@ int main(int argc, char **argv){
 				if(strncmp(optarg, "simultaneous", MAX_CMDLINE_OPT_LEN) == 0){
 					tcpclose= CLOSE_SIMULTANEOUS;
 				}
-				if(strncmp(optarg, "passive", MAX_CMDLINE_OPT_LEN) == 0){
+				else if(strncmp(optarg, "passive", MAX_CMDLINE_OPT_LEN) == 0){
 					tcpclose= CLOSE_PASSIVE;
 				}
 				else if(strncmp(optarg, "abort", MAX_CMDLINE_OPT_LEN) == 0){
@@ -374,6 +374,18 @@ int main(int argc, char **argv){
 				}
 				else if(strncmp(optarg, "active", MAX_CMDLINE_OPT_LEN) == 0){
 					tcpclose= CLOSE_ACTIVE;
+				}
+				else if( strncmp(optarg, "fin-wait-1", MAX_CMDLINE_OPT_LEN) == 0 || \
+					strncmp(optarg, "FIN-WAIT-1", MAX_CMDLINE_OPT_LEN) == 0){
+					tcpclose= CLOSE_FIN_WAIT_1;
+				}
+				else if( strncmp(optarg, "fin-wait-2", MAX_CMDLINE_OPT_LEN) == 0 || \
+					strncmp(optarg, "FIN-WAIT-2", MAX_CMDLINE_OPT_LEN) == 0){
+					tcpclose= CLOSE_FIN_WAIT_2;
+				}
+				else if( strncmp(optarg, "last-ack", MAX_CMDLINE_OPT_LEN) == 0 || \
+					strncmp(optarg, "LAST-ACK", MAX_CMDLINE_OPT_LEN) == 0){
+					tcpclose= CLOSE_LAST_ACK;
 				}
 				else{
 					puts("Error: Unknown close option ('-C')");
@@ -1036,6 +1048,11 @@ int main(int argc, char **argv){
 		exit(1);
 	}
 
+	if(rhbytes_f && data_f){
+		puts("Cannot set '--data' and '--payload-size' at the same time");
+		exit(1);
+	}
+
 	if(!hsrcaddr_f)	/* Source link-layer address is randomized by default */
 		randomize_ether_addr(&hsrcaddr);
 
@@ -1446,7 +1463,8 @@ int main(int argc, char **argv){
 					/* Send a TCP segment */
 					send_packet(pktdata);
 				}
-				else if(dstaddr_f && pkt_ipv6->ip6_nxt == IPPROTO_ICMPV6){
+				else if(pkt_ipv6->ip6_nxt == IPPROTO_ICMPV6){
+
 					/* Check that we are able to look into the NS header */
 					if( (pkt_end -  pktdata) < (linkhsize + MIN_IPV6_HLEN + sizeof(struct nd_neighbor_solicit))){
 						continue;
@@ -1705,7 +1723,7 @@ void send_packet(const u_char *pktdata){
 					else{
 					/* If we receive a SYN/ACK (product of the above SYN), send a SYN/ACK */
 						tcp->th_flags = tcp->th_flags | TH_SYN | TH_ACK;
-						tcp->th_seq= pkt_tcp->th_ack;
+						tcp->th_seq= (pkt_tcp->th_ack) - (rhbytes + 1);
 						tcp->th_ack= htonl(ntohl(pkt_tcp->th_seq) + ((pkt_end - (unsigned char *)pkt_tcp) - (pkt_tcp->th_off << 2)));
 						tcp->th_ack= htonl(ntohl(tcp->th_ack) + ((pkt_tcp->th_flags & TH_FIN)?1:0) + \
 							((pkt_tcp->th_flags & TH_SYN)?1:0));
@@ -1763,7 +1781,7 @@ void send_packet(const u_char *pktdata){
 					if(data_f)
 						senddata_f= 1;
 
-					if(tcpclose_f)
+					if(tcpclose_f && tcpclose != CLOSE_FIN_WAIT_2 && tcpclose != CLOSE_PASSIVE)
 						startclose_f= 1;
 				}
 				else{
@@ -1842,13 +1860,24 @@ void send_packet(const u_char *pktdata){
 							tcp->th_ack= htonl(ntohl(tcp->th_ack) + ((pkt_end - (unsigned char *)pkt_tcp) - (pkt_tcp->th_off << 2)));
 						}
 
-						if(ackflags_f){
+						if(ackflags_f && !(tcpclose_f && tcpclose == CLOSE_LAST_ACK) && !(tcpclose_f && tcpclose == CLOSE_FIN_WAIT_1)){
 							tcp->th_ack= htonl(ntohl(tcp->th_ack) + ((pkt_tcp->th_flags & TH_FIN)?1:0) + \
 									((pkt_tcp->th_flags & TH_SYN)?1:0));
 						}
 					}
 				}
 			}
+
+			if(window_f){
+				if(window == WIN_CLOSED){
+					tcp->th_win= htons(0);
+				}
+				else if(window == WIN_MODULATE){
+					tcp->th_win= htons(tcpwinm);
+				}
+			}
+			else
+				tcp->th_win= htons(tcpwin);
 		}
 		else if(pkt_tcp->th_flags & TH_ACK){
 			if(tcpclose_f && tcpclose == CLOSE_ABORT){
@@ -1882,16 +1911,18 @@ void send_packet(const u_char *pktdata){
 						}
 					}
 				}
+			}
 
-				if(window_f){
-					if(window == WIN_CLOSED){
-						tcp->th_win= htons(0);
-					}
-					else if(window == WIN_MODULATE){
-						tcp->th_win= htons(tcpwinm);
-					}
+			if(window_f){
+				if(window == WIN_CLOSED){
+					tcp->th_win= htons(0);
+				}
+				else if(window == WIN_MODULATE){
+					tcp->th_win= htons(tcpwinm);
 				}
 			}
+			else
+				tcp->th_win= htons(tcpwin);
 		}
 
 		tcp->th_urp= htons(tcpurg);
@@ -1959,7 +1990,7 @@ void send_packet(const u_char *pktdata){
 			if(tcpclose == CLOSE_ABORT){
 				tcp->th_flags= TH_ACK | TH_RST;
 			}
-			else if(tcpclose == CLOSE_ACTIVE){
+			else if(tcpclose == CLOSE_ACTIVE || tcpclose == CLOSE_LAST_ACK){
 				tcp->th_flags= TH_ACK | TH_FIN;
 			}
 
@@ -2284,7 +2315,7 @@ u_int16_t in_chksum(void *ptr_ipv6, void *ptr_icmpv6, size_t len, u_int8_t proto
  */
  
 void print_attack_info(void){
-	puts( "tcp6\nSecurity assessment tool for attack vectors based on TCP/IPv6 packets\n");
+	puts( "tcp6: Security assessment tool for attack vectors based on TCP/IPv6 packets\n");
 
 	if(floods_f)
 		printf("Flooding the target from %u different IPv6 Source Addresses\n", nsources);
@@ -2449,7 +2480,7 @@ void print_attack_info(void){
 						win2_size, ((win2_size>1)?"s":""), time2_len, ((time2_len>1)?"s":""));
 		}
 		else{
-			printf("Window: %u%s\t", tcpwin, (tcpwin_f?"":" (randomized)"));
+			printf("Window: %u%s\n", tcpwin, (tcpwin_f?"":" (randomized)"));
 		}
 
 	}

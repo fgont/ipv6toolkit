@@ -151,8 +151,7 @@ unsigned int		nacceptlinksrc=0, nacceptlinkdst=0;
 
 
 int main(int argc, char **argv){
-	extern char		*optarg;	
-	extern int		optind;
+	extern char		*optarg;
 	uid_t			ruid;
 	gid_t			rgid;
 	int				r, sel, fd;

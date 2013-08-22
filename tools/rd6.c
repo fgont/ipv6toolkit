@@ -211,7 +211,6 @@ unsigned int			canjump;
 
 int main(int argc, char **argv){
 	extern char		*optarg;	
-	extern int		optind;
 	char			*endptr; /* Used by strtoul() */
 	uid_t			ruid;
 	gid_t			rgid;
