@@ -1,6 +1,15 @@
 CONTRIBUTORS
 ------------
 
+** Contributors **
+
+The following people sent patches that were incorporated into this release
+of the toolkit:
+
+    Octavio Alvarez <alvarezp@alvarezp.com>
+    Alistair Crooks <agc@pkgsrc.org>
+
+
 ** Package maintainers **
 
 Availability of packages for different operating systems makes it easier for
