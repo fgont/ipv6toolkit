@@ -27,6 +27,10 @@ These are the maintainers for each of the different packages:
 
     Hiroki Sato <hrs@FreeBSD.org>
 
+  + Gentoo Linux
+
+    Robin H. Johnson <robbat2@gentoo.org>
+
   + NetBSD (pkgsr framework)
 
     Alistair Crooks <agc@pkgsrc.org>
