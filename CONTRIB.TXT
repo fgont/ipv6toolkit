@@ -31,7 +31,7 @@ These are the maintainers for each of the different packages:
 
     Robin H. Johnson <robbat2@gentoo.org>
 
-  + NetBSD (pkgsr framework)
+  + NetBSD (pkgsrc framework)
 
     Alistair Crooks <agc@pkgsrc.org>
 
