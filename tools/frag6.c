@@ -259,7 +259,7 @@ int main(int argc, char **argv){
 
 	if(argc<=1){
 		usage();
-		exit(1);
+		exit(EXIT_FAILURE);
 	}
 
 
@@ -280,12 +280,12 @@ int main(int argc, char **argv){
 			case 's':	/* IPv6 Source Address */
 				if((charptr = strtok_r(optarg, "/", &lasts)) == NULL){
 					puts("Error in Source Address");
-					exit(1);
+					exit(EXIT_FAILURE);
 				}
 
 				if ( inet_pton(AF_INET6, charptr, &srcaddr) <= 0){
 					puts("inet_pton(): Source Address not valid");
-					exit(1);
+					exit(EXIT_FAILURE);
 				}
 
 				srcaddr_f = 1;
@@ -295,7 +295,7 @@ int main(int argc, char **argv){
 		
 					if(srcpreflen>128){
 						puts("Prefix length error in IPv6 Source Address");
-						exit(1);
+						exit(EXIT_FAILURE);
 					}
 
 					sanitize_ipv6_prefix(&srcaddr, srcpreflen);
@@ -307,7 +307,7 @@ int main(int argc, char **argv){
 			case 'd':	/* IPv6 Destination Address */
 				if( inet_pton(AF_INET6, optarg, &dstaddr) <= 0){
 					puts("inet_pton(): address not valid");
-					exit(1);
+					exit(EXIT_FAILURE);
 				}
 		
 				dstaddr_f = 1;
@@ -321,14 +321,14 @@ int main(int argc, char **argv){
 			case 'u':	/* Destinations Options Header */
 				if(ndstopthdr >= MAX_DST_OPT_HDR){
 					puts("Too many Destination Options Headers");
-					exit(1);
+					exit(EXIT_FAILURE);
 				}
 
 				hdrlen= atoi(optarg);
 		
 				if(hdrlen < 8){
 					puts("Bad length in Destination Options Header");
-					exit(1);
+					exit(EXIT_FAILURE);
 				}
 		    
 				hdrlen = ((hdrlen+7)/8) * 8;
@@ -336,7 +336,7 @@ int main(int argc, char **argv){
 
 				if( (dstopthdr[ndstopthdr]= malloc(hdrlen)) == NULL){
 					puts("Not enough memory for Destination Options Header");
-					exit(1);
+					exit(EXIT_FAILURE);
 				}
 
 				ptrhdr= dstopthdr[ndstopthdr] + 2;
@@ -351,7 +351,7 @@ int main(int argc, char **argv){
 			
 					if(!insert_pad_opt(ptrhdr, ptrhdrend, pad)){
 						puts("Destination Options Header Too Big");
-						exit(1);
+						exit(EXIT_FAILURE);
 					}
 		    
 					ptrhdr= ptrhdr + pad;
@@ -365,14 +365,14 @@ int main(int argc, char **argv){
 			case 'U':	/* Destination Options Header (Unfragmentable Part) */
 				if(ndstoptuhdr >= MAX_DST_OPT_U_HDR){
 					puts("Too many Destination Options Headers (Unfragmentable Part)");
-					exit(1);
+					exit(EXIT_FAILURE);
 				}
 
 				hdrlen= atoi(optarg);
 		
 				if(hdrlen < 8){
 					puts("Bad length in Destination Options Header (Unfragmentable Part)");
-					exit(1);
+					exit(EXIT_FAILURE);
 				}
 
 				hdrlen = ((hdrlen+7)/8) * 8;
@@ -380,7 +380,7 @@ int main(int argc, char **argv){
 		
 				if( (dstoptuhdr[ndstoptuhdr]= malloc(hdrlen)) == NULL){
 					puts("Not enough memory for Destination Options Header (Unfragmentable Part)");
-					exit(1);
+					exit(EXIT_FAILURE);
 				}
 
 				ptrhdr= dstoptuhdr[ndstoptuhdr]+2;
@@ -395,7 +395,7 @@ int main(int argc, char **argv){
 
 					if(!insert_pad_opt(ptrhdr, ptrhdrend, pad)){
 						puts("Destination Options Header (Unfragmentable Part) Too Big");
-						exit(1);
+						exit(EXIT_FAILURE);
 					}
 
 					ptrhdr = ptrhdr + pad;
@@ -409,14 +409,14 @@ int main(int argc, char **argv){
 			case 'H':	/* Hop-by-Hop Options Header */
 				if(nhbhopthdr >= MAX_HBH_OPT_HDR){
 					puts("Too many Hop-by-Hop Options Headers");
-					exit(1);
+					exit(EXIT_FAILURE);
 				}
 
 				hdrlen= atoi(optarg);
 		
 				if(hdrlen <= 8){
 					puts("Bad length in Hop-by-Hop Options Header");
-					exit(1);
+					exit(EXIT_FAILURE);
 				}
 		    
 				hdrlen = ((hdrlen+7)/8) * 8;
@@ -424,7 +424,7 @@ int main(int argc, char **argv){
 		
 				if( (hbhopthdr[nhbhopthdr]= malloc(hdrlen)) == NULL){
 					puts("Not enough memory for Hop-by-Hop Options Header");
-					exit(1);
+					exit(EXIT_FAILURE);
 				}
 
 				ptrhdr= hbhopthdr[nhbhopthdr] + 2;
@@ -440,7 +440,7 @@ int main(int argc, char **argv){
 
 					if(!insert_pad_opt(ptrhdr, ptrhdrend, pad)){
 						puts("Hop-by-Hop Options Header Too Big");
-						exit(1);
+						exit(EXIT_FAILURE);
 					}
 
 					ptrhdr = ptrhdr + pad;
@@ -454,7 +454,7 @@ int main(int argc, char **argv){
 			case 'S':	/* Source Ethernet address */
 				if(ether_pton(optarg, &hsrcaddr, sizeof(hsrcaddr)) == 0){
 					puts("Error in Source link-layer address.");
-					exit(1);
+					exit(EXIT_FAILURE);
 				}
 		
 				hsrcaddr_f = 1;
@@ -463,7 +463,7 @@ int main(int argc, char **argv){
 			case 'D':	/* Destination Ethernet Address */
 				if(ether_pton(optarg, &hdstaddr, sizeof(hdstaddr)) == 0){
 					puts("Error in Source link-layer address.");
-					exit(1);
+					exit(EXIT_FAILURE);
 				}
 		
 				hdstaddr_f = 1;
@@ -493,7 +493,7 @@ int main(int argc, char **argv){
 				}
 				else{
 					puts("Unknown fragment order (valid order types: 'first', 'last', 'middle')");
-					exit(1);
+					exit(EXIT_FAILURE);
 				}
 
 				break;
@@ -501,7 +501,7 @@ int main(int argc, char **argv){
 			case 'o':	/* Fragment Offset */
 				if((ul_res = strtoul(optarg, &endptr, 0)) == ULONG_MAX){
 					perror("Error in 'Fragment Offset' parameter");
-					exit(1);
+					exit(EXIT_FAILURE);
 				}
 		
 				if(endptr != optarg){
@@ -514,7 +514,7 @@ int main(int argc, char **argv){
 			case 'I':	/* Fragment Identification */
 				if((ul_res = strtoul(optarg, &endptr, 0)) == ULONG_MAX){
 					perror("Error in 'Fragment Identification' parameter");
-					exit(1);
+					exit(EXIT_FAILURE);
 				}
 		
 				if(endptr != optarg){
@@ -544,7 +544,7 @@ int main(int argc, char **argv){
 				nfrags= atoi(optarg);
 				if(nfrags == 0){
 					puts("Invalid number of fragments in option -F");
-					exit(1);
+					exit(EXIT_FAILURE);
 				}
 		
 				floodf_f= 1;
@@ -562,7 +562,7 @@ int main(int argc, char **argv){
 				nsleep=atoi(optarg);
 				if(nsleep==0){
 					puts("Invalid number of seconds in '-z' option");
-					exit(1);
+					exit(EXIT_FAILURE);
 				}
 	
 				sleep_f=1;
@@ -575,12 +575,12 @@ int main(int argc, char **argv){
 			case 'h':	/* Help */
 				print_help();
 		
-				exit(1);
+				exit(EXIT_FAILURE);
 				break;
 
 			default:
 				usage();
-				exit(1);
+				exit(EXIT_FAILURE);
 				break;
 		
 		} /* switch */
@@ -588,17 +588,17 @@ int main(int argc, char **argv){
 
 	if(geteuid()) {
 		puts("frag6 needs root privileges to run.");
-		exit(1);
+		exit(EXIT_FAILURE);
 	}
 
 	if(!iface_f){
 		puts("Must specify the network interface with the -i option");
-		exit(1);
+		exit(EXIT_FAILURE);
 	}
 
 	if( (idata.pd = pcap_open_live(idata.iface, PCAP_SNAP_LEN, PCAP_PROMISC, PCAP_TIMEOUT, errbuf)) == NULL){
 		printf("pcap_open_live(): %s\n", errbuf);
-		exit(1);
+		exit(EXIT_FAILURE);
 	}
 
 	/* 
@@ -609,29 +609,29 @@ int main(int argc, char **argv){
 	if( (ruid=getuid()) && (rgid=getgid())){
 		if(setgid(rgid) == -1){
 			puts("Error while releasing superuser privileges (changing to real GID)");
-			exit(1);
+			exit(EXIT_FAILURE);
 		}
 
 		if(setuid(ruid) == -1){
 			puts("Error while releasing superuser privileges (changing to real UID)");
-			exit(1);
+			exit(EXIT_FAILURE);
 		}
 	}
 	else{
 		if((pwdptr=getpwnam("nobody"))){
 			if(!pwdptr->pw_uid || !pwdptr->pw_gid){
 				puts("User 'nobody' has incorrect privileges");
-				exit(1);
+				exit(EXIT_FAILURE);
 			}
 
 			if(setgid(pwdptr->pw_gid) == -1){
 				puts("Error while releasing superuser privileges (changing to nobody's group)");
-				exit(1);
+				exit(EXIT_FAILURE);
 			}
 
 			if(setuid(pwdptr->pw_uid) == -1){
 				puts("Error while releasing superuser privileges (changing to 'nobody')");
-				exit(1);
+				exit(EXIT_FAILURE);
 			}
 		}
 	}
@@ -652,7 +652,7 @@ int main(int argc, char **argv){
 	}
 	else{
 		printf("Error: Interface %s is not an Ethernet or tunnel interface", iface);
-		exit(1);
+		exit(EXIT_FAILURE);
 	}
 
 	if((idata.ip6_local_flag && idata.ip6_global_flag) && !srcaddr_f)
@@ -692,7 +692,7 @@ int main(int argc, char **argv){
 			}
 			else if(ipv6_to_ether(idata.pd, &idata, &dstaddr, &hdstaddr) != 1){
 				puts("Error while performing Neighbor Discovery for the Destination Address");
-				exit(1);
+				exit(EXIT_FAILURE);
 			}
 		}
 		else if(find_ipv6_router_full(idata.pd, &idata) == 1){
@@ -700,7 +700,7 @@ int main(int argc, char **argv){
 				/* If address is on-link, we must perform Neighbor Discovery */
 				if(ipv6_to_ether(idata.pd, &idata, &dstaddr, &hdstaddr) != 1){
 					puts("Error while performing Neighbor Discovery for the Destination Address");
-					exit(1);
+					exit(EXIT_FAILURE);
 				}
 			}
 			else{
@@ -716,7 +716,7 @@ int main(int argc, char **argv){
 			 */
 			if(ipv6_to_ether(idata.pd, &idata, &dstaddr, &hdstaddr) != 1){
 				puts("Error while performing Neighbor Discovery for the Destination Address");
-				exit(1);
+				exit(EXIT_FAILURE);
 			}
 		}
 	}
@@ -742,7 +742,7 @@ int main(int argc, char **argv){
 
 	if(!dstaddr_f){
 		puts("Error: Nothing to send! (Destination Address left unspecified)");
-		exit(1);
+		exit(EXIT_FAILURE);
 	}
 
 	if(!floodf_f)
@@ -760,12 +760,12 @@ int main(int argc, char **argv){
 		 */
 		if(pcap_compile(idata.pd, &pcap_filter, PCAP_ICMPV6_NSECHOEXCEEDED_FILTER, PCAP_OPT, PCAP_NETMASK_UNKNOWN) == -1){
 			printf("pcap_compile(): %s", pcap_geterr(idata.pd));
-			exit(1);
+			exit(EXIT_FAILURE);
 		}
 		
 		if(pcap_setfilter(idata.pd, &pcap_filter) == -1){
 			printf("pcap_setfilter(): %s", pcap_geterr(idata.pd));
-			exit(1);
+			exit(EXIT_FAILURE);
 		}
 
 		pcap_freecode(&pcap_filter);
@@ -788,17 +788,17 @@ int main(int argc, char **argv){
 		 */
 		if(minfragsize > ((idata.mtu - sizeof(struct ip6_hdr) - sizeof(struct icmp6_hdr))/4)){
 			puts("Error: minimum fragment size is too large");
-			exit(1);
+			exit(EXIT_FAILURE);
 		}
 
 		if(overlap < 8 || (overlap%8) != 0 || overlap >= minfragsize){
 			puts("Error: Incorrect 'overlap' value");
-			exit(1);
+			exit(EXIT_FAILURE);
 		}
 
 		if( (idata.fd= pcap_fileno(idata.pd)) == -1){
 			puts("Error obtaining descriptor number for pcap_t");
-			exit(1);
+			exit(EXIT_FAILURE);
 		}
 
 		FD_ZERO(&sset);
@@ -913,25 +913,25 @@ int main(int argc, char **argv){
 				if(send_fragment2(sizeof(struct icmp6_hdr)+minfragsize * 4 - overlap, id, 0, minfragsize, \
 									FIRST_FRAGMENT, block5) == -1){
 					puts("Error when writing fragment");
-					exit(1);
+					exit(EXIT_FAILURE);
 				}
 
 				if(send_fragment2(0, id, sizeof(struct icmp6_hdr)+minfragsize * 2, minfragsize, MIDDLE_FRAGMENT, \
 									block6) == -1){
 					puts("Error when writing fragment");
-					exit(1);
+					exit(EXIT_FAILURE);
 				}
 
 				if(send_fragment2(0, id, sizeof(struct icmp6_hdr)+minfragsize * 3 - overlap, minfragsize, \
 									LAST_FRAGMENT, block7) == -1){
 					puts("Error when writing fragment");
-					exit(1);
+					exit(EXIT_FAILURE);
 				}
 
 				if(send_fragment2(0, id, sizeof(struct icmp6_hdr)+minfragsize, minfragsize, MIDDLE_FRAGMENT, \
 									block8) == -1){
 					puts("Error when writing fragment");
-					exit(1);
+					exit(EXIT_FAILURE);
 				}
 
 				lastfrag5=curtime;
@@ -947,7 +947,7 @@ int main(int argc, char **argv){
 				}
 				else{
 					puts("Error in select()");
-					exit(1);
+					exit(EXIT_FAILURE);
 				}
 			}
 
@@ -957,7 +957,7 @@ int main(int argc, char **argv){
 			/* Read a packet (Echo Reply, ICMPv6 Error, or Neighbor Solicitation) */
 			if((r=pcap_next_ex(idata.pd, &pkthdr, &pktdata)) == -1){
 				printf("pcap_next_ex(): %s", pcap_geterr(idata.pd));
-				exit(1);
+				exit(EXIT_FAILURE);
 			}
 			else if(r == 0){
 				continue; /* Should never happen */
@@ -986,7 +986,7 @@ int main(int argc, char **argv){
 									is_eq_in6_addr(&(pkt_ns->nd_ns_target), &srcaddr)){
 							if(send_neighbor_advert(&idata, idata.pd, pktdata) == -1){
 								puts("Error sending Neighbor Advertisement");
-								exit(1);
+								exit(EXIT_FAILURE);
 							}
 					}
 				}
@@ -1045,19 +1045,19 @@ int main(int argc, char **argv){
 		 */
 		if(pcap_compile(idata.pd, &pcap_filter, PCAP_ICMPV6NSFRAG_FILTER, PCAP_OPT, PCAP_NETMASK_UNKNOWN) == -1){
 			printf("pcap_compile(): %s", pcap_geterr(idata.pd));
-			exit(1);
+			exit(EXIT_FAILURE);
 		}
 		
 		if(pcap_setfilter(idata.pd, &pcap_filter) == -1){
 			printf("pcap_setfilter(): %s", pcap_geterr(idata.pd));
-			exit(1);
+			exit(EXIT_FAILURE);
 		}
 
 		pcap_freecode(&pcap_filter);
 
 		if( (idata.fd= pcap_fileno(idata.pd)) == -1){
 			puts("Error obtaining descriptor number for pcap_t");
-			exit(1);
+			exit(EXIT_FAILURE);
 		}
 
 		FD_ZERO(&sset);
@@ -1098,7 +1098,7 @@ int main(int argc, char **argv){
 					for(i=0; i< (NSAMPLES/NBATCHES); i++){
 						if(send_fid_probe() == -1){
 							puts("Error while sending packet");
-							exit(1);
+							exit(EXIT_FAILURE);
 						}
 					}
 				}
@@ -1120,13 +1120,13 @@ int main(int argc, char **argv){
 
 						if(send_neighbor_solicit(&idata) == -1){
 							puts("Error while sending Neighbor Solicitation");
-							exit(1);
+							exit(EXIT_FAILURE);
 						}
 						*/
 
 						if(send_fid_probe() == -1){
 							puts("Error while sending packet");
-							exit(1);
+							exit(EXIT_FAILURE);
 						}
 					}
 				}
@@ -1145,7 +1145,7 @@ int main(int argc, char **argv){
 				}
 				else{
 					puts("Error in select()");
-					exit(1);
+					exit(EXIT_FAILURE);
 				}
 			}
 
@@ -1155,7 +1155,7 @@ int main(int argc, char **argv){
 			/* Read a packet (Echo Reply, or Neighbor Solicitation) */
 			if((r=pcap_next_ex(idata.pd, &pkthdr, &pktdata)) == -1){
 				printf("pcap_next_ex(): %s", pcap_geterr(idata.pd));
-				exit(1);
+				exit(EXIT_FAILURE);
 			}
 			else if(r == 0){
 				continue; /* Should never happen */
@@ -1186,7 +1186,7 @@ int main(int argc, char **argv){
 							 !localaddr_f && is_eq_in6_addr(&(pkt_ns->nd_ns_target), &srcaddr)){
 						if(send_neighbor_advert(&idata, idata.pd, pktdata) == -1){
 							puts("Error sending Neighbor Advertisement");
-							exit(1);
+							exit(EXIT_FAILURE);
 						}
 					}
 				}
@@ -1197,7 +1197,7 @@ int main(int argc, char **argv){
 
 					if(send_neighbor_advert(&idata, idata.pd, pktdata) == -1){
 						puts("Error sending Neighbor Advertisement");
-						exit(1);
+						exit(EXIT_FAILURE);
 					}
 				}				
 			}
@@ -1285,12 +1285,12 @@ int main(int argc, char **argv){
 
 		if(ntest1 < 10 || ntest2 < 10){
 			puts("Error: Didn't receive enough response packets");
-			exit(1);
+			exit(EXIT_FAILURE);
 		}
 
 		if(predict_frag_id(test1, ntest1, test2, ntest2) == -1){
 			puts("Error in predict_frag_id()");
-			exit(1);
+			exit(EXIT_FAILURE);
 		}
 
 		exit(0);
@@ -1306,12 +1306,12 @@ int main(int argc, char **argv){
 		 */
 		if(pcap_compile(idata.pd, &pcap_filter, PCAP_ICMPV6_NSECHOEXCEEDED_FILTER, PCAP_OPT, PCAP_NETMASK_UNKNOWN) == -1){
 			printf("pcap_compile(): %s", pcap_geterr(idata.pd));
-			exit(1);
+			exit(EXIT_FAILURE);
 		}
 		
 		if(pcap_setfilter(idata.pd, &pcap_filter) == -1){
 			printf("pcap_setfilter(): %s", pcap_geterr(idata.pd));
-			exit(1);
+			exit(EXIT_FAILURE);
 		}
 
 		pcap_freecode(&pcap_filter);
@@ -1325,7 +1325,7 @@ int main(int argc, char **argv){
 		while((foffset+maxsizedchunk) < MAX_FRAG_OFFSET){
 			if(send_fragment(id, foffset, maxsizedchunk, foffset?MIDDLE_FRAGMENT:FIRST_FRAGMENT, NO_TIMESTAMP) == -1){
 				puts("Error when writing fragment");
-				exit(1);
+				exit(EXIT_FAILURE);
 			}
 
 			foffset+= maxsizedchunk;
@@ -1343,7 +1343,7 @@ int main(int argc, char **argv){
 		if(foffset != MAX_FRAG_OFFSET){
 			if(send_fragment(id, foffset, (idata.mtu-maxsizedchunk)/8, MIDDLE_FRAGMENT, NO_TIMESTAMP) == -1){
 				puts("Error when writing fragment");
-				exit(1);
+				exit(EXIT_FAILURE);
 			}
 
 			foffset+=(idata.mtu-maxsizedchunk)/8;	
@@ -1353,7 +1353,7 @@ int main(int argc, char **argv){
 		if(send_fragment(id, foffset, idata.mtu-sizeof(struct ip6_hdr)-sizeof(struct ip6_frag), \
 						LAST_FRAGMENT, NO_TIMESTAMP) == -1){
 			puts("Error when writing fragment");
-			exit(1);
+			exit(EXIT_FAILURE);
 		}
 
 		exit(0);
@@ -1366,19 +1366,19 @@ int main(int argc, char **argv){
 		 */
 		if(pcap_compile(idata.pd, &pcap_filter, PCAP_ICMPV6_NSECHOEXCEEDED_FILTER, PCAP_OPT, PCAP_NETMASK_UNKNOWN) == -1){
 			printf("pcap_compile(): %s", pcap_geterr(idata.pd));
-			exit(1);
+			exit(EXIT_FAILURE);
 		}
 		
 		if(pcap_setfilter(idata.pd, &pcap_filter) == -1){
 			printf("pcap_setfilter(): %s", pcap_geterr(idata.pd));
-			exit(1);
+			exit(EXIT_FAILURE);
 		}
 
 		pcap_freecode(&pcap_filter);
 
 		if( (idata.fd= pcap_fileno(idata.pd)) == -1){
 			puts("Error obtaining descriptor number for pcap_t");
-			exit(1);
+			exit(EXIT_FAILURE);
 		}
 
 		FD_ZERO(&sset);
@@ -1411,7 +1411,7 @@ int main(int argc, char **argv){
 						forder, tstamp_f) == -1){
 
 						puts("Error sending packet");
-						exit(1);
+						exit(EXIT_FAILURE);
 					}
 
 					frags++;
@@ -1431,7 +1431,7 @@ int main(int argc, char **argv){
 				}
 				else{
 					puts("Error in select()");
-					exit(1);
+					exit(EXIT_FAILURE);
 				}
 			}
 
@@ -1441,7 +1441,7 @@ int main(int argc, char **argv){
 			/* Read a packet (Echo Reply, ICMPv6 Error, or Neighbor Solicitation) */
 			if((r=pcap_next_ex(idata.pd, &pkthdr, &pktdata)) == -1){
 				printf("pcap_next_ex(): %s", pcap_geterr(idata.pd));
-				exit(1);
+				exit(EXIT_FAILURE);
 			}
 			else if(r == 0){
 				continue; /* Should never happen */
@@ -1470,7 +1470,7 @@ int main(int argc, char **argv){
 									is_eq_in6_addr(&(pkt_ns->nd_ns_target), &srcaddr)){
 							if(send_neighbor_advert(&idata, idata.pd, pktdata) == -1){
 								puts("Error sending Neighbor Advertisement");
-								exit(1);
+								exit(EXIT_FAILURE);
 							}
 					}
 				}
@@ -1522,7 +1522,7 @@ void print_icmp6_echo(struct pcap_pkthdr *pkthdr, const u_char *pktdata){
 
 	if(inet_ntop(AF_INET6, &(pkt_ipv6->ip6_src), pv6addr, sizeof(pv6addr)) == NULL){
 		puts("inet_ntop(): Error converting IPv6 Source Address to presentation format");
-		exit(1);
+		exit(EXIT_FAILURE);
 	}
 
 	rtt= time(NULL) - *(time_t *) ( (unsigned char *) pkt_ipv6 + (sizeof(struct ip6_hdr) + sizeof(struct icmp6_hdr)));
@@ -1597,7 +1597,7 @@ void print_icmp6_timed(struct pcap_pkthdr *pkthdr, const u_char *pktdata){
 
 	if(inet_ntop(AF_INET6, &(pkt_ipv6->ip6_src), pv6addr, sizeof(pv6addr)) == NULL){
 		puts("inet_ntop(): Error converting IPv6 Source Address to presentation format");
-		exit(1);
+		exit(EXIT_FAILURE);
 	}
 
 	if(tstamp_f){
@@ -2460,7 +2460,7 @@ void print_attack_info(void){
 	if(idata.type == DLT_EN10MB && idata.flags != IFACE_LOOPBACK){
 		if(ether_ntop(&hsrcaddr, plinkaddr, sizeof(plinkaddr)) == 0){
 			puts("ether_ntop(): Error converting address");
-			exit(1);
+			exit(EXIT_FAILURE);
 		}
 
 		printf("Ethernet Source Address: %s%s\n", plinkaddr, (!hsrcaddr_f)?" (automatically selected)":"");
@@ -2471,7 +2471,7 @@ void print_attack_info(void){
 		 */
 		if(ether_ntop(&hdstaddr, plinkaddr, sizeof(plinkaddr)) == 0){
 			puts("ether_ntop(): Error converting address");
-			exit(1);
+			exit(EXIT_FAILURE);
 		}
 
 		printf("Ethernet Destination Address: %s%s\n", plinkaddr, (!hdstaddr_f)?" (automatically selected)":"");
@@ -2479,7 +2479,7 @@ void print_attack_info(void){
 
 	if(inet_ntop(AF_INET6, &srcaddr, psrcaddr, sizeof(psrcaddr)) == NULL){
 		puts("inet_ntop(): Error converting IPv6 Source Address to presentation format");
-		exit(1);
+		exit(EXIT_FAILURE);
 	}
 
 	if(dstaddr_f){
@@ -2488,7 +2488,7 @@ void print_attack_info(void){
 
 	if(inet_ntop(AF_INET6, &dstaddr, pdstaddr, sizeof(pdstaddr)) == NULL){
 		puts("inet_ntop(): Error converting IPv6 Destination Address to presentation format");
-		exit(1);
+		exit(EXIT_FAILURE);
 	}
 
 	printf("IPv6 Destination Address: %s\n", pdstaddr);

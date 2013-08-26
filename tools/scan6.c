@@ -335,7 +335,7 @@ int main(int argc, char **argv){
 
 	if(argc<=1){
 		usage();
-		exit(1);
+		exit(EXIT_FAILURE);
 	}
 
 	srandom(time(NULL));
@@ -371,12 +371,12 @@ int main(int argc, char **argv){
 			case 's':	/* IPv6 Source Address */
 				if((charptr = strtok_r(optarg, "/", &lasts)) == NULL){
 					puts("Error in Source Address");
-					exit(1);
+					exit(EXIT_FAILURE);
 				}
 
 				if ( inet_pton(AF_INET6, charptr, &srcaddr) <= 0){
 					puts("inet_pton(): Source Address not valid");
-					exit(1);
+					exit(EXIT_FAILURE);
 				}
 
 				srcaddr_f = 1;
@@ -386,7 +386,7 @@ int main(int argc, char **argv){
 		
 					if(srcpreflen>128){
 						puts("Prefix length error in IPv6 Source Address");
-						exit(1);
+						exit(EXIT_FAILURE);
 					}
 
 					sanitize_ipv6_prefix(&srcaddr, srcpreflen);
@@ -443,21 +443,21 @@ int main(int argc, char **argv){
 							if(verbose_f)
 								puts("scan6: Not enough memory");
 
-							exit(1);
+							exit(EXIT_FAILURE);
 						}
 
 						if ( inet_pton(AF_INET6, rangestart, &(scan_list.target[scan_list.ntarget]->start)) <= 0){
 							if(verbose_f>1)
 								puts("inet_pton(): Error converting IPv6 address from presentation to network format");
 
-							exit(1);
+							exit(EXIT_FAILURE);
 						}
 
 						if ( inet_pton(AF_INET6, rangeend, &(scan_list.target[scan_list.ntarget]->end)) <= 0){
 							if(verbose_f>1)
 								puts("inet_pton(): Error converting IPv6 address from presentation to network format");
 
-							exit(1);
+							exit(EXIT_FAILURE);
 						}
 
 						scan_list.target[scan_list.ntarget]->cur= scan_list.target[scan_list.ntarget]->start;
@@ -469,21 +469,21 @@ int main(int argc, char **argv){
 								if(verbose_f)
 									puts("Error in Destination Address range: Start address larger than end address!");
 
-								exit(1);
+								exit(EXIT_FAILURE);
 							}
 
 						if(IN6_IS_ADDR_MULTICAST(&(scan_list.target[scan_list.ntarget]->start))){
 							if(verbose_f)
 								puts("scan6: Remote scan cannot target a multicast address");
 
-							exit(1);
+							exit(EXIT_FAILURE);
 						}
 
 						if(IN6_IS_ADDR_MULTICAST(&(scan_list.target[scan_list.ntarget]->end))){
 							if(verbose_f)
 								puts("scan6: Remote scan cannot target a multicast address");
 
-							exit(1);
+							exit(EXIT_FAILURE);
 						}
 
 						scan_list.ntarget++;
@@ -496,7 +496,7 @@ int main(int argc, char **argv){
 						if(verbose_f)
 							puts("Too many targets!");
 
-						exit(1);
+						exit(EXIT_FAILURE);
 					}
 
 					if(prefix_list.ntarget <= prefix_list.maxtarget){
@@ -504,7 +504,7 @@ int main(int argc, char **argv){
 							if(verbose_f)
 								puts("scan6: Not enough memory");
 
-							exit(1);
+							exit(EXIT_FAILURE);
 						}
 
 						/* Copy the recently added target to our prefix list */
@@ -519,18 +519,18 @@ int main(int argc, char **argv){
 						if(verbose_f)
 							puts("Too many targets!");
 
-						exit(1);
+						exit(EXIT_FAILURE);
 					}
 				}
 				else if(ranges == 0){
 					if((charptr = strtok_r(optarg, "/", &lasts)) == NULL){
 						puts("Error in Destination Address");
-						exit(1);
+						exit(EXIT_FAILURE);
 					}
 
 					if ( inet_pton(AF_INET6, charptr, &(prefix.ip6)) <= 0){
 						puts("inet_pton(): Destination Address not valid");
-						exit(1);
+						exit(EXIT_FAILURE);
 					}
 
 					if((charptr = strtok_r(NULL, " ", &lasts)) != NULL){
@@ -538,7 +538,7 @@ int main(int argc, char **argv){
 		
 						if(prefix.len>128){
 							puts("Prefix length error in IPv6 Destination Address");
-							exit(1);
+							exit(EXIT_FAILURE);
 						}
 
 						sanitize_ipv6_prefix(&(prefix.ip6), prefix.len);
@@ -552,7 +552,7 @@ int main(int argc, char **argv){
 							if(verbose_f)
 								puts("scan6: Not enough memory");
 
-							exit(1);
+							exit(EXIT_FAILURE);
 						}
 
 						prefix_to_scan(&prefix, prefix_list.target[prefix_list.ntarget]);
@@ -561,14 +561,14 @@ int main(int argc, char **argv){
 							if(verbose_f)
 								puts("scan6: Remote scan cannot target a multicast address");
 
-							exit(1);
+							exit(EXIT_FAILURE);
 						}
 
 						if(IN6_IS_ADDR_MULTICAST(&(prefix_list.target[prefix_list.ntarget]->end))){
 							if(verbose_f)
 								puts("scan6: Remote scan cannot target a multicast address");
 
-							exit(1);
+							exit(EXIT_FAILURE);
 						}
 
 						prefix_list.ntarget++;
@@ -581,7 +581,7 @@ int main(int argc, char **argv){
 						if(verbose_f)
 							puts("Too many targets!");
 
-						exit(1);
+						exit(EXIT_FAILURE);
 					}
 				}
 
@@ -591,14 +591,14 @@ int main(int argc, char **argv){
 			case 'u':	/* Destinations Options Header */
 				if(ndstopthdr >= MAX_DST_OPT_HDR){
 					puts("Too many Destination Options Headers");
-					exit(1);
+					exit(EXIT_FAILURE);
 				}
 
 				hdrlen= atoi(optarg);
 		
 				if(hdrlen < 8){
 					puts("Bad length in Destination Options Header");
-					exit(1);
+					exit(EXIT_FAILURE);
 				}
 		    
 				hdrlen = ((hdrlen+7)/8) * 8;
@@ -606,7 +606,7 @@ int main(int argc, char **argv){
 
 				if( (dstopthdr[ndstopthdr]= malloc(hdrlen)) == NULL){
 					puts("Not enough memory for Destination Options Header");
-					exit(1);
+					exit(EXIT_FAILURE);
 				}
 
 				ptrhdr= dstopthdr[ndstopthdr] + 2;
@@ -621,7 +621,7 @@ int main(int argc, char **argv){
 			
 					if(!insert_pad_opt(ptrhdr, ptrhdrend, pad)){
 						puts("Destination Options Header Too Big");
-						exit(1);
+						exit(EXIT_FAILURE);
 					}
 		    
 					ptrhdr= ptrhdr + pad;
@@ -635,14 +635,14 @@ int main(int argc, char **argv){
 			case 'U':	/* Destination Options Header (Unfragmentable Part) */
 				if(ndstoptuhdr >= MAX_DST_OPT_U_HDR){
 					puts("Too many Destination Options Headers (Unfragmentable Part)");
-					exit(1);
+					exit(EXIT_FAILURE);
 				}
 
 				hdrlen= atoi(optarg);
 		
 				if(hdrlen < 8){
 					puts("Bad length in Destination Options Header (Unfragmentable Part)");
-					exit(1);
+					exit(EXIT_FAILURE);
 				}
 
 				hdrlen = ((hdrlen+7)/8) * 8;
@@ -650,7 +650,7 @@ int main(int argc, char **argv){
 		
 				if( (dstoptuhdr[ndstoptuhdr]= malloc(hdrlen)) == NULL){
 					puts("Not enough memory for Destination Options Header (Unfragmentable Part)");
-					exit(1);
+					exit(EXIT_FAILURE);
 				}
 
 				ptrhdr= dstoptuhdr[ndstoptuhdr]+2;
@@ -665,7 +665,7 @@ int main(int argc, char **argv){
 
 					if(!insert_pad_opt(ptrhdr, ptrhdrend, pad)){
 						puts("Destination Options Header (Unfragmentable Part) Too Big");
-						exit(1);
+						exit(EXIT_FAILURE);
 					}
 
 					ptrhdr = ptrhdr + pad;
@@ -679,14 +679,14 @@ int main(int argc, char **argv){
 			case 'H':	/* Hop-by-Hop Options Header */
 				if(nhbhopthdr >= MAX_HBH_OPT_HDR){
 					puts("Too many Hop-by-Hop Options Headers");
-					exit(1);
+					exit(EXIT_FAILURE);
 				}
 
 				hdrlen= atoi(optarg);
 		
 				if(hdrlen <= 8){
 					puts("Bad length in Hop-by-Hop Options Header");
-					exit(1);
+					exit(EXIT_FAILURE);
 				}
 		    
 				hdrlen = ((hdrlen+7)/8) * 8;
@@ -694,7 +694,7 @@ int main(int argc, char **argv){
 		
 				if( (hbhopthdr[nhbhopthdr]= malloc(hdrlen)) == NULL){
 					puts("Not enough memory for Hop-by-Hop Options Header");
-					exit(1);
+					exit(EXIT_FAILURE);
 				}
 
 				ptrhdr= hbhopthdr[nhbhopthdr] + 2;
@@ -710,7 +710,7 @@ int main(int argc, char **argv){
 
 					if(!insert_pad_opt(ptrhdr, ptrhdrend, pad)){
 						puts("Hop-by-Hop Options Header Too Big");
-						exit(1);
+						exit(EXIT_FAILURE);
 					}
 
 					ptrhdr = ptrhdr + pad;
@@ -725,7 +725,7 @@ int main(int argc, char **argv){
 				nfrags= atoi(optarg);
 				if(nfrags < 8){
 					puts("Error in Fragmentation option: Fragment Size must be at least 8 bytes");
-					exit(1);
+					exit(EXIT_FAILURE);
 				}
 		
 				nfrags = (nfrags +7) & 0xfff8;
@@ -735,7 +735,7 @@ int main(int argc, char **argv){
 			case 'S':	/* Source Ethernet address */
 				if(ether_pton(optarg, &idata.ether, sizeof(idata.ether)) == 0){
 					puts("Error in Source link-layer address.");
-					exit(1);
+					exit(EXIT_FAILURE);
 				}
 
 				idata.ether_flag=1;
@@ -745,7 +745,7 @@ int main(int argc, char **argv){
 			case 'D':	/* Destination Ethernet address */
 				if(ether_pton(optarg, &hdstaddr, sizeof(hdstaddr)) == 0){
 					puts("Error in Destination Ethernet address.");
-					exit(1);
+					exit(EXIT_FAILURE);
 				}
 
 				hdstaddr_f = 1;
@@ -780,7 +780,7 @@ int main(int argc, char **argv){
 				}
 				else{
 					puts("Error in '-p' option: Unknown probe type");
-					exit(1);
+					exit(EXIT_FAILURE);
 				}
 
 				break;
@@ -833,7 +833,7 @@ int main(int argc, char **argv){
 
 						default:
 							printf("Unknown TCP flag '%c'\n", *charptr);
-							exit(1);
+							exit(EXIT_FAILURE);
 							break;
 					}
 
@@ -862,7 +862,7 @@ int main(int argc, char **argv){
 				}
 				else{
 					puts("Error in '-P' option: Unknown address type");
-					exit(1);
+					exit(EXIT_FAILURE);
 				}
 
 				break;
@@ -916,7 +916,7 @@ int main(int argc, char **argv){
 				}
 				else{
 					puts("Error in '-V' option: Unknown Virtualization Technology");
-					exit(1);
+					exit(EXIT_FAILURE);
 				}
 
 				break;
@@ -938,7 +938,7 @@ int main(int argc, char **argv){
 				}
 				else{
 					puts("Unknown encoding of IPv4-embedded IPv6 addresses in '-B' option");
-					exit(1);
+					exit(EXIT_FAILURE);
 				}
 
 				break;
@@ -958,7 +958,7 @@ int main(int argc, char **argv){
 
 				if(ether_pton(oui_ascii, &oui, sizeof(oui)) == 0){
 					puts("Error in vendor IEEE OUI");
-					exit(1);
+					exit(EXIT_FAILURE);
 				}
 		
 				tgt_oui_f = 1;
@@ -987,17 +987,17 @@ int main(int argc, char **argv){
 			case 'W':	/* Target Interface Identifier (IIDs) */
 				if(iid_list.nprefix >= iid_list.maxprefix){
 					puts("Too many INterface Identifiers");
-					exit(1);
+					exit(EXIT_FAILURE);
 				}
 
 				if( (iid_list.prefix[iid_list.nprefix] = malloc(sizeof(struct prefix_entry))) == NULL){
 					puts("Not enough memory while storing Interface ID");
-					exit(1);
+					exit(EXIT_FAILURE);
 				}
 
 				if ( inet_pton(AF_INET6, optarg, &((iid_list.prefix[iid_list.nprefix])->ip6)) <= 0){
 					puts("inet_pton(): Source Address not valid");
-					exit(1);
+					exit(EXIT_FAILURE);
 				}
 
 				iid_list.prefix[iid_list.nprefix]->len=128;
@@ -1016,12 +1016,12 @@ int main(int argc, char **argv){
 			case 'Q':
 				if((charptr = strtok_r(optarg, "/", &lasts)) == NULL){
 					puts("Error in Source Address");
-					exit(1);
+					exit(EXIT_FAILURE);
 				}
 
 				if(inet_pton(AF_INET, charptr, &(v4host.ip)) != 1){
 					puts("Error in Host IPv4 Address");
-					exit(1);
+					exit(EXIT_FAILURE);
 				}
 
 				v4hostaddr_f=1;
@@ -1031,7 +1031,7 @@ int main(int argc, char **argv){
 
 					if(v4host.len>32){
 						puts("Prefix length error in Host IPv4 address");
-						exit(1);
+						exit(EXIT_FAILURE);
 					}
 
 					sanitize_ipv4_prefix(&v4host);
@@ -1059,7 +1059,7 @@ int main(int argc, char **argv){
 			case 'r':
 				if( Strnlen(optarg, LINE_BUFFER_SIZE-1) >= (LINE_BUFFER_SIZE-1)){
 					puts("scan6: -r option is too long");
-					exit(1);
+					exit(EXIT_FAILURE);
 				}
 
 				sscanf(optarg, "%lu%s", &rate, line);
@@ -1072,7 +1072,7 @@ int main(int argc, char **argv){
 					bps_f=1;
 				else{
 					puts("scan6: Unknown unit of for the rate limit ('-r' option). Unit should be 'bps' or 'pps'");
-					exit(1);
+					exit(EXIT_FAILURE);
 				}
 
 				break;
@@ -1085,7 +1085,7 @@ int main(int argc, char **argv){
 				nsleep=atoi(optarg);
 				if(nsleep==0){
 					puts("Invalid number of seconds in '-z' option");
-					exit(1);
+					exit(EXIT_FAILURE);
 				}
 	
 				sleep_f=1;
@@ -1097,7 +1097,7 @@ int main(int argc, char **argv){
 		
 			case 'h':	/* Help */
 				print_help();
-				exit(1);
+				exit(EXIT_FAILURE);
 				break;
 
 			case 'c':	/* Configuration file */
@@ -1108,7 +1108,7 @@ int main(int argc, char **argv){
 
 			default:
 				usage();
-				exit(1);
+				exit(EXIT_FAILURE);
 				break;
 		
 		} /* switch */
@@ -1116,17 +1116,17 @@ int main(int argc, char **argv){
 
 	if(geteuid()) {
 		puts("scan6 needs superuser privileges to run");
-		exit(1);
+		exit(EXIT_FAILURE);
 	}
 
 	if(!iface_f){
 		puts("Must specify the network interface with the -i option");
-		exit(1);
+		exit(EXIT_FAILURE);
 	}
 
 	if( (sfd= pcap_open_live(idata.iface, PCAP_SNAP_LEN, PCAP_PROMISC, PCAP_TIMEOUT, errbuf)) == NULL){
 		printf("pcap_open_live(): %s\n", errbuf);
-		exit(1);
+		exit(EXIT_FAILURE);
 	}
 
 	idata.pd= sfd;
@@ -1147,14 +1147,14 @@ int main(int argc, char **argv){
 	}
 	else{
 		printf("Error: Interface %s is not an Ethernet or tunnel interface", iface);
-		exit(1);
+		exit(EXIT_FAILURE);
 	}
 
 	/* Must open the "Known IIDs" file now, since it might be non-readable for the unprivileged user */
 	if(tgt_knowniidsfile_f){
 		if( (knowniids_fp=fopen(knowniidsfile, "r")) == NULL){
 			perror("Error opening known IIDs file");
-			exit(1);
+			exit(EXIT_FAILURE);
 		}
 	}
 
@@ -1162,7 +1162,7 @@ int main(int argc, char **argv){
 	if(knownprefixes_f){
 		if( (knownprefixes_fp=fopen(knownprefixesfile, "r")) == NULL){
 			perror("Error opening known prefixes file");
-			exit(1);
+			exit(EXIT_FAILURE);
 		}
 
 		dst_f=1;
@@ -1176,24 +1176,24 @@ int main(int argc, char **argv){
 	if( (ruid=getuid()) && (rgid=getgid())){
 		if(setgid(rgid) == -1){
 			puts("Error while releasing superuser privileges (changing to real GID)");
-			exit(1);
+			exit(EXIT_FAILURE);
 		}
 
 		if(setuid(ruid) == -1){
 			puts("Error while releasing superuser privileges (changing to real UID)");
-			exit(1);
+			exit(EXIT_FAILURE);
 		}
 	}
 	else{
 		if((pwdptr=getpwnam("nobody"))){
 			if(pwdptr->pw_uid && (setgid(pwdptr->pw_gid) == -1)){
 				puts("Error while releasing superuser privileges (changing to nobody's group)");
-				exit(1);
+				exit(EXIT_FAILURE);
 			}
 
 			if(pwdptr->pw_uid && (setuid(pwdptr->pw_uid) == -1)){
 				puts("Error while releasing superuser privileges (changing to 'nobody')");
-				exit(1);
+				exit(EXIT_FAILURE);
 			}
 		}
 	}
@@ -1202,7 +1202,7 @@ int main(int argc, char **argv){
 	if(knownprefixes_f){
 		if(!load_knownprefix_entries(&scan_list, &prefix_list, knownprefixes_fp)){
 			puts("Couldn't load known IPv6 prefixes");
-			exit(1);
+			exit(EXIT_FAILURE);
 		}			
 	}
 
@@ -1211,7 +1211,7 @@ int main(int argc, char **argv){
 
 	if(pps_f && bps_f){
 		puts("Cannot specify a rate-limit in bps and pps at the same time");
-		exit(1);
+		exit(EXIT_FAILURE);
 	}
 
 	if(pps_f){
@@ -1254,7 +1254,7 @@ int main(int argc, char **argv){
 	if(tgt_vendor_f){
 		if(!process_config_file(configfile)){
 			puts("Error while processing configuration file");
-			exit(1);
+			exit(EXIT_FAILURE);
 		}
 	}
 
@@ -1267,7 +1267,7 @@ int main(int argc, char **argv){
 		if(verbose_f)
 			puts("Must specify either a destination prefix ('-d'), or a local scan ('-L')");
 
-		exit(1);
+		exit(EXIT_FAILURE);
 	}
 
 	if(dst_f && !(tgt_ipv4mapped32_f || tgt_ipv4mapped64_f || tgt_lowbyte_f || tgt_oui_f || tgt_vendor_f || \
@@ -1278,12 +1278,12 @@ int main(int argc, char **argv){
 
 	if( (tgt_ipv4mapped32_f || tgt_ipv4mapped64_f) && !v4hostaddr_f){
 		puts("Error: Must IPv4 host address/prefix (with '--ipv4-host') if '--tgt-ipv4-embedded' is set");
-		exit(1);
+		exit(EXIT_FAILURE);
 	}
 
 	if(scan_local_f && (idata.type != DLT_EN10MB || loopback_f)){
 		puts("Error cannot apply local scan on a loopback or tunnel interface");
-		exit(1);
+		exit(EXIT_FAILURE);
 	}
 
 	if(!print_f){
@@ -1314,7 +1314,7 @@ int main(int argc, char **argv){
 				if(verbose_f){
 					puts("Not enough memory while saving global address");
 				}
-				exit(1);
+				exit(EXIT_FAILURE);
 			}
 
 			(idata.ip6_global.prefix[idata.ip6_global.nprefix])->ip6=srcaddr;
@@ -1325,7 +1325,7 @@ int main(int argc, char **argv){
 
 	if(get_if_addrs(&idata) == -1){
 		puts("Error obtaining local addresses");
-		exit(1);
+		exit(EXIT_FAILURE);
 	}
 
 
@@ -1355,7 +1355,7 @@ int main(int argc, char **argv){
 				if(verbose_f)
 					puts("Error while learning link-local addresses with ICMPv6 Echo Requests");
 
-				exit(1);
+				exit(EXIT_FAILURE);
 			}
 		}
 
@@ -1366,7 +1366,7 @@ int main(int argc, char **argv){
 				if(verbose_f)
 					puts("Error while learning link-local addresses with Unrecognized options");
 
-				exit(1);
+				exit(EXIT_FAILURE);
 			}
 		}
 
@@ -1379,7 +1379,7 @@ int main(int argc, char **argv){
 					if(verbose_f)
 						puts("Error while printing global addresses");
 
-					exit(1);
+					exit(EXIT_FAILURE);
 				}
 			}
 			else{
@@ -1387,7 +1387,7 @@ int main(int argc, char **argv){
 					if(verbose_f)
 						puts("Error while printing global addresses");
 
-					exit(1);
+					exit(EXIT_FAILURE);
 				}
 			}
 		}
@@ -1403,7 +1403,7 @@ int main(int argc, char **argv){
 					if(verbose_f)
 						puts("Error while learning link-local addresses with ICMPv6 Echo Requests");
 
-					exit(1);
+					exit(EXIT_FAILURE);
 				}
 			}
 
@@ -1413,7 +1413,7 @@ int main(int argc, char **argv){
 					if(verbose_f)
 						puts("Error while learning link-local addresses with Unrecognized options");
 
-					exit(1);
+					exit(EXIT_FAILURE);
 				}
 			}
 
@@ -1425,14 +1425,14 @@ int main(int argc, char **argv){
 				if(verbose_f)
 					puts("Error while creating candidate global addresses");
 
-				exit(1);
+				exit(EXIT_FAILURE);
 			}
 
 			if(validate_host_entries(sfd, &idata, &host_candidate, &host_global) == -1){
 				if(verbose_f)
 					puts("Error while validating global entries");
 
-				exit(1);
+				exit(EXIT_FAILURE);
 			}
 
 			if(verbose_f)
@@ -1443,7 +1443,7 @@ int main(int argc, char **argv){
 					if(verbose_f)
 						puts("Error while printing global addresses");
 
-					exit(1);
+					exit(EXIT_FAILURE);
 				}
 			}
 			else{
@@ -1451,7 +1451,7 @@ int main(int argc, char **argv){
 					if(verbose_f)
 						puts("Error while printing global addresses");
 
-					exit(1);		
+					exit(EXIT_FAILURE);		
 				}
 			}
 		}
@@ -1462,14 +1462,14 @@ int main(int argc, char **argv){
 		if(tgt_knowniids_f){
 			if(!load_knowniid_entries(&scan_list, &prefix_list, &iid_list)){
 				puts("Couldn't load known IID IPv6 addresses");
-				exit(1);
+				exit(EXIT_FAILURE);
 			}
 		}
 
 		if(tgt_knowniidsfile_f){
 			if(!load_knowniidfile_entries(&scan_list, &prefix_list, knowniids_fp)){
 				puts("Couldn't load known IID IPv6 addresses");
-				exit(1);
+				exit(EXIT_FAILURE);
 			}
 
 			fclose(knowniids_fp);
@@ -1479,7 +1479,7 @@ int main(int argc, char **argv){
 			for(i=0; i < prefix_list.ntarget; i++){
 				if(!load_embeddedport_entries(&scan_list, prefix_list.target[i])){
 					puts("Couldn't load embedded-port IPv6 addresses");
-					exit(1);
+					exit(EXIT_FAILURE);
 				}
 			}
 		}
@@ -1488,7 +1488,7 @@ int main(int argc, char **argv){
 			for(i=0; i < prefix_list.ntarget; i++){
 				if(!load_lowbyte_entries(&scan_list, prefix_list.target[i])){
 					puts("Couldn't load prefixes for low-byte IPv6 addresses");
-					exit(1);
+					exit(EXIT_FAILURE);
 				}
 			}
 		}
@@ -1497,7 +1497,7 @@ int main(int argc, char **argv){
 			for(i=0; i < prefix_list.ntarget; i++){
 				if(!load_ipv4mapped32_entries(&scan_list, prefix_list.target[i], &v4host)){
 					puts("Couldn't load prefixes for IPv4-embeded (32-bit) IPv6 addresses");
-					exit(1);
+					exit(EXIT_FAILURE);
 				}
 			}
 		}
@@ -1506,7 +1506,7 @@ int main(int argc, char **argv){
 			for(i=0; i < prefix_list.ntarget; i++){
 				if(!load_ipv4mapped64_entries(&scan_list, prefix_list.target[i], &v4host)){
 					puts("Couldn't load prefixes for IPv4-embeded (64-bit) IPv6 addresses");
-					exit(1);
+					exit(EXIT_FAILURE);
 				}
 			}
 		}
@@ -1515,7 +1515,7 @@ int main(int argc, char **argv){
 			for(i=0; i < prefix_list.ntarget; i++){
 				if(!load_vm_entries(&scan_list, prefix_list.target[i], &v4host)){
 					puts("Couldn't load prefix for IEEE OUI");
-					exit(1);
+					exit(EXIT_FAILURE);
 				}
 			}
 		}
@@ -1524,7 +1524,7 @@ int main(int argc, char **argv){
 			for(i=0; i < prefix_list.ntarget; i++){
 				if(!load_oui_entries(&scan_list, prefix_list.target[i], &oui)){
 					puts("Couldn't load prefix for IEEE OUI");
-					exit(1);
+					exit(EXIT_FAILURE);
 				}
 			}			
 		}
@@ -1533,7 +1533,7 @@ int main(int argc, char **argv){
 			for(i=0; i < prefix_list.ntarget; i++){
 				if(!load_vendor_entries(&scan_list, prefix_list.target[i], vendor)){
 					puts("Couldn't load prefixes for the specified vendor");
-					exit(1);
+					exit(EXIT_FAILURE);
 				}
 			}
 		}
@@ -1542,7 +1542,7 @@ int main(int argc, char **argv){
 			for(i=0; i < prefix_list.ntarget; i++){
 				if(!load_bruteforce_entries(&scan_list, prefix_list.target[i])){
 					puts("Couldn't load prefixes for the specified destination prefix");
-					exit(1);
+					exit(EXIT_FAILURE);
 				}
 			}
 		}
@@ -1552,7 +1552,7 @@ int main(int argc, char **argv){
 
 			if(!print_scan_entries(&scan_list)){
 				puts("Error while printing target address ranges");
-				exit(1);
+				exit(EXIT_FAILURE);
 			}
 		}
 
@@ -1568,7 +1568,7 @@ int main(int argc, char **argv){
 							/* Must perform Neighbor Discovery for the local address */
 							onlink_f=1;
 							puts("Target network is on-link. Try the '-L' option instead");
-							exit(1);
+							exit(EXIT_FAILURE);
 						}
 					}
 
@@ -1582,7 +1582,7 @@ int main(int argc, char **argv){
 			if(verbose_f)
 				puts("Cannot obtain a global address to scan remote network");
 
-			exit(1);
+			exit(EXIT_FAILURE);
 		}
 
 		if(srcprefix_f){
@@ -1596,7 +1596,7 @@ int main(int argc, char **argv){
 			if(verbose_f)
 				puts("Error obtaining descriptor number for pcap_t");
 
-			exit(1);
+			exit(EXIT_FAILURE);
 		}
 
 		switch(probetype){
@@ -1605,7 +1605,7 @@ int main(int argc, char **argv){
 					if(verbose_f>1)
 						printf("pcap_compile(): %s\n", pcap_geterr(idata.pd));
 
-					exit(1);
+					exit(EXIT_FAILURE);
 				}
 				break;
 
@@ -1614,7 +1614,7 @@ int main(int argc, char **argv){
 					if(verbose_f>1)
 						printf("pcap_compile(): %s\n", pcap_geterr(idata.pd));
 
-					exit(1);
+					exit(EXIT_FAILURE);
 				}
 				break;
 
@@ -1623,7 +1623,7 @@ int main(int argc, char **argv){
 					if(verbose_f>1)
 						printf("pcap_compile(): %s\n", pcap_geterr(idata.pd));
 
-					exit(1);
+					exit(EXIT_FAILURE);
 				}
 				break;
 		}
@@ -1632,7 +1632,7 @@ int main(int argc, char **argv){
 			if(verbose_f>1)
 				printf("pcap_setfilter(): %s\n", pcap_geterr(idata.pd));
 
-			exit(1);
+			exit(EXIT_FAILURE);
 		}
 
 		pcap_freecode(&pcap_filter);
@@ -1671,7 +1671,7 @@ int main(int argc, char **argv){
 				}
 				else{
 					perror("scan6:");
-					exit(1);
+					exit(EXIT_FAILURE);
 				}
 			}
 
@@ -1679,7 +1679,7 @@ int main(int argc, char **argv){
 				if(verbose_f)
 					perror("scan6");
 
-				exit(1);
+				exit(EXIT_FAILURE);
 			}
 
 			/* Check whether we have finished probing all targets */
@@ -1719,7 +1719,7 @@ int main(int argc, char **argv){
 					}
 					else{
 						perror("scan6:");
-						exit(1);
+						exit(EXIT_FAILURE);
 					}
 				}
 			}
@@ -1731,7 +1731,7 @@ int main(int argc, char **argv){
 					if(verbose_f)
 						printf("Error while reading packet in main loop: pcap_next_ex(): %s", pcap_geterr(sfd));
 
-					exit(1);
+					exit(EXIT_FAILURE);
 				}
 
 				if(result == 1){
@@ -1762,7 +1762,7 @@ int main(int argc, char **argv){
 										if(verbose_f)
 											puts("Error sending Neighbor Advertisement message");
 
-										exit(1);
+										exit(EXIT_FAILURE);
 									}
 							}
 						}
@@ -1780,7 +1780,7 @@ int main(int argc, char **argv){
 									if(verbose_f>1)
 										puts("inet_ntop(): Error converting IPv6 address to presentation format");
 
-									exit(1);
+									exit(EXIT_FAILURE);
 								}
 
 								if(timestamps_f){
@@ -1788,21 +1788,21 @@ int main(int argc, char **argv){
 										if(verbose_f)
 											perror("scan6");
 
-										exit(1);
+										exit(EXIT_FAILURE);
 									}
 
 									if(localtime_r( (time_t *) &(pcurtime.tv_sec), &pcurtimetm) == NULL){
 										if(verbose_f>1)
 											puts("localtime_r(): Error obtaining local time.");
 
-										exit(1);
+										exit(EXIT_FAILURE);
 									}
 
 									if(strftime(date, DATE_STR_LEN, "%a %b %d %T %Y", &pcurtimetm) == 0){
 										if(verbose_f>1)
 											puts("strftime(): Error converting current time to text");
 
-										exit(1);
+										exit(EXIT_FAILURE);
 									}
 
 									printf("%s (%s)\n", pv6addr, date);
@@ -1832,7 +1832,7 @@ int main(int argc, char **argv){
 							if(verbose_f>1)
 								puts("inet_ntop(): Error converting IPv6 address to presentation format");
 
-							exit(1);
+							exit(EXIT_FAILURE);
 						}
 
 						if(timestamps_f){
@@ -1840,21 +1840,21 @@ int main(int argc, char **argv){
 								if(verbose_f)
 									perror("scan6");
 
-								exit(1);
+								exit(EXIT_FAILURE);
 							}
 
 							if(localtime_r((time_t *) &(pcurtime.tv_sec), &pcurtimetm) == NULL){
 								if(verbose_f>1)
 									puts("localtime_r(): Error obtaining local time.");
 
-								exit(1);
+								exit(EXIT_FAILURE);
 								}
 
 							if(strftime(date, DATE_STR_LEN, "%a %b %d %T %Y", &pcurtimetm) == 0){
 								if(verbose_f>1)
 									puts("strftime(): Error converting current time to text");
 
-								exit(1);
+								exit(EXIT_FAILURE);
 							}
 
 							printf("%s (%s)\n", pv6addr, date);
@@ -1881,7 +1881,7 @@ int main(int argc, char **argv){
 							if(verbose_f)
 								perror("scan6");
 
-							exit(1);
+							exit(EXIT_FAILURE);
 						}
 
 						donesending_f=1;
@@ -1890,14 +1890,14 @@ int main(int argc, char **argv){
 				}
 
 				if(!send_probe_remote(&idata, &scan_list, &srcaddr, probetype)){
-						exit(1);
+						exit(EXIT_FAILURE);
 				}
 
 				if(gettimeofday(&lastprobe, NULL) == -1){
 					if(verbose_f)
 						perror("scan6");
 
-					exit(1);
+					exit(EXIT_FAILURE);
 				}
 
 				if(!get_next_target(&scan_list)){
@@ -1911,7 +1911,7 @@ int main(int argc, char **argv){
 				if(verbose_f)
 					puts("scan6: Found exception on libpcap descriptor");
 
-				exit(1);
+				exit(EXIT_FAILURE);
 			}
 		}
 
@@ -4455,7 +4455,7 @@ int send_probe_remote(struct iface_data *idata, struct scan_list *scan, struct i
 
 			if( (ptr + rhbytes) > v6buffer+max_packet_size){
 				puts("Packet Too Large while inserting TCP segment");
-				exit(1);
+				exit(EXIT_FAILURE);
 			}
 
 			while(rhbytes>=4){

@@ -286,7 +286,7 @@ int main(int argc, char **argv){
 
 	if(argc<=1){
 		usage();
-		exit(1);
+		exit(EXIT_FAILURE);
 	}
 
 	init_iface_data(&idata);
@@ -305,12 +305,12 @@ int main(int argc, char **argv){
 			case 's':	/* IPv6 Source Address */
 				if((charptr = strtok_r(optarg, "/", &lasts)) == NULL){
 					puts("Error in Source Address");
-					exit(1);
+					exit(EXIT_FAILURE);
 				}
 
 				if ( inet_pton(AF_INET6, charptr, &srcaddr) <= 0){
 					puts("inet_pton(): Source Address not valid");
-					exit(1);
+					exit(EXIT_FAILURE);
 				}
 
 				srcaddr_f = 1;
@@ -320,7 +320,7 @@ int main(int argc, char **argv){
 		
 					if(srcpreflen>128){
 						puts("Prefix length error in IPv6 Source Address");
-						exit(1);
+						exit(EXIT_FAILURE);
 					}
 
 					sanitize_ipv6_prefix(&srcaddr, srcpreflen);
@@ -332,7 +332,7 @@ int main(int argc, char **argv){
 			case 'd':	/* IPv6 Destination Address */
 				if( inet_pton(AF_INET6, optarg, &dstaddr) <= 0){
 					puts("inet_pton(): address not valid");
-					exit(1);
+					exit(EXIT_FAILURE);
 				}
 		
 				dstaddr_f = 1;
@@ -346,14 +346,14 @@ int main(int argc, char **argv){
 			case 'u':	/* Destinations Options Header */
 				if(ndstopthdr >= MAX_DST_OPT_HDR){
 					puts("Too many Destination Options Headers");
-					exit(1);
+					exit(EXIT_FAILURE);
 				}
 
 				hdrlen= atoi(optarg);
 		
 				if(hdrlen < 8){
 					puts("Bad length in Destination Options Header");
-					exit(1);
+					exit(EXIT_FAILURE);
 				}
 		    
 				hdrlen = ((hdrlen+7)/8) * 8;
@@ -361,7 +361,7 @@ int main(int argc, char **argv){
 
 				if( (dstopthdr[ndstopthdr]= malloc(hdrlen)) == NULL){
 					puts("Not enough memory for Destination Options Header");
-					exit(1);
+					exit(EXIT_FAILURE);
 				}
 
 				ptrhdr= dstopthdr[ndstopthdr] + 2;
@@ -376,7 +376,7 @@ int main(int argc, char **argv){
 			
 					if(!insert_pad_opt(ptrhdr, ptrhdrend, pad)){
 						puts("Destination Options Header Too Big");
-						exit(1);
+						exit(EXIT_FAILURE);
 					}
 		    
 					ptrhdr= ptrhdr + pad;
@@ -390,14 +390,14 @@ int main(int argc, char **argv){
 			case 'U':	/* Destination Options Header (Unfragmentable Part) */
 				if(ndstoptuhdr >= MAX_DST_OPT_U_HDR){
 					puts("Too many Destination Options Headers (Unfragmentable Part)");
-					exit(1);
+					exit(EXIT_FAILURE);
 				}
 
 				hdrlen= atoi(optarg);
 		
 				if(hdrlen < 8){
 					puts("Bad length in Destination Options Header (Unfragmentable Part)");
-					exit(1);
+					exit(EXIT_FAILURE);
 				}
 
 				hdrlen = ((hdrlen+7)/8) * 8;
@@ -405,7 +405,7 @@ int main(int argc, char **argv){
 		
 				if( (dstoptuhdr[ndstoptuhdr]= malloc(hdrlen)) == NULL){
 					puts("Not enough memory for Destination Options Header (Unfragmentable Part)");
-					exit(1);
+					exit(EXIT_FAILURE);
 				}
 
 				ptrhdr= dstoptuhdr[ndstoptuhdr]+2;
@@ -420,7 +420,7 @@ int main(int argc, char **argv){
 
 					if(!insert_pad_opt(ptrhdr, ptrhdrend, pad)){
 						puts("Destination Options Header (Unfragmentable Part) Too Big");
-						exit(1);
+						exit(EXIT_FAILURE);
 					}
 
 					ptrhdr = ptrhdr + pad;
@@ -434,14 +434,14 @@ int main(int argc, char **argv){
 			case 'H':	/* Hop-by-Hop Options Header */
 				if(nhbhopthdr >= MAX_HBH_OPT_HDR){
 					puts("Too many Hop-by-Hop Options Headers");
-					exit(1);
+					exit(EXIT_FAILURE);
 				}
 
 				hdrlen= atoi(optarg);
 		
 				if(hdrlen <= 8){
 					puts("Bad length in Hop-by-Hop Options Header");
-					exit(1);
+					exit(EXIT_FAILURE);
 				}
 		    
 				hdrlen = ((hdrlen+7)/8) * 8;
@@ -449,7 +449,7 @@ int main(int argc, char **argv){
 		
 				if( (hbhopthdr[nhbhopthdr]= malloc(hdrlen)) == NULL){
 					puts("Not enough memory for Hop-by-Hop Options Header");
-					exit(1);
+					exit(EXIT_FAILURE);
 				}
 
 				ptrhdr= hbhopthdr[nhbhopthdr] + 2;
@@ -465,7 +465,7 @@ int main(int argc, char **argv){
 
 					if(!insert_pad_opt(ptrhdr, ptrhdrend, pad)){
 						puts("Hop-by-Hop Options Header Too Big");
-						exit(1);
+						exit(EXIT_FAILURE);
 					}
 
 					ptrhdr = ptrhdr + pad;
@@ -480,7 +480,7 @@ int main(int argc, char **argv){
 				nfrags= atoi(optarg);
 				if(nfrags < 8){
 					puts("Error in Fragmentation option: Fragment Size must be at least 8 bytes");
-					exit(1);
+					exit(EXIT_FAILURE);
 				}
 		
 				nfrags = (nfrags +7) & 0xfff8;
@@ -490,7 +490,7 @@ int main(int argc, char **argv){
 			case 'S':	/* Source Ethernet address */
 				if(ether_pton(optarg, &hsrcaddr, sizeof(hsrcaddr)) == 0){
 					puts("Error in link-layer Source Address.");
-					exit(1);
+					exit(EXIT_FAILURE);
 				}
 		
 				hsrcaddr_f = 1;
@@ -499,7 +499,7 @@ int main(int argc, char **argv){
 			case 'D':	/* Destination Ethernet Address */
 				if(ether_pton(optarg, &hdstaddr, sizeof(hdstaddr)) == 0){
 					puts("Error in link-layer Destination Address.");
-					exit(1);
+					exit(EXIT_FAILURE);
 				}
 		
 				hdstaddr_f = 1;
@@ -509,12 +509,12 @@ int main(int argc, char **argv){
 
 				if((charptr = strtok_r(optarg, "/", &lasts)) == NULL){
 					puts("Error in Redirected Address");
-					exit(1);
+					exit(EXIT_FAILURE);
 				}
 
 				if ( inet_pton(AF_INET6, charptr, &targetaddr) <= 0){
 					puts("inet_pton(): Redirected Address not valid");
-					exit(1);
+					exit(EXIT_FAILURE);
 				}
 
 				targetaddr_f = 1;
@@ -524,7 +524,7 @@ int main(int argc, char **argv){
 		
 					if(redirpreflen>128){
 						puts("Prefix length error in IPv6 Source Address");
-						exit(1);
+						exit(EXIT_FAILURE);
 					}
 
 					sanitize_ipv6_prefix(&targetaddr, redirpreflen);
@@ -536,7 +536,7 @@ int main(int argc, char **argv){
 			case 't':	/* ICMPv6 Type and Code */
 				if((charptr = strtok_r(optarg, ":", &lasts)) == NULL){
 					puts("Error in ICMPv6 message Type/Code");
-					exit(1);
+					exit(EXIT_FAILURE);
 				}
 
 				icmp6type= atoi(charptr);
@@ -580,7 +580,7 @@ int main(int argc, char **argv){
 			case 'm':	/* Next-Hop MTU (for ICMPv6 PTB messages) */
 				if((ul_res = strtoul(optarg, &endptr, 0)) == ULONG_MAX){
 					perror("Error in 'MTU' parameter");
-					exit(1);
+					exit(EXIT_FAILURE);
 				}
 		
 				if(endptr != optarg){
@@ -592,7 +592,7 @@ int main(int argc, char **argv){
 			case 'O':	/* Pointer (for ICMPv6 "Parameter Problem" messages) */
 				if((ul_res = strtoul(optarg, &endptr, 0)) == ULONG_MAX){
 					perror("Error in 'Pointer' parameter");
-					exit(1);
+					exit(EXIT_FAILURE);
 				}
 		
 				if(endptr != optarg){
@@ -613,7 +613,7 @@ int main(int argc, char **argv){
 				}
 				else{
 					puts("Unsupported protocol in option '-p'");
-					exit(1);
+					exit(EXIT_FAILURE);
 				}
 				break;
 
@@ -635,7 +635,7 @@ int main(int argc, char **argv){
 			case 'x':	/* Source Address of the ICMPv6 payload */
 				if( inet_pton(AF_INET6, optarg, &peeraddr) <= 0){
 					puts("inet_pton(): address not valid");
-					exit(1);
+					exit(EXIT_FAILURE);
 				}
 		
 				peeraddr_f = 1;
@@ -644,7 +644,7 @@ int main(int argc, char **argv){
 			case 'o':	/* Target port */
 				if((charptr = strtok_r(optarg, ":-", &lasts)) == NULL){
 					printf("Error in TCP/UDP target port");
-					exit(1);
+					exit(EXIT_FAILURE);
 				}
 
 				targetportl= atoi(charptr);
@@ -669,7 +669,7 @@ int main(int argc, char **argv){
 			case 'a':	/* Peer port */
 				if((charptr = strtok_r(optarg, ":-", &lasts)) == NULL){
 					printf("Error in TCP/UDP peer port");
-					exit(1);
+					exit(EXIT_FAILURE);
 				}
 
 				peerportl= atoi(charptr);
@@ -723,7 +723,7 @@ int main(int argc, char **argv){
 
 						default:
 							printf("Unknown TCP flag '%c'\n", *charptr);
-							exit(1);
+							exit(EXIT_FAILURE);
 							break;
 					}
 
@@ -739,7 +739,7 @@ int main(int argc, char **argv){
 			case 'q':	/* TCP Sequence Number */
 				if((ul_res = strtoul(optarg, &endptr, 0)) == ULONG_MAX){
 					perror("Error in 'TCP Sequence NUmber' parameter");
-					exit(1);
+					exit(EXIT_FAILURE);
 				}
 		
 				if(endptr != optarg){
@@ -752,7 +752,7 @@ int main(int argc, char **argv){
 			case 'Q':	/* TCP Acknowledgement Number */
 				if((ul_res = strtoul(optarg, &endptr, 0)) == ULONG_MAX){
 					perror("Error in 'TCP Sequence NUmber' parameter");
-					exit(1);
+					exit(EXIT_FAILURE);
 				}
 		
 				if(endptr != optarg){
@@ -778,19 +778,19 @@ int main(int argc, char **argv){
 			case 'j':	/* IPv6 Source Address (block) filter */
 				if(nblocksrc >= MAX_BLOCK_SRC){
 					puts("Too many IPv6 Source Address (block) filters.");
-					exit(1);
+					exit(EXIT_FAILURE);
 				}
 	    
 				if((pref = strtok_r(optarg, "/", &lasts)) == NULL){
 					printf("Error in IPv6 Source Address (block) filter number %u.\n", \
 												nblocksrc+1);
-					exit(1);
+					exit(EXIT_FAILURE);
 				}
 
 				if ( inet_pton(AF_INET6, pref, &blocksrc[nblocksrc]) <= 0){
 					printf("Error in IPv6 Source Address (block) filter number %u.", \
 											    nblocksrc+1);
-					exit(1);
+					exit(EXIT_FAILURE);
 				}
 
 				if((charptr = strtok_r(NULL, " ", &lasts)) == NULL){
@@ -802,7 +802,7 @@ int main(int argc, char **argv){
 					if(blocksrclen[nblocksrc]>128){
 						printf("Length error in IPv6 Source Address (block) filter number %u.\n", \
 													nblocksrc+1);
-						exit(1);
+						exit(EXIT_FAILURE);
 		    			}
 				}
 
@@ -813,19 +813,19 @@ int main(int argc, char **argv){
 			case 'k':	/* IPv6 Destination Address (block) filter */
 				if(nblockdst >= MAX_BLOCK_DST){
 					puts("Too many IPv6 Destination Address (block) filters.");
-					exit(1);
+					exit(EXIT_FAILURE);
 				}
 
 				if((pref = strtok_r(optarg, "/", &lasts)) == NULL){
 					printf("Error in IPv6 Destination Address (block) filter number %u.\n", \
 													nblockdst+1);
-					exit(1);
+					exit(EXIT_FAILURE);
 				}
 
 				if ( inet_pton(AF_INET6, pref, &blockdst[nblockdst]) <= 0){
 					printf("Error in IPv6 Source Address (block) filter number %u.", \
 											    nblockdst+1);
-					exit(1);
+					exit(EXIT_FAILURE);
 				}
 
 				if((charptr = strtok_r(NULL, " ", &lasts)) == NULL){
@@ -837,7 +837,7 @@ int main(int argc, char **argv){
 					if(blockdstlen[nblockdst]>128){
 						printf("Length error in IPv6 Source Address (block) filter number %u.\n", \
 													    nblockdst+1);
-						exit(1);
+						exit(EXIT_FAILURE);
 					}
 				}
 		
@@ -848,13 +848,13 @@ int main(int argc, char **argv){
 			case 'J':	/* Link Source Address (block) filter */
 				if(nblocklinksrc > MAX_BLOCK_LINK_SRC){
 					puts("Too many link-layer Source Address (accept) filters.");
-					exit(1);
+					exit(EXIT_FAILURE);
 				}
 
 				if(ether_pton(optarg, &blocklinksrc[nblocklinksrc], sizeof(struct ether_addr)) == 0){
 					printf("Error in link-layer Source Address (blick) filter number %u.\n", \
 												    nblocklinksrc+1);
-					exit(1);
+					exit(EXIT_FAILURE);
 				}
 		
 				nblocklinksrc++;
@@ -863,13 +863,13 @@ int main(int argc, char **argv){
 			case 'K':	/* Link Destination Address (block) filter */
 				if(nblocklinkdst > MAX_BLOCK_LINK_DST){
 					puts("Too many link-layer Destination Address (block) filters.");
-					exit(1);
+					exit(EXIT_FAILURE);
 				}
 
 				if(ether_pton(optarg, &blocklinkdst[nblocklinkdst], sizeof(struct ether_addr)) == 0){
 					printf("Error in link-layer Destination Address (blick) filter number %u.\n", \
 												    nblocklinkdst+1);
-					exit(1);
+					exit(EXIT_FAILURE);
 				}
 		
 				nblocklinkdst++;
@@ -878,19 +878,19 @@ int main(int argc, char **argv){
 			case 'b':	/* IPv6 Source Address (accept) filter */
 				if(nacceptsrc > MAX_ACCEPT_SRC){
 					puts("Too many IPv6 Source Address (accept) filters.");
-					exit(1);
+					exit(EXIT_FAILURE);
 				}
 
 				if((pref = strtok_r(optarg, "/", &lasts)) == NULL){
 					printf("Error in IPv6 Source Address (accept) filter number %u.\n", \
 												nacceptsrc+1);
-					exit(1);
+					exit(EXIT_FAILURE);
 				}
 
 				if ( inet_pton(AF_INET6, pref, &acceptsrc[nacceptsrc]) <= 0){
 					printf("Error in IPv6 Source Address (accept) filter number %u.\n", \
 												nacceptsrc+1);
-					exit(1);
+					exit(EXIT_FAILURE);
 				}
 		
 				if((charptr = strtok_r(NULL, " ", &lasts)) == NULL){
@@ -902,7 +902,7 @@ int main(int argc, char **argv){
 					if(acceptsrclen[nacceptsrc]>128){
 						printf("Length error in IPv6 Source Address (accept) filter number %u.\n", \
 														nacceptsrc+1);
-						exit(1);
+						exit(EXIT_FAILURE);
 					}
 				}
 
@@ -915,19 +915,19 @@ int main(int argc, char **argv){
 			case 'g':	/* IPv6 Destination Address (accept) filter */
 				if(nacceptdst > MAX_ACCEPT_DST){
 					puts("Too many IPv6 Destination Address (accept) filters.");
-					exit(1);
+					exit(EXIT_FAILURE);
 				}
 
 				if((pref = strtok_r(optarg, "/", &lasts)) == NULL){
 					printf("Error in IPv6 Destination Address (accept) filter number %u.\n", \
 													nacceptdst+1);
-					exit(1);
+					exit(EXIT_FAILURE);
 				}
 
 				if ( inet_pton(AF_INET6, pref, &acceptdst[nacceptdst]) <= 0){
 					printf("Error in IPv6 Source Address (accept) filter number %u.\n", \
 												    nacceptdst+1);
-					exit(1);
+					exit(EXIT_FAILURE);
 				}
 
 				if((charptr = strtok_r(NULL, " ", &lasts)) == NULL){
@@ -939,7 +939,7 @@ int main(int argc, char **argv){
 					if(acceptdstlen[nacceptdst]>128){
 						printf("Length error in IPv6 Source Address (accept) filter number %u.\n", \
 													    nacceptdst+1);
-						exit(1);
+						exit(EXIT_FAILURE);
 					}
 				}
 		
@@ -951,13 +951,13 @@ int main(int argc, char **argv){
 			case 'B':	/* Link-layer Source Address (accept) filter */
 				if(nacceptlinksrc > MAX_ACCEPT_LINK_SRC){
 					puts("Too many link-later Source Address (accept) filters.");
-					exit(1);
+					exit(EXIT_FAILURE);
 				}
 
 				if(ether_pton(optarg, &acceptlinksrc[nacceptlinksrc], sizeof(struct ether_addr)) == 0){
 					printf("Error in link-layer Source Address (accept) filter number %u.\n", \
 											    nacceptlinksrc+1);
-					exit(1);
+					exit(EXIT_FAILURE);
 				}
 		
 				nacceptlinksrc++;
@@ -967,13 +967,13 @@ int main(int argc, char **argv){
 			case 'G':	/* Link Destination Address (accept) filter */
 				if(nacceptlinkdst > MAX_ACCEPT_LINK_DST){
 					puts("Too many link-layer Destination Address (accept) filters.");
-					exit(1);
+					exit(EXIT_FAILURE);
 				}
 
 				if(ether_pton(optarg, &acceptlinkdst[nacceptlinkdst], sizeof(struct ether_addr)) == 0){
 					printf("Error in link-layer Destination Address (accept) filter number %u.\n",\
 												    nacceptlinkdst+1);
-					exit(1);
+					exit(EXIT_FAILURE);
 				}
 		
 				nacceptlinkdst++;
@@ -992,7 +992,7 @@ int main(int argc, char **argv){
 				nsleep=atoi(optarg);
 				if(nsleep==0){
 					puts("Invalid number of seconds in '-z' option");
-					exit(1);
+					exit(EXIT_FAILURE);
 				}
 	
 				sleep_f=1;
@@ -1009,12 +1009,12 @@ int main(int argc, char **argv){
 			case 'h':	/* Help */
 				print_help();
 		
-				exit(1);
+				exit(EXIT_FAILURE);
 				break;
 
 			default:
 				usage();
-				exit(1);
+				exit(EXIT_FAILURE);
 				break;
 		
 		} /* switch */
@@ -1022,27 +1022,27 @@ int main(int argc, char **argv){
 
 	if(geteuid()) {
 		puts("icmp6 needs root privileges to run.");
-		exit(1);
+		exit(EXIT_FAILURE);
 	}
 
 	if(!iface_f){
 		puts("Must specify the network interface with the -i option");
-		exit(1);
+		exit(EXIT_FAILURE);
 	}
 
 	if(listen_f && loop_f){
 		puts("'Error: listen' mode and 'loop' mode are incompatible");
-		exit(1);
+		exit(EXIT_FAILURE);
 	}
     
 	if(!dstaddr_f && !listen_f){	/* Must specify IPv6 Destination Address if listening mode not used */
 		puts("IPv6 Destination Address not specified (and listening mode not selected)");
-		exit(1);
+		exit(EXIT_FAILURE);
 	}
 
 	if( (idata.pd= pcap_open_live(idata.iface, PCAP_SNAP_LEN, PCAP_PROMISC, PCAP_TIMEOUT, errbuf)) == NULL){
 		printf("pcap_open_live(): %s\n", errbuf);
-		exit(1);
+		exit(EXIT_FAILURE);
 	}
 
 	/* 
@@ -1053,29 +1053,29 @@ int main(int argc, char **argv){
 	if( (ruid=getuid()) && (rgid=getgid())){
 		if(setgid(rgid) == -1){
 			puts("Error while releasing superuser privileges (changing to real GID)");
-			exit(1);
+			exit(EXIT_FAILURE);
 		}
 
 		if(setuid(ruid) == -1){
 			puts("Error while releasing superuser privileges (changing to real UID)");
-			exit(1);
+			exit(EXIT_FAILURE);
 		}
 	}
 	else{
 		if((pwdptr=getpwnam("nobody"))){
 			if(!pwdptr->pw_uid || !pwdptr->pw_gid){
 				puts("User 'nobody' has incorrect privileges");
-				exit(1);
+				exit(EXIT_FAILURE);
 			}
 
 			if(setgid(pwdptr->pw_gid) == -1){
 				puts("Error while releasing superuser privileges (changing to nobody's group)");
-				exit(1);
+				exit(EXIT_FAILURE);
 			}
 
 			if(setuid(pwdptr->pw_uid) == -1){
 				puts("Error while releasing superuser privileges (changing to 'nobody')");
-				exit(1);
+				exit(EXIT_FAILURE);
 			}
 		}
 	}
@@ -1096,12 +1096,12 @@ int main(int argc, char **argv){
 	}
 	else{
 		printf("Error: Interface %s is not an Ethernet or tunnel interface", idata.iface);
-		exit(1);
+		exit(EXIT_FAILURE);
 	}
 
 	if(get_if_addrs(&idata) == -1){
 		puts("Error obtaining local addresses");
-		exit(1);
+		exit(EXIT_FAILURE);
 	}
 
 	if(!hsrcaddr_f){
@@ -1118,7 +1118,7 @@ int main(int argc, char **argv){
 		else{
 			if( inet_pton(AF_INET6, "::", &randprefix) <= 0){
 				puts("inet_pton(): Error while randomizing IPv6 Source Address");
-				exit(1);
+				exit(EXIT_FAILURE);
 			}
 			randpreflen=0;
 		}
@@ -1129,7 +1129,7 @@ int main(int argc, char **argv){
 	if(sanityfilters_f){
 		if(nblocksrc >= MAX_BLOCK_SRC){
 			puts("Too many Source Address (block) filters while adding sanity filters.");
-			exit(1);
+			exit(EXIT_FAILURE);
 		}
 
 		blocksrc[nblocksrc]= srcaddr;
@@ -1142,7 +1142,7 @@ int main(int argc, char **argv){
 
 	if( !fragh_f && dstoptuhdr_f){
 		puts("Dst. Options Header (Unfragmentable Part) set, but Fragmentation not specified");
-		exit(1);
+		exit(EXIT_FAILURE);
 	}
     
 	if(fragh_f)
@@ -1165,7 +1165,7 @@ int main(int argc, char **argv){
 	if(!peeraddr_f){
 		if( inet_pton(AF_INET6, "::", &randprefix) <= 0){
 			puts("inet_pton(): Error while randomizing Destination Address of the ICMPv6 payload");
-			exit(1);
+			exit(EXIT_FAILURE);
 		}
 		randpreflen=0;
 
@@ -1263,7 +1263,7 @@ int main(int argc, char **argv){
 			}
 			else if(ipv6_to_ether(idata.pd, &idata, &dstaddr, &hdstaddr) != 1){
 				puts("Error while performing Neighbor Discovery for the Destination Address");
-				exit(1);
+				exit(EXIT_FAILURE);
 			}
 		}
 		else if(find_ipv6_router_full(idata.pd, &idata) == 1){
@@ -1271,7 +1271,7 @@ int main(int argc, char **argv){
 				/* If address is on-link, we must perform Neighbor Discovery */
 				if(ipv6_to_ether(idata.pd, &idata, &dstaddr, &hdstaddr) != 1){
 					puts("Error while performing Neighbor Discovery for the Destination Address");
-					exit(1);
+					exit(EXIT_FAILURE);
 				}
 			}
 			else{
@@ -1287,7 +1287,7 @@ int main(int argc, char **argv){
 			 */
 			if(ipv6_to_ether(idata.pd, &idata, &dstaddr, &hdstaddr) != 1){
 				puts("Error while performing Neighbor Discovery for the Destination Address");
-				exit(1);
+				exit(EXIT_FAILURE);
 			}
 		}
 	}
@@ -1295,29 +1295,29 @@ int main(int argc, char **argv){
 	if(rhtcp_f){
 		if(pcap_compile(idata.pd, &pcap_filter, PCAP_TCPV6_FILTER, PCAP_OPT, PCAP_NETMASK_UNKNOWN) == -1){
 			printf("pcap_compile(): %s", pcap_geterr(idata.pd));
-			exit(1);
+			exit(EXIT_FAILURE);
 		}
 	}
 	else if(rhudp_f){
 		if(pcap_compile(idata.pd, &pcap_filter, PCAP_UDPV6_FILTER, PCAP_OPT, PCAP_NETMASK_UNKNOWN) == -1){
 			printf("pcap_compile(): %s", pcap_geterr(idata.pd));
-			exit(1);
+			exit(EXIT_FAILURE);
 		}
 	}
 	else if(rhicmp6_f){
 		if(pcap_compile(idata.pd, &pcap_filter, PCAP_ICMPV6_FILTER, PCAP_OPT, PCAP_NETMASK_UNKNOWN) == -1){
 			printf("pcap_compile(): %s", pcap_geterr(idata.pd));
-			exit(1);
+			exit(EXIT_FAILURE);
 		}
 	}
 	else if(pcap_compile(idata.pd, &pcap_filter, PCAP_IPV6_FILTER, PCAP_OPT, PCAP_NETMASK_UNKNOWN) == -1){
 		printf("pcap_compile(): %s", pcap_geterr(idata.pd));
-		exit(1);
+		exit(EXIT_FAILURE);
 	}
     
 	if(pcap_setfilter(idata.pd, &pcap_filter) == -1){
 		printf("pcap_setfilter(): %s", pcap_geterr(idata.pd));
-		exit(1);
+		exit(EXIT_FAILURE);
 	}
 
 	pcap_freecode(&pcap_filter);
@@ -1367,7 +1367,7 @@ int main(int argc, char **argv){
 
 		if( (idata.fd= pcap_fileno(idata.pd)) == -1){
 			puts("Error obtaining descriptor number for pcap_t");
-			exit(1);
+			exit(EXIT_FAILURE);
 		}
 
 		FD_ZERO(&sset);
@@ -1382,14 +1382,14 @@ int main(int argc, char **argv){
 				}
 				else{
 					puts("Error in select()");
-					exit(1);
+					exit(EXIT_FAILURE);
 				}
 			}
 
 			/* Read a Neighbor Solicitation message */
 			if((r=pcap_next_ex(idata.pd, &pkthdr, &pktdata)) == -1){
 				printf("pcap_next_ex(): %s", pcap_geterr(idata.pd));
-				exit(1);
+				exit(EXIT_FAILURE);
 			}
 			else if(r == 0){
 				continue; /* Should never happen */
@@ -1480,7 +1480,7 @@ int main(int argc, char **argv){
 
 	if(!dstaddr_f && !listen_f){
 		puts("Error: Nothing to send! (key parameters left unspecified, and not using listening mode)");
-		exit(1);
+		exit(EXIT_FAILURE);
 	}
 
 	exit(0);
@@ -1525,7 +1525,7 @@ void init_packet_data(void){
 		while(hbhopthdrs < nhbhopthdr){
 			if((ptr+ hbhopthdrlen[hbhopthdrs]) > (v6buffer+ ETH_DATA_LEN)){
 				puts("Packet too large while processing HBH Opt. Header");
-				exit(1);
+				exit(EXIT_FAILURE);
 			}
 	    
 			*prev_nh = IPPROTO_HOPOPTS;
@@ -1542,7 +1542,7 @@ void init_packet_data(void){
 		while(dstoptuhdrs < ndstoptuhdr){
 			if((ptr+ dstoptuhdrlen[dstoptuhdrs]) > (v6buffer+ ETH_DATA_LEN)){
 				puts("Packet too large while processing Dest. Opt. Header (Unfrag. Part)");
-				exit(1);
+				exit(EXIT_FAILURE);
 			}
 
 			*prev_nh = IPPROTO_DSTOPTS;
@@ -1562,7 +1562,7 @@ void init_packet_data(void){
 		 */
 		if( (fragpart+sizeof(fraghdr)+nfrags) > (v6buffer+ idata.mtu)){
 			puts("Unfragmentable part too large for current MTU (1500 bytes)");
-			exit(1);
+			exit(EXIT_FAILURE);
 		}
 
 		/* We prepare a separate Fragment Header, but we do not include it in the packet to be sent.
@@ -1580,7 +1580,7 @@ void init_packet_data(void){
 		while(dstopthdrs < ndstopthdr){
 			if((ptr+ dstopthdrlen[dstopthdrs]) > (v6buffer+max_packet_size)){
 			puts("Packet too large while processing Dest. Opt. Header (should be using the Frag. option?)");
-			exit(1);
+			exit(EXIT_FAILURE);
 			}
     
 			*prev_nh = IPPROTO_DSTOPTS;
@@ -1596,7 +1596,7 @@ void init_packet_data(void){
 
 	if( (ptr+sizeof(struct icmp6_hdr)) > (v6buffer+max_packet_size)){
 		puts("Packet too large while inserting ICMPv6 header (should be using Frag. option?)");
-		exit(1);
+		exit(EXIT_FAILURE);
 	}
 
 	icmp6= (struct icmp6_hdr *) ptr;
@@ -1711,7 +1711,7 @@ void send_packet(const u_char *pktdata, struct pcap_pkthdr * pkthdr){
 
 					if( (ptr+rhbytes) > (v6buffer+max_packet_size)){
 						puts("Packet Too Large while inserting ICMPv6 payload");
-						exit(1);
+						exit(EXIT_FAILURE);
 					}
 
 					bcopy(pkt_ipv6, ptr, rhbytes);
@@ -1735,7 +1735,7 @@ void send_packet(const u_char *pktdata, struct pcap_pkthdr * pkthdr){
 
 					if( (ptr+rhbytes) > (v6buffer+max_packet_size)){
 						puts("Packet Too Large while inserting Redirected Header Option");
-						exit(1);
+						exit(EXIT_FAILURE);
 					}
 
 					rhipv6 = (struct ip6_hdr *) rhbuff;
@@ -1835,13 +1835,13 @@ void send_packet(const u_char *pktdata, struct pcap_pkthdr * pkthdr){
 
 				if((nw=pcap_inject(idata.pd, buffer, ptr - buffer)) == -1){
 					printf("pcap_inject(): %s\n", pcap_geterr(idata.pd));
-					exit(1);
+					exit(EXIT_FAILURE);
 				}
 
 				if(nw != (ptr-buffer)){
 					printf("pcap_inject(): only wrote %lu bytes (rather than %lu bytes)\n", (LUI) nw, \
 												(LUI) (ptr-buffer));
-					exit(1);
+					exit(EXIT_FAILURE);
 				}
 			}
 			else{
@@ -1855,7 +1855,7 @@ void send_packet(const u_char *pktdata, struct pcap_pkthdr * pkthdr){
 
 				if( (fptr+FRAG_HDR_SIZE)> fptrend){
 					puts("Unfragmentable Part is Too Large");
-					exit(1);
+					exit(EXIT_FAILURE);
 				}
 
 				memcpy(fptr, (char *) &fraghdr, FRAG_HDR_SIZE);
@@ -1891,13 +1891,13 @@ void send_packet(const u_char *pktdata, struct pcap_pkthdr * pkthdr){
 		
 					if((nw=pcap_inject(idata.pd, fragbuffer, fptr - fragbuffer)) == -1){
 						printf("pcap_inject(): %s\n", pcap_geterr(idata.pd));
-						exit(1);
+						exit(EXIT_FAILURE);
 					}
 
 					if(nw != (fptr- fragbuffer)){
 						printf("pcap_inject(): only wrote %lu bytes (rather than %lu bytes)\n", \
 												(LUI) nw, (LUI) (ptr-buffer));
-						exit(1);
+						exit(EXIT_FAILURE);
 					}
 				} /* Sending fragments */
 			} /* Sending fragmented datagram */
@@ -2059,7 +2059,7 @@ void print_attack_info(void){
 	if(idata.type == DLT_EN10MB && idata.flags != IFACE_LOOPBACK){
 		if(ether_ntop(&hsrcaddr, plinkaddr, sizeof(plinkaddr)) == 0){
 			puts("ether_ntop(): Error converting address");
-			exit(1);
+			exit(EXIT_FAILURE);
 		}
 
 		printf("Ethernet Source Address: %s%s\n", plinkaddr, ((!hsrcaddr_f)?" (randomized)":""));
@@ -2071,7 +2071,7 @@ void print_attack_info(void){
 		if(dstaddr_f){
 			if(ether_ntop(&hdstaddr, plinkaddr, sizeof(plinkaddr)) == 0){
 				puts("ether_ntop(): Error converting address");
-				exit(1);
+				exit(EXIT_FAILURE);
 			}
 
 			printf("Ethernet Destination Address: %s%s\n", plinkaddr, \
@@ -2081,7 +2081,7 @@ void print_attack_info(void){
 
 	if(inet_ntop(AF_INET6, &srcaddr, psrcaddr, sizeof(psrcaddr)) == NULL){
 		puts("inet_ntop(): Error converting IPv6 Source Address to presentation format");
-		exit(1);
+		exit(EXIT_FAILURE);
 	}
 
 	printf("IPv6 Source Address: %s%s\n", psrcaddr, ((!srcaddr_f)?" (randomized)":""));
@@ -2089,7 +2089,7 @@ void print_attack_info(void){
 	if(dstaddr_f){
 		if(inet_ntop(AF_INET6, &dstaddr, pdstaddr, sizeof(pdstaddr)) == NULL){
 			puts("inet_ntop(): Error converting IPv6 Destination Address to presentation format");
-			exit(1);
+			exit(EXIT_FAILURE);
 		}
 
 		printf("IPv6 Destination Address: %s\n", pdstaddr);
@@ -2219,7 +2219,7 @@ void print_attack_info(void){
 
 	if(inet_ntop(AF_INET6, &targetaddr, pv6addr, sizeof(pv6addr)) == NULL){
 		puts("inet_ntop(): Error converting Redirected Address to presentation format");
-		exit(1);
+		exit(EXIT_FAILURE);
 	}
 
 	if(dstaddr_f){
@@ -2228,7 +2228,7 @@ void print_attack_info(void){
 
 	if(inet_ntop(AF_INET6, &peeraddr, pv6addr, sizeof(pv6addr)) == NULL){
 		puts("inet_ntop(): Error converting Redirect Target Address to presentation format");
-		exit(1);
+		exit(EXIT_FAILURE);
 	}
 
 	if(dstaddr_f){
@@ -2305,7 +2305,7 @@ void print_filters(void){
 		for(i=0; i<nblocksrc; i++){
 			if(inet_ntop(AF_INET6, &blocksrc[i], pv6addr, sizeof(pv6addr)) == NULL){
 				puts("inet_ntop(): Error converting IPv6 Src. Addr. filter to presentation format");
-				exit(1);
+				exit(EXIT_FAILURE);
 			}
 
 			printf("%s/%u   ", pv6addr, blocksrclen[i]);
@@ -2319,7 +2319,7 @@ void print_filters(void){
 		for(i=0; i<nblockdst; i++){
 			if(inet_ntop(AF_INET6, &blockdst[i], pv6addr, sizeof(pv6addr)) == NULL){
 				puts("inet_ntop(): Error converting IPv6 Dst. Addr. filter to presentation format");
-				exit(1);
+				exit(EXIT_FAILURE);
 			}
 
 			printf("%s/%u   ", pv6addr, blockdstlen[i]);
@@ -2334,7 +2334,7 @@ void print_filters(void){
 			for(i=0; i<nblocklinksrc; i++){
 				if(ether_ntop(&blocklinksrc[i], plinkaddr, sizeof(plinkaddr)) == 0){
 					puts("ether_ntop(): Error converting address");
-					exit(1);
+					exit(EXIT_FAILURE);
 				}
 		    
 				printf("%s   ", plinkaddr);
@@ -2348,7 +2348,7 @@ void print_filters(void){
 			for(i=0; i<nblocklinkdst; i++){
 				if(ether_ntop(&blocklinkdst[i], plinkaddr, sizeof(plinkaddr)) == 0){
 					puts("ether_ntop(): Error converting address");
-					exit(1);
+					exit(EXIT_FAILURE);
 				}
 	    
 				printf("%s   ", plinkaddr);
@@ -2363,7 +2363,7 @@ void print_filters(void){
 		for(i=0; i<nacceptsrc; i++){
 			if(inet_ntop(AF_INET6, &acceptsrc[i], pv6addr, sizeof(pv6addr)) == NULL){
 				puts("inet_ntop(): Error converting IPv6 Src. Addr. filter to presentation format");
-				exit(1);
+				exit(EXIT_FAILURE);
 			}
 
 			printf("%s/%u   ", pv6addr, acceptsrclen[i]);
@@ -2377,7 +2377,7 @@ void print_filters(void){
 		for(i=0; i<nacceptdst; i++){
 			if(inet_ntop(AF_INET6, &acceptdst[i], pv6addr, sizeof(pv6addr)) == NULL){
 				puts("inet_ntop(): Error converting IPv6 Dst. Addr. filter to presentation format");
-				exit(1);
+				exit(EXIT_FAILURE);
 			}
 
 			printf("%s/%u   ", pv6addr, acceptdstlen[i]);
@@ -2392,7 +2392,7 @@ void print_filters(void){
 			for(i=0; i<nacceptlinksrc; i++){
 				if(ether_ntop(&acceptlinksrc[i], plinkaddr, sizeof(plinkaddr)) == 0){
 					puts("ether_ntop(): Error converting address");
-					exit(1);
+					exit(EXIT_FAILURE);
 				}
 	    
 				printf("%s   ", plinkaddr);
@@ -2406,7 +2406,7 @@ void print_filters(void){
 			for(i=0; i<nacceptlinkdst; i++){
 				if(ether_ntop(&acceptlinkdst[i], plinkaddr, sizeof(plinkaddr)) == 0){
 					puts("ether_ntop(): Error converting address");
-					exit(1);
+					exit(EXIT_FAILURE);
 				}
 		    
 				printf("%s   ", plinkaddr);
@@ -2432,12 +2432,12 @@ void print_filter_result(const u_char *pkt_data, unsigned char fresult){
 
 	if(inet_ntop(AF_INET6, &(pkt_ipv6->ip6_src), psrcaddr, sizeof(psrcaddr)) == NULL){
 	    puts("inet_ntop(): Error converting IPv6 Source Address to presentation format");
-	    exit(1);
+	    exit(EXIT_FAILURE);
 	}
 
 	if(inet_ntop(AF_INET6, &(pkt_ipv6->ip6_dst), pdstaddr, sizeof(pdstaddr)) == NULL){
 	    puts("inet_ntop(): Error converting IPv6 Destination Address to presentation format");
-	    exit(1);
+	    exit(EXIT_FAILURE);
 	}
 
 	printf("Received IPv6 packet from %s to %s (%s)\n", psrcaddr, pdstaddr, \

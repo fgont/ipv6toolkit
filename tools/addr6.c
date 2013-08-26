@@ -117,7 +117,7 @@ int main(int argc, char **argv){
 
 	if(argc<=1){
 		usage();
-		exit(1);
+		exit(EXIT_FAILURE);
 	}
 
 	/* 
@@ -132,24 +132,24 @@ int main(int argc, char **argv){
 	if( (ruid=getuid()) && (rgid=getgid())){
 		if(setgid(rgid) == -1){
 			puts("Error while releasing superuser privileges (changing to real GID)");
-			exit(1);
+			exit(EXIT_FAILURE);
 		}
 
 		if(setuid(ruid) == -1){
 			puts("Error while releasing superuser privileges (changing to real UID)");
-			exit(1);
+			exit(EXIT_FAILURE);
 		}
 	}
 	else{
 		if((pwdptr=getpwnam("nobody"))){
 			if(pwdptr->pw_uid && (setgid(pwdptr->pw_gid) == -1)){
 				puts("Error while releasing superuser privileges (changing to nobody's group)");
-				exit(1);
+				exit(EXIT_FAILURE);
 			}
 
 			if(pwdptr->pw_uid && (setuid(pwdptr->pw_uid) == -1)){
 				puts("Error while releasing superuser privileges (changing to 'nobody')");
-				exit(1);
+				exit(EXIT_FAILURE);
 			}
 		}
 	}
@@ -161,7 +161,7 @@ int main(int argc, char **argv){
 			case 'a':
 				if( inet_pton(AF_INET6, optarg, &(addr.ip6)) <= 0){
 					puts("inet_pton(): address not valid");
-					exit(1);
+					exit(EXIT_FAILURE);
 				}
 		
 				addr_f=1;
@@ -179,17 +179,17 @@ int main(int argc, char **argv){
 			case 'j':	/* IPv6 Address (accept) filter */
 				if(naccept > MAX_ACCEPT){
 					puts("Too many IPv6 Address (accept) filters.");
-					exit(1);
+					exit(EXIT_FAILURE);
 				}
 
 				if((pref = strtok_r(optarg, "/", &lasts)) == NULL){
 					printf("Error in IPv6 Address (accept) filter number %u.\n", naccept+1);
-				    exit(1);
+				    exit(EXIT_FAILURE);
 				}
 
 				if ( inet_pton(AF_INET6, pref, &accept[naccept]) <= 0){
 					printf("Error in IPv6 Address (accept) filter number %u.\n", naccept+1);
-					exit(1);
+					exit(EXIT_FAILURE);
 				}
 		
 				if((charptr = strtok_r(NULL, " ", &lasts)) == NULL){
@@ -200,7 +200,7 @@ int main(int argc, char **argv){
 		
 					if(acceptlen[naccept]>128){
 						printf("Length error in IPv6 Source Address (accept) filter number %u.\n", naccept+1);
-						exit(1);
+						exit(EXIT_FAILURE);
 					}
 				}
 		
@@ -213,17 +213,17 @@ int main(int argc, char **argv){
 			case 'J':	/* IPv6 Address (block) filter */
 				if(nblock >= MAX_BLOCK){
 					puts("Too many IPv6 Source Address (block) filters.");
-					exit(1);
+					exit(EXIT_FAILURE);
 				}
 	    
 				if((pref = strtok_r(optarg, "/", &lasts)) == NULL){
 					printf("Error in IPv6 Address (block) filter number %u.\n", nblock+1);
-					exit(1);
+					exit(EXIT_FAILURE);
 				}
 
 				if ( inet_pton(AF_INET6, pref, &block[nblock]) <= 0){
 					printf("Error in IPv6 Source Address (block) filter number %u.", nblock+1);
-					exit(1);
+					exit(EXIT_FAILURE);
 				}
 
 				if((charptr = strtok_r(NULL, " ", &lasts)) == NULL){
@@ -234,7 +234,7 @@ int main(int argc, char **argv){
 		
 					if(blocklen[nblock]>128){
 						printf("Length error in IPv6 Address (block) filter number %u.\n", nblock+1);
-						exit(1);
+						exit(EXIT_FAILURE);
 					}
 				}
 
@@ -256,7 +256,7 @@ int main(int argc, char **argv){
 				}
 				else{
 					printf("Unknown address type '%s' in accept type filter\n", optarg);
-					exit(1);
+					exit(EXIT_FAILURE);
 				}
 
 				acceptfilters_f=1;
@@ -275,7 +275,7 @@ int main(int argc, char **argv){
 				}
 				else{
 					printf("Unknown address type '%s' in block type filter\n", optarg);
-					exit(1);
+					exit(EXIT_FAILURE);
 				}
 
 				filter_f=1;
@@ -311,7 +311,7 @@ int main(int argc, char **argv){
 				}
 				else{
 					printf("Unknown address scope '%s' in accept scope filter\n", optarg);
-					exit(1);
+					exit(EXIT_FAILURE);
 				}
 
 				acceptfilters_f=1;
@@ -348,7 +348,7 @@ int main(int argc, char **argv){
 				}
 				else{
 					printf("Unknown address scope '%s' in block scope filter\n", optarg);
-					exit(1);
+					exit(EXIT_FAILURE);
 				}
 
 				filter_f=1;
@@ -384,7 +384,7 @@ int main(int argc, char **argv){
 				}
 				else{
 					printf("Unknown unicast address type '%s' in accept unicast address type filter\n", optarg);
-					exit(1);
+					exit(EXIT_FAILURE);
 				}
 
 				acceptfilters_f=1;
@@ -422,7 +422,7 @@ int main(int argc, char **argv){
 				}
 				else{
 					printf("Unknown unicast address type '%s' in block unicast address type filter\n", optarg);
-					exit(1);
+					exit(EXIT_FAILURE);
 				}
 
 				filter_f=1;
@@ -466,7 +466,7 @@ int main(int argc, char **argv){
 				}
 				else{
 					printf("Unknown IID type '%s' in accept IID type filter.\n", optarg);
-					exit(1);
+					exit(EXIT_FAILURE);
 				}
 
 				acceptfilters_f=1;
@@ -511,7 +511,7 @@ int main(int argc, char **argv){
 				}
 				else{
 					printf("Unknown IID type '%s' in block IID type filter.\n", optarg);
-					exit(1);
+					exit(EXIT_FAILURE);
 				}
 
 				filter_f = 1;
@@ -531,12 +531,12 @@ int main(int argc, char **argv){
 
 			case 'h':	/* Help */
 				print_help();
-				exit(1);
+				exit(EXIT_FAILURE);
 				break;
 
 			default:
 				usage();
-				exit(1);
+				exit(EXIT_FAILURE);
 				break;
 		
 		} /* switch */
@@ -545,17 +545,17 @@ int main(int argc, char **argv){
 
 	if(stdin_f && addr_f){
 		puts("Cannot specify both '-a' and '-s' at the same time (try only one of them at a time)");
-		exit(1);
+		exit(EXIT_FAILURE);
 	}
 
 	if(!stdin_f && !addr_f){
 		puts("Must specify an IPv6 address with '-a', or set '-s' to read addresses from stdin");
-		exit(1);
+		exit(EXIT_FAILURE);
 	}
 
 	if(stats_f && !stdin_f){
 		puts("Cannot obtain statistics based on a single IPv6 address (should be using '-i')");
-		exit(1);
+		exit(EXIT_FAILURE);
 	}
 
 	/* By default, addr6 decodes IPv6 addresses */
@@ -565,7 +565,7 @@ int main(int argc, char **argv){
 	if(print_unique_f){
 		if(!init_host_list(&hlist)){
 			puts("Not enough memory when initializing internal host list");
-			exit(1);
+			exit(EXIT_FAILURE);
 		}
 	}
 
@@ -624,7 +624,7 @@ int main(int argc, char **argv){
 					else{
 						if(add_host_entry(&hlist, &(addr.ip6)) == NULL){
 							puts("Not enough memory (or hit internal artificial limit) when storing IPv6 address in memory");
-							exit(1);
+							exit(EXIT_FAILURE);
 						}
 					}
 				}
@@ -638,7 +638,7 @@ int main(int argc, char **argv){
 				else{
 					if(inet_ntop(AF_INET6, &(addr.ip6), pv6addr, sizeof(pv6addr)) == NULL){
 						puts("inet_ntop(): Error converting IPv6 address to presentation format");
-						exit(1);
+						exit(EXIT_FAILURE);
 					}
 
 					printf("%s\n", pv6addr);

@@ -223,7 +223,7 @@ int main(int argc, char **argv){
 
 	if(argc<=1){
 		usage();
-		exit(1);
+		exit(EXIT_FAILURE);
 	}
 
 
@@ -244,12 +244,12 @@ int main(int argc, char **argv){
 			case 's':	/* IPv6 Source Address */
 				if((charptr = strtok_r(optarg, "/", &lasts)) == NULL){
 					puts("Error in Source Address");
-					exit(1);
+					exit(EXIT_FAILURE);
 				}
 
 				if ( inet_pton(AF_INET6, charptr, &srcaddr) <= 0){
 					puts("inet_pton(): Source Address not valid");
-					exit(1);
+					exit(EXIT_FAILURE);
 				}
 
 				srcaddr_f = 1;
@@ -259,7 +259,7 @@ int main(int argc, char **argv){
 		
 					if(srcpreflen>128){
 						puts("Prefix length error in IPv6 Source Address");
-						exit(1);
+						exit(EXIT_FAILURE);
 					}
 
 					sanitize_ipv6_prefix(&srcaddr, srcpreflen);
@@ -271,7 +271,7 @@ int main(int argc, char **argv){
 			case 'd':	/* IPv6 Destination Address */
 				if( inet_pton(AF_INET6, optarg, &dstaddr) <= 0){
 					puts("inet_pton(): address not valid");
-					exit(1);
+					exit(EXIT_FAILURE);
 				}
 		
 				dstaddr_f = 1;
@@ -285,7 +285,7 @@ int main(int argc, char **argv){
 			case 'S':	/* Source Ethernet address */
 				if(ether_pton(optarg, &hsrcaddr, sizeof(hsrcaddr)) == 0){
 					puts("Error in Source link-layer address.");
-					exit(1);
+					exit(EXIT_FAILURE);
 				}
 		
 				hsrcaddr_f = 1;
@@ -294,7 +294,7 @@ int main(int argc, char **argv){
 			case 'D':	/* Destination Ethernet Address */
 				if(ether_pton(optarg, &hdstaddr, sizeof(hdstaddr)) == 0){
 					puts("Error in Source link-layer address.");
-					exit(1);
+					exit(EXIT_FAILURE);
 				}
 		
 				hdstaddr_f = 1;
@@ -311,7 +311,7 @@ int main(int argc, char **argv){
 				}
 				else{
 					puts("Unknown protocol type (valid types: 'tcp', 'udp')");
-					exit(1);
+					exit(EXIT_FAILURE);
 				}
 
 				protocol_f= 1;
@@ -333,12 +333,12 @@ int main(int argc, char **argv){
 			case 'h':	/* Help */
 				print_help();
 		
-				exit(1);
+				exit(EXIT_FAILURE);
 				break;
 
 			default:
 				usage();
-				exit(1);
+				exit(EXIT_FAILURE);
 				break;
 		
 		} /* switch */
@@ -346,17 +346,17 @@ int main(int argc, char **argv){
 
 	if(geteuid()) {
 		puts("flow6 needs root privileges to run.");
-		exit(1);
+		exit(EXIT_FAILURE);
 	}
 
 	if(!iface_f){
 		puts("Must specify the network interface with the -i option");
-		exit(1);
+		exit(EXIT_FAILURE);
 	}
 
 	if( (idata.pd= pcap_open_live(idata.iface, PCAP_SNAP_LEN, PCAP_PROMISC, PCAP_TIMEOUT, errbuf)) == NULL){
 		printf("pcap_open_live(): %s\n", errbuf);
-		exit(1);
+		exit(EXIT_FAILURE);
 	}
 
 	/* 
@@ -367,29 +367,29 @@ int main(int argc, char **argv){
 	if( (ruid=getuid()) && (rgid=getgid())){
 		if(setgid(rgid) == -1){
 			puts("Error while releasing superuser privileges (changing to real GID)");
-			exit(1);
+			exit(EXIT_FAILURE);
 		}
 
 		if(setuid(ruid) == -1){
 			puts("Error while releasing superuser privileges (changing to real UID)");
-			exit(1);
+			exit(EXIT_FAILURE);
 		}
 	}
 	else{
 		if((pwdptr=getpwnam("nobody"))){
 			if(!pwdptr->pw_uid || !pwdptr->pw_gid){
 				puts("User 'nobody' has incorrect privileges");
-				exit(1);
+				exit(EXIT_FAILURE);
 			}
 
 			if(setgid(pwdptr->pw_gid) == -1){
 				puts("Error while releasing superuser privileges (changing to nobody's group)");
-				exit(1);
+				exit(EXIT_FAILURE);
 			}
 
 			if(setuid(pwdptr->pw_uid) == -1){
 				puts("Error while releasing superuser privileges (changing to 'nobody')");
-				exit(1);
+				exit(EXIT_FAILURE);
 			}
 		}
 	}
@@ -411,13 +411,13 @@ int main(int argc, char **argv){
 	}
 	else{
 		printf("Error: Interface %s is not an Ethernet or tunnel interface", idata.iface);
-		exit(1);
+		exit(EXIT_FAILURE);
 	}
 
 
 	if(get_if_addrs(&idata) == -1){
 		puts("Error obtaining local addresses");
-		exit(1);
+		exit(EXIT_FAILURE);
 	}
 
 	if((idata.ip6_local_flag && idata.ip6_global_flag) && !srcaddr_f)
@@ -457,7 +457,7 @@ int main(int argc, char **argv){
 			}
 			else if(ipv6_to_ether(idata.pd, &idata, &dstaddr, &hdstaddr) != 1){
 				puts("Error while performing Neighbor Discovery for the Destination Address");
-				exit(1);
+				exit(EXIT_FAILURE);
 			}
 		}
 		else if(find_ipv6_router_full(idata.pd, &idata) == 1){
@@ -465,7 +465,7 @@ int main(int argc, char **argv){
 				/* If address is on-link, we must perform Neighbor Discovery */
 				if(ipv6_to_ether(idata.pd, &idata, &dstaddr, &hdstaddr) != 1){
 					puts("Error while performing Neighbor Discovery for the Destination Address");
-					exit(1);
+					exit(EXIT_FAILURE);
 				}
 			}
 			else{
@@ -481,7 +481,7 @@ int main(int argc, char **argv){
 			 */
 			if(ipv6_to_ether(idata.pd, &idata, &dstaddr, &hdstaddr) != 1){
 				puts("Error while performing Neighbor Discovery for the Destination Address");
-				exit(1);
+				exit(EXIT_FAILURE);
 			}
 		}
 	}
@@ -498,7 +498,7 @@ int main(int argc, char **argv){
 
 	if( !fragh_f && dstoptuhdr_f){
 		puts("Dst. Options Header (Unfragmentable Part) set, but Fragmentation not specified");
-		exit(1);
+		exit(EXIT_FAILURE);
 	}
     
 	if(fragh_f)
@@ -512,14 +512,14 @@ int main(int argc, char **argv){
 
 	if(!dstaddr_f){
 		puts("Error: Nothing to send! (Destination Address left unspecified)");
-		exit(1);
+		exit(EXIT_FAILURE);
 	}
 
 	/* Assess the Flow ID generation policy */
 	if(flowidp_f){
 		if(dstport_f && !protocol_f){
 			puts("Error: Must specify a protocol if the port number is specified");
-			exit(1);
+			exit(EXIT_FAILURE);
 		}
 
 		if(!protocol_f){
@@ -547,19 +547,19 @@ int main(int argc, char **argv){
 		 */
 		if(pcap_compile(idata.pd, &pcap_filter, PCAP_NSTCP_FILTER, PCAP_OPT, PCAP_NETMASK_UNKNOWN) == -1){
 			printf("pcap_compile(): %s", pcap_geterr(idata.pd));
-			exit(1);
+			exit(EXIT_FAILURE);
 		}
 		
 		if(pcap_setfilter(idata.pd, &pcap_filter) == -1){
 			printf("pcap_setfilter(): %s", pcap_geterr(idata.pd));
-			exit(1);
+			exit(EXIT_FAILURE);
 		}
 
 		pcap_freecode(&pcap_filter);
 
 		if( (idata.fd= pcap_fileno(idata.pd)) == -1){
 			puts("Error obtaining descriptor number for pcap_t");
-			exit(1);
+			exit(EXIT_FAILURE);
 		}
 
 		FD_ZERO(&sset);
@@ -599,7 +599,7 @@ int main(int argc, char **argv){
 					for(i=0; i<NSAMPLES; i++){
 						if(send_fid_probe() == -1){
 							puts("Error while sending packet");
-							exit(1);
+							exit(EXIT_FAILURE);
 						}
 
 						lastport++;
@@ -619,12 +619,12 @@ int main(int argc, char **argv){
 
 						if(send_neighbor_solicit(&idata) == -1){
 							puts("Error while sending Neighbor Solicitation");
-							exit(1);
+							exit(EXIT_FAILURE);
 						}
 
 						if(send_fid_probe() == -1){
 							puts("Error while sending packet");
-							exit(1);
+							exit(EXIT_FAILURE);
 						}
 
 						lastport++;
@@ -645,7 +645,7 @@ int main(int argc, char **argv){
 				}
 				else{
 					puts("Error in select()");
-					exit(1);
+					exit(EXIT_FAILURE);
 				}
 			}
 
@@ -655,7 +655,7 @@ int main(int argc, char **argv){
 			/* Read a packet (Echo Reply, or Neighbor Solicitation) */
 			if((r=pcap_next_ex(idata.pd, &pkthdr, &pktdata)) == -1){
 				printf("pcap_next_ex(): %s", pcap_geterr(idata.pd));
-				exit(1);
+				exit(EXIT_FAILURE);
 			}
 			else if(r == 0){
 				continue; /* Should never happen */
@@ -684,7 +684,7 @@ int main(int argc, char **argv){
 					if(!localaddr_f && is_eq_in6_addr(&(pkt_ns->nd_ns_target), &srcaddr)){
 						if(send_neighbor_advert(&idata, idata.pd, pktdata) == -1){
 							puts("Error sending Neighbor Advertisement");
-							exit(1);
+							exit(EXIT_FAILURE);
 						}
 					}
 				}
@@ -695,7 +695,7 @@ int main(int argc, char **argv){
 
 					if(send_neighbor_advert(&idata, idata.pd, pktdata) == -1){
 						puts("Error sending Neighbor Advertisement");
-						exit(1);
+						exit(EXIT_FAILURE);
 					}
 				}				
 			}
@@ -798,12 +798,12 @@ int main(int argc, char **argv){
 
 		if(ntest1 < 10 || ntest2 < 10){
 			puts("Error: Didn't receive enough response packets");
-			exit(1);
+			exit(EXIT_FAILURE);
 		}
 
 		if(predict_flow_id(test1, ntest1, test2, ntest2) == -1){
 			puts("Error in predict_flow_id()");
-			exit(1);
+			exit(EXIT_FAILURE);
 		}
 
 		exit(0);
@@ -993,7 +993,7 @@ u_int16_t in_chksum(void *ptr_ipv6, void *ptr_icmpv6, size_t len, u_int8_t proto
 void print_attack_info(void){
 	if(ether_ntop(&hsrcaddr, plinkaddr, sizeof(plinkaddr)) == 0){
 		puts("ether_ntop(): Error converting address");
-		exit(1);
+		exit(EXIT_FAILURE);
 	}
 
 	printf("Ethernet Source Address: %s%s\n", plinkaddr, (!hsrcaddr_f)?" (automatically selected)":"");
@@ -1004,14 +1004,14 @@ void print_attack_info(void){
 	 */
 	if(ether_ntop(&hdstaddr, plinkaddr, sizeof(plinkaddr)) == 0){
 		puts("ether_ntop(): Error converting address");
-		exit(1);
+		exit(EXIT_FAILURE);
 	}
 
 	printf("Ethernet Destination Address: %s%s\n", plinkaddr, (!hdstaddr_f)?" (automatically selected)":"");
 
 	if(inet_ntop(AF_INET6, &srcaddr, psrcaddr, sizeof(psrcaddr)) == NULL){
 		puts("inet_ntop(): Error converting IPv6 Source Address to presentation format");
-		exit(1);
+		exit(EXIT_FAILURE);
 	}
 
 	if(dstaddr_f){
@@ -1020,7 +1020,7 @@ void print_attack_info(void){
 
 	if(inet_ntop(AF_INET6, &dstaddr, pdstaddr, sizeof(pdstaddr)) == NULL){
 		puts("inet_ntop(): Error converting IPv6 Destination Address to presentation format");
-		exit(1);
+		exit(EXIT_FAILURE);
 	}
 
 	printf("IPv6 Destination Address: %s\n", pdstaddr);
