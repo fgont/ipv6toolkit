@@ -6027,7 +6027,7 @@ int process_config_file(const char *path){
 	fclose(fp);
 
 	if(!fname_f)
-		strncpy(fname, "/usr/share/ipv6-toolkit/oui.txt", MAX_FILENAME_SIZE-1);
+		strncpy(fname, "/usr/share/ipv6toolkit/oui.txt", MAX_FILENAME_SIZE-1);
 
 	return(1);
 }
