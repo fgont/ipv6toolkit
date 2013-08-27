@@ -650,7 +650,7 @@ int main(int argc, char **argv){
 		send_packet();
 	}
     
-	exit(0);
+	exit(EXIT_SUCCESS);
 }
 
 

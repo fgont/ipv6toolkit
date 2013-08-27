@@ -1324,7 +1324,7 @@ int main(int argc, char **argv){
 			}
 		}
 		
-		exit(0);
+		exit(EXIT_SUCCESS);
 	}
 
 	if(listen_f){
@@ -1478,7 +1478,7 @@ int main(int argc, char **argv){
 			send_packet(pktdata, pkthdr);
 		}
     
-		exit(0);
+		exit(EXIT_SUCCESS);
 	}
     
 
@@ -1487,7 +1487,7 @@ int main(int argc, char **argv){
 		exit(EXIT_FAILURE);
 	}
 
-	exit(0);
+	exit(EXIT_SUCCESS);
 }
 
 /*

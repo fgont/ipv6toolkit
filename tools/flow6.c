@@ -806,10 +806,10 @@ int main(int argc, char **argv){
 			exit(EXIT_FAILURE);
 		}
 
-		exit(0);
+		exit(EXIT_SUCCESS);
 	}
 
-	exit(0);
+	exit(EXIT_SUCCESS);
 }
 
 

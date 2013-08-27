@@ -1343,7 +1343,7 @@ int main(int argc, char **argv){
 		if(verbose_f)    
 			puts("Initial attack packet(s) sent successfully.");
 
-		exit(0);
+		exit(EXIT_SUCCESS);
 	}
 	else if(listen_f){
 		if( (idata.fd= pcap_fileno(idata.pd)) == -1){
@@ -1579,7 +1579,7 @@ int main(int argc, char **argv){
 			}
 		}
     
-		exit(0);
+		exit(EXIT_SUCCESS);
 	}
 
 	if(!dstaddr_f && !listen_f){
@@ -1587,7 +1587,7 @@ int main(int argc, char **argv){
 		exit(EXIT_FAILURE);
 	}
 
-	exit(0);
+	exit(EXIT_SUCCESS);
 }
 
 

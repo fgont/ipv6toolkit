@@ -991,7 +991,7 @@ int main(int argc, char **argv){
 				send_packet(NULL);
 	 		}
 
-			exit(0);
+			exit(EXIT_SUCCESS);
 		}
 	}
 
@@ -1123,7 +1123,7 @@ int main(int argc, char **argv){
 			send_packet(pktdata);
 		}
     
-		exit(0);
+		exit(EXIT_SUCCESS);
 	}
     
 
@@ -1132,7 +1132,7 @@ int main(int argc, char **argv){
 		exit(EXIT_FAILURE);
 	}
 
-	exit(0);
+	exit(EXIT_SUCCESS);
 }
 
 

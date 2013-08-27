@@ -1032,7 +1032,7 @@ int main(int argc, char **argv){
 			}
 		}
 
-		exit(0);
+		exit(EXIT_SUCCESS);
 	}
 
 
@@ -1293,7 +1293,7 @@ int main(int argc, char **argv){
 			exit(EXIT_FAILURE);
 		}
 
-		exit(0);
+		exit(EXIT_SUCCESS);
 	}
 
 
@@ -1356,7 +1356,7 @@ int main(int argc, char **argv){
 			exit(EXIT_FAILURE);
 		}
 
-		exit(0);
+		exit(EXIT_SUCCESS);
 	}
 
 	/* Send fragments to a target destination */
@@ -1502,10 +1502,10 @@ int main(int argc, char **argv){
 			}
 		}
 		
-		exit(0);
+		exit(EXIT_SUCCESS);
 	}
 
-	exit(0);
+	exit(EXIT_SUCCESS);
 }
 
 

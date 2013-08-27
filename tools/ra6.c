@@ -1077,11 +1077,11 @@ int main(int argc, char **argv){
 
 	pcap_freecode(&pcap_filter);
 
-    /* 
-       If the IPv6 Source Address has not been specified, and the "-F" (flood) option has
-       not been specified, select a random link-local unicast address.
-     */
-    if(!srcaddr_f && !floods_f){
+	/* 
+	   If the IPv6 Source Address has not been specified, and the "-F" (flood) option has
+	   not been specified, select a random link-local unicast address.
+	 */
+	if(!srcaddr_f && !floods_f){
 		/* When randomizing a link-local IPv6 address, select addresses that belong to the
 		   prefix fe80::/64 (that's what a link-local address looks-like in legitimate cases).
 		   The KAME implementation discards addresses in which the second high-order 16 bits
@@ -1096,10 +1096,10 @@ int main(int argc, char **argv){
 			srcaddr.s6_addr16[i]=random();
 	}
 
-    /*
-       If the flood option ("-F") has been specified, but no prefix has been specified,
-       select the random Source Addresses from the link-local unicast prefix (fe80::/64).
-     */
+	/*
+	   If the flood option ("-F") has been specified, but no prefix has been specified,
+	    select the random Source Addresses from the link-local unicast prefix (fe80::/64).
+	 */
 	if(floods_f && !srcprefix_f){
 		srcaddr.s6_addr16[0]= htons(0xfe80); /* Link-local unicast prefix */
 
@@ -1107,7 +1107,7 @@ int main(int argc, char **argv){
 			srcaddr.s6_addr16[i]=0x0000;
 	
 		srcpreflen=64;
-    }
+	}
 
 	if(!dstaddr_f)		/* Destination Address defaults to all-nodes (ff02::1) */
 		if( inet_pton(AF_INET6, ALL_NODES_MULTICAST_ADDR, &dstaddr) <= 0){
@@ -1128,7 +1128,7 @@ int main(int argc, char **argv){
 	if(sllopt_f && !sllopta_f){	/* The value of the source link-layer address option  */
 		linkaddr[0]= hsrcaddr;	/* defaults to the source Ethernet address            */
 		nlinkaddr++;
-    }
+	}
 
 	if(floodp_f){
 		if(nfloodp == 0){
@@ -1144,7 +1144,7 @@ int main(int argc, char **argv){
 		}
 	
 		nprefixes=nfloodp;
-    }
+	}
 
 	if(floodr_f){
 		if(nfloodr == 0){
@@ -1169,7 +1169,7 @@ int main(int argc, char **argv){
 			rdnsslife[0]= DEFAULT_RDNSS_LIFETIME;
 	    
 		nrdnss=nfloodda;
-    }
+	}
 
 	if(!sleep_f)
 		nsleep=1;
@@ -1177,8 +1177,8 @@ int main(int argc, char **argv){
 	if( !fragh_f && dstoptuhdr_f){
 		puts("Dst. Options Header (Unfragmentable Part) set, but Fragmentation not specified");
 		exit(EXIT_FAILURE);
-    }
-    
+	}
+
 	if(fragh_f)
 		max_packet_size = MAX_IPV6_PAYLOAD + MIN_IPV6_HLEN;
 	else
@@ -1186,14 +1186,14 @@ int main(int argc, char **argv){
 
 	if(verbose_f){
 		print_attack_info();
-    }
+	}
 
-    /* Set initial contents of the attack packet */
-    init_packet_data();
+	/* Set initial contents of the attack packet */
+	init_packet_data();
     
-    /* Fire an unsolicited Router Advertisement if a target IPv6 address or a target Ethernet
-     * address were specified
-     */
+	/* Fire an unsolicited Router Advertisement if a target IPv6 address or a target Ethernet
+	 * address were specified
+	 */
 	if(dstaddr_f || hdstaddr_f){
 		send_packet(NULL);
 		if(verbose_f)    
@@ -1208,9 +1208,9 @@ int main(int argc, char **argv){
 				send_packet(NULL);
 		    }
 	
-		    exit(0);
+		    exit(EXIT_SUCCESS);
 		}
-    }
+	}
 
 	if(listen_f){
 		if(verbose_f)
@@ -1329,7 +1329,7 @@ int main(int argc, char **argv){
 		exit(EXIT_FAILURE);
 	}
 
-	exit(0);
+	exit(EXIT_SUCCESS);
 }
 
 

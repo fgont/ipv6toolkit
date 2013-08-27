@@ -1344,7 +1344,7 @@ int main(int argc, char **argv){
 				send_packet(NULL, NULL);
 			}
 
-			exit(0);
+			exit(EXIT_SUCCESS);
 		}
 	}
 
@@ -1474,7 +1474,7 @@ int main(int argc, char **argv){
 			send_packet(pktdata, pkthdr);
 		}
     
-		exit(0);
+		exit(EXIT_SUCCESS);
 	}
     
 
@@ -1483,7 +1483,7 @@ int main(int argc, char **argv){
 		exit(EXIT_FAILURE);
 	}
 
-	exit(0);
+	exit(EXIT_SUCCESS);
 }
 
 
