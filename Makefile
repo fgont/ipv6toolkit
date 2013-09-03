@@ -44,6 +44,7 @@ SRCPATH= tools
 SBINTOOLS= flow6 frag6 icmp6 jumbo6 na6 ni6 ns6 ra6 rd6 rs6 scan6 tcp6
 BINTOOLS= addr6
 TOOLS= $(BINTOOLS) $(SBINTOOLS)
+LIBS= libipv6.o
 
 all: $(TOOLS) ipv6toolkit.conf
 
@@ -86,6 +87,9 @@ scan6: $(SRCPATH)/scan6.c $(SRCPATH)/scan6.h $(SRCPATH)/ipv6toolkit.h
 tcp6: $(SRCPATH)/tcp6.c $(SRCPATH)/tcp6.h $(SRCPATH)/ipv6toolkit.h
 	$(CC) $(CPPFLAGS) $(CFLAGS) -o tcp6 $(SRCPATH)/tcp6.c $(LDFLAGS)
 
+libipv6.o: $(SRCPATH)/libipv6.c $(SRCPATH)/libipv6.h
+	$(CC) $(CPPFLAGS) $(CFLAGS) -c -o libipv6.o $(SRCPATH)/libipv6.c
+
 ipv6toolkit.conf:
 	echo "# SI6 Networks' IPv6 Toolkit Configuration File" > \
            data/ipv6toolkit.conf
@@ -93,7 +97,7 @@ ipv6toolkit.conf:
            data/ipv6toolkit.conf 
 
 clean: 
-	rm -f $(TOOLS)
+	rm -f $(TOOLS) $(LIBS)
 	rm -f data/ipv6toolkit.conf
 
 install: all
