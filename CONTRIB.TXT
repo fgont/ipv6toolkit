@@ -35,3 +35,7 @@ These are the maintainers for each of the different packages:
 
     Alistair Crooks <agc@pkgsrc.org>
 
+  + OpenBSD
+
+    Alexander Bluhm <bluhm@openbsd.org>
+
