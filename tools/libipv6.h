@@ -22,6 +22,7 @@
 #define MIN_ICMP6_HLEN		8
 #define	SLLA_OPT_LEN		1
 #define	TLLA_OPT_LEN		1
+#define MAX_SLLA_OPTION		100
 #define MAX_TLLA_OPTION		256
 #define IFACE_LENGTH	255
 #define ALL_NODES_MULTICAST_ADDR	"FF02::1"
@@ -88,21 +89,23 @@ struct filters{
 #define MAX_ACCEPT_LINK_SRC		50
 #define MAX_ACCEPT_LINK_DST		50
 
-#define ACCEPTED			1
-#define BLOCKED				0
-
-
-/* Constants to signal special interface types */
-#define	IFACE_LOOPBACK			1
-#define IFACE_TUNNEL			2
+#define ACCEPTED				1
+#define BLOCKED					0
 
 
 /* Constants used with the libcap functions */
-#define PCAP_ICMPV6_NA_FILTER "icmp6 and ip6[7]==255 and ip6[40]==136 and ip6[41]==0"
-#define PCAP_ICMPV6_RANS_FILTER		"icmp6 and ip6[7]==255 and ((ip6[40]==134 and ip6[41]==0) or (ip6[40]==135 and ip6[41]==0))"
-#define PCAP_ICMPV6_NA_FILTER "icmp6 and ip6[7]==255 and ip6[40]==136 and ip6[41]==0"
-#define PCAP_TCPIPV6_NS_FILTER "ip6 and (tcp or (icmp6 and ip6[7]==255 and ip6[40]==135 and ip6[41]==0))"
-#define PCAP_IPV6_FILTER "ip6"
+#define PCAP_ICMPV6_NA_FILTER	"icmp6 and ip6[7]==255 and ip6[40]==136 and ip6[41]==0"
+#define PCAP_ICMPV6_RANS_FILTER	"icmp6 and ip6[7]==255 and ((ip6[40]==134 and ip6[41]==0) or (ip6[40]==135 and ip6[41]==0))"
+#define PCAP_ICMPV6_NA_FILTER	"icmp6 and ip6[7]==255 and ip6[40]==136 and ip6[41]==0"
+#define PCAP_TCPIPV6_NS_FILTER	"ip6 and (tcp or (icmp6 and ip6[7]==255 and ip6[40]==135 and ip6[41]==0))"
+#define PCAP_IPV6_FILTER		"ip6"
+#define PCAP_TCPV6_FILTER		"ip6 and tcp"
+#define PCAP_UDPV6_FILTER		"ip6 and udp"
+#define PCAP_ICMPV6_FILTER		"icmp6"
+#define PCAP_ICMPV6_NI_QUERY	"icmp6 and ip6[40]==139"
+#define PCAP_ICMPV6_NI_REPLY	"icmp6 and ip6[40]==140"
+#define PCAP_NOPACKETS_FILTER	"not ip and not ip6 and not arp"
+
 
 /* Constants used for Router Discovery */
 #define MAX_PREFIXES_ONLINK		100
@@ -280,6 +283,17 @@ struct ni_reply_name {
 	u_int32_t ni_name_ttl;	/* TTL */
 	unsigned char	ni_name_name; /* IPv6 address */
 } __attribute__ ((__packed__));
+
+
+/* ICMPv6 Types/Codes not defined in some OSes */
+#ifndef ICMP6_DST_UNREACH_FAILEDPOLICY
+	#define ICMP6_DST_UNREACH_FAILEDPOLICY	5
+#endif
+
+#ifndef ICMP6_DST_UNREACH_REJECTROUTE
+	#define ICMP6_DST_UNREACH_REJECTROUTE	6
+#endif
+
 
 /* This causes Linux to use the BSD definition of the TCP and UDP header fields */
 #ifndef __FAVOR_BSD

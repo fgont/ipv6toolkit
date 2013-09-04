@@ -20,7 +20,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  * 
- * Build with: gcc ns6.c -Wall -lpcap -o ns6
+ * Build with: make ns6
  * 
  * This program has been tested to compile and run on: Debian GNU/Linux 6.0,
  * FreeBSD 8.2, NetBSD 5.1, OpenBSD 5.0, and Ubuntu 11.10.
@@ -47,17 +47,13 @@
 #include <pwd.h>
 #include "ns6.h"
 #include "ipv6toolkit.h"
+#include "libipv6.h"
 
 void				init_packet_data(void);
-int					insert_pad_opt(char *ptrhdr, const char *, unsigned int);
 void				send_packet(void);
 void				print_attack_info(void);
-void				sanitize_ipv6_prefix(struct in6_addr *, u_int8_t);
 void				usage(void);
 void				print_help(void);
-int					ether_pton(const char *, struct ether_addr *, unsigned int);
-int					ether_ntop(const struct ether_addr *, char *, size_t);
-u_int16_t			in_chksum(void *, void *, size_t);
 
 pcap_t				*pfd;
 bpf_u_int32			my_netmask;
@@ -65,8 +61,8 @@ bpf_u_int32			my_ip;
 struct bpf_program	pcap_filter;
 char 				dev[64], errbuf[PCAP_ERRBUF_SIZE];
 
-char 				buffer[65556];
-char 				*v6buffer, *ptr, *startofprefixes;
+unsigned char		buffer[65556];
+unsigned char 		*v6buffer, *ptr, *startofprefixes;
 char 				iface[IFACE_LENGTH];
     
 struct ip6_hdr		*ipv6;
@@ -101,28 +97,25 @@ unsigned char		srcpreflen, targetpreflen;
 
 /* Support for Extension Headers */
 unsigned int		dstopthdrs, dstoptuhdrs, hbhopthdrs;
-char				hbhopthdr_f=0, dstoptuhdr_f=0, dstopthdr_f=0;
-char				*dstopthdr[MAX_DST_OPT_HDR], *dstoptuhdr[MAX_DST_OPT_U_HDR];
-char				*hbhopthdr[MAX_HBH_OPT_HDR];
+unsigned char		hbhopthdr_f=0, dstoptuhdr_f=0, dstopthdr_f=0;
+unsigned char		*dstopthdr[MAX_DST_OPT_HDR], *dstoptuhdr[MAX_DST_OPT_U_HDR];
+unsigned char		*hbhopthdr[MAX_HBH_OPT_HDR];
 unsigned int		dstopthdrlen[MAX_DST_OPT_HDR], dstoptuhdrlen[MAX_DST_OPT_U_HDR];
 unsigned int		hbhopthdrlen[MAX_HBH_OPT_HDR], m, pad;
 
 struct ip6_frag		fraghdr, *fh;
 struct ip6_hdr		*fipv6;
 unsigned char		fragh_f=0;
-char				fragbuffer[ETHER_HDR_LEN+MIN_IPV6_HLEN+MAX_IPV6_PAYLOAD];
-char				*fragpart, *fptr, *fptrend, *ptrend, *ptrhdr, *ptrhdrend;
+unsigned char		fragbuffer[ETHER_HDR_LEN+MIN_IPV6_HLEN+MAX_IPV6_PAYLOAD];
+unsigned char		*fragpart, *fptr, *fptrend, *ptrend, *ptrhdr, *ptrhdrend;
 unsigned int		hdrlen, ndstopthdr=0, nhbhopthdr=0, ndstoptuhdr=0;
 unsigned int		nfrags, fragsize, max_packet_size;
-char				*prev_nh, *startoffragment;
+unsigned char		*prev_nh, *startoffragment;
 
 
 int main(int argc, char **argv){
 	extern char	*optarg;
-	uid_t		ruid;
-	gid_t		rgid;
 	int			r;
-	struct passwd	*pwdptr;
 
 	static struct option longopts[] = {
 		{"interface", required_argument, 0, 'i'},
@@ -486,40 +479,7 @@ int main(int argc, char **argv){
 		exit(EXIT_FAILURE);
 	}
 
-	/* 
-	   If the real UID is not root, we setuid() and setgid() to that user and group, releasing superuser
-	   privileges. Otherwise, if the real UID is 0, we try to setuid() to "nobody", releasing superuser 
-	   privileges.
-	 */
-	if( (ruid=getuid()) && (rgid=getgid())){
-		if(setgid(rgid) == -1){
-			puts("Error while releasing superuser privileges (changing to real GID)");
-			exit(EXIT_FAILURE);
-		}
-
-		if(setuid(ruid) == -1){
-			puts("Error while releasing superuser privileges (changing to real UID)");
-			exit(EXIT_FAILURE);
-		}
-	}
-	else{
-		if((pwdptr=getpwnam("nobody"))){
-			if(!pwdptr->pw_uid || !pwdptr->pw_gid){
-				puts("User 'nobody' has incorrect privileges");
-				exit(EXIT_FAILURE);
-			}
-
-			if(setgid(pwdptr->pw_gid) == -1){
-				puts("Error while releasing superuser privileges (changing to nobody's group)");
-				exit(EXIT_FAILURE);
-			}
-
-			if(setuid(pwdptr->pw_uid) == -1){
-				puts("Error while releasing superuser privileges (changing to 'nobody')");
-				exit(EXIT_FAILURE);
-			}
-		}
-	}
+	release_privileges();
 
 	if( pcap_datalink(pfd) != DLT_EN10MB){
 		printf("Error: Interface %s is not an Ethernet interface\n", iface);
@@ -607,7 +567,7 @@ int main(int argc, char **argv){
 	}
 
 	if(!hdstaddr_f)			/* Destination link-layer address defaults to all-nodes */
-		if(ether_pton(ETHER_ALL_NODES_LINK_ADDR, &hdstaddr, sizeof(hdstaddr)) == 0){
+		if(ether_pton(ETHER_ALLNODES_LINK_ADDR, &hdstaddr, sizeof(hdstaddr)) == 0){
 			puts("ether_pton(): Error converting all-nodes multicast address");
 			exit(EXIT_FAILURE);
 		}
@@ -674,9 +634,9 @@ void init_packet_data(void){
     ipv6->ip6_hlim= hoplimit;
     ipv6->ip6_src= srcaddr;
     ipv6->ip6_dst= dstaddr;
-    prev_nh = (char *) &(ipv6->ip6_nxt);
+    prev_nh = (unsigned char *) &(ipv6->ip6_nxt);
 
-    ptr = (char *) v6buffer + MIN_IPV6_HLEN;
+    ptr = (unsigned char *) v6buffer + MIN_IPV6_HLEN;
     
     if(hbhopthdr_f){
 	hbhopthdrs=0;
@@ -730,7 +690,7 @@ void init_packet_data(void){
     	*/
     	bzero(&fraghdr, FRAG_HDR_SIZE);
     	*prev_nh = IPPROTO_FRAGMENT;
-    	prev_nh = (char *) &fraghdr;
+    	prev_nh = (unsigned char *) &fraghdr;
     }
 
     if(dstopthdr_f){
@@ -889,7 +849,7 @@ void send_packet(void){
 				}
 
 				ns->nd_ns_cksum = 0;
-				ns->nd_ns_cksum = in_chksum(v6buffer, ns, ptr-((char *)ns));
+				ns->nd_ns_cksum = in_chksum(v6buffer, ns, ptr-((unsigned char *)ns), IPPROTO_ICMPV6);
 
 				if(!fragh_f){
 					ipv6->ip6_plen = htons((ptr - v6buffer) - MIN_IPV6_HLEN);
@@ -1025,56 +985,6 @@ void print_help(void){
 }
 
 
-/* 
- * Function: in_chksum()
- *
- * Calculate the 16-bit ICMPv6 checksum
- */
-
-u_int16_t in_chksum(void *ptr_ipv6, void *ptr_icmpv6, size_t len){
-	struct ipv6pseudohdr	pseudohdr;
-	struct ip6_hdr *v6packet;
-	size_t nleft;
-	unsigned int sum = 0;
-	u_int16_t *w;
-	u_int16_t answer = 0;
-
-	v6packet=ptr_ipv6;
-	
-	bzero(&pseudohdr, sizeof(struct ipv6pseudohdr));
-	pseudohdr.srcaddr= v6packet->ip6_src;
-	pseudohdr.dstaddr= v6packet->ip6_dst;
-	pseudohdr.len = htons(len);
-	pseudohdr.nh = IPPROTO_ICMPV6;
-
-	nleft=40;
-	w= (u_int16_t *) &pseudohdr;
-
-	while(nleft > 1){
-		sum += *w++;
-		nleft -= 2;
-	}
-
-	nleft= len;
-	w= (u_int16_t *) ptr_icmpv6;
-
-	while(nleft > 1){
-		sum += *w++;
-		nleft -= 2;
-	}
-
-	if(nleft == 1){
-		*(unsigned char *) (&answer) = *(unsigned char *) w;
-		sum += answer;
-	}
-
-	sum = (sum >> 16) + (sum & 0xffff);
-	sum += (sum >> 16);
-	answer = ~sum;
-	return(answer);
-}
-
-
 
 /*
  * Function: print_attack_info()
@@ -1182,113 +1092,4 @@ void print_attack_info(void){
 		    ((floods_f && !sllopta_f)?"(randomized for each packet)":plinkaddr));
     }
 }
-
-
-
-
-/*
- * sanitize_ipv6_prefix()
- *
- * Clears those bits in an IPv6 address that are not within a prefix length.
- */
-
-void sanitize_ipv6_prefix(struct in6_addr *ipv6addr, u_int8_t prefixlen){
-    unsigned int skip, i;
-    u_int16_t	mask;
-    
-    skip= (prefixlen+15)/16;
-
-    if(prefixlen%16){
-	mask=0;
-    	for(i=0; i<(prefixlen%16); i++)
-	    mask= (mask>>1) | 0x8000;
-		    
-	ipv6addr->s6_addr16[skip-1]= ipv6addr->s6_addr16[skip-1] & htons(mask);
-    }
-			
-    for(i=skip;i<8;i++)
-	ipv6addr->s6_addr16[i]=0;
-	
-}
-
-
-
-/*
- * Function: ether_pton()
- *
- * Convert a string (printable Ethernet Address) into binary format
- */
-int ether_pton(const char *ascii, struct ether_addr *etheraddr, unsigned int s){
-    unsigned int i, a[6];
-    
-    if(s < ETHER_ADDR_LEN)
-	return 0;
-	
-    if(ascii){
-	if( sscanf(ascii,"%x:%x:%x:%x:%x:%x", &a[0], &a[1], &a[2], &a[3], \
-		    &a[4], &a[5]) == 6){ 
-	    for(i=0;i<6;i++)
-		etheraddr->a[i]= a[i];
-	
-	    return 1;
-	}
-    }
-
-    return 0;
-}
-
-
-
-/*
- * Function: ether_ntop()
- *
- * Convert binary Ethernet Address into printable format (an ASCII string)
- */
-
-int ether_ntop(const struct ether_addr *ether, char *ascii, size_t s){
-    unsigned int r;
-
-    if(s < ETHER_ADDR_PLEN)
-	return 0;
-
-    r=snprintf(ascii, s, "%02x:%02x:%02x:%02x:%02x:%02x", ether->a[0], ether->a[1], ether->a[2], ether->a[3], ether->a[4], ether->a[5]);
-
-    if(r != 17)
-	return 0;
-
-    return 1;
-}
-
-
-/*
- * Function: inset_pad_opt()
- *
- * Insert a padding option (Pad1 or PadN) into an IPv6 extension header
- */
-
-int insert_pad_opt(char *ptrhdr, const char *ptrhdrend, unsigned int padn){
-    char *ptr;
-
-    if( (ptrhdrend - ptrhdr) < padn)
-	return 0;
-
-    if(padn == 1){
-	*ptrhdr= 0x00;
-	return 1;
-    }
-    else{
-	ptr=ptrhdr;
-	*ptr= 0x01;
-	ptr++;
-	*ptr= padn-2;
-	ptr+=2;
-	
-	while(ptr < (ptrhdr+padn)){
-	    *ptr= 0x00;
-	    ptr++;
-	}    
-	return 1;
-    }
-}
-
 

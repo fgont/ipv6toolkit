@@ -20,7 +20,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  * 
- * Build with: gcc tcp6.c -Wall -lpcap -o tcp6
+ * Build with: make tcp6
  * 
  * This program has been tested to compile and run on: Debian GNU/Linux 6.0,
  * FreeBSD 8.2, NetBSD 5.1, OpenBSD 5.0, and Ubuntu 11.10.
@@ -58,7 +58,7 @@
 #include <sys/select.h>
 #include "ipv6toolkit.h"
 #include "tcp6.h"
-#include "ipv6lib.h"
+#include "libipv6.h"
 #include <netinet/tcp.h>
 
 

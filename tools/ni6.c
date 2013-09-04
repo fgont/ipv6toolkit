@@ -58,42 +58,23 @@
 #endif
 #include "ni6.h"
 #include "ipv6toolkit.h"
+#include "libipv6.h"
 #include <netinet/tcp.h>
 #include <netinet/udp.h>
 
 
 /* Function prototypes */
-void				init_packet_data(void);
+void				init_packet_data(struct iface_data *);
 int					init_iface_data(struct iface_data *);
-int					insert_pad_opt(unsigned char *ptrhdr, const unsigned char *, unsigned int);
-int					send_packet(const u_char *, struct pcap_pkthdr *);
-void				print_attack_info(void);
-void				print_filters(void);
-void				print_filter_result(const u_char *, unsigned char);
+int					send_packet(struct iface_data *, const u_char *, struct pcap_pkthdr *);
+void				print_attack_info(struct iface_data *);
 void				usage(void);
 void				print_help(void);
-int					ether_pton(const char *, struct ether_addr *, unsigned int);
-int					ether_ntop(const struct ether_addr *, char *, size_t);
-u_int16_t			in_chksum(void *, void *, size_t);
-unsigned int		match_ipv6(struct in6_addr *, u_int8_t *, unsigned int, struct in6_addr *);
-unsigned int		match_ether(struct ether_addr *, unsigned int, struct ether_addr *);
-void				sanitize_ipv6_prefix(struct in6_addr *, u_int8_t);
-void				randomize_ipv6_addr(struct in6_addr *, struct in6_addr *, u_int8_t);
-void				randomize_ether_addr(struct ether_addr *);
-void 				ether_to_ipv6_linklocal(struct ether_addr *etheraddr, struct in6_addr *ipv6addr);
-void				sig_alarm(int);
-int					is_eq_in6_addr(struct in6_addr *, struct in6_addr *);
-int					find_ipv6_router_full(pcap_t *, struct iface_data *);
-int					is_ip6_in_prefix_list(struct in6_addr *, struct prefix_list *);
-int					is_ip6_in_address_list(struct prefix_list *, struct in6_addr *);
-int					ipv6_to_ether(pcap_t *, struct iface_data *, struct in6_addr *, struct ether_addr *);
-int					send_neighbor_advert(struct iface_data *, pcap_t *,  const u_char *);
-struct in6_addr *	src_addr_sel(struct iface_data *, struct in6_addr *);
-int					print_ni_data(const u_char *, struct pcap_pkthdr *);
-int					print_ni_addr(const u_char *, struct pcap_pkthdr *);
-int					print_ni_addr6(const u_char *, struct pcap_pkthdr *);
-int					print_ni_name(const u_char *, struct pcap_pkthdr *);
-int					print_ni_noop(const u_char *, struct pcap_pkthdr *);
+int					print_ni_data(struct iface_data *, const u_char *, struct pcap_pkthdr *);
+int					print_ni_addr(struct iface_data *, const u_char *, struct pcap_pkthdr *);
+int					print_ni_addr6(struct iface_data *, const u_char *, struct pcap_pkthdr *);
+int					print_ni_name(struct iface_data *, const u_char *, struct pcap_pkthdr *);
+int					print_ni_noop(struct iface_data *, const u_char *, struct pcap_pkthdr *);
 
 
 /* Variables used for learning the default router */
@@ -147,8 +128,8 @@ u_int8_t			hoplimit;
 
 char 				plinkaddr[ETHER_ADDR_PLEN];
 char 				psrcaddr[INET6_ADDRSTRLEN], pdstaddr[INET6_ADDRSTRLEN], pv6addr[INET6_ADDRSTRLEN];
-unsigned char 		verbose_f=0, iface_f=0;
-unsigned char 		srcaddr_f=0, dstaddr_f=0, hsrcaddr_f=0, hdstaddr_f=0, rand_src_f=0, forgeether_f=0;
+unsigned char 		iface_f=0;
+unsigned char 		rand_src_f=0, forgeether_f=0;
 unsigned char 		listen_f = 0, multicastdst_f=0, accepted_f=0, loop_f=0, sleep_f=0;
 unsigned char		srcprefix_f=0, hoplimit_f=0, flags_f=0, exceedp_f=0, snamedslabel_f=0;
 unsigned char		floods_f=0, name_f=0, fname_f=0, ipv6addr_f=0, ipv4addr_f=0, maxlabel_f=0;
@@ -170,7 +151,7 @@ unsigned char		fragh_f=0;
 unsigned char		fragbuffer[ETHER_HDR_LEN+MIN_IPV6_HLEN+MAX_IPV6_PAYLOAD];
 unsigned char		*fragpart, *fptr, *fptrend, *ptrend, *ptrhdr, *ptrhdrend;
 unsigned int		hdrlen, ndstopthdr=0, nhbhopthdr=0, ndstoptuhdr=0;
-unsigned int		nfrags, fragsize, max_packet_size;
+unsigned int		nfrags, fragsize;
 unsigned char		*prev_nh, *startoffragment;
 
 /* ICMPv6 NI */
@@ -292,12 +273,12 @@ int main(int argc, char **argv){
 					exit(EXIT_FAILURE);
 				}
 
-				if ( inet_pton(AF_INET6, charptr, &srcaddr) <= 0){
+				if ( inet_pton(AF_INET6, charptr, &(idata.srcaddr)) <= 0){
 					puts("inet_pton(): Source Address not valid");
 					exit(EXIT_FAILURE);
 				}
 
-				srcaddr_f = 1;
+				idata.srcaddr_f = 1;
 		
 				if((charptr = strtok_r(NULL, " ", &lasts)) != NULL){
 					srcpreflen = atoi(charptr);
@@ -307,20 +288,20 @@ int main(int argc, char **argv){
 						exit(EXIT_FAILURE);
 					}
 
-					sanitize_ipv6_prefix(&srcaddr, srcpreflen);
+					sanitize_ipv6_prefix(&(idata.srcaddr), srcpreflen);
 					srcprefix_f=1;
 				}
 
 				break;
 	    
 			case 'd':	/* IPv6 Destination Address */
-				if( inet_pton(AF_INET6, optarg, &dstaddr) <= 0){
+				if( inet_pton(AF_INET6, optarg, &(idata.dstaddr)) <= 0){
 					puts("inet_pton(): address not valid");
 					exit(EXIT_FAILURE);
 				}
 
 				type= ICMP6_NI_QUERY;
-				dstaddr_f = 1;
+				idata.dstaddr_f = 1;
 				break;
 
 			case 'c':	/* Hop Limit */
@@ -473,27 +454,27 @@ int main(int argc, char **argv){
 				break;
 
 			case 'S':	/* Source Ethernet address */
-				if(ether_pton(optarg, &hsrcaddr, sizeof(hsrcaddr)) == 0){
+				if(ether_pton(optarg, &(idata.hsrcaddr), sizeof(idata.hsrcaddr)) == 0){
 					puts("Error in Source link-layer address.");
 					exit(EXIT_FAILURE);
 				}
 		
-				hsrcaddr_f = 1;
+				idata.hsrcaddr_f = 1;
 				break;
 
 			case 'D':	/* Destination Ethernet Address */
-				if(ether_pton(optarg, &hdstaddr, sizeof(hdstaddr)) == 0){
+				if(ether_pton(optarg, &(idata.hdstaddr), sizeof(idata.hdstaddr)) == 0){
 					puts("Error in Source link-layer address.");
 					exit(EXIT_FAILURE);
 				}
 		
-				hdstaddr_f = 1;
+				idata.hdstaddr_f = 1;
 				break;
 
 			case '6':	/* Subject: IPv6 address */
 
 				if ( inet_pton(AF_INET6, optarg, &ipv6addr) <= 0){
-					puts("inet_pton(): Redirected Address not valid");
+					puts("inet_pton(): Subject Address not valid");
 					exit(EXIT_FAILURE);
 				}
 
@@ -503,7 +484,7 @@ int main(int argc, char **argv){
 			case '4':	/* Subject: IPv4 address */
 
 				if( inet_pton(AF_INET, optarg, &ipv4addr) <= 0){
-					puts("inet_pton(): Redirected Address not valid");
+					puts("inet_pton(): Subject Address not valid");
 					exit(EXIT_FAILURE);
 				}
 
@@ -687,7 +668,7 @@ int main(int argc, char **argv){
 					exit(EXIT_FAILURE);
 				}
 
-				if ( inet_pton(AF_INET6, pref, &(filters.blocksrc[nblocksrc])) <= 0){
+				if ( inet_pton(AF_INET6, pref, &(filters.blocksrc[filters.nblocksrc])) <= 0){
 					printf("Error in IPv6 Source Address (block) filter number %u.", \
 											    filters.nblocksrc+1);
 					exit(EXIT_FAILURE);
@@ -703,7 +684,7 @@ int main(int argc, char **argv){
 						printf("Length error in IPv6 Source Address (block) filter number %u.\n", \
 													filters.nblocksrc+1);
 						exit(EXIT_FAILURE);
-		    			}
+		    		}
 				}
 
 				sanitize_ipv6_prefix(&(filters.blocksrc[filters.nblocksrc]), filters.blocksrclen[filters.nblocksrc]);
@@ -742,7 +723,7 @@ int main(int argc, char **argv){
 				}
 		
 				sanitize_ipv6_prefix(&(filters.blockdst[filters.nblockdst]), filters.blockdstlen[filters.nblockdst]);
-				nblockdst++;
+				filters.nblockdst++;
 				break;
 
 			case 'J':	/* Link Source Address (block) filter */
@@ -807,7 +788,7 @@ int main(int argc, char **argv){
 				}
 
 				sanitize_ipv6_prefix(&(filters.acceptsrc[filters.nacceptsrc]), filters.acceptsrclen[filters.nacceptsrc]);
-				(filters..nacceptsrc)++;
+				(filters.nacceptsrc)++;
 				filters.acceptfilters_f=1;
 				break;
 
@@ -907,7 +888,7 @@ int main(int argc, char **argv){
 				break;
 
 			case 'v':	/* Be verbose */
-				verbose_f++;
+				idata.verbose_f++;
 				break;
 		
 			case 'h':	/* Help */
@@ -939,19 +920,19 @@ int main(int argc, char **argv){
 		exit(EXIT_FAILURE);
 	}
     
-	if(!dstaddr_f && !listen_f){	/* Must specify IPv6 Destination Address if listening mode not used */
+	if(!(idata.dstaddr_f) && !listen_f){	/* Must specify IPv6 Destination Address if listening mode not used */
 		puts("IPv6 Destination Address not specified (and listening mode not selected)");
 		exit(EXIT_FAILURE);
 	}
 
-	if( (idata.pd= pcap_open_live(idata.iface, PCAP_SNAP_LEN, PCAP_PROMISC, PCAP_TIMEOUT, errbuf)) == NULL){
+	if( (idata.pfd= pcap_open_live(idata.iface, PCAP_SNAP_LEN, PCAP_PROMISC, PCAP_TIMEOUT, errbuf)) == NULL){
 		printf("pcap_open_live(): %s\n", errbuf);
 		exit(EXIT_FAILURE);
 	}
 
 	release_privileges();
 
-	if( (idata.type = pcap_datalink(idata.pd)) == DLT_EN10MB){
+	if( (idata.type = pcap_datalink(idata.pfd)) == DLT_EN10MB){
 		idata.linkhsize= ETH_HLEN;
 		idata.mtu= ETH_DATA_LEN;
 	}
@@ -975,13 +956,13 @@ int main(int argc, char **argv){
 		exit(EXIT_FAILURE);
 	}
 
-	if(!hsrcaddr_f){
+	if(!(idata.hsrcaddr_f)){
 		if(forgeether_f || !idata.ether_flag){
-			randomize_ether_addr(&hsrcaddr);
+			randomize_ether_addr(&(idata.hsrcaddr));
 		}
 		else{
-			hsrcaddr= idata.ether;
-			hsrcaddr_f= 1;
+			idata.hsrcaddr= idata.ether;
+			idata.hsrcaddr_f= 1;
 		}
 	}
 
@@ -989,7 +970,7 @@ int main(int argc, char **argv){
 		/* If we couldn't get the link-layer address with get_if_addrs(), idata.ether_flag
 		   could be empty. In that case, we set the link-layer address to the randomized one */
 		if(!idata.ether_flag){
-			idata.ether= hsrcaddr;
+			idata.ether= idata.hsrcaddr;
 			idata.ether_flag=1;
 		}
 
@@ -1005,13 +986,13 @@ int main(int argc, char **argv){
 	}
 
 	if(srcprefix_f){
-		randprefix=srcaddr;
+		randprefix=idata.srcaddr;
 		randpreflen=srcpreflen;
-		randomize_ipv6_addr(&srcaddr, &randprefix, randpreflen);
-		srcaddr_f=1;
+		randomize_ipv6_addr(&(idata.srcaddr), &randprefix, randpreflen);
+		idata.srcaddr_f=1;
 	}
-	else if(!srcaddr_f && dstaddr_f){
-		srcaddr= *src_addr_sel(&idata, &dstaddr);
+	else if(!idata.srcaddr_f && idata.dstaddr_f){
+		idata.srcaddr= *src_addr_sel(&idata, &(idata.dstaddr));
 	}
 
 	if(sel_next_hop(&idata) == -1)
@@ -1043,9 +1024,9 @@ int main(int argc, char **argv){
 	}
     
 	if(fragh_f)
-		max_packet_size = MAX_IPV6_PAYLOAD + MIN_IPV6_HLEN;
+		idata.max_packet_size = MAX_IPV6_PAYLOAD + MIN_IPV6_HLEN;
 	else
-		max_packet_size = ETH_DATA_LEN;
+		idata.max_packet_size = ETH_DATA_LEN;
 
 	if(sloopattack_f){
 		if(code_f && code != 1){
@@ -1101,9 +1082,9 @@ int main(int argc, char **argv){
 	}
 
 	/* Set initial contents of the attack packet */
-	init_packet_data();
+	init_packet_data(&idata);
 
-	if( (idata.fd= pcap_fileno(idata.pd)) == -1){
+	if( (idata.fd= pcap_fileno(idata.pfd)) == -1){
 		puts("Error obtaining descriptor number for pcap_t");
 		exit(EXIT_FAILURE);
 	}
@@ -1111,10 +1092,10 @@ int main(int argc, char **argv){
 	FD_ZERO(&sset);
 	FD_SET(idata.fd, &sset);
 
-	start= time(NULL);    
+	start= time(NULL);
 
 	/* Fire an ICMPv6 Redirect if an IPv6 Destination Address was specified 	*/
-	if(dstaddr_f){
+	if(idata.dstaddr_f){
 		if(!code_f){
 			if(ipv6addr_f){
 				code=0;
@@ -1150,13 +1131,13 @@ int main(int argc, char **argv){
 			}
 		}
 
-		if(pcap_compile(idata.pd, &pcap_filter, PCAP_ICMPV6_NI_REPLY, PCAP_OPT, PCAP_NETMASK_UNKNOWN) == -1){
-			printf("pcap_compile(): %s", pcap_geterr(idata.pd));
+		if(pcap_compile(idata.pfd, &pcap_filter, PCAP_ICMPV6_NI_REPLY, PCAP_OPT, PCAP_NETMASK_UNKNOWN) == -1){
+			printf("pcap_compile(): %s", pcap_geterr(idata.pfd));
 			exit(EXIT_FAILURE);
 		}
 
-		if(pcap_setfilter(idata.pd, &pcap_filter) == -1){
-			printf("pcap_setfilter(): %s", pcap_geterr(idata.pd));
+		if(pcap_setfilter(idata.pfd, &pcap_filter) == -1){
+			printf("pcap_setfilter(): %s", pcap_geterr(idata.pfd));
 			exit(EXIT_FAILURE);
 		}
 
@@ -1164,8 +1145,8 @@ int main(int argc, char **argv){
 
 		type= ICMP6_NI_QUERY;
 
-		if(verbose_f){
-			print_attack_info();
+		if(idata.verbose_f){
+			print_attack_info(&idata);
 		}
 
 		while(1){
@@ -1180,7 +1161,7 @@ int main(int argc, char **argv){
 
 				puts("Sending ICMPv6 Node Information Query....\n");
 
-				if(send_packet(NULL, NULL) == -1){
+				if(send_packet(&idata, NULL, NULL) == -1){
 					puts("Error sending packet");
 					exit(EXIT_FAILURE);
 				}
@@ -1202,15 +1183,15 @@ int main(int argc, char **argv){
 
 			/* Read a NI Reply packet */
 			if(FD_ISSET(idata.fd, &rset)){
-				if((r=pcap_next_ex(idata.pd, &pkthdr, &pktdata)) == -1){
-					printf("pcap_next_ex(): %s", pcap_geterr(idata.pd));
+				if((r=pcap_next_ex(idata.pfd, &pkthdr, &pktdata)) == -1){
+					printf("pcap_next_ex(): %s", pcap_geterr(idata.pfd));
 					exit(EXIT_FAILURE);
 				}
 				else if(r == 0){
 					continue; /* Should never happen */
 				}
 
-				if(print_ni_data(pktdata, pkthdr) == -1){
+				if(print_ni_data(&idata, pktdata, pkthdr) == -1){
 					puts("Error while printing NI data");
 					exit(EXIT_FAILURE);
 				}
@@ -1234,14 +1215,14 @@ int main(int argc, char **argv){
 			qtype= NI_QTYPE_NOOP;
 		}
 
-		if(pcap_compile(idata.pd, &pcap_filter, PCAP_ICMPV6_NI_QUERY, PCAP_OPT, PCAP_NETMASK_UNKNOWN) == -1){
-			printf("pcap_compile(): %s", pcap_geterr(idata.pd));
+		if(pcap_compile(idata.pfd, &pcap_filter, PCAP_ICMPV6_NI_QUERY, PCAP_OPT, PCAP_NETMASK_UNKNOWN) == -1){
+			printf("pcap_compile(): %s", pcap_geterr(idata.pfd));
 			exit(EXIT_FAILURE);
 		}
 
     
-		if(pcap_setfilter(idata.pd, &pcap_filter) == -1){
-			printf("pcap_setfilter(): %s", pcap_geterr(idata.pd));
+		if(pcap_setfilter(idata.pfd, &pcap_filter) == -1){
+			printf("pcap_setfilter(): %s", pcap_geterr(idata.pfd));
 			exit(EXIT_FAILURE);
 		}
 
@@ -1249,12 +1230,12 @@ int main(int argc, char **argv){
 
 		type= ICMP6_NI_REPLY;
 
-		if(verbose_f){
-			print_attack_info();
+		if(idata.verbose_f){
+			print_attack_info(&idata);
 		}
 
-		if(verbose_f){
-			print_filters();
+		if(idata.verbose_f){
+			print_filters(&idata, &filters);
 			puts("Listening to incoming IPv6 packets...");
 		}
 
@@ -1272,8 +1253,8 @@ int main(int argc, char **argv){
 			}
 
 			/* Read a Neighbor Solicitation message */
-			if((r=pcap_next_ex(idata.pd, &pkthdr, &pktdata)) == -1){
-				printf("pcap_next_ex(): %s", pcap_geterr(idata.pd));
+			if((r=pcap_next_ex(idata.pfd, &pkthdr, &pktdata)) == -1){
+				printf("pcap_next_ex(): %s", pcap_geterr(idata.pfd));
 				exit(EXIT_FAILURE);
 			}
 			else if(r == 0){
@@ -1281,7 +1262,7 @@ int main(int argc, char **argv){
 			}
 
 			pkt_ether = (struct ether_header *) pktdata;
-			pkt_ipv6 = (struct ip6_hdr *)((char *) pkt_ether + linkhsize);
+			pkt_ipv6 = (struct ip6_hdr *)((char *) pkt_ether + idata.linkhsize);
 			pkt_ni= (struct icmp6_nodeinfo *) ( (unsigned char *) pkt_ipv6 + sizeof(struct ip6_hdr));
 
 			accepted_f=0;
@@ -1301,81 +1282,81 @@ int main(int argc, char **argv){
 					continue;
 			}
 
-			if(nblocklinksrc){
-				if(match_ether(blocklinksrc, nblocklinksrc, &(pkt_ether->src))){
-					if(verbose_f>1)
-						print_filter_result(pktdata, BLOCKED);
+			if(filters.nblocklinksrc){
+				if(match_ether(filters.blocklinksrc, filters.nblocklinksrc, &(pkt_ether->src))){
+					if(idata.verbose_f > 1)
+						print_filter_result(&idata, pktdata, BLOCKED);
 		
 					continue;
 				}
 			}
 
-			if(nblocklinkdst){
-				if(match_ether(blocklinkdst, nblocklinkdst, &(pkt_ether->dst))){
-					if(verbose_f>1)
-						print_filter_result(pktdata, BLOCKED);
+			if(filters.nblocklinkdst){
+				if(match_ether(filters.blocklinkdst, filters.nblocklinkdst, &(pkt_ether->dst))){
+					if(idata.verbose_f > 1)
+						print_filter_result(&idata, pktdata, BLOCKED);
 		
 					continue;
 				}
 			}
 	
-			if(nblocksrc){
-				if(match_ipv6(blocksrc, blocksrclen, nblocksrc, &(pkt_ipv6->ip6_src))){
-					if(verbose_f>1)
-						print_filter_result(pktdata, BLOCKED);
+			if(filters.nblocksrc){
+				if(match_ipv6(filters.blocksrc, filters.blocksrclen, filters.nblocksrc, &(pkt_ipv6->ip6_src))){
+					if(idata.verbose_f > 1)
+						print_filter_result(&idata, pktdata, BLOCKED);
 		
 					continue;
 				}
 			}
 	
-			if(nblockdst){
-				if(match_ipv6(blockdst, blockdstlen, nblockdst, &(pkt_ipv6->ip6_dst))){
-					if(verbose_f>1)
-						print_filter_result(pktdata, BLOCKED);
+			if(filters.nblockdst){
+				if(match_ipv6(filters.blockdst, filters.blockdstlen, filters.nblockdst, &(pkt_ipv6->ip6_dst))){
+					if(idata.verbose_f > 1)
+						print_filter_result(&idata, pktdata, BLOCKED);
 		
 					continue;
 				}
 			}
 	
-			if(nacceptlinksrc){
-				if(match_ether(acceptlinksrc, nacceptlinksrc, &(pkt_ether->src)))
+			if(filters.nacceptlinksrc){
+				if(match_ether(filters.acceptlinksrc, filters.nacceptlinksrc, &(pkt_ether->src)))
 					accepted_f=1;
 			}
 
-			if(nacceptlinkdst && !accepted_f){
-				if(match_ether(acceptlinkdst, nacceptlinkdst, &(pkt_ether->dst)))
+			if(filters.nacceptlinkdst && !accepted_f){
+				if(match_ether(filters.acceptlinkdst, filters.nacceptlinkdst, &(pkt_ether->dst)))
 					accepted_f= 1;
 			}
 
-			if(nacceptsrc && !accepted_f){
-				if(match_ipv6(acceptsrc, acceptsrclen, nacceptsrc, &(pkt_ipv6->ip6_src)))
+			if(filters.nacceptsrc && !accepted_f){
+				if(match_ipv6(filters.acceptsrc, filters.acceptsrclen, filters.nacceptsrc, &(pkt_ipv6->ip6_src)))
 					accepted_f= 1;
 			}
 
-			if(nacceptdst && !accepted_f){
-				if(match_ipv6(acceptdst, acceptdstlen, nacceptdst, &(pkt_ipv6->ip6_dst)))
+			if(filters.nacceptdst && !accepted_f){
+				if(match_ipv6(filters.acceptdst, filters.acceptdstlen, filters.nacceptdst, &(pkt_ipv6->ip6_dst)))
 					accepted_f=1;
 			}
 	
-			if(acceptfilters_f && !accepted_f){
-				if(verbose_f>1)
-					print_filter_result(pktdata, BLOCKED);
+			if(filters.acceptfilters_f && !accepted_f){
+				if(idata.verbose_f > 1)
+					print_filter_result(&idata, pktdata, BLOCKED);
 
 				continue;
 			}
 
-			if(verbose_f)
-				print_filter_result(pktdata, ACCEPTED);
+			if(idata.verbose_f)
+				print_filter_result(&idata, pktdata, ACCEPTED);
 
 			/* Send a Neighbor Advertisement */
-			send_packet(pktdata, pkthdr);
+			send_packet(&idata, pktdata, pkthdr);
 		}
     
 		exit(EXIT_SUCCESS);
 	}
     
 
-	if(!dstaddr_f && !listen_f){
+	if(!idata.dstaddr_f && !listen_f){
 		puts("Error: Nothing to send! (key parameters left unspecified, and not using listening mode)");
 		exit(EXIT_FAILURE);
 	}
@@ -1389,38 +1370,38 @@ int main(int argc, char **argv){
  * Wrapper to call the different functions that print the contents of NI replies
  */
 
-int	print_ni_data(const u_char *pktdata, struct pcap_pkthdr * pkthdr){
+int	print_ni_data(struct iface_data *idata, const u_char *pktdata, struct pcap_pkthdr * pkthdr){
 	struct icmp6_nodeinfo	*pkt_ni;
 
-	pkt_ni= (struct icmp6_nodeinfo *) ((char *)pktdata + linkhsize + sizeof(struct ip6_hdr));
+	pkt_ni= (struct icmp6_nodeinfo *) ((char *)pktdata + idata->linkhsize + sizeof(struct ip6_hdr));
 
 	switch(ntohs(pkt_ni->ni_qtype)){
 		case NI_QTYPE_NOOP:
-			if(print_ni_noop(pktdata, pkthdr) == -1){
+			if(print_ni_noop(idata, pktdata, pkthdr) == -1){
 				return(-1);
 			}
 			break;
 
 		case NI_QTYPE_SUPTYPES:
-			if(print_ni_noop(pktdata, pkthdr) == -1){
+			if(print_ni_noop(idata, pktdata, pkthdr) == -1){
 				return(-1);
 			}
 			break;
 
 		case NI_QTYPE_DNSNAME:
-			if(print_ni_name(pktdata, pkthdr) == -1){
+			if(print_ni_name(idata, pktdata, pkthdr) == -1){
 				return(-1);
 			}
 			break;
 
 		case NI_QTYPE_NODEADDR:
-			if(print_ni_addr6(pktdata, pkthdr) == -1){
+			if(print_ni_addr6(idata, pktdata, pkthdr) == -1){
 				return(-1);
 			}
 			break;
 
 		case NI_QTYPE_IPV4ADDR:
-			if(print_ni_addr6(pktdata, pkthdr) == -1){
+			if(print_ni_addr6(idata, pktdata, pkthdr) == -1){
 				return(-1);
 			}
 			break;
@@ -1439,7 +1420,7 @@ int	print_ni_data(const u_char *pktdata, struct pcap_pkthdr * pkthdr){
  * Print responses to ICMPv6 NI queries for IPv4 addresses
  */
 
-int	print_ni_addr(const u_char *pktdata, struct pcap_pkthdr * pkthdr){
+int	print_ni_addr(struct iface_data *idata, const u_char *pktdata, struct pcap_pkthdr * pkthdr){
 	struct ether_header 	*pkt_ether;
 	struct ip6_hdr 			*pkt_ipv6;
 	struct icmp6_nodeinfo	*pkt_ni;
@@ -1448,18 +1429,18 @@ int	print_ni_addr(const u_char *pktdata, struct pcap_pkthdr * pkthdr){
 	struct ni_reply_ip		*pkt_nidata;
 
 	pkt_ether = (struct ether_header *) pktdata;
-	pkt_ipv6 = (struct ip6_hdr *)((char *) pkt_ether + linkhsize);
+	pkt_ipv6 = (struct ip6_hdr *)((char *) pkt_ether + idata->linkhsize);
 	pkt_ni= (struct icmp6_nodeinfo *) ((char *) pkt_ipv6 + sizeof(struct ip6_hdr));
 	pkt_end = (unsigned char *) pktdata + pkthdr->caplen;
 
 	if( pkt_end > ((unsigned char *)pkt_ni + pkt_ipv6->ip6_plen) )
 		pkt_end = (unsigned char *)pkt_ni + pkt_ipv6->ip6_plen;
 
-	if(!is_eq_in6_addr(&(pkt_ipv6->ip6_dst), &srcaddr))
+	if(!is_eq_in6_addr(&(pkt_ipv6->ip6_dst), &(idata->srcaddr)))
 		return 0;
 
 	if(inet_ntop(AF_INET6, &(pkt_ipv6->ip6_src), pv6addr, sizeof(pv6addr)) == NULL){
-		if(verbose_f)
+		if(idata->verbose_f)
 			puts("inet_ntop(): Error converting IPv6 Source Address to presentation format");
 
 		return(-1);
@@ -1498,7 +1479,7 @@ int	print_ni_addr(const u_char *pktdata, struct pcap_pkthdr * pkthdr){
 
 	while( (pkt_end - (unsigned char *) pkt_nidata) >= sizeof(struct ni_reply_ip)){
 		if(inet_ntop(AF_INET, &(pkt_nidata->ip), pv6addr, sizeof(pv6addr)) == NULL){
-			if(verbose_f)
+			if(idata->verbose_f)
 				puts("inet_ntop(): Error converting IPv4 Address to presentation format");
 
 			return(-1);
@@ -1527,25 +1508,25 @@ int	print_ni_addr(const u_char *pktdata, struct pcap_pkthdr * pkthdr){
  * Print responses to NOOP ICMPv6 NI queries
  */
 
-int	print_ni_noop(const u_char *pktdata, struct pcap_pkthdr * pkthdr){
+int	print_ni_noop(struct iface_data *idata, const u_char *pktdata, struct pcap_pkthdr * pkthdr){
 	struct ether_header 	*pkt_ether;
 	struct ip6_hdr 			*pkt_ipv6;
 	struct icmp6_nodeinfo	*pkt_ni;
 	unsigned char			*pkt_end;
 
 	pkt_ether = (struct ether_header *) pktdata;
-	pkt_ipv6 = (struct ip6_hdr *)((char *) pkt_ether + linkhsize);
+	pkt_ipv6 = (struct ip6_hdr *)((char *) pkt_ether + idata->linkhsize);
 	pkt_ni= (struct icmp6_nodeinfo *) ((char *) pkt_ipv6 + sizeof(struct ip6_hdr));
 	pkt_end = (unsigned char *) pktdata + pkthdr->caplen;
 
 	if( pkt_end > ((unsigned char *)pkt_ni + pkt_ipv6->ip6_plen) )
 		pkt_end = (unsigned char *)pkt_ni + pkt_ipv6->ip6_plen;
 
-	if(!is_eq_in6_addr(&(pkt_ipv6->ip6_dst), &srcaddr))
+	if(!is_eq_in6_addr(&(pkt_ipv6->ip6_dst), &(idata->srcaddr)))
 		return 0;
 
 	if(inet_ntop(AF_INET6, &(pkt_ipv6->ip6_src), pv6addr, sizeof(pv6addr)) == NULL){
-		if(verbose_f)
+		if(idata->verbose_f)
 			puts("inet_ntop(): Error converting IPv6 Source Address to presentation format");
 
 		return(-1);
@@ -1581,7 +1562,7 @@ int	print_ni_noop(const u_char *pktdata, struct pcap_pkthdr * pkthdr){
  * Print responses to ICMPv6 NI queries for IPv6 addresses
  */
 
-int	print_ni_addr6(const u_char *pktdata, struct pcap_pkthdr * pkthdr){
+int	print_ni_addr6(struct iface_data *idata, const u_char *pktdata, struct pcap_pkthdr * pkthdr){
 	struct ether_header 	*pkt_ether;
 	struct ip6_hdr 			*pkt_ipv6;
 	struct icmp6_nodeinfo	*pkt_ni;
@@ -1590,18 +1571,18 @@ int	print_ni_addr6(const u_char *pktdata, struct pcap_pkthdr * pkthdr){
 	struct ni_reply_ip6     *pkt_nidata;
 
 	pkt_ether = (struct ether_header *) pktdata;
-	pkt_ipv6 = (struct ip6_hdr *)((char *) pkt_ether + linkhsize);
+	pkt_ipv6 = (struct ip6_hdr *)((char *) pkt_ether + idata->linkhsize);
 	pkt_ni= (struct icmp6_nodeinfo *) ((char *) pkt_ipv6 + sizeof(struct ip6_hdr));
 	pkt_end = (unsigned char *) pktdata + pkthdr->caplen;
 
 	if( pkt_end > ((unsigned char *)pkt_ni + pkt_ipv6->ip6_plen) )
 		pkt_end = (unsigned char *)pkt_ni + pkt_ipv6->ip6_plen;
 
-	if(!is_eq_in6_addr(&(pkt_ipv6->ip6_dst), &srcaddr))
+	if(!is_eq_in6_addr(&(pkt_ipv6->ip6_dst), &(idata->srcaddr)))
 		return 0;
 
 	if(inet_ntop(AF_INET6, &(pkt_ipv6->ip6_src), pv6addr, sizeof(pv6addr)) == NULL){
-		if(verbose_f)
+		if(idata->verbose_f)
 			puts("inet_ntop(): Error converting IPv6 Address to presentation format");
 
 		return(-1);
@@ -1640,7 +1621,7 @@ int	print_ni_addr6(const u_char *pktdata, struct pcap_pkthdr * pkthdr){
 
 	while( (pkt_end - (unsigned char *) pkt_nidata) >= sizeof(struct ni_reply_ip6)){
 		if(inet_ntop(AF_INET6, &(pkt_nidata->ip6), pv6addr, sizeof(pv6addr)) == NULL){
-			if(verbose_f)
+			if(idata->verbose_f)
 				puts("inet_ntop(): Error converting IPv6 Source Address to presentation format");
 
 			return(-1);
@@ -1670,7 +1651,7 @@ int	print_ni_addr6(const u_char *pktdata, struct pcap_pkthdr * pkthdr){
  * Print responses to ICMPv6 NI queries for names
  */
 
-int	print_ni_name(const u_char *pktdata, struct pcap_pkthdr * pkthdr){
+int	print_ni_name(struct iface_data *idata, const u_char *pktdata, struct pcap_pkthdr * pkthdr){
 	struct ether_header 	*pkt_ether;
 	struct ip6_hdr 			*pkt_ipv6;
 	struct icmp6_nodeinfo	*pkt_ni;
@@ -1679,18 +1660,18 @@ int	print_ni_name(const u_char *pktdata, struct pcap_pkthdr * pkthdr){
 	unsigned char			*start, *next;
 
 	pkt_ether = (struct ether_header *) pktdata;
-	pkt_ipv6 = (struct ip6_hdr *)((char *) pkt_ether + linkhsize);
+	pkt_ipv6 = (struct ip6_hdr *)((char *) pkt_ether + idata->linkhsize);
 	pkt_ni= (struct icmp6_nodeinfo *) ((char *) pkt_ipv6 + sizeof(struct ip6_hdr));
 	pkt_end = (unsigned char *) pktdata + pkthdr->caplen;
 
 	if( pkt_end > ((unsigned char *)pkt_ni + pkt_ipv6->ip6_plen) )
 		pkt_end = (unsigned char *)pkt_ni + pkt_ipv6->ip6_plen;
 
-	if(!is_eq_in6_addr(&(pkt_ipv6->ip6_dst), &srcaddr))
+	if(!is_eq_in6_addr(&(pkt_ipv6->ip6_dst), &(idata->srcaddr)))
 		return 0;
 
 	if(inet_ntop(AF_INET6, &(pkt_ipv6->ip6_src), pv6addr, sizeof(pv6addr)) == NULL){
-		if(verbose_f)
+		if(idata->verbose_f)
 			puts("inet_ntop(): Error converting IPv6 Address to presentation format");
 
 		return(-1);
@@ -1738,28 +1719,28 @@ int	print_ni_name(const u_char *pktdata, struct pcap_pkthdr * pkthdr){
  * that are expected to remain constant for the specified attack.
  */
 
-void init_packet_data(void){
+void init_packet_data(struct iface_data *idata){
 	struct dlt_null *dlt_null;
 	ethernet= (struct ether_header *) buffer;
 	dlt_null= (struct dlt_null *) buffer;
-	v6buffer = buffer + linkhsize;
+	v6buffer = buffer + idata->linkhsize;
 	ipv6 = (struct ip6_hdr *) v6buffer;
 
-	if(idata.type == DLT_EN10MB && idata.type != IFACE_LOOPBACK){
-		ethernet->src = hsrcaddr;
-		ethernet->dst = hdstaddr;
+	if(idata->type == DLT_EN10MB && idata->type != IFACE_LOOPBACK){
+		ethernet->src = idata->hsrcaddr;
+		ethernet->dst = idata->hdstaddr;
 		ethernet->ether_type = htons(0x86dd);
 	}
-	else if(idata.type == DLT_NULL){
+	else if(idata->type == DLT_NULL){
 		dlt_null->family= PF_INET6;
 	}
 
 	ipv6->ip6_flow=0;
 	ipv6->ip6_vfc= 0x60;
 	ipv6->ip6_hlim= hoplimit;
-	ipv6->ip6_src= srcaddr;
+	ipv6->ip6_src= idata->srcaddr;
 
-	ipv6->ip6_dst= dstaddr;
+	ipv6->ip6_dst= idata->dstaddr;
 	prev_nh = (unsigned char *) &(ipv6->ip6_nxt);
 	ptr = (unsigned char *) v6buffer + MIN_IPV6_HLEN;
     
@@ -1822,7 +1803,7 @@ void init_packet_data(void){
 		dstopthdrs=0;
 	
 		while(dstopthdrs < ndstopthdr){
-			if((ptr+ dstopthdrlen[dstopthdrs]) > (v6buffer+max_packet_size)){
+			if((ptr+ dstopthdrlen[dstopthdrs]) > (v6buffer+ idata->max_packet_size)){
 			puts("Packet too large while processing Dest. Opt. Header (should be using the Frag. option?)");
 			exit(EXIT_FAILURE);
 			}
@@ -1848,12 +1829,12 @@ void init_packet_data(void){
  * Initialize the remaining fields of the Neighbor Advertisement Message, and
  * send the attack packet(s).
  */
-int send_packet(const u_char *pktdata, struct pcap_pkthdr * pkthdr){
+int send_packet(struct iface_data *idata, const u_char *pktdata, struct pcap_pkthdr * pkthdr){
 	ptr=startofprefixes;
 
 	if(pktdata != NULL){   /* Sending a NI Reply in response to a received query */
 		pkt_ether = (struct ether_header *) pktdata;
-		pkt_ipv6 = (struct ip6_hdr *)((char *) pkt_ether + linkhsize);
+		pkt_ipv6 = (struct ip6_hdr *)((char *) pkt_ether + idata->linkhsize);
 		pkt_ni= (struct icmp6_nodeinfo *) ( (unsigned char *)pkt_ipv6 + sizeof (struct ip6_hdr));
 	
 		/* If the IPv6 Source Address of the incoming Neighbor Solicitation is the unspecified 
@@ -1883,12 +1864,12 @@ int send_packet(const u_char *pktdata, struct pcap_pkthdr * pkthdr){
 		   Otherwise we respond to the unicast address that elicited our response
 		 */
 		if(IN6_IS_ADDR_MULTICAST(pkt_ipv6addr)){
-			if(srcaddr_f)
-				ipv6->ip6_src= srcaddr;
+			if(idata->srcaddr_f)
+				ipv6->ip6_src= idata->srcaddr;
 			else
-				ipv6->ip6_src= *src_addr_sel(&idata, pkt_ipv6addr);
+				ipv6->ip6_src= *src_addr_sel(idata, pkt_ipv6addr);
 
-			ethernet->src= hsrcaddr;
+			ethernet->src= idata->hsrcaddr;
 		}
 		else{
 			ipv6->ip6_src= pkt_ipv6->ip6_dst;
@@ -1915,8 +1896,8 @@ int send_packet(const u_char *pktdata, struct pcap_pkthdr * pkthdr){
 
 			case NI_QTYPE_DNSNAME:
 				if(dloopattack_f){
-					if((ptr+(dlsize+4)) > (v6buffer+max_packet_size)){
-						if(verbose_f)
+					if((ptr+(dlsize+4)) > (v6buffer + idata->max_packet_size)){
+						if(idata->verbose_f)
 							puts("Packet too large while inserting name payload");
 
 							return(-1);
@@ -1928,8 +1909,8 @@ int send_packet(const u_char *pktdata, struct pcap_pkthdr * pkthdr){
 					ptr+= dlsize;
 				}
 				else if(named_f){
-					if((ptr+ (namedlen+4)) > (v6buffer+max_packet_size)){
-						if(verbose_f)
+					if((ptr+ (namedlen+4)) > (v6buffer + idata->max_packet_size)){
+						if(idata->verbose_f)
 							puts("Packet too large while inserting name");
 
 							return(-1);
@@ -1943,8 +1924,8 @@ int send_packet(const u_char *pktdata, struct pcap_pkthdr * pkthdr){
 					ptr+= namedlen;
 
 					if(snamedslabel_f){
-						if((ptr+1) > (v6buffer+max_packet_size)){
-							if(verbose_f)
+						if((ptr+1) > (v6buffer + idata->max_packet_size)){
+							if(idata->verbose_f)
 								puts("Error while inserting last label");
 
 							return(-1);
@@ -1957,8 +1938,8 @@ int send_packet(const u_char *pktdata, struct pcap_pkthdr * pkthdr){
 				}
 				else if(fnamed_f && fnamedlen>0){
 
-					if((ptr+ (fnamedlen+4)) > (v6buffer+max_packet_size)){
-						if(verbose_f)
+					if((ptr+ (fnamedlen+4)) > (v6buffer + idata->max_packet_size)){
+						if(idata->verbose_f)
 							puts("Packet too large when inserting forged name");
 
 							return(-1);
@@ -2005,7 +1986,7 @@ int send_packet(const u_char *pktdata, struct pcap_pkthdr * pkthdr){
 					ptr++;
 
 					if(snamedslabel_f && fnamedlen>1){
-						if((ptr+1) > (v6buffer+max_packet_size)){
+						if((ptr+1) > (v6buffer + idata->max_packet_size)){
 							return(-1);
 						}
 						else{
@@ -2015,8 +1996,8 @@ int send_packet(const u_char *pktdata, struct pcap_pkthdr * pkthdr){
 					}
 				}
 				else if(exceedpd_f){
-					if( (ptr+5) > (v6buffer+max_packet_size)){
-						if(verbose_f)
+					if( (ptr+5) > (v6buffer + idata->max_packet_size)){
+						if(idata->verbose_f)
 							puts("Packet too large whil inserting 'exceeding' name");
 
 							return(-1);
@@ -2033,8 +2014,8 @@ int send_packet(const u_char *pktdata, struct pcap_pkthdr * pkthdr){
 					if(payloadsize>=4)
 						payloadsize-=4;
 
-					if((ptr+(payloadsize+4)) > (v6buffer+max_packet_size)){
-						if(verbose_f)
+					if((ptr+(payloadsize+4)) > (v6buffer + idata->max_packet_size)){
+						if(idata->verbose_f)
 							puts("Packet too large while inserting randomized payload");
 
 							return(-1);
@@ -2054,8 +2035,8 @@ int send_packet(const u_char *pktdata, struct pcap_pkthdr * pkthdr){
 
 			case NI_QTYPE_NODEADDR:
 				if(ipv6addrd_f){
-					if( (ptr+sizeof(struct in6_addr)) > (v6buffer+max_packet_size)){
-						if(verbose_f)
+					if( (ptr+sizeof(struct in6_addr)) > (v6buffer + idata->max_packet_size)){
+						if(idata->verbose_f)
 							puts("Packet too large when inserting IPv6 address");
 
 							return(-1);
@@ -2065,8 +2046,8 @@ int send_packet(const u_char *pktdata, struct pcap_pkthdr * pkthdr){
 					ptr= ptr+ sizeof(struct in6_addr);
 				}
 				else if(payloadsize_f){
-					if((ptr+payloadsize) > (v6buffer+max_packet_size)){
-						if(verbose_f)
+					if((ptr+payloadsize) > (v6buffer + idata->max_packet_size)){
+						if(idata->verbose_f)
 							puts("Packet too large while inserting randomized payload");
 
 							return(-1);
@@ -2081,8 +2062,8 @@ int send_packet(const u_char *pktdata, struct pcap_pkthdr * pkthdr){
 
 			case NI_QTYPE_IPV4ADDR:
 				if(ipv4addrd_f){
-					if( (ptr+sizeof(struct in_addr)) > (v6buffer+max_packet_size)){
-						if(verbose_f)
+					if( (ptr+sizeof(struct in_addr)) > (v6buffer + idata->max_packet_size)){
+						if(idata->verbose_f)
 							puts("Packet too large while inserting IPv4 address");
 
 							return(-1);
@@ -2092,8 +2073,8 @@ int send_packet(const u_char *pktdata, struct pcap_pkthdr * pkthdr){
 					ptr= ptr+ sizeof(struct in_addr);
 				}
 				else if(payloadsize_f){
-					if((ptr+payloadsize) > (v6buffer+max_packet_size)){
-						if(verbose_f)
+					if((ptr+payloadsize) > (v6buffer + idata->max_packet_size)){
+						if(idata->verbose_f)
 							puts("Packet too large while inserting randomized payload");
 
 							return(-1);
@@ -2125,8 +2106,8 @@ int send_packet(const u_char *pktdata, struct pcap_pkthdr * pkthdr){
 		ptr= ptr + sizeof(struct icmp6_nodeinfo);
 
 		if(ipv4addr_f){
-			if( (ptr+sizeof(struct in_addr)) > (v6buffer+max_packet_size)){
-				if(verbose_f)
+			if( (ptr+sizeof(struct in_addr)) > (v6buffer + idata->max_packet_size)){
+				if(idata->verbose_f)
 					puts("Packet too large while inserting IPv4 address");
 
 					return(-1);
@@ -2136,8 +2117,8 @@ int send_packet(const u_char *pktdata, struct pcap_pkthdr * pkthdr){
 			ptr= ptr+ sizeof(struct in_addr);
 		}
 		else if(ipv6addr_f){
-			if( (ptr+sizeof(struct in6_addr)) > (v6buffer+max_packet_size)){
-				if(verbose_f)
+			if( (ptr+sizeof(struct in6_addr)) > (v6buffer + idata->max_packet_size)){
+				if(idata->verbose_f)
 					puts("Packet too large while inserting IPv6 address");
 
 					return(-1);
@@ -2147,8 +2128,8 @@ int send_packet(const u_char *pktdata, struct pcap_pkthdr * pkthdr){
 			ptr= ptr+ sizeof(struct in6_addr);
 		}
 		else if(name_f){
-			if((ptr+namelen) > (v6buffer+max_packet_size)){
-				if(verbose_f)
+			if((ptr+namelen) > (v6buffer + idata->max_packet_size)){
+				if(idata->verbose_f)
 					puts("Packet too large while inserting name");
 
 					return(-1);
@@ -2158,8 +2139,8 @@ int send_packet(const u_char *pktdata, struct pcap_pkthdr * pkthdr){
 			ptr+= namelen;
 
 			if(snameslabel_f){
-				if((ptr+1) > (v6buffer+max_packet_size)){
-					if(verbose_f)
+				if((ptr+1) > (v6buffer + idata->max_packet_size)){
+					if(idata->verbose_f)
 						puts("Error while inserting last label");
 
 					return(-1);
@@ -2172,8 +2153,8 @@ int send_packet(const u_char *pktdata, struct pcap_pkthdr * pkthdr){
 		}
 		else if(fname_f && fnamelen>0){
 
-			if((ptr+fnamelen) > (v6buffer+max_packet_size)){
-				if(verbose_f)
+			if((ptr+fnamelen) > (v6buffer + idata->max_packet_size)){
+				if(idata->verbose_f)
 					puts("Packet too large when inserting forged name");
 
 					return(-1);
@@ -2216,7 +2197,7 @@ int send_packet(const u_char *pktdata, struct pcap_pkthdr * pkthdr){
 			ptr++;
 
 			if(snameslabel_f && fnamelen>1){
-				if((ptr+1) > (v6buffer+max_packet_size)){
+				if((ptr+1) > (v6buffer + idata->max_packet_size)){
 					return(-1);
 				}
 				else{
@@ -2226,8 +2207,8 @@ int send_packet(const u_char *pktdata, struct pcap_pkthdr * pkthdr){
 			}
 		}
 		else if(exceedp_f){
-			if( (ptr+1) > (v6buffer+max_packet_size)){
-				if(verbose_f)
+			if( (ptr+1) > (v6buffer + idata->max_packet_size)){
+				if(idata->verbose_f)
 					puts("Packet too large when 'exceeding' name");
 
 					return(-1);
@@ -2237,8 +2218,8 @@ int send_packet(const u_char *pktdata, struct pcap_pkthdr * pkthdr){
 			ptr++;
 		}
 		else if(payloadsize_f){
-			if((ptr+payloadsize) > (v6buffer+max_packet_size)){
-				if(verbose_f)
+			if((ptr+payloadsize) > (v6buffer + idata->max_packet_size)){
+				if(idata->verbose_f)
 					puts("Packet too large while inserting randomized payload");
 
 					return(-1);
@@ -2250,8 +2231,8 @@ int send_packet(const u_char *pktdata, struct pcap_pkthdr * pkthdr){
 			}
 		}
 		else if(sloopattack_f){
-			if((ptr+(slsize+4)) > (v6buffer+max_packet_size)){
-				if(verbose_f)
+			if((ptr+(slsize+4)) > (v6buffer + idata->max_packet_size)){
+				if(idata->verbose_f)
 					puts("Packet too large while inserting name payload");
 
 					return(-1);
@@ -2265,13 +2246,13 @@ int send_packet(const u_char *pktdata, struct pcap_pkthdr * pkthdr){
 	}
 
 	ni->ni_cksum = 0;
-	ni->ni_cksum = in_chksum(v6buffer, ni, ptr-(unsigned char *)ni);
+	ni->ni_cksum = in_chksum(v6buffer, ni, ptr-(unsigned char *)ni, IPPROTO_ICMPV6);
 
 	if(!fragh_f){
 		ipv6->ip6_plen = htons((ptr - v6buffer) - MIN_IPV6_HLEN);
 
-		if((nw=pcap_inject(idata.pd, buffer, ptr - buffer)) == -1){
-			printf("pcap_inject(): %s\n", pcap_geterr(idata.pd));
+		if((nw=pcap_inject(idata->pfd, buffer, ptr - buffer)) == -1){
+			printf("pcap_inject(): %s\n", pcap_geterr(idata->pfd));
 			exit(EXIT_FAILURE);
 		}
 
@@ -2284,8 +2265,8 @@ int send_packet(const u_char *pktdata, struct pcap_pkthdr * pkthdr){
 		ptrend= ptr;
 		ptr= fragpart;
 		fptr = fragbuffer;
-		fipv6 = (struct ip6_hdr *) (fragbuffer + linkhsize);
-		fptrend = fptr + linkhsize+MIN_IPV6_HLEN+MAX_IPV6_PAYLOAD;
+		fipv6 = (struct ip6_hdr *) (fragbuffer + idata->linkhsize);
+		fptrend = fptr + idata->linkhsize+MIN_IPV6_HLEN+MAX_IPV6_PAYLOAD;
 		memcpy(fptr, buffer, fragpart-buffer);
 		fptr = fptr + (fragpart-buffer);
 
@@ -2323,10 +2304,10 @@ int send_packet(const u_char *pktdata, struct pcap_pkthdr * pkthdr){
 			ptr+=fragsize;
 			fptr+=fragsize;
 
-			fipv6->ip6_plen = htons((fptr - fragbuffer) - MIN_IPV6_HLEN - linkhsize);
+			fipv6->ip6_plen = htons((fptr - fragbuffer) - MIN_IPV6_HLEN - idata->linkhsize);
 		
-			if((nw=pcap_inject(idata.pd, fragbuffer, fptr - fragbuffer)) == -1){
-				printf("pcap_inject(): %s\n", pcap_geterr(idata.pd));
+			if((nw=pcap_inject(idata->pfd, fragbuffer, fptr - fragbuffer)) == -1){
+				printf("pcap_inject(): %s\n", pcap_geterr(idata->pfd));
 				exit(EXIT_FAILURE);
 			}
 
@@ -2368,7 +2349,7 @@ void usage(void){
  */
 void print_help(void){
 	puts(SI6_TOOLKIT);
-	puts("ni6: Securty assessment tool for attack vectors based on ICMPv6 error messages\n");
+	puts("ni6: Securty assessment tool for attack vectors based on ICMPv6 NI messages\n");
 	usage();
     
 	puts("\nOPTIONS:\n"
@@ -2430,33 +2411,33 @@ void print_help(void){
  * Prints attack details (when the verbose ("-v") option is specified).
  */
  
-void print_attack_info(void){
+void print_attack_info(struct iface_data *idata){
 
 	puts( "ni6: Assessment tool for attack vectors based on ICMPv6 NI messages\n");
 
-	if(ether_ntop(&hsrcaddr, plinkaddr, sizeof(plinkaddr)) == 0){
+	if(ether_ntop(&(idata->hsrcaddr), plinkaddr, sizeof(plinkaddr)) == 0){
 		puts("ether_ntop(): Error converting address");
 		exit(EXIT_FAILURE);
 	}
 
-	printf("Ethernet Source Address: %s%s\n", plinkaddr, ((!hsrcaddr_f)?" (randomized)":""));
+	printf("Ethernet Source Address: %s%s\n", plinkaddr, ((!(idata->hsrcaddr_f))?" (randomized)":""));
 
 	/* 
 	   Ethernet Destination Address only used if a IPv6 Destination Address or an
 	   Ethernet Destination Address were specified.
 	 */
-	if(dstaddr_f){
-		if(ether_ntop(&hdstaddr, plinkaddr, sizeof(plinkaddr)) == 0){
+	if(idata->dstaddr_f){
+		if(ether_ntop(&(idata->hdstaddr), plinkaddr, sizeof(plinkaddr)) == 0){
 			puts("ether_ntop(): Error converting address");
 			exit(EXIT_FAILURE);
 		}
 
 		printf("Ethernet Destination Address: %s%s\n", plinkaddr, \
-					((!hdstaddr_f)?" (automatically selected)":""));
+					((!idata->hdstaddr_f)?" (automatically selected)":""));
 	}
 
-	if(srcaddr_f){
-		if(inet_ntop(AF_INET6, &srcaddr, psrcaddr, sizeof(psrcaddr)) == NULL){
+	if(idata->srcaddr_f){
+		if(inet_ntop(AF_INET6, &(idata->srcaddr), psrcaddr, sizeof(psrcaddr)) == NULL){
 			puts("inet_ntop(): Error converting IPv6 Source Address to presentation format");
 			exit(EXIT_FAILURE);
 		}
@@ -2464,8 +2445,8 @@ void print_attack_info(void){
 		printf("IPv6 Source Address: %s%s\n", psrcaddr, ((srcprefix_f)?" (randomized)":""));
 	}
 	else{
-		if(dstaddr_f){
-			if(inet_ntop(AF_INET6, &srcaddr, psrcaddr, sizeof(psrcaddr)) == NULL){
+		if(idata->dstaddr_f){
+			if(inet_ntop(AF_INET6, &(idata->srcaddr), psrcaddr, sizeof(psrcaddr)) == NULL){
 				puts("inet_ntop(): Error converting IPv6 Source Address to presentation format");
 				exit(EXIT_FAILURE);
 			}
@@ -2476,8 +2457,8 @@ void print_attack_info(void){
 			puts("IPv6 Source Address: Automatically selected");
 	}
 
-	if(dstaddr_f){
-		if(inet_ntop(AF_INET6, &dstaddr, pdstaddr, sizeof(pdstaddr)) == NULL){
+	if(idata->dstaddr_f){
+		if(inet_ntop(AF_INET6, &(idata->dstaddr), pdstaddr, sizeof(pdstaddr)) == NULL){
 			puts("inet_ntop(): Error converting IPv6 Destination Address to presentation format");
 			exit(EXIT_FAILURE);
 		}
@@ -2641,130 +2622,6 @@ void print_attack_info(void){
 											((!flags)?"none":""), ((!flags_f)?" (default)":""));
 	}
 }
-
-
-
-/*
- * Function: print_filters()
- *
- * Prints the filters that will be applied to incoming Neighbor SOlicitation messages.
- */
-
-void print_filters(void){
-	if(nblocksrc){
-		printf("Block filter for IPv6 Source Addresss: ");
-	
-		for(i=0; i<nblocksrc; i++){
-			if(inet_ntop(AF_INET6, &blocksrc[i], pv6addr, sizeof(pv6addr)) == NULL){
-				puts("inet_ntop(): Error converting IPv6 Src. Addr. filter to presentation format");
-				exit(EXIT_FAILURE);
-			}
-
-			printf("%s/%u   ", pv6addr, blocksrclen[i]);
-		}
-		printf("\n");
-	}
-
-	if(nblockdst){
-		printf("Block filter for IPv6 Destination Address: ");
-	
-		for(i=0; i<nblockdst; i++){
-			if(inet_ntop(AF_INET6, &blockdst[i], pv6addr, sizeof(pv6addr)) == NULL){
-				puts("inet_ntop(): Error converting IPv6 Dst. Addr. filter to presentation format");
-				exit(EXIT_FAILURE);
-			}
-
-			printf("%s/%u   ", pv6addr, blockdstlen[i]);
-		}
-		printf("\n");
-	}
-
-	if(nblocklinksrc){
-		printf("Block filter for link-layer Source Address: ");
-	
-		for(i=0; i<nblocklinksrc; i++){
-			if(ether_ntop(&blocklinksrc[i], plinkaddr, sizeof(plinkaddr)) == 0){
-				puts("ether_ntop(): Error converting address");
-				exit(EXIT_FAILURE);
-			}
-	    
-			printf("%s   ", plinkaddr);
-		}
-		printf("\n");
-	}
-
-	if(nblocklinkdst){
-		printf("Block filter for link-layer Destination Address: ");
-	
-		for(i=0; i<nblocklinkdst; i++){
-			if(ether_ntop(&blocklinkdst[i], plinkaddr, sizeof(plinkaddr)) == 0){
-				puts("ether_ntop(): Error converting address");
-				exit(EXIT_FAILURE);
-			}
-    
-			printf("%s   ", plinkaddr);
-		}
-		printf("\n");
-	}
-
-	if(nacceptsrc){
-		printf("Accept filter for IPv6 Source Addresss: ");
-
-		for(i=0; i<nacceptsrc; i++){
-			if(inet_ntop(AF_INET6, &acceptsrc[i], pv6addr, sizeof(pv6addr)) == NULL){
-				puts("inet_ntop(): Error converting IPv6 Src. Addr. filter to presentation format");
-				exit(EXIT_FAILURE);
-			}
-
-			printf("%s/%u   ", pv6addr, acceptsrclen[i]);
-		}
-		printf("\n");
-	}
-
-	if(nacceptdst){
-		printf("Accept filter for IPv6 Destination Address: ");
-	
-		for(i=0; i<nacceptdst; i++){
-			if(inet_ntop(AF_INET6, &acceptdst[i], pv6addr, sizeof(pv6addr)) == NULL){
-				puts("inet_ntop(): Error converting IPv6 Dst. Addr. filter to presentation format");
-				exit(EXIT_FAILURE);
-			}
-
-			printf("%s/%u   ", pv6addr, acceptdstlen[i]);
-		}
-		printf("\n");
-	}
-
-	if(nacceptlinksrc){
-		printf("Accept filter for link-layer Source Address: ");
-
-		for(i=0; i<nacceptlinksrc; i++){
-			if(ether_ntop(&acceptlinksrc[i], plinkaddr, sizeof(plinkaddr)) == 0){
-				puts("ether_ntop(): Error converting address");
-				exit(EXIT_FAILURE);
-			}
-    
-			printf("%s   ", plinkaddr);
-		}
-		printf("\n");
-	}
-
-	if(nacceptlinkdst){
-		printf("Accept filter for link-layer Destination Address: ");
-	
-		for(i=0; i<nacceptlinkdst; i++){
-			if(ether_ntop(&acceptlinkdst[i], plinkaddr, sizeof(plinkaddr)) == 0){
-				puts("ether_ntop(): Error converting address");
-				exit(EXIT_FAILURE);
-			}
-	    
-			printf("%s   ", plinkaddr);
-		}
-		printf("\n");
-	}
-
-}
-
 
 
 
