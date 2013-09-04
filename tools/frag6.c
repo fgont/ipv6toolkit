@@ -18,7 +18,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  * 
- * Build with: gcc frag6.c -Wall -lpcap -lm -o frag6
+ * Build with: make frag6
  * 
  * This program has been tested to compile and run on: Debian GNU/Linux 6.0,
  * FreeBSD 9.0, NetBSD 5.1, OpenBSD 5.0, and Ubuntu 11.10.
@@ -652,6 +652,11 @@ int main(int argc, char **argv){
 	}
 	else{
 		printf("Error: Interface %s is not an Ethernet or tunnel interface", iface);
+		exit(EXIT_FAILURE);
+	}
+
+	if(get_if_addrs(&idata) == -1){
+		puts("Error obtaining local addresses");
 		exit(EXIT_FAILURE);
 	}
 
@@ -1865,7 +1870,7 @@ int send_fragment2(u_int16_t ip6len, unsigned int id, unsigned int offset, unsig
 	ipv6 = (struct ip6_hdr *) v6buffer;
 	fsize= (fsize>>3) << 3;
 
-	if(idata.type == DLT_EN10MB && idata.type != IFACE_LOOPBACK){
+	if(idata.type == DLT_EN10MB && idata.flags != IFACE_LOOPBACK){
 		ethernet->src = hsrcaddr;
 		ethernet->dst = hdstaddr;
 		ethernet->ether_type = htons(0x86dd);
@@ -2000,7 +2005,7 @@ int send_fragment(unsigned int id, unsigned int offset, unsigned int fsize, unsi
 	v6buffer = buffer + linkhsize;
 	ipv6 = (struct ip6_hdr *) v6buffer;
 
-	if(idata.type == DLT_EN10MB && idata.type != IFACE_LOOPBACK){
+	if(idata.type == DLT_EN10MB && idata.flags != IFACE_LOOPBACK){
 		ethernet->src = hsrcaddr;
 		ethernet->dst = hdstaddr;
 		ethernet->ether_type = htons(0x86dd);
@@ -3571,6 +3576,7 @@ int get_if_addrs(struct iface_data *idata){
 	freeifaddrs(ifptr);
 	return(0);
 }
+
 
 
 /*
