@@ -160,7 +160,7 @@ char 				plinkaddr[ETHER_ADDR_PLEN];
 char 				psrcaddr[INET6_ADDRSTRLEN], pdstaddr[INET6_ADDRSTRLEN], pv6addr[INET6_ADDRSTRLEN];
 unsigned char 		verbose_f=0, iface_f=0;
 unsigned char 		srcaddr_f=0, dstaddr_f=0, hsrcaddr_f=0, hdstaddr_f=0, floodf_f=0;
-unsigned char 		loop_f=0, sleep_f=0, localaddr_f=0, tstamp_f=1, pod_f;
+unsigned char 		loop_f=0, sleep_f=0, localaddr_f=0, tstamp_f=1, pod_f=0;
 unsigned char		srcprefix_f=0, hoplimit_f=0, ip6length_f=0, icmp6psize_f=0;
 unsigned char		fsize_f=0, forder_f=0, foffset_f=0, fid_f=0, fragp_f=0, fragidp_f=0, resp_f=1;
 

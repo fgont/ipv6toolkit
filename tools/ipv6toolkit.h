@@ -1,4 +1,4 @@
-#define SI6_TOOLKIT "SI6 Networks' IPv6 Toolkit v1.5"
+#define SI6_TOOLKIT "SI6 Networks' IPv6 Toolkit v1.4.1"
 #define	MAX_CMDLINE_OPT_LEN	40
 
 /* 
