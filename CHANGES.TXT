@@ -1,3 +1,15 @@
+SI6 Networks' IPv6 Toolkit v1.4.1
+
+   * frag6: Fixed bug that prevented Ethernet header from being filled
+     A bug in the code caused Ethernet frames to go on te wire without any of
+     their header fields completed.
+
+   * All: Use of library to avoid code replication
+     An "libipv6" library was created, such that common functions do not need
+     to be replicated for each tool. ni6, ns6, rs6, and tcp6 now employ such
+     library.
+
+
 SI6 Networks' IPv6 Toolkit v1.4 release
 
    * frag6: Fixed the flooding option
