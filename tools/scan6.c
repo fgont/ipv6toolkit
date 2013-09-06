@@ -3820,11 +3820,14 @@ int init_iface_data(struct iface_data *idata){
 int find_ipv6_router_full(pcap_t *pfd, struct iface_data *idata){
 	struct pcap_pkthdr			*pkthdr;
 	const u_char				*pktdata;
+	struct ether_header			*pkt_ether;
 	struct ip6_hdr				*pkt_ipv6;
 	struct nd_router_advert 	*pkt_ra;
 	unsigned char				*pkt_end;
+	unsigned char				*prev_nh;
 	volatile unsigned char		*ptr;
 	volatile unsigned char		*p;
+	size_t						nw;
 
 	unsigned char				buffer[65556];
 	unsigned int 				rs_max_packet_size;
@@ -3837,7 +3840,7 @@ int find_ipv6_router_full(pcap_t *pfd, struct iface_data *idata){
 	volatile unsigned int 		tries=0;
 	volatile unsigned int 		foundrouter=0;
 	struct sigaction 			new_sig, old_sig;
-	unsigned char				closefd_f=0, error_f=0;
+	unsigned char				error_f=0;
 	int							result;
 
 	rs_max_packet_size = idata->mtu;
@@ -3845,40 +3848,16 @@ int find_ipv6_router_full(pcap_t *pfd, struct iface_data *idata){
 	v6buffer = buffer + sizeof(struct ether_header);
 	ipv6 = (struct ip6_hdr *) v6buffer;
 
-	if(pfd == NULL){
-		if( (pfd= pcap_open_live(idata->iface, PCAP_SNAP_LEN, PCAP_PROMISC, PCAP_TIMEOUT, errbuf)) == NULL){
-			if(verbose_f>1)
-				printf("pcap_open_live(): %s\n", errbuf);
-
-			return(-1);
-		}
-
-		if( pcap_datalink(pfd) != DLT_EN10MB){
-			if(verbose_f>1)
-				printf("Error: Interface %s is not an Ethernet interface", iface);
-
-			return(-1);
-		}
-
-		closefd_f=1;
-	}
-
-	if(pcap_compile(idata->pd, &pcap_filter, PCAP_ICMPV6_RANS_FILTER, PCAP_OPT, PCAP_NETMASK_UNKNOWN) == -1){
+	if(pcap_compile(pfd, &pcap_filter, PCAP_ICMPV6_RANS_FILTER, PCAP_OPT, PCAP_NETMASK_UNKNOWN) == -1){
 		if(verbose_f>1)
-			printf("pcap_compile(): %s", pcap_geterr(idata->pd));
-
-		if(closefd_f)
-			pcap_close(pfd);
+			printf("pcap_compile(): %s", pcap_geterr(pfd));
 
 		return(-1);
 	}
     
-	if(pcap_setfilter(idata->pd, &pcap_filter) == -1){
-		if(verbose_f>1)
-			printf("pcap_setfilter(): %s", pcap_geterr(idata->pd));
-
-		if(closefd_f)
-			pcap_close(pfd);
+	if(pcap_setfilter(pfd, &pcap_filter) == -1){
+		if(verbose_f > 1)
+			printf("pcap_setfilter(): %s", pcap_geterr(pfd));
 
 		return(-1);
 	}
@@ -3894,9 +3873,6 @@ int find_ipv6_router_full(pcap_t *pfd, struct iface_data *idata){
 		if(verbose_f>1)
 			puts("inet_pton(): Error converting All Routers address from presentation to network format");
 
-		if(closefd_f)
-			pcap_close(pfd);
-
 		return(-1);
 	}
 
@@ -3905,9 +3881,6 @@ int find_ipv6_router_full(pcap_t *pfd, struct iface_data *idata){
 	if(ether_pton(ETHER_ALLROUTERS_LINK_ADDR, &(ether->dst), sizeof(struct ether_addr)) == 0){
 		if(verbose_f>1)
 			puts("ether_pton(): Error converting all-nodes multicast address");
-
-		if(closefd_f)
-			pcap_close(pfd);
 
 		return(-1);
 	}
@@ -3922,9 +3895,6 @@ int find_ipv6_router_full(pcap_t *pfd, struct iface_data *idata){
 	if( (ptr+sizeof(struct nd_router_solicit)) > (v6buffer+rs_max_packet_size)){
 		if(verbose_f>1)
 			puts("Packet too large while inserting Router Solicitation header");
-
-		if(closefd_f)
-			pcap_close(pfd);
 
 		return(-1);
 	}
@@ -3941,9 +3911,6 @@ int find_ipv6_router_full(pcap_t *pfd, struct iface_data *idata){
 	if( (ptr+sizeof(struct nd_opt_slla)) > (v6buffer+rs_max_packet_size)){
 		if(verbose_f>1)
 			puts("RS message too large while processing source link-layer addresss opt.");
-
-		if(closefd_f)
-			pcap_close(pfd);
 
 		return(-1);
 	}
@@ -3969,9 +3936,6 @@ int find_ipv6_router_full(pcap_t *pfd, struct iface_data *idata){
 		if(verbose_f>1)
 			puts("Error setting up 'Alarm' signal");
 
-		if(closefd_f)
-			pcap_close(pfd);
-
 		return(-1);
 	}
 
@@ -3981,9 +3945,9 @@ int find_ipv6_router_full(pcap_t *pfd, struct iface_data *idata){
 	canjump=1;
 
 	while(tries<3 && !foundrouter && !error_f){
-		if((nw=pcap_inject(idata->pd, buffer, ptr - buffer)) == -1){
+		if((nw=pcap_inject(pfd, buffer, ptr - buffer)) == -1){
 			if(verbose_f>1)
-				printf("pcap_inject(): %s\n", pcap_geterr(idata->pd));
+				printf("pcap_inject(): %s\n", pcap_geterr(pfd));
 
 			error_f=1;
 			break;
@@ -3992,7 +3956,7 @@ int find_ipv6_router_full(pcap_t *pfd, struct iface_data *idata){
 		if(nw != (ptr-buffer)){
 			if(verbose_f>1)
 				printf("pcap_inject(): only wrote %lu bytes (rather than %lu bytes)\n", (LUI) nw, \
-																		(LUI) (ptr-buffer));
+												(LUI) (ptr-buffer));
 
 			error_f=1;
 			break;
@@ -4005,7 +3969,7 @@ int find_ipv6_router_full(pcap_t *pfd, struct iface_data *idata){
 			do{
 				if( (result=pcap_next_ex(pfd, &pkthdr, &pktdata)) == -1){
 					if(verbose_f>1)
-						printf("pcap_next_ex(): %s", pcap_geterr(idata->pd));
+						printf("pcap_next_ex(): %s", pcap_geterr(pfd));
 
 					error_f=1;
 					break;
@@ -4028,7 +3992,7 @@ int find_ipv6_router_full(pcap_t *pfd, struct iface_data *idata){
 				pkt_end = (unsigned char *)pkt_ra + pkt_ipv6->ip6_plen;
 
 			/*
-			   Discard the packet if it is not of the minimum size to contain a Neighbor Advertisement
+			   Discard the packet if it is not of the minimum size to contain a Router Advertisement
 			   message with a source link-layer address option
 			 */
 			if( (pkt_end - (unsigned char *) pkt_ra) < (sizeof(struct nd_router_advert) + \
@@ -4058,7 +4022,7 @@ int find_ipv6_router_full(pcap_t *pfd, struct iface_data *idata){
 				continue;
 
 			/* Check that the ICMPv6 checksum is correct. If the received checksum is valid,
-			   and we compute the checksum over the received packet (including the Checkdum field)
+			   and we compute the checksum over the received packet (including the Checksum field)
 			   the result is 0. Otherwise, the packet has been corrupted.
 			*/
 			if(in_chksum(pkt_ipv6, pkt_ra, pkt_end- (unsigned char *)pkt_ra, IPPROTO_ICMPV6) != 0)
@@ -4110,10 +4074,15 @@ int find_ipv6_router_full(pcap_t *pfd, struct iface_data *idata){
 							}
 						}
 
+						/*
+						   We expect the autoconfiguration prefix to have a length between 32 and 64 bits.
+						   We used to require it to be 64-bits long, but some routers have been found to advertise
+						   48-bit long prefixes. Hence, we have relaxed the allowed length.
+						 */
 						if(idata->prefix_ac.nprefix < idata->prefix_ac.maxprefix){
 							if( (pio->nd_opt_pi_flags_reserved & ND_OPT_PI_FLAG_AUTO) && \
-								(pio->nd_opt_pi_prefix_len == 64) && !is_ip6_in_prefix_list(&(pio->nd_opt_pi_prefix), \
-																							&(idata->prefix_ac))){
+								(pio->nd_opt_pi_prefix_len >= 32 && pio->nd_opt_pi_prefix_len <= 64) && \
+								!is_ip6_in_prefix_list(&(pio->nd_opt_pi_prefix), &(idata->prefix_ac))){
 
 								if((idata->prefix_ac.prefix[idata->prefix_ac.nprefix] = \
 																		malloc(sizeof(struct prefix_entry))) == NULL){
@@ -4126,14 +4095,17 @@ int find_ipv6_router_full(pcap_t *pfd, struct iface_data *idata){
 
 								(idata->prefix_ac.prefix[idata->prefix_ac.nprefix])->ip6= \
 												pio->nd_opt_pi_prefix;
-								(idata->prefix_ac.prefix[idata->prefix_ac.nprefix])->len= \
-												pio->nd_opt_pi_prefix_len;
+
+								/*
+								   If the prefix is valid, we assume it to be 64-bit long. In the past, we used
+								   the length advertised by pio->nd_opt_pi_prefix_len.
+								 */
+								(idata->prefix_ac.prefix[idata->prefix_ac.nprefix])->len= 64;
 
 								sanitize_ipv6_prefix(&((idata->prefix_ac.prefix[idata->prefix_ac.nprefix])->ip6), \
 														(idata->prefix_ac.prefix[idata->prefix_ac.nprefix])->len);
 
-								if((!idata->ip6_global_flag || rand_src_f) && \
-															idata->ip6_global.nprefix < idata->ip6_global.maxprefix){
+								if(!idata->ip6_global_flag && idata->ip6_global.nprefix < idata->ip6_global.maxprefix){
 								
 									if( (idata->ip6_global.prefix[idata->ip6_global.nprefix] = \
 																	malloc(sizeof(struct prefix_entry))) == NULL){
@@ -4154,6 +4126,9 @@ int find_ipv6_router_full(pcap_t *pfd, struct iface_data *idata){
 						}
 
 						break;
+
+					default:
+						break;
 				}
 
 				p= p + *(p+1) * 8;
@@ -4167,9 +4142,6 @@ int find_ipv6_router_full(pcap_t *pfd, struct iface_data *idata){
 	if(idata->ip6_global.nprefix)
 		idata->ip6_global_flag=1;
 
-	if(closefd_f)
-		pcap_close(pfd);
-
 	if( sigaction(SIGALRM, &old_sig, NULL) == -1){
 		if(verbose_f>1)
 			puts("Error setting up 'Alarm' signal");
@@ -4182,6 +4154,7 @@ int find_ipv6_router_full(pcap_t *pfd, struct iface_data *idata){
 	else
 		return 0;
 }
+
 
 
 
