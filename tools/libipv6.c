@@ -1,3 +1,8 @@
+#include <sys/types.h>
+#include <sys/param.h>
+#include <sys/socket.h>
+#include <sys/select.h>
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <errno.h>
@@ -6,16 +11,18 @@
 #include <unistd.h>
 #include <signal.h>
 #include <string.h>
+#include <math.h>
 #include <pcap.h>
-#include <sys/types.h>
-#include <sys/param.h>
 #include <setjmp.h>
+#include <pwd.h>
+
+#ifndef __FAVOR_BSD
+	#define __FAVOR_BSD		/* This causes Linux to use the BSD definition of the TCP and UDP header fields */
+#endif
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <netinet/ip6.h>
 #include <netinet/icmp6.h>
-#include <sys/socket.h>
-#include <pwd.h>
 #include <net/if.h>
 #include <ifaddrs.h>
 #ifdef __linux__
@@ -23,10 +30,11 @@
 #elif defined (__FreeBSD__) || defined(__NetBSD__) || defined (__OpenBSD__) || defined(__APPLE__)
 	#include <net/if_dl.h>
 #endif
-#include <sys/select.h>
+#include <netinet/tcp.h>
+
 #include "libipv6.h"
 #include "ipv6toolkit.h"
-#include <netinet/tcp.h>
+
 
 /* IPv6 Address Resolution */
 sigjmp_buf			env;
@@ -261,7 +269,7 @@ int find_ipv6_router_full(pcap_t *pfd, struct iface_data *idata){
 	volatile unsigned int 		tries=0;
 	volatile unsigned int 		foundrouter=0;
 	struct sigaction 			new_sig, old_sig;
-	unsigned char				closefd_f=0, error_f=0;
+	unsigned char				error_f=0;
 	int							result;
 
 	rs_max_packet_size = idata->mtu;
@@ -269,40 +277,16 @@ int find_ipv6_router_full(pcap_t *pfd, struct iface_data *idata){
 	v6buffer = buffer + sizeof(struct ether_header);
 	ipv6 = (struct ip6_hdr *) v6buffer;
 
-	if(pfd == NULL){
-		if( (pfd= pcap_open_live(idata->iface, PCAP_SNAP_LEN, PCAP_PROMISC, PCAP_TIMEOUT, errbuf)) == NULL){
-			if(idata->verbose_f>1)
-				printf("pcap_open_live(): %s\n", errbuf);
-
-			return(-1);
-		}
-
-		if( pcap_datalink(pfd) != DLT_EN10MB){
-			if(idata->verbose_f>1)
-				printf("Error: Interface %s is not an Ethernet interface", idata->iface);
-
-			return(-1);
-		}
-
-		closefd_f=1;
-	}
-
 	if(pcap_compile(pfd, &pcap_filter, PCAP_ICMPV6_RANS_FILTER, PCAP_OPT, PCAP_NETMASK_UNKNOWN) == -1){
 		if(idata->verbose_f>1)
 			printf("pcap_compile(): %s", pcap_geterr(pfd));
-
-		if(closefd_f)
-			pcap_close(pfd);
 
 		return(-1);
 	}
     
 	if(pcap_setfilter(pfd, &pcap_filter) == -1){
-		if(idata->verbose_f>1)
+		if(idata->verbose_f > 1)
 			printf("pcap_setfilter(): %s", pcap_geterr(pfd));
-
-		if(closefd_f)
-			pcap_close(pfd);
 
 		return(-1);
 	}
@@ -318,9 +302,6 @@ int find_ipv6_router_full(pcap_t *pfd, struct iface_data *idata){
 		if(idata->verbose_f>1)
 			puts("inet_pton(): Error converting All Routers address from presentation to network format");
 
-		if(closefd_f)
-			pcap_close(pfd);
-
 		return(-1);
 	}
 
@@ -329,9 +310,6 @@ int find_ipv6_router_full(pcap_t *pfd, struct iface_data *idata){
 	if(ether_pton(ETHER_ALLROUTERS_LINK_ADDR, &(ether->dst), sizeof(struct ether_addr)) == 0){
 		if(idata->verbose_f>1)
 			puts("ether_pton(): Error converting all-nodes multicast address");
-
-		if(closefd_f)
-			pcap_close(pfd);
 
 		return(-1);
 	}
@@ -346,9 +324,6 @@ int find_ipv6_router_full(pcap_t *pfd, struct iface_data *idata){
 	if( (ptr+sizeof(struct nd_router_solicit)) > (v6buffer+rs_max_packet_size)){
 		if(idata->verbose_f>1)
 			puts("Packet too large while inserting Router Solicitation header");
-
-		if(closefd_f)
-			pcap_close(pfd);
 
 		return(-1);
 	}
@@ -365,9 +340,6 @@ int find_ipv6_router_full(pcap_t *pfd, struct iface_data *idata){
 	if( (ptr+sizeof(struct nd_opt_slla)) > (v6buffer+rs_max_packet_size)){
 		if(idata->verbose_f>1)
 			puts("RS message too large while processing source link-layer addresss opt.");
-
-		if(closefd_f)
-			pcap_close(pfd);
 
 		return(-1);
 	}
@@ -392,9 +364,6 @@ int find_ipv6_router_full(pcap_t *pfd, struct iface_data *idata){
 	if( sigaction(SIGALRM, &new_sig, &old_sig) == -1){
 		if(idata->verbose_f>1)
 			puts("Error setting up 'Alarm' signal");
-
-		if(closefd_f)
-			pcap_close(pfd);
 
 		return(-1);
 	}
@@ -452,7 +421,7 @@ int find_ipv6_router_full(pcap_t *pfd, struct iface_data *idata){
 				pkt_end = (unsigned char *)pkt_ra + pkt_ipv6->ip6_plen;
 
 			/*
-			   Discard the packet if it is not of the minimum size to contain a Neighbor Advertisement
+			   Discard the packet if it is not of the minimum size to contain a Router Advertisement
 			   message with a source link-layer address option
 			 */
 			if( (pkt_end - (unsigned char *) pkt_ra) < (sizeof(struct nd_router_advert) + \
@@ -482,7 +451,7 @@ int find_ipv6_router_full(pcap_t *pfd, struct iface_data *idata){
 				continue;
 
 			/* Check that the ICMPv6 checksum is correct. If the received checksum is valid,
-			   and we compute the checksum over the received packet (including the Checkdum field)
+			   and we compute the checksum over the received packet (including the Checksum field)
 			   the result is 0. Otherwise, the packet has been corrupted.
 			*/
 			if(in_chksum(pkt_ipv6, pkt_ra, pkt_end- (unsigned char *)pkt_ra, IPPROTO_ICMPV6) != 0)
@@ -534,10 +503,15 @@ int find_ipv6_router_full(pcap_t *pfd, struct iface_data *idata){
 							}
 						}
 
+						/*
+						   We expect the autoconfiguration prefix to have a length between 32 and 64 bits.
+						   We used to require it to be 64-bits long, but some routers have been found to advertise
+						   48-bit long prefixes. Hence, we have relaxed the allowed length.
+						 */
 						if(idata->prefix_ac.nprefix < idata->prefix_ac.maxprefix){
 							if( (pio->nd_opt_pi_flags_reserved & ND_OPT_PI_FLAG_AUTO) && \
-								(pio->nd_opt_pi_prefix_len == 64) && !is_ip6_in_prefix_list(&(pio->nd_opt_pi_prefix), \
-																							&(idata->prefix_ac))){
+								(pio->nd_opt_pi_prefix_len >= 32 && pio->nd_opt_pi_prefix_len <= 64) && \
+								!is_ip6_in_prefix_list(&(pio->nd_opt_pi_prefix), &(idata->prefix_ac))){
 
 								if((idata->prefix_ac.prefix[idata->prefix_ac.nprefix] = \
 																		malloc(sizeof(struct prefix_entry))) == NULL){
@@ -550,8 +524,12 @@ int find_ipv6_router_full(pcap_t *pfd, struct iface_data *idata){
 
 								(idata->prefix_ac.prefix[idata->prefix_ac.nprefix])->ip6= \
 												pio->nd_opt_pi_prefix;
-								(idata->prefix_ac.prefix[idata->prefix_ac.nprefix])->len= \
-												pio->nd_opt_pi_prefix_len;
+
+								/*
+								   If the prefix is valid, we assume it to be 64-bit long. In the past, we used
+								   the length advertised by pio->nd_opt_pi_prefix_len.
+								 */
+								(idata->prefix_ac.prefix[idata->prefix_ac.nprefix])->len= 64;
 
 								sanitize_ipv6_prefix(&((idata->prefix_ac.prefix[idata->prefix_ac.nprefix])->ip6), \
 														(idata->prefix_ac.prefix[idata->prefix_ac.nprefix])->len);
@@ -577,6 +555,9 @@ int find_ipv6_router_full(pcap_t *pfd, struct iface_data *idata){
 						}
 
 						break;
+
+					default:
+						break;
 				}
 
 				p= p + *(p+1) * 8;
@@ -589,9 +570,6 @@ int find_ipv6_router_full(pcap_t *pfd, struct iface_data *idata){
 	/* If we added at least one global address, we set the corresponding flag to 1 */
 	if(idata->ip6_global.nprefix)
 		idata->ip6_global_flag=1;
-
-	if(closefd_f)
-		pcap_close(pfd);
 
 	if( sigaction(SIGALRM, &old_sig, NULL) == -1){
 		if(idata->verbose_f>1)
@@ -816,7 +794,7 @@ int ipv6_to_ether(pcap_t *pfd, struct iface_data *idata, struct in6_addr *target
 	unsigned int				foundaddr=0;
 	struct sigaction			new_sig, old_sig;
 	int							result;
-	unsigned char				error_f=0, closefd_f=0;
+	unsigned char				error_f=0;
 	size_t						nw;
 
 	ns_max_packet_size = idata->mtu;
@@ -825,30 +803,9 @@ int ipv6_to_ether(pcap_t *pfd, struct iface_data *idata, struct in6_addr *target
 	v6buffer = buffer + sizeof(struct ether_header);
 	ipv6 = (struct ip6_hdr *) v6buffer;
 
-	if(pfd == NULL){
-		if( (pfd= pcap_open_live(idata->iface, PCAP_SNAP_LEN, PCAP_PROMISC, PCAP_TIMEOUT, errbuf)) == NULL){
-			if(idata->verbose_f>1)
-				printf("pcap_open_live(): %s\n", errbuf);
-
-			return(-1);
-		}
-
-		if( pcap_datalink(idata->pfd) != DLT_EN10MB){
-			if(idata->verbose_f>1)
-				printf("Error: Interface %s is not an Ethernet interface", idata->iface);
-
-			return(-1);
-		}
-
-		closefd_f=1;
-	}
-
 	if(pcap_compile(idata->pfd, &pcap_filter, PCAP_ICMPV6_NA_FILTER, PCAP_OPT, PCAP_NETMASK_UNKNOWN) == -1){
 		if(idata->verbose_f>1)
 			printf("pcap_compile(): %s", pcap_geterr(idata->pfd));
-
-		if(closefd_f)
-			pcap_close(pfd);
 
 		return(-1);
 	}
@@ -856,9 +813,6 @@ int ipv6_to_ether(pcap_t *pfd, struct iface_data *idata, struct in6_addr *target
 	if(pcap_setfilter(idata->pfd, &pcap_filter) == -1){
 		if(idata->verbose_f>1)
 			printf("pcap_setfilter(): %s", pcap_geterr(idata->pfd));
-
-		if(closefd_f)
-			pcap_close(pfd);
 
 		return(-1);
 	}
@@ -884,9 +838,6 @@ int ipv6_to_ether(pcap_t *pfd, struct iface_data *idata, struct in6_addr *target
 		if(idata->verbose_f>1)
 			puts("Packet too large while inserting Neighbor Solicitation header");
 
-		if(closefd_f)
-			pcap_close(pfd);
-
 		return(-1);
 	}
 
@@ -903,9 +854,6 @@ int ipv6_to_ether(pcap_t *pfd, struct iface_data *idata, struct in6_addr *target
 	if( (ptr+sizeof(struct nd_opt_slla)) > (v6buffer+ns_max_packet_size)){
 		if(idata->verbose_f>1)
 			puts("NS message too large while processing source link-layer addresss opt.");
-
-		if(closefd_f)
-			pcap_close(pfd);
 
 		return(-1);
 	}
@@ -930,9 +878,6 @@ int ipv6_to_ether(pcap_t *pfd, struct iface_data *idata, struct in6_addr *target
 	if( sigaction(SIGALRM, &new_sig, &old_sig) == -1){
 		if(idata->verbose_f>1)
 			puts("Error setting up 'Alarm' signal");
-
-		if(closefd_f)
-			pcap_close(pfd);
 
 		return(-1);
 	}
@@ -1040,9 +985,6 @@ int ipv6_to_ether(pcap_t *pfd, struct iface_data *idata, struct in6_addr *target
 	} /* Resending Neighbor Solicitations */
 
 	alarm(0);
-
-	if(closefd_f)
-		pcap_close(pfd);
 
 	if( sigaction(SIGALRM, &old_sig, NULL) == -1){
 		if(idata->verbose_f>1)
@@ -2039,5 +1981,190 @@ int sel_next_hop(struct iface_data *idata){
 	}
 
 	return(0);
+}
+
+
+/*
+ * Function: inc_sdev()
+ *
+ * Computes the average increment and standard deviation of an array of u_int32_t's.
+ * The function computes the aforementioned values for network byte order and host byte order,
+ * and returns as a result the set of values with smaller standard deviation.
+*/
+int inc_sdev(u_int32_t *s, unsigned int n, u_int32_t *diff_avg, double *diff_sdev){
+	unsigned int			i;
+	u_int32_t				*diff, *s2;
+	unsigned long long int	diff1_avg, diff2_avg;
+	double					diff1_sdev, diff2_sdev;
+
+	if( (diff=malloc((n-1)*sizeof(u_int32_t))) == NULL)
+		return(-1);
+
+	diff1_avg= 0;
+
+	for(i=0; i<(n-1); i++){
+		diff[i]= s[i+1]-s[i];
+		diff1_avg+= diff[i];
+	}
+
+	diff1_avg= diff1_avg/(n-1);
+
+	diff1_sdev= 0;
+
+	for(i=0; i<(n-1); i++)
+		diff1_sdev= diff1_sdev + (diff[i] - diff1_avg) * (diff[i] - diff1_avg);
+
+	diff1_sdev= sqrt(diff1_sdev/(n-2));
+
+	if( (s2=malloc(n * sizeof(u_int32_t))) == NULL)
+		return(-1);
+
+	memcpy(s2, s, n* sizeof(u_int32_t));
+	change_endianness(s2, n);
+
+	diff2_avg= 0;
+
+	for(i=0; i<(n-1); i++){
+		diff[i]= s2[i+1]-s2[i];
+		diff2_avg+= diff[i];
+	}
+
+	diff2_avg= diff2_avg/(n-1);
+
+	diff2_sdev= 0;
+
+	for(i=0; i<(n-1); i++)
+		diff2_sdev= diff2_sdev + (diff[i] - diff2_avg) * (diff[i] - diff2_avg);
+
+	diff2_sdev= sqrt(diff2_sdev/(n-2));
+
+	free(diff);
+	free(s2);
+
+	if(diff1_sdev <= diff2_sdev){
+		*diff_avg= diff1_avg;
+		*diff_sdev= diff1_sdev;
+	}
+	else{
+		*diff_avg= diff2_avg;
+		*diff_sdev= diff2_sdev;
+	}
+
+	return(0);
+}
+
+
+/*
+ * Function: change_endianness()
+ *
+ * Changes the endianness of an array of u_int32_t's
+*/
+void change_endianness(u_int32_t *s, unsigned int n){
+	unsigned int		i;
+	union {
+		u_int32_t		ui;
+		unsigned char	c[4];
+	} swapper;
+
+	unsigned char	c;
+
+	for(i=0; i<n; i++){
+		swapper.ui= *s;
+		c= swapper.c[3];
+		swapper.c[3]= swapper.c[0];
+		swapper.c[0]= c;
+
+		c= swapper.c[2];
+		swapper.c[2]= swapper.c[1];
+		swapper.c[1]= c;
+	}
+}		
+
+
+/*
+ * Function: send_neighbor_solicit()
+ *
+ * Sends a Neighbor Advertisement message for a target address
+*/
+int send_neighbor_solicit(struct iface_data *idata, struct in6_addr *target){
+	unsigned char			*ptr, *prev_nh;
+	unsigned char			buffer[65556];
+	unsigned int 			ns_max_packet_size;
+	struct ether_header		*ether;
+	unsigned char 			*v6buffer;
+	size_t					nw;
+	struct ip6_hdr			*ipv6;
+	struct nd_neighbor_solicit	*ns;
+	struct nd_opt_slla		*sllaopt;
+
+	ns_max_packet_size = idata->mtu;
+
+	ether = (struct ether_header *) buffer;
+	v6buffer = buffer + idata->linkhsize;
+	ipv6 = (struct ip6_hdr *) v6buffer;
+
+	ether->src = idata->ether;
+	ether->dst = ether_multicast(&(ipv6->ip6_dst));
+	ether->ether_type = htons(0x86dd);
+
+	ipv6->ip6_flow=0;
+	ipv6->ip6_vfc= 0x60;
+	ipv6->ip6_hlim= 255;
+	ipv6->ip6_src= idata->srcaddr;
+	ipv6->ip6_dst= solicited_node(&(idata->dstaddr));
+
+	prev_nh = (unsigned char *) &(ipv6->ip6_nxt);
+	*prev_nh = IPPROTO_ICMPV6;
+
+	ptr = (unsigned char *) v6buffer + MIN_IPV6_HLEN;
+
+	if( (ptr+sizeof(struct nd_neighbor_solicit)) > (v6buffer+ns_max_packet_size)){
+		if(idata->verbose_f>1)
+			puts("Packet too large while inserting Neighbor Solicitation header");
+
+		return(-1);
+	}
+
+	ns= (struct nd_neighbor_solicit *) (ptr);
+
+	ns->nd_ns_type = ND_NEIGHBOR_SOLICIT;
+	ns->nd_ns_code = 0;
+	ns->nd_ns_reserved = 0;
+	ns->nd_ns_target = *target;
+
+	ptr += sizeof(struct nd_neighbor_solicit);
+	sllaopt = (struct nd_opt_slla *) ptr;    
+
+	if( (ptr+sizeof(struct nd_opt_slla)) > (v6buffer+ns_max_packet_size)){
+		if(idata->verbose_f>1)
+			puts("NS message too large while processing source link-layer addresss opt.");
+
+		return(-1);
+	}
+
+	sllaopt->type= ND_OPT_SOURCE_LINKADDR;
+	sllaopt->length= SLLA_OPT_LEN;
+	bcopy( &(idata->ether.a), sllaopt->address, ETH_ALEN);
+	ptr += sizeof(struct nd_opt_slla);
+
+	ipv6->ip6_plen = htons((ptr - v6buffer) - MIN_IPV6_HLEN);
+	ns->nd_ns_cksum = 0;
+	ns->nd_ns_cksum = in_chksum(v6buffer, ns, ptr-((unsigned char *)ns), IPPROTO_ICMPV6);
+
+	if((nw=pcap_inject(idata->pfd, buffer, ptr - buffer)) == -1){
+		if(idata->verbose_f>1)
+			printf("pcap_inject(): %s\n", pcap_geterr(idata->pfd));
+
+		return(-1);
+	}
+
+	if(nw != (ptr-buffer)){
+		if(idata->verbose_f > 1)
+			printf("pcap_inject(): only wrote %lu bytes (rather than %lu bytes)\n", (LUI) nw, \
+											(LUI) (ptr-buffer));
+		return(-1);
+	}
+
+	return 0;
 }
 

@@ -3,6 +3,7 @@
 #define CHAR_LF			0x0a
 #define	DATA_BUFFER_LEN		1000
 #define LINE_BUFFER_SIZE	80
+#define MAX_STRING_SIZE			10 /* For limiting strncmp */
 #define ETH_ALEN	6		/* Octets in one ethernet addr	 */
 #define ETH_HLEN	14		/* Total octets in header.	 */
 #define ETH_DATA_LEN	1500		/* Max. octets in payload	 */
@@ -20,6 +21,7 @@
 #define MIN_TCP_HLEN		20
 #define MIN_UDP_HLEN		20
 #define MIN_ICMP6_HLEN		8
+#define MIN_HBH_LEN			8
 #define	SLLA_OPT_LEN		1
 #define	TLLA_OPT_LEN		1
 #define MAX_SLLA_OPTION		100
@@ -105,6 +107,14 @@ struct filters{
 #define PCAP_ICMPV6_NI_QUERY	"icmp6 and ip6[40]==139"
 #define PCAP_ICMPV6_NI_REPLY	"icmp6 and ip6[40]==140"
 #define PCAP_NOPACKETS_FILTER	"not ip and not ip6 and not arp"
+#define PCAP_ICMPV6NSEXCEEDED_FILTER  "icmp6 and ((ip6[40]==3 and ip6[41]==1) or (ip6[40]==129 and ip6[41]==0))"
+
+#define PCAP_ICMPV6_NSECHOEXCEEDED_FILTER  "icmp6 and ((ip6[40]==3 and ip6[41]==1) or (ip6[40]==129 and ip6[41]==0) OR (ip6[7]==255 and ip6[40]==135 and ip6[41]==0))"
+
+/* Filter to receive Neighbor Solicitations and Fragmented packets */
+#define PCAP_ICMPV6NSFRAG_FILTER "(ip6[7]==255 and icmp6 and ip6[40]==135 and ip6[41]==0) or (ip6 and ip6[6]==44)"
+#define PCAP_NSTCP_FILTER "(ip6[7]==255 and icmp6 and ip6[40]==135 and ip6[41]==0) or (ip6 and ip6[6]==6)"
+
 
 
 /* Constants used for Router Discovery */
@@ -112,6 +122,12 @@ struct filters{
 #define MAX_PREFIXES_AUTO		100
 #define MAX_LOCAL_ADDRESSES		256
 
+
+/* For Fragment ID or Flow Label assessment */
+#define ID_ASSESS_TIMEOUT		5
+#define NSAMPLES				40
+#define FIXED_ORIGIN			1
+#define MULTI_ORIGIN			2
 
 
 struct ether_addr{
@@ -334,7 +350,7 @@ struct iface_data{
 };
 
 
-
+void				change_endianness(u_int32_t *, unsigned int);
 int					dns_decode(unsigned char *, unsigned int, unsigned char *, char *, unsigned int, unsigned char **);
 int					dns_str2wire(char *, unsigned int, char *, unsigned int);
 struct ether_addr	ether_multicast(const struct in6_addr *);
@@ -344,6 +360,7 @@ void				ether_to_ipv6_linklocal(struct ether_addr *etheraddr, struct in6_addr *i
 int					find_ipv6_router_full(pcap_t *, struct iface_data *);
 void				generate_slaac_address(struct in6_addr *, struct ether_addr *, struct in6_addr *);
 int					get_if_addrs(struct iface_data *);
+int					inc_sdev(u_int32_t *, unsigned int, u_int32_t *, double *);
 int					init_iface_data(struct iface_data *);
 int					init_filters(struct filters *);
 u_int16_t			in_chksum(void *, void *, size_t, u_int8_t);
@@ -363,6 +380,7 @@ void				randomize_ipv6_addr(struct in6_addr *, struct in6_addr *, u_int8_t);
 void				release_privileges(void);
 void				sanitize_ipv6_prefix(struct in6_addr *, u_int8_t);
 int 				send_neighbor_advert(struct iface_data *, pcap_t *,  const u_char *);
+int					send_neighbor_solicit(struct iface_data *, struct in6_addr *);
 int					sel_next_hop(struct iface_data *);
 void				sig_alarm(int);
 struct in6_addr		solicited_node(const struct in6_addr *);
