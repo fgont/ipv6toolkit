@@ -174,7 +174,7 @@ int main(int argc, char **argv){
 	fd_set			sset, rset;
 	int				r, sel;
 	struct timeval	timeout, stimeout, curtime, lastprobe, wmtimeout;
-	unsigned long	pktinterval;
+	unsigned long	pktinterval=0;
 
 	static struct option longopts[] = {
 		{"interface", required_argument, 0, 'i'},
