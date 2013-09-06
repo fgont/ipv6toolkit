@@ -954,7 +954,7 @@ int main(int argc, char **argv){
 				  */
 				strncpy(oui_ascii, optarg, 8);
 				oui_ascii[8]= 0;
-				strncat(oui_ascii, oui_end, ETHER_ADDR_PLEN-8);
+				strncat(oui_ascii, oui_end, ETHER_ADDR_PLEN-8-1);
 
 				if(ether_pton(oui_ascii, &oui, sizeof(oui)) == 0){
 					puts("Error in vendor IEEE OUI");
@@ -3003,7 +3003,7 @@ int load_vendor_entries(struct scan_list *scan, struct scan_entry *dst, char *ve
 			/* zero-terminate the string */
 			oui_ascii[8]= 0;
 
-			strncat(oui_ascii, oui_end, ETHER_ADDR_PLEN);
+			strncat(oui_ascii, oui_end, ETHER_ADDR_PLEN-8-1);
 
 			if(ether_pton(oui_ascii, &oui_list[ouis], sizeof(oui_list[ouis])) == 0){
 				if(verbose_f)
