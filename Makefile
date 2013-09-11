@@ -11,8 +11,8 @@
 # variable accordingly. The path of the manual pages can be overriden by setting
 # the MANPREFIX variable. Typically, packages will set these variables as follows:
 #
-# PREFIX=usr/
-# MANPREFIX=usr/share
+# PREFIX=/usr
+# MANPREFIX=/usr/share
 #
 # Finally, please note that this makefile supports the DESTDIR variable, as 
 # typically employed by package developers.
@@ -72,8 +72,8 @@ ni6: $(SRCPATH)/ni6.c $(SRCPATH)/ni6.h $(SRCPATH)/ipv6toolkit.h $(LIBS) $(SRCPAT
 ns6: $(SRCPATH)/ns6.c $(SRCPATH)/ns6.h $(SRCPATH)/ipv6toolkit.h $(LIBS) $(SRCPATH)/libipv6.h
 	$(CC) $(CPPFLAGS) $(CFLAGS) -o ns6 $(SRCPATH)/ns6.c $(LIBS) $(LDFLAGS)
 
-ra6: $(SRCPATH)/ra6.c $(SRCPATH)/ra6.h $(SRCPATH)/ipv6toolkit.h
-	$(CC) $(CPPFLAGS) $(CFLAGS) -o ra6 $(SRCPATH)/ra6.c $(LDFLAGS)
+ra6: $(SRCPATH)/ra6.c $(SRCPATH)/ra6.h $(SRCPATH)/ipv6toolkit.h $(LIBS) $(SRCPATH)/libipv6.h
+	$(CC) $(CPPFLAGS) $(CFLAGS) -o ra6 $(SRCPATH)/ra6.c $(LIBS) $(LDFLAGS)
 
 rd6: $(SRCPATH)/rd6.c $(SRCPATH)/rd6.h $(SRCPATH)/ipv6toolkit.h
 	$(CC) $(CPPFLAGS) $(CFLAGS) -o rd6 $(SRCPATH)/rd6.c $(LDFLAGS)
