@@ -1,3 +1,9 @@
+/* General constants */
+#define SUCCESS	1
+#define FAILURE 0
+#define TRUE 1
+#define FALSE 0
+
 #define LUI		long unsigned int
 #define	CHAR_CR			0x0d
 #define CHAR_LF			0x0a
@@ -108,7 +114,7 @@ struct filters{
 #define PCAP_ICMPV6_NI_REPLY	"icmp6 and ip6[40]==140"
 #define PCAP_NOPACKETS_FILTER	"not ip and not ip6 and not arp"
 #define PCAP_ICMPV6NSEXCEEDED_FILTER  "icmp6 and ((ip6[40]==3 and ip6[41]==1) or (ip6[40]==129 and ip6[41]==0))"
-
+#define PCAP_ICMPV6_RS_FILTER	"icmp6 and ip6[7]==255 and ip6[40]==133 and ip6[41]==0"
 #define PCAP_ICMPV6_NSECHOEXCEEDED_FILTER  "icmp6 and ((ip6[40]==3 and ip6[41]==1) or (ip6[40]==129 and ip6[41]==0) OR (ip6[7]==255 and ip6[40]==135 and ip6[41]==0))"
 
 /* Filter to receive Neighbor Solicitations and Fragmented packets */
@@ -121,6 +127,25 @@ struct filters{
 #define MAX_PREFIXES_ONLINK		100
 #define MAX_PREFIXES_AUTO		100
 #define MAX_LOCAL_ADDRESSES		256
+
+
+/* Constants used for sending Router Advertisements */
+#define MAX_PREFIX_OPTION	256
+#define	MAX_ROUTE_OPTION	MAX_PREFIX_OPTION
+#define MAX_MTU_OPTION		MAX_PREFIX_OPTION
+#define	MAX_RDNSS_OPTION	MAX_PREFIX_OPTION
+#define	MAX_RDNSS_OPT_ADDRS	127
+#define DEFAULT_PREFIX_PREFERRED	0xffffffff
+#define DEFAULT_PREFIX_VALID		0xffffffff
+#define DEFAULT_CURHOP			255
+#define DEFAULT_ROUTER_LIFETIME		9000
+#define DEFAULT_ROUTER_REACHABLE	0Xffffffff
+#define	DEFAULT_ROUTER_RETRANS		4000
+#define DEFAULT_ROUTER_PREFERENCE	0x08
+#define	DEFAULT_RDNSS_LIFETIME		9000
+#define DEFAULT_ROUTE_OPT_LIFE		0xffffffff
+#define DEFAULT_ROUTE_OPT_PREF		0x08
+
 
 
 /* For Fragment ID or Flow Label assessment */
@@ -153,6 +178,24 @@ struct	nd_opt_tlla{
     u_int8_t	address[6];
 } __attribute__ ((__packed__));
 
+struct nd_opt_route_info_l{
+    u_int8_t	nd_opt_ri_type;
+    u_int8_t	nd_opt_ri_len;
+    u_int8_t	nd_opt_ri_prefix_len;
+    u_int8_t	nd_opt_ri_rsvd_pref_rsvd;
+    u_int32_t	nd_opt_ri_lifetime;
+    struct in6_addr	nd_opt_ri_prefix;
+} __attribute__ ((__packed__));
+    
+struct nd_opt_rdnss_l{
+    u_int8_t	nd_opt_rdnss_type;
+    u_int8_t	nd_opt_rdnss_len;
+    u_int16_t	nd_opt_rdnss_rsvd;
+    u_int32_t	nd_opt_rdnss_lifetime;
+    struct in6_addr	nd_opt_rdnss_addr[];
+} __attribute__ ((__packed__));
+
+
 struct ipv6pseudohdr{
     struct in6_addr srcaddr;
     struct in6_addr dstaddr;
@@ -180,6 +223,24 @@ struct prefix_list{
 	unsigned int		nprefix;
 	unsigned int		maxprefix;
 };
+
+
+#define MAX_IFACES 10
+struct iface_entry{
+	int					ifindex;
+	char				iface[IFACE_LENGTH];	
+	struct ether_addr	ether;
+	struct prefix_list	ip6_global;
+	struct prefix_list  ip6_local;
+	int					flags;	
+};
+
+struct iface_list{
+	struct iface_entry	*ifaces;
+	unsigned int		nifaces;
+	unsigned int		maxifaces;
+};
+
 
 
 #if defined (__FreeBSD__) || defined(__NetBSD__) || defined (__OpenBSD__) || defined(__APPLE__)
@@ -311,18 +372,17 @@ struct ni_reply_name {
 #endif
 
 
-/* This causes Linux to use the BSD definition of the TCP and UDP header fields */
-#ifndef __FAVOR_BSD
-	#define __FAVOR_BSD
-#endif
-
 
 struct iface_data{
-	char			iface[IFACE_LENGTH];
-	int			type;
-	int			flags;
-	int			fd;
-	pcap_t			*pfd;
+	char				iface[IFACE_LENGTH];
+	unsigned char		iface_f;
+	int					ifindex;
+	unsigned char		ifindex_f;
+	struct iface_list	iflist;
+	int					type;
+	int					flags;
+	int					fd;
+	pcap_t				*pfd;
 	struct ether_addr	ether;
 	unsigned int		ether_flag;
 	unsigned int		linkhsize;
@@ -344,10 +404,45 @@ struct iface_data{
 	unsigned int		hdstaddr_f;
 	struct in6_addr		srcaddr;
 	unsigned int		srcaddr_f;
+	unsigned char		srcpreflen;
+	unsigned char		srcprefix_f;
 	struct in6_addr		dstaddr;
 	unsigned int		dstaddr_f;
 	unsigned int		verbose_f;
+
+	/* XXX
+	   The next four variables are kind of a duplicate of router_ip6 and router_ether above.
+       May remove them at some point
+     */
+
+	struct in6_addr		nhaddr;
+	unsigned char		nhaddr_f;
+	struct ether_addr	nhhaddr;
+	unsigned char		nhhaddr_f;
+	int					nhifindex;
+	unsigned char		nh_flag;
 };
+
+
+#ifdef __linux__
+/* Consulting the routing table */
+#define MAX_NLPAYLOAD 1024
+
+#endif
+
+struct next_hop{
+	struct in6_addr	srcaddr;
+	unsigned char	srcaddr_f;
+	struct in6_addr	dstaddr;
+	unsigned char	dstaddr_f;
+	struct in6_addr	nhaddr;
+	unsigned char	nhaddr_f;
+	struct ether_addr nhhaddr;
+	unsigned char	nhhaddr_f;
+	int				ifindex;
+	unsigned char	ifindex_f;
+};
+
 
 
 void				change_endianness(u_int32_t *, unsigned int);
@@ -357,19 +452,26 @@ struct ether_addr	ether_multicast(const struct in6_addr *);
 int					ether_ntop(const struct ether_addr *, char *, size_t);
 int					ether_pton(const char *, struct ether_addr *, unsigned int);
 void				ether_to_ipv6_linklocal(struct ether_addr *etheraddr, struct in6_addr *ipv6addr);
+void 				*find_iface_by_index(struct iface_list *, int);
+void				*find_iface_by_name(struct iface_list *, char *);
 int					find_ipv6_router_full(pcap_t *, struct iface_data *);
+struct iface_entry  *find_matching_address(struct iface_data *, struct iface_list *, struct in6_addr *, struct in6_addr *);
 void				generate_slaac_address(struct in6_addr *, struct ether_addr *, struct in6_addr *);
 int					get_if_addrs(struct iface_data *);
+int					get_local_addrs(struct iface_data *);
 int					inc_sdev(u_int32_t *, unsigned int, u_int32_t *, double *);
 int					init_iface_data(struct iface_data *);
 int					init_filters(struct filters *);
 u_int16_t			in_chksum(void *, void *, size_t, u_int8_t);
 int					insert_pad_opt(unsigned char *ptrhdr, const unsigned char *, unsigned int);
 int					ipv6_to_ether(pcap_t *, struct iface_data *, struct in6_addr *, struct ether_addr *);
+unsigned int		ip6_longest_match(struct in6_addr *, struct in6_addr *);
 int					is_ip6_in_address_list(struct prefix_list *, struct in6_addr *);
+int					is_ip6_in_iface_entry(struct iface_list *, int, struct in6_addr *);
 int					is_ip6_in_prefix_list(struct in6_addr *, struct prefix_list *);
 int					is_eq_in6_addr(struct in6_addr *, struct in6_addr *);
 int					is_time_elapsed(struct timeval *, struct timeval *, unsigned long);
+int					load_dst_and_pcap(struct iface_data *);
 unsigned int		match_ether(struct ether_addr *, unsigned int, struct ether_addr *);
 unsigned int		match_ipv6(struct in6_addr *, u_int8_t *, unsigned int, struct in6_addr *);
 int 				match_ipv6_to_prefixes(struct in6_addr *, struct prefix_list *);
@@ -381,10 +483,13 @@ void				release_privileges(void);
 void				sanitize_ipv6_prefix(struct in6_addr *, u_int8_t);
 int 				send_neighbor_advert(struct iface_data *, pcap_t *,  const u_char *);
 int					send_neighbor_solicit(struct iface_data *, struct in6_addr *);
+int					sel_src_addr(struct iface_data *);
+struct in6_addr *	sel_src_addr_ra(struct iface_data *, struct in6_addr *);
 int					sel_next_hop(struct iface_data *);
+int					sel_next_hop_ra(struct iface_data *);
 void				sig_alarm(int);
 struct in6_addr		solicited_node(const struct in6_addr *);
-struct in6_addr *	src_addr_sel(struct iface_data *, struct in6_addr *);
 int					string_escapes(char *, unsigned int *);
 size_t				Strnlen(const char *, size_t);
+
 

@@ -65,7 +65,6 @@
 
 /* Function prototypes */
 void				init_packet_data(struct iface_data *);
-int					init_iface_data(struct iface_data *);
 int					send_packet(struct iface_data *, const u_char *, struct pcap_pkthdr *);
 void				print_attack_info(struct iface_data *);
 void				usage(void);
@@ -79,10 +78,8 @@ int					print_ni_noop(struct iface_data *, const u_char *, struct pcap_pkthdr *)
 
 /* Variables used for learning the default router */
 struct iface_data	idata;
-struct prefix_entry	*prefix_ols[MAX_PREFIXES_ONLINK], *prefix_acs[MAX_PREFIXES_AUTO];
-struct prefix_entry	*prefix_local[MAX_LOCAL_ADDRESSES];
-struct ether_addr	router_ether, rs_ether;
-struct in6_addr		router_ipv6, rs_ipv6;
+struct ether_addr	rs_ether;
+struct in6_addr		rs_ipv6;
 struct in6_addr		randprefix;
 unsigned char		randpreflen;
 
@@ -253,7 +250,7 @@ int main(int argc, char **argv){
 		exit(EXIT_FAILURE);
 	}
 
-	if(init_iface_data(&idata) == -1){
+	if(init_iface_data(&idata) == FAILURE){
 		puts("Error initializing internal data structure");
 		exit(EXIT_FAILURE);
 	}
@@ -925,78 +922,13 @@ int main(int argc, char **argv){
 		exit(EXIT_FAILURE);
 	}
 
-	if( (idata.pfd= pcap_open_live(idata.iface, PCAP_SNAP_LEN, PCAP_PROMISC, PCAP_TIMEOUT, errbuf)) == NULL){
-		printf("pcap_open_live(): %s\n", errbuf);
+
+	if(load_dst_and_pcap(&idata) == FAILURE){
+		puts("Error while learning Souce Address and Next Hop");
 		exit(EXIT_FAILURE);
 	}
 
 	release_privileges();
-
-	if( (idata.type = pcap_datalink(idata.pfd)) == DLT_EN10MB){
-		idata.linkhsize= ETH_HLEN;
-		idata.mtu= ETH_DATA_LEN;
-	}
-	else if( idata.type == DLT_RAW){
-		idata.linkhsize=0;
-		idata.mtu= MIN_IPV6_MTU;
-		idata.flags= IFACE_TUNNEL;
-	}
-	else if(idata.type == DLT_NULL){
-		idata.linkhsize=4;
-		idata.mtu= MIN_IPV6_MTU;
-		idata.flags= IFACE_TUNNEL;
-	}
-	else{
-		printf("Error: Interface %s is not an Ethernet or tunnel interface", idata.iface);
-		exit(EXIT_FAILURE);
-	}
-
-	if(get_if_addrs(&idata) == -1){
-		puts("Error obtaining local addresses");
-		exit(EXIT_FAILURE);
-	}
-
-	if(!(idata.hsrcaddr_f)){
-		if(forgeether_f || !idata.ether_flag){
-			randomize_ether_addr(&(idata.hsrcaddr));
-		}
-		else{
-			idata.hsrcaddr= idata.ether;
-			idata.hsrcaddr_f= 1;
-		}
-	}
-
-	if(rand_src_f && !srcprefix_f){
-		/* If we couldn't get the link-layer address with get_if_addrs(), idata.ether_flag
-		   could be empty. In that case, we set the link-layer address to the randomized one */
-		if(!idata.ether_flag){
-			idata.ether= idata.hsrcaddr;
-			idata.ether_flag=1;
-		}
-
-		if(rand_src_f || !idata.ip6_local_flag){
-			if( inet_pton(AF_INET6, "fe80::", &randprefix) <= 0){
-				puts("inet_pton(): Error while randomizing IPv6 Source Address");
-				exit(EXIT_FAILURE);
-			}
-
-			randpreflen=64;
-			randomize_ipv6_addr(&idata.ip6_local, &randprefix, randpreflen);
-		}
-	}
-
-	if(srcprefix_f){
-		randprefix=idata.srcaddr;
-		randpreflen=srcpreflen;
-		randomize_ipv6_addr(&(idata.srcaddr), &randprefix, randpreflen);
-		idata.srcaddr_f=1;
-	}
-	else if(!idata.srcaddr_f && idata.dstaddr_f){
-		idata.srcaddr= *src_addr_sel(&idata, &(idata.dstaddr));
-	}
-
-	if(sel_next_hop(&idata) == -1)
-		exit(EXIT_FAILURE);
 
 	if(!sleep_f)
 		nsleep=2;
@@ -1862,13 +1794,11 @@ int send_packet(struct iface_data *idata, const u_char *pktdata, struct pcap_pkt
 		/*
 		   If the query was sent to a multicast address, we respond with a forged link-local address.
 		   Otherwise we respond to the unicast address that elicited our response
+
+		    XXX: [fgont] Changed
 		 */
 		if(IN6_IS_ADDR_MULTICAST(pkt_ipv6addr)){
-			if(idata->srcaddr_f)
-				ipv6->ip6_src= idata->srcaddr;
-			else
-				ipv6->ip6_src= *src_addr_sel(idata, pkt_ipv6addr);
-
+			ipv6->ip6_src= idata->srcaddr;
 			ethernet->src= idata->hsrcaddr;
 		}
 		else{
@@ -2623,34 +2553,5 @@ void print_attack_info(struct iface_data *idata){
 	}
 }
 
-
-
-/*
- * Function: init_iface_data()
- *
- * Initializes the contents of "iface_data" structure
- */
-
-int init_iface_data(struct iface_data *idata){
-	bzero(idata, sizeof(struct iface_data));
-
-	idata->mtu= ETH_DATA_LEN;
-	idata->local_retrans = 0;
-	idata->local_timeout = 1;
-
-	idata->ip6_global.prefix= prefix_local;
-	idata->ip6_global.nprefix=0;
-	idata->ip6_global.maxprefix= MAX_LOCAL_ADDRESSES;
-
-	idata->prefix_ol.prefix= prefix_ols;
-	idata->prefix_ol.nprefix= 0;
-	idata->prefix_ol.maxprefix= MAX_PREFIXES_ONLINK;
-
-	idata->prefix_ac.prefix= prefix_acs;
-	idata->prefix_ac.nprefix= 0;
-	idata->prefix_ac.maxprefix= MAX_PREFIXES_AUTO;
-
-	return 0;
-}
 
 

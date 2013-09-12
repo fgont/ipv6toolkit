@@ -93,9 +93,6 @@ unsigned int		rhbytes, currentsize, packetsize;
 
 /* Used for router discovery */
 struct iface_data	idata;
-struct prefix_entry	*prefix_ols[MAX_PREFIXES_ONLINK], *prefix_acs[MAX_PREFIXES_AUTO];
-struct prefix_entry	*prefix_local[MAX_LOCAL_ADDRESSES];
-
 
 /* Data structures for packets read from the wire */
 struct pcap_pkthdr		*pkthdr;
@@ -242,7 +239,10 @@ int main(int argc, char **argv){
 		exit(EXIT_FAILURE);
 	}
 
-	init_iface_data(&idata);
+	if(init_iface_data(&idata) == FAILURE){
+		puts("Error initializing internal data structure");
+		exit(EXIT_FAILURE);
+	}
 
 	while((r=getopt_long(argc, argv, shortopts, longopts, NULL)) != -1) {
 		option= r;
@@ -949,37 +949,6 @@ int main(int argc, char **argv){
 		exit(EXIT_FAILURE);
 	}
 
-	if(!iface_f){
-		puts("Must specify the network interface with the -i option");
-		exit(EXIT_FAILURE);
-	}
-
-	if( (idata.pfd= pcap_open_live(idata.iface, PCAP_SNAP_LEN, PCAP_PROMISC, PCAP_TIMEOUT, errbuf)) == NULL){
-		printf("pcap_open_live(): %s\n", errbuf);
-		exit(EXIT_FAILURE);
-	}
-
-	release_privileges();
-
-	if( (idata.type = pcap_datalink(idata.pfd)) == DLT_EN10MB){
-		idata.linkhsize= ETH_HLEN;
-		idata.mtu= ETH_DATA_LEN;
-	}
-	else if( idata.type == DLT_RAW){
-		idata.linkhsize=0;
-		idata.mtu= MIN_IPV6_MTU;
-		idata.flags= IFACE_TUNNEL;
-	}
-	else if(idata.type == DLT_NULL){
-		idata.linkhsize=4;
-		idata.mtu= MIN_IPV6_MTU;
-		idata.flags= IFACE_TUNNEL;
-	}
-	else{
-		printf("Error: Interface %s is not an Ethernet or tunnel interface", iface);
-		exit(EXIT_FAILURE);
-	}
-
 	srandom(time(NULL));
 
 	/*
@@ -1005,26 +974,19 @@ int main(int argc, char **argv){
 		exit(EXIT_FAILURE);
 	}
 
-	if(get_if_addrs(&idata) == -1){
-		puts("Error obtaining local addresses");
+	if(!iface_f){
+		if(idata.dstaddr_f && IN6_IS_ADDR_LINKLOCAL(&(idata.dstaddr))){
+			puts("Must specify a network interface for link-local destinations");
+			exit(EXIT_FAILURE);
+		}
+	}
+
+	if(load_dst_and_pcap(&idata) == FAILURE){
+		puts("Error while learning Souce Address and Next Hop");
 		exit(EXIT_FAILURE);
 	}
 
-	if(!idata.ether_flag){
-		randomize_ether_addr(&idata.ether);
-		idata.ether_flag=1;
-	}
-
-	if(!(idata.hsrcaddr_f)){
-		if(idata.ether_flag)
-			idata.hsrcaddr=idata.ether;
-		else
-			randomize_ether_addr(&(idata.hsrcaddr));
-	}
-
-	if(!idata.ip6_local_flag){
-		ether_to_ipv6_linklocal(&idata.ether, &idata.ip6_local);
-	}
+	release_privileges();
 
 	if(data_f){
 		data[datalen]=0;
@@ -1035,19 +997,6 @@ int main(int argc, char **argv){
 		}
 
 		data[datalen]=0;
-	}
-
-	if(sel_next_hop(&idata) == -1)
-		exit(EXIT_FAILURE);
-
-	if(srcprefix_f && !floods_f){
-		randprefix=idata.srcaddr;
-		randpreflen=srcpreflen;
-		randomize_ipv6_addr(&(idata.srcaddr), &randprefix, randpreflen);
-		idata.srcaddr_f=1;
-	}
-	else if(!(idata.srcaddr_f)){
-		idata.srcaddr= *src_addr_sel(&idata, &(idata.dstaddr));
 	}
 
 	if(!floods_f)
@@ -2384,33 +2333,4 @@ void print_attack_info(struct iface_data *idata){
 
 	}
 }
-
-
-
-/*
- * Function: init_iface_data()
- *
- * Initializes the contents of "iface_data" structure
- */
-
-int init_iface_data(struct iface_data *idata){
-	bzero(idata, sizeof(struct iface_data));
-	idata->local_retrans = 0;
-	idata->local_timeout = 1;
-
-	idata->ip6_global.prefix= prefix_local;
-	idata->ip6_global.nprefix=0;
-	idata->ip6_global.maxprefix= MAX_LOCAL_ADDRESSES;
-
-	idata->prefix_ol.prefix= prefix_ols;
-	idata->prefix_ol.nprefix= 0;
-	idata->prefix_ol.maxprefix= MAX_PREFIXES_ONLINK;
-
-	idata->prefix_ac.prefix= prefix_acs;
-	idata->prefix_ac.nprefix= 0;
-	idata->prefix_ac.maxprefix= MAX_PREFIXES_AUTO;
-
-	return 0;
-}
-
 

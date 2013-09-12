@@ -26,7 +26,10 @@
 #include <net/if.h>
 #include <ifaddrs.h>
 #ifdef __linux__
-	#include <netpacket/packet.h>
+	#include <asm/types.h>
+	#include <linux/netlink.h>
+	#include <linux/rtnetlink.h>
+	#include <netpacket/packet.h>   /* For datalink structure */
 #elif defined (__FreeBSD__) || defined(__NetBSD__) || defined (__OpenBSD__) || defined(__APPLE__)
 	#include <net/if_dl.h>
 #endif
@@ -44,6 +47,12 @@ unsigned int		canjump;
 char				errbuf[PCAP_ERRBUF_SIZE];
 struct bpf_program	pcap_filter;
 
+/* Netlink requests */
+struct nlrequest{
+    struct nlmsghdr nl;
+    struct rtmsg    rt;
+    char   buf[MAX_NLPAYLOAD];
+};
 
 /*
  * Function: dns_decode()
@@ -1567,12 +1576,12 @@ void sig_alarm(int num){
 
 
 /*
- * Function: src_addr_sel()
+ * Function: src_addr_sel2()
  *
- * Selects a Source Address for a given Destination Address
+ * Selects a Source Address for a given Destination Address (old function)
  */
 
-struct in6_addr *src_addr_sel(struct iface_data *idata, struct in6_addr *dst){
+struct in6_addr *sel_src_addr_ra(struct iface_data *idata, struct in6_addr *dst){
 	u_int16_t	mask16;
 	unsigned int	i, j, full16, rest16;
 	/*
@@ -1851,6 +1860,48 @@ size_t Strnlen(const char *s, size_t maxlen){
 }
 
 
+/*
+ * Function: init_iface_data()
+ *
+ * Initializes the contents of "iface_data" structure
+ */
+
+int init_iface_data(struct iface_data *idata){
+	memset(idata, 0, sizeof(struct iface_data));
+
+	idata->mtu= ETH_DATA_LEN;
+	idata->local_retrans = 0;
+	idata->local_timeout = 1;
+
+	if( (idata->ip6_global.prefix= malloc(MAX_LOCAL_ADDRESSES * sizeof(struct prefix_entry *))) == NULL)
+		return(FAILURE);
+
+	idata->ip6_global.nprefix=0;
+	idata->ip6_global.maxprefix= MAX_LOCAL_ADDRESSES;
+
+	if( (idata->prefix_ol.prefix= malloc(MAX_PREFIXES_ONLINK * sizeof(struct prefix_entry *))) == NULL)
+		return(FAILURE);
+
+	idata->prefix_ol.nprefix= 0;
+	idata->prefix_ol.maxprefix= MAX_PREFIXES_ONLINK;
+
+	if( (idata->prefix_ac.prefix= malloc(MAX_PREFIXES_AUTO * sizeof(struct prefix_entry *))) == NULL)
+		return(FAILURE);
+
+	idata->prefix_ac.nprefix= 0;
+	idata->prefix_ac.maxprefix= MAX_PREFIXES_AUTO;
+
+	if( ((idata->iflist).ifaces= malloc(sizeof(struct iface_entry) * MAX_IFACES)) == NULL)
+		return(FAILURE);
+
+	idata->iflist.nifaces=0;
+	idata->iflist.maxifaces= MAX_IFACES;
+
+	return SUCCESS;
+}
+
+
+
 
 /*
  * Function: init_filters()
@@ -1915,13 +1966,13 @@ int init_filters(struct filters *filters){
 
 
 /*
- * Function: init_sel_next_hop()
+ * Function: sel_next_hop2()
  *
- * Performs next hop determination.
+ * Performs next hop determination by sending the necessary packets
  *
  */
 
-int sel_next_hop(struct iface_data *idata){
+int sel_next_hop_ra(struct iface_data *idata){
 	/*
 	   Select link-layer destination address
 
@@ -2168,3 +2219,667 @@ int send_neighbor_solicit(struct iface_data *idata, struct in6_addr *target){
 	return 0;
 }
 
+
+
+#ifdef __linux__
+/*
+ * Function: sel_next_hop()
+ *
+ * Find the next hop for a target destination
+*/
+int sel_next_hop(struct iface_data *idata){
+	int 				sockfd;
+	struct sockaddr_nl	addr, them;
+	int 				ret;
+	char				reply[MAX_NLPAYLOAD];
+	struct msghdr		msg;
+	struct iovec		iov;
+	struct nlrequest	req;
+	struct nlmsghdr		*nlp;
+	struct rtmsg		*rtp;
+	struct rtattr		*rtap;
+	int					nll,rtl;
+	unsigned char		skip_f;
+
+	if( (sockfd=socket(AF_NETLINK,SOCK_RAW,NETLINK_ROUTE)) == -1){
+		if(idata->verbose_f)
+			puts("Error in socket()");
+
+		return(FAILURE);
+	}
+
+	memset((void *)&addr, 0, sizeof(addr));
+	addr.nl_family = AF_NETLINK;
+	addr.nl_pid = getpid();
+	addr.nl_groups = RTMGRP_IPV6_ROUTE;
+
+	if(bind(sockfd, (struct sockaddr *)&addr, sizeof(addr)) != 0){
+		if(idata->verbose_f)
+			puts("Error in bind()");
+
+		return(FAILURE);
+	}
+
+	memset(&req, 0, sizeof(req));
+	req.nl.nlmsg_len = NLMSG_LENGTH(sizeof(struct rtmsg));
+	req.nl.nlmsg_flags = NLM_F_REQUEST;
+	req.nl.nlmsg_type = RTM_GETROUTE;
+    req.rt.rtm_family= AF_INET6;
+
+    rtap = (struct rtattr *) req.buf;
+
+	/* Destination Address */
+	if(idata->dstaddr_f){
+		rtap->rta_type = RTA_DST;
+		rtap->rta_len = RTA_SPACE(sizeof(idata->dstaddr));
+		memcpy(RTA_DATA(rtap), &(idata->dstaddr), sizeof(idata->dstaddr));
+		req.nl.nlmsg_len += rtap->rta_len;
+	}
+
+	/* Source Address */
+	if(idata->srcaddr_f){
+		rtap = (struct rtattr *)((char *)rtap + (rtap->rta_len));
+		rtap->rta_type = RTA_SRC;
+		rtap->rta_len = RTA_SPACE(sizeof(idata->srcaddr));
+		memcpy(RTA_DATA(rtap), &(idata->srcaddr), sizeof(idata->srcaddr));
+		req.nl.nlmsg_len += rtap->rta_len;
+	}
+
+	/* address it */
+	memset(&them, 0, sizeof(them));
+	them.nl_family = AF_NETLINK;
+
+	memset(&msg, 0, sizeof(msg));
+	msg.msg_name = (void *)&them;
+	msg.msg_namelen = sizeof(them);
+
+	iov.iov_base = (void *) &req.nl;
+	iov.iov_len  = req.nl.nlmsg_len;
+
+	msg.msg_iov = &iov;
+	msg.msg_iovlen = 1;
+
+	/* send it */
+	if( (ret = sendmsg(sockfd, &msg, 0)) < 0){
+		if(idata->verbose_f)
+			puts("Error in send()");
+
+		return(FAILURE);
+	}
+
+	memset(reply, 0, sizeof(reply));
+
+	if( (ret = recv(sockfd, reply, sizeof(reply), 0)) < 0){
+		if(idata->verbose_f)
+			puts("Error in recv()");
+
+		return(FAILURE);
+	}
+
+	nll = ret;
+
+	for(nlp = (struct nlmsghdr *)reply; NLMSG_OK(nlp,nll); nlp = NLMSG_NEXT(nlp, nll)){
+		rtp = (struct rtmsg *) NLMSG_DATA(nlp);
+
+		if(rtp->rtm_family == AF_INET6){
+			skip_f=0;
+
+			for (rtap = (struct rtattr *) RTM_RTA(rtp), rtl = RTM_PAYLOAD(nlp); RTA_OK(rtap, rtl); rtap = RTA_NEXT(rtap,rtl)) {
+				switch(rtap->rta_type){
+					case RTA_DST:
+						if(!is_eq_in6_addr(&(idata->dstaddr), (struct in6_addr *) RTA_DATA(rtap)))
+							skip_f=1;
+
+						break;
+
+					case RTA_OIF:
+						idata->ifindex= *((int *) RTA_DATA(rtap));
+						idata->ifindex_f= 1;
+						break;
+
+					case RTA_GATEWAY:
+						idata->nhaddr= *( (struct in6_addr *) RTA_DATA(rtap));
+						idata->nhaddr_f= 1;
+						break;
+				}
+
+				if(skip_f)
+					break;
+			}
+
+			if(skip_f)
+				continue;
+		}
+	}
+
+	if(idata->nhaddr_f && idata->ifindex_f)
+		return(SUCCESS);
+	else
+		return(FAILURE);
+}
+
+#elif defined (__FreeBSD__) || defined(__NetBSD__) || defined (__OpenBSD__) || defined(__APPLE__)
+
+
+#endif
+
+
+
+
+/*
+ * Function: get_local_addrs()
+ *
+ * Obtains all local addresses (Ethernet and IPv6 addresses for all interfaces)
+ */
+
+int get_local_addrs(struct iface_data *idata){
+	struct iface_entry		*cif;
+	struct ifaddrs			*ifptr, *ptr;
+	struct sockaddr_in6		*sockin6ptr;
+
+#ifdef __linux__
+	struct sockaddr_ll	*sockpptr;
+#elif defined (__FreeBSD__) || defined(__NetBSD__) || defined (__OpenBSD__) || defined(__APPLE__)
+	struct sockaddr_dl	*sockpptr;
+#endif
+
+	if(getifaddrs(&ifptr) != 0){
+		if(idata->verbose_f > 1){
+			puts("Error while learning local addresses");
+		}
+		return(FAILURE);
+	}
+
+	for(ptr=ifptr; ptr != NULL; ptr= ptr->ifa_next){
+		if(ptr->ifa_addr == NULL)
+			continue;
+
+		if( (cif = find_iface_by_name( &(idata->iflist), ptr->ifa_name)) == NULL){
+			if(idata->iflist.nifaces >= MAX_IFACES)
+				continue;
+			else{
+				cif= &(idata->iflist.ifaces[idata->iflist.nifaces]);
+				strncpy(cif->iface, ptr->ifa_name, IFACE_LENGTH-1);
+				idata->iflist.nifaces++;
+			}
+		}
+
+#ifdef __linux__
+		if((ptr->ifa_addr)->sa_family == AF_PACKET){
+			sockpptr = (struct sockaddr_ll *) (ptr->ifa_addr);
+
+			if(sockpptr->sll_halen == ETHER_ADDR_LEN){
+				memcpy(&(cif->ether), sockpptr->sll_addr, ETHER_ADDR_LEN);
+			}
+
+			cif->ifindex= sockpptr->sll_ifindex;
+		}
+#elif defined (__FreeBSD__) || defined(__NetBSD__) || defined (__OpenBSD__) || defined(__APPLE__)
+		if((ptr->ifa_addr)->sa_family == AF_LINK){
+			sockpptr = (struct sockaddr_dl *) (ptr->ifa_addr);
+			if(sockpptr->sdl_alen == ETHER_ADDR_LEN){
+				memcpy((cif->ether, (sockpptr->sdl_data + sockpptr->sdl_nlen), ETHER_ADDR_LEN);
+			}
+
+			cif->ifindex= sockptr->sdl_index;
+		}
+#endif
+		else if((ptr->ifa_addr)->sa_family == AF_INET6){
+			sockin6ptr= (struct sockaddr_in6 *) (ptr->ifa_addr);
+
+			if(IN6_IS_ADDR_LINKLOCAL( &(sockin6ptr->sin6_addr))){
+				if(cif->ip6_local.nprefix >= cif->ip6_local.maxprefix)
+					continue;
+
+				if(is_ip6_in_prefix_list( &(sockin6ptr->sin6_addr), &(cif->ip6_local)) == TRUE)
+					continue;
+
+				if( (cif->ip6_local.prefix[cif->ip6_local.nprefix] = malloc(sizeof(struct prefix_entry))) == NULL){
+					if(idata->verbose_f > 1)
+						puts("Error while storing Source Address");
+
+					freeifaddrs(ifptr);
+					return(FAILURE);
+				}
+
+				(cif->ip6_local.prefix[cif->ip6_local.nprefix])->len = 64;
+				(cif->ip6_local.prefix[cif->ip6_local.nprefix])->ip6 = sockin6ptr->sin6_addr;
+
+#if defined (__FreeBSD__) || defined(__NetBSD__) || defined (__OpenBSD__) || defined(__APPLE__)
+					/* BSDs store the interface index in s6_addr16[1], so we must clear it */
+				(cif->ip6_local.prefix[cif->ip6_local.nprefix]).s6_addr16[1] =0;
+				(cif->ip6_local.prefix[cif->ip6_local.nprefix]).s6_addr16[2] =0;
+				(cif->ip6_local.prefix[cif->ip6_local.nprefix]).s6_addr16[3] =0;					
+#endif
+
+				cif->ip6_local.nprefix++;
+			}
+			else if(!IN6_IS_ADDR_LINKLOCAL( &(sockin6ptr->sin6_addr))){
+				if(is_ip6_in_prefix_list( &(sockin6ptr->sin6_addr), &(cif->ip6_global)))
+					continue;
+
+				if(IN6_IS_ADDR_LOOPBACK(&(sockin6ptr->sin6_addr)))
+					cif->flags= IFACE_LOOPBACK;
+
+				if(cif->ip6_global.nprefix >= cif->ip6_global.maxprefix)
+					continue;
+
+				if( (cif->ip6_global.prefix[cif->ip6_global.nprefix] = \
+												malloc(sizeof(struct prefix_entry))) == NULL){
+					if(idata->verbose_f > 1)
+						puts("Error while storing Source Address");
+
+					freeifaddrs(ifptr);
+					return(FAILURE);
+				}
+
+				(cif->ip6_global.prefix[idata->ip6_global.nprefix])->len = 64;
+				(cif->ip6_global.prefix[idata->ip6_global.nprefix])->ip6 = sockin6ptr->sin6_addr;
+				cif->ip6_global.nprefix++;
+			}
+		}
+	}
+
+	freeifaddrs(ifptr);
+	return(SUCCESS);
+}
+
+
+
+/*
+ * Function: find_iface_by_name()
+ *
+ * Finds an Interface (by name) in an Interface list
+ */
+
+void *find_iface_by_name(struct iface_list *iflist, char *iface){
+	unsigned int i;
+
+	for(i=0; i < iflist->nifaces; i++){
+		if(strncmp((iflist->ifaces[i]).iface, iface, IFACE_LENGTH) == 0)
+			return(&(iflist->ifaces[i]));
+	}
+
+	return(NULL);
+}
+
+
+/*
+ * Function: find_iface_by_index()
+ *
+ * Finds an Interface (by index) in an Interface list
+ */
+
+void *find_iface_by_index(struct iface_list *iflist, int ifindex){
+	unsigned int i;
+
+	for(i=0; i < iflist->nifaces; i++){
+		if((iflist->ifaces[i]).ifindex == ifindex)
+			return(&(iflist->ifaces[i]));
+	}
+
+	return(NULL);
+}
+
+
+/*
+ * Function: is_in6addr_iniface_list()
+ *
+ * Finds an Interface (by name) in an Interface list
+ */
+
+int is_ip6_in_iface_entry(struct iface_list *iflist, int ifindex, struct in6_addr *addr){
+	unsigned int i;
+
+	for(i=0; i < iflist->nifaces; i++){
+		if(iflist->ifaces[i].ifindex == ifindex){
+			if(is_ip6_in_prefix_list(addr, &(iflist->ifaces[i].ip6_global)))
+				return(TRUE);
+			else if(is_ip6_in_prefix_list(addr, &(iflist->ifaces[i].ip6_local)))
+				return(TRUE);
+			else
+				return(FALSE);
+		}
+	}
+
+	return(FALSE);
+}
+
+
+/*
+ * Function: find_matching_address()
+ *
+ * Finds the longest matching address in an Interface list
+ */
+
+struct iface_entry *find_matching_address(struct iface_data *idata, struct iface_list *iflist, struct in6_addr *dst, struct in6_addr *match){
+	unsigned int i, j, mlen, len;
+	struct iface_entry	*cif;
+	mlen= 0;
+
+	for(i=0; i < iflist->nifaces; i++){
+		if(idata->iface_f && (idata->ifindex != (iflist->ifaces[i]).ifindex))
+			continue;
+
+		for(j=0; j < (iflist->ifaces[i]).ip6_global.maxprefix; j++){
+			if( (len= ip6_longest_match( &((iflist->ifaces[i].ip6_global.prefix[j])->ip6), match)) >= mlen){
+				cif= &(iflist->ifaces[i]);
+				*match= (iflist->ifaces[i].ip6_global.prefix[j])->ip6;
+				mlen= len;
+			}
+
+			if(mlen >= 64)
+				return(cif);
+		}
+	}
+
+	if(mlen)
+		return(cif);
+	else
+		return(NULL);
+}
+
+
+/*
+ * Function: ip6_longest_match()
+ *
+ * Finds the mask that two IPv6 addresses have in common
+ */
+unsigned int ip6_longest_match(struct in6_addr *addr1, struct in6_addr *addr2){
+	unsigned int mask, step=8;
+	struct in6_addr a1, a2;
+
+	for(mask=0; mask <= 64; mask=mask+step){
+		a1= *addr1;
+		a2= *addr2;
+		sanitize_ipv6_prefix(&a1, mask);
+		sanitize_ipv6_prefix(&a2, mask);
+
+		if(!is_eq_in6_addr(&a1, &a2))
+			return(mask - step);
+	}
+
+	return(64);
+}
+
+
+
+
+/*
+ * Function: sel_src_addr()
+ *
+ * Selects a Source Address for a given Destination
+ */
+int sel_src_addr(struct iface_data *idata){
+	struct in6_addr		match;
+	struct iface_entry	*cif;
+
+	/*
+	   If the packet is directed to a link-local addresses, the ourgoing interface should have been specified.
+	   If not, that's a failure. If specified, we give higher priority to link-local addresses
+	 */
+	if(IN6_IS_ADDR_LINKLOCAL(&(idata->dstaddr))){
+		if(!idata->iface_f)
+			return(FAILURE);
+		else{
+			if( (cif=find_iface_by_index( &(idata->iflist), idata->ifindex)) == NULL){
+				return(FAILURE);
+			}
+			else{
+				idata->ether= cif->ether;
+				idata->ether_flag= TRUE;
+
+				if((cif->ip6_local).nprefix){
+					idata->ip6_local= (cif->ip6_local).prefix[0]->ip6;
+					idata->ip6_local_flag= TRUE;
+				}
+
+				idata->ip6_global= cif->ip6_global;
+				if((idata->ip6_global).nprefix)
+					idata->ip6_global_flag= TRUE;
+
+				if(idata->ip6_local_flag == TRUE){
+					idata->srcaddr= (cif->ip6_local.prefix[0])->ip6;
+					return(SUCCESS);
+				}
+				else if(idata->ip6_global_flag == TRUE){
+					idata->srcaddr= (cif->ip6_local.prefix[0])->ip6;
+					return(SUCCESS);
+				}
+			}
+		}
+	}
+	else{
+		/*
+		   If the destination address is not a link-local address, then:
+
+		   1) If the interface has been specified, we select an IPv6 address assigned to aht interface
+		      (prioritizing "global" addresses)
+
+		   2) If an interface has not been specified, we select the longest-matching address for that
+		      destination
+		 */
+		if(idata->iface_f){
+			if( (cif=find_iface_by_index( &(idata->iflist), idata->ifindex)) == NULL){
+				return(FAILURE);
+			}
+			else{
+				idata->ether= cif->ether;
+				idata->ether_flag= TRUE;
+
+				idata->ip6_global= cif->ip6_global;
+				if(cif->ip6_global.nprefix){
+					/* XXX This should be replaced with "find the longest match for this list */
+					idata->ip6_global_flag= TRUE;
+				}
+
+				if((cif->ip6_local).nprefix){
+					idata->ip6_local= (cif->ip6_local).prefix[0]->ip6;
+					idata->ip6_local_flag= TRUE;
+				}
+
+				if(idata->ip6_global_flag){
+					idata->srcaddr= (idata->ip6_global).prefix[0]->ip6;
+					return(SUCCESS);
+				}
+				else if(idata->ip6_local_flag){
+					idata->srcaddr= idata->ip6_local;
+					return(SUCCESS);
+				}
+			}
+		}
+		else{
+			if( (cif=find_matching_address(idata, &(idata->iflist), &(idata->dstaddr), &match)) != NULL){
+				idata->srcaddr= match;
+
+
+				/*
+				   We know check whether the selected address belongs to the selected address belongs to the outgoing
+				   interface -- otherwise packets might be filtered
+				 */
+
+				if(sel_next_hop(idata) == SUCCESS){
+					if(is_ip6_in_iface_entry(&(idata->iflist), idata->ifindex, &(idata->srcaddr)) == TRUE){
+						if((cif->ip6_local).nprefix){
+							idata->ip6_local= (cif->ip6_local).prefix[0]->ip6;
+							idata->ip6_local_flag= TRUE;
+						}
+
+						idata->ip6_global= cif->ip6_global;
+						if((idata->ip6_global).nprefix)
+							idata->ip6_global_flag= TRUE;
+
+						idata->ether= cif->ether;
+						idata->ether_flag= TRUE;
+						return(SUCCESS);
+					}
+					else{
+						/*
+						   If the seleted address doesn't correspond to the outgoing interface, throw away
+						   the previously-selected IPv6 Address, and select one that is assigned to the
+						   outgoing interface.
+						 */
+						if( (cif= find_iface_by_index(&(idata->iflist), idata->ifindex)) == NULL){
+							return(FAILURE);
+						}
+						else{
+							if((cif->ip6_local).nprefix){
+								idata->ip6_local= (cif->ip6_local).prefix[0]->ip6;
+								idata->ip6_local_flag= TRUE;
+							}
+
+							idata->ip6_global= cif->ip6_global;
+							if((idata->ip6_global).nprefix)
+								idata->ip6_global_flag= TRUE;
+
+							idata->ether= cif->ether;
+							idata->ether_flag= TRUE;
+
+							if(idata->ip6_global_flag){
+								idata->srcaddr= (cif->ip6_global.prefix[0])->ip6;
+								return(SUCCESS);
+							}
+							else if(idata->ip6_local_flag){
+								idata->srcaddr= idata->ip6_local;
+								return(SUCCESS);
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
+	return(FAILURE);
+}
+
+
+
+/*
+ * Function: sel_src_addr()
+ *
+ * Selects a Source Address for a given Destination
+ */
+int load_dst_and_pcap(struct iface_data *idata){
+	struct iface_entry	*cif;
+	struct in6_addr		randprefix;
+	unsigned char		randpreflen;
+	char				errbuf[PCAP_ERRBUF_SIZE];
+
+	if(idata->srcprefix_f){
+		randprefix= idata->srcaddr;
+		randpreflen= idata->srcpreflen;
+		randomize_ipv6_addr(&(idata->srcaddr), &randprefix, randpreflen);
+		idata->srcaddr_f=1;
+	}
+	else if(!idata->srcaddr_f){
+		if(get_local_addrs(idata) == FAILURE){
+			puts("Error while obtaining local addresses");
+			return(FAILURE);
+		}
+
+		/*
+		   If no source address or prefix have been specified, then we need to automatically learn our IPv6
+		   address. This is our appraoch:
+
+		   * Firstly, assume that our host has IPv6 connectivity:
+		        + If an interface has been specified, select an IPv6 address from one of the configures addresses
+			      of such interface.
+
+		        * If an interface has not been specified, select a source address taking into consideration
+		          all configured addresses.
+
+		   * If that doesn't succeed, try sending
+
+		 */
+		if(idata->iface_f){
+			/*
+				Select an address from this particular interface. If that doesn't succeed, try sending a Router
+			    Advertisement
+			 */
+			if((cif=find_matching_address(idata, &(idata->iflist), &(idata->dstaddr), &(idata->srcaddr))) != NULL){
+				idata->ip6_global=cif->ip6_global;
+				if((cif->ip6_global).nprefix)
+					idata->ip6_global_flag= TRUE;
+
+				if( (cif->ip6_local).nprefix){
+					idata->ip6_local= ((cif->ip6_local).prefix[0])->ip6;
+					idata->ip6_local_flag= TRUE;
+				}
+
+				idata->ether= cif->ether;
+				idata->ether_flag= TRUE;
+			}
+			else{
+				/* This sends an RA, populates the local addresses and prefixes, and the local router */
+				if(sel_next_hop(idata) == -1){
+					puts("Could not learn a local router");
+					return(FAILURE);
+				}
+			}
+		}
+		else{
+			if(sel_src_addr(idata) == FAILURE || !idata->ether_flag || idata->ip6_global_flag || idata->ip6_local_flag){
+				puts("Could not obtain local address");
+				return(FAILURE);
+			}
+
+			if(sel_next_hop(idata) == FAILURE){
+				if(!idata->iface_f){
+					puts("Could not determine next hop address");
+					return(FAILURE);
+				}
+			}
+		}
+	}
+
+	idata->ifindex= if_nametoindex(idata->iface);
+	idata->ifindex_f= TRUE;
+
+	idata->nhaddr_f=1;
+
+	if(!(idata->hsrcaddr_f)){
+		if(idata->ether_flag)
+			idata->hsrcaddr=idata->ether;
+		else
+			randomize_ether_addr(&(idata->hsrcaddr));
+	}
+
+	if(!idata->ip6_local_flag){
+		ether_to_ipv6_linklocal(&idata->ether, &idata->ip6_local);
+	}
+
+	if( (idata->pfd= pcap_open_live(idata->iface, PCAP_SNAP_LEN, PCAP_PROMISC, PCAP_TIMEOUT, errbuf)) == NULL){
+		printf("pcap_open_live(): %s\n", errbuf);
+		return(FAILURE);
+	}
+
+	if( (idata->type = pcap_datalink(idata->pfd)) == DLT_EN10MB){
+		idata->linkhsize= ETH_HLEN;
+		idata->mtu= ETH_DATA_LEN;
+	}
+	else if( idata->type == DLT_RAW){
+		idata->linkhsize=0;
+		idata->mtu= MIN_IPV6_MTU;
+		idata->flags= IFACE_TUNNEL;
+	}
+	else if(idata->type == DLT_NULL){
+		idata->linkhsize=4;
+		idata->mtu= MIN_IPV6_MTU;
+		idata->flags= IFACE_TUNNEL;
+	}
+	else{
+		printf("Error: Interface %s is not an Ethernet or tunnel interface", idata->iface);
+		return(FAILURE);
+	}
+
+	if(ipv6_to_ether(idata->pfd, idata, &(idata->nhaddr), &(idata->nhhaddr)) != 1){
+		puts("Error while performing Neighbor Discovery for the Destination Address");
+		return(FAILURE);
+	}
+
+	idata->nhhaddr_f= TRUE;
+	idata->hdstaddr= idata->nhhaddr;
+
+	return(SUCCESS);
+}
