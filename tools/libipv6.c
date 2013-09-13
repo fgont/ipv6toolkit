@@ -2386,6 +2386,150 @@ int sel_next_hop(struct iface_data *idata){
 }
 
 #elif defined (__FreeBSD__) || defined(__NetBSD__) || defined (__OpenBSD__) || defined(__APPLE__)
+/*
+ * Function: sel_next_hop()
+ *
+ * Find the next hop for a target destination
+*/
+int sel_next_hop(struct iface_data *idata){
+	int 				sockfd;
+	struct sockaddr_nl	addr, them;
+	int 				ret;
+	char				reply[MAX_NLPAYLOAD];
+	struct msghdr		msg;
+	struct iovec		iov;
+	struct nlrequest	req;
+	struct nlmsghdr		*nlp;
+	struct rtmsg		*rtp;
+	struct rtattr		*rtap;
+	int					nll,rtl;
+	unsigned char		skip_f;
+
+	if( (sockfd=socket(AF_NETLINK,SOCK_RAW,NETLINK_ROUTE)) == -1){
+		if(idata->verbose_f)
+			puts("Error in socket()");
+
+		return(FAILURE);
+	}
+
+	memset((void *)&addr, 0, sizeof(addr));
+	addr.nl_family = AF_NETLINK;
+	addr.nl_pid = getpid();
+	addr.nl_groups = RTMGRP_IPV6_ROUTE;
+
+	if(bind(sockfd, (struct sockaddr *)&addr, sizeof(addr)) != 0){
+		if(idata->verbose_f)
+			puts("Error in bind()");
+
+		close(sockfd);
+		return(FAILURE);
+	}
+
+	memset(&req, 0, sizeof(req));
+	req.nl.nlmsg_len = NLMSG_LENGTH(sizeof(struct rtmsg));
+	req.nl.nlmsg_flags = NLM_F_REQUEST;
+	req.nl.nlmsg_type = RTM_GETROUTE;
+    req.rt.rtm_family= AF_INET6;
+
+    rtap = (struct rtattr *) req.buf;
+
+	/* Destination Address */
+	if(idata->dstaddr_f){
+		rtap->rta_type = RTA_DST;
+		rtap->rta_len = RTA_SPACE(sizeof(idata->dstaddr));
+		memcpy(RTA_DATA(rtap), &(idata->dstaddr), sizeof(idata->dstaddr));
+		req.nl.nlmsg_len += rtap->rta_len;
+	}
+
+	/* Source Address */
+	if(idata->srcaddr_f){
+		rtap = (struct rtattr *)((char *)rtap + (rtap->rta_len));
+		rtap->rta_type = RTA_SRC;
+		rtap->rta_len = RTA_SPACE(sizeof(idata->srcaddr));
+		memcpy(RTA_DATA(rtap), &(idata->srcaddr), sizeof(idata->srcaddr));
+		req.nl.nlmsg_len += rtap->rta_len;
+	}
+
+	/* address it */
+	memset(&them, 0, sizeof(them));
+	them.nl_family = AF_NETLINK;
+
+	memset(&msg, 0, sizeof(msg));
+	msg.msg_name = (void *)&them;
+	msg.msg_namelen = sizeof(them);
+
+	iov.iov_base = (void *) &req.nl;
+	iov.iov_len  = req.nl.nlmsg_len;
+
+	msg.msg_iov = &iov;
+	msg.msg_iovlen = 1;
+
+	/* send it */
+	if( (ret = sendmsg(sockfd, &msg, 0)) < 0){
+		if(idata->verbose_f)
+			puts("Error in send()");
+
+		close(sockfd);
+		return(FAILURE);
+	}
+
+	memset(reply, 0, sizeof(reply));
+
+	if( (ret = recv(sockfd, reply, sizeof(reply), 0)) < 0){
+		if(idata->verbose_f)
+			puts("Error in recv()");
+
+		close(sockfd);
+		return(FAILURE);
+	}
+
+	nll = ret;
+
+	for(nlp = (struct nlmsghdr *)reply; NLMSG_OK(nlp,nll); nlp = NLMSG_NEXT(nlp, nll)){
+		rtp = (struct rtmsg *) NLMSG_DATA(nlp);
+
+		skip_f=0;
+
+		if(rtp->rtm_family == AF_INET6){
+			for(rtap = (struct rtattr *) RTM_RTA(rtp), rtl = RTM_PAYLOAD(nlp); RTA_OK(rtap, rtl); rtap = RTA_NEXT(rtap,rtl)) {
+				switch(rtap->rta_type){
+					case RTA_DST:
+						if(!is_eq_in6_addr(&(idata->dstaddr), (struct in6_addr *) RTA_DATA(rtap)))
+							skip_f=1;
+
+						break;
+
+					case RTA_OIF:
+						idata->nhifindex= *((int *) RTA_DATA(rtap));
+						if(if_indextoname(idata->nhifindex, idata->nhiface) == NULL){
+							if(idata->verbose_f)
+								puts("Error calling if_indextoname() from sel_next_hop()");
+						}
+						idata->nhifindex_f= 1;
+						break;
+
+					case RTA_GATEWAY:
+						idata->nhaddr= *( (struct in6_addr *) RTA_DATA(rtap));
+						idata->nhaddr_f= 1;
+						break;
+				}
+
+				if(skip_f)
+					break;
+			}
+
+			if(skip_f)
+				continue;
+		}
+	}
+
+	close(sockfd);
+
+	if(idata->nhaddr_f && idata->nhifindex_f)
+		return(SUCCESS);
+	else
+		return(FAILURE);
+}
 
 
 #endif
