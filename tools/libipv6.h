@@ -10,6 +10,7 @@
 #define	DATA_BUFFER_LEN		1000
 #define LINE_BUFFER_SIZE	80
 #define MAX_STRING_SIZE			10 /* For limiting strncmp */
+#define MAX_RANGE_STR_LEN		79 /* For function that check for address ranges in string */
 #define ETH_ALEN	6		/* Octets in one ethernet addr	 */
 #define ETH_HLEN	14		/* Total octets in header.	 */
 #define ETH_DATA_LEN	1500		/* Max. octets in payload	 */
@@ -22,17 +23,18 @@
 #define ETHER_ALLNODES_LINK_ADDR	"33:33:00:00:00:01"
 #define ETHER_ALLROUTERS_LINK_ADDR	"33:33:00:00:00:02"
 
-#define	MIN_IPV6_HLEN		40
-#define MIN_IPV6_MTU		1280
-#define MIN_TCP_HLEN		20
-#define MIN_UDP_HLEN		20
-#define MIN_ICMP6_HLEN		8
-#define MIN_HBH_LEN			8
-#define	SLLA_OPT_LEN		1
-#define	TLLA_OPT_LEN		1
-#define MAX_SLLA_OPTION		100
-#define MAX_TLLA_OPTION		256
-#define IFACE_LENGTH	255
+#define	MIN_IPV6_HLEN			40
+#define MIN_IPV6_MTU			1280
+#define MIN_TCP_HLEN			20
+#define MIN_UDP_HLEN			20
+#define MIN_ICMP6_HLEN			8
+#define MIN_HBH_LEN				8
+#define	SLLA_OPT_LEN			1
+#define	TLLA_OPT_LEN			1
+#define MIN_DST_OPT_HDR_SIZE	8
+#define MAX_SLLA_OPTION			100
+#define MAX_TLLA_OPTION			256
+#define IFACE_LENGTH			255
 #define ALL_NODES_MULTICAST_ADDR	"FF02::1"
 #define ALL_ROUTERS_MULTICAST_ADDR	"FF02::2"
 #define SOLICITED_NODE_MULTICAST_PREFIX "FF02:0:0:0:0:1:FF00::"
@@ -166,6 +168,18 @@ struct dlt_null
 } __attribute__ ((__packed__));
 
 
+/* IPv6 options
+
+   Most stacks define "struct ip_opt" for this purpose. But ias has proved to be painful to use this 
+   structure in Mac OS, since its definition seems to depend on the Xcode version, which is hard 
+   (if at all possible) to check at compile time. As a workaround, we define our own data type for 
+   IPv6 options
+*/
+struct ip6_option{
+	uint8_t  ip6o_type;
+	uint8_t  ip6o_len;
+} __attribute__ ((__packed__));
+
 struct	nd_opt_slla{
     u_int8_t	type;
     u_int8_t	length;
@@ -224,6 +238,30 @@ struct prefix_list{
 	unsigned int		maxprefix;
 };
 
+struct prefix4_entry{
+	struct in_addr		ip;
+	unsigned char		len;
+};
+
+struct host_entry{
+	struct in6_addr		ip6;
+	struct ether_addr	ether;
+	unsigned char		flag;
+	struct host_entry	*next;
+};
+
+struct host_list{
+	struct host_entry	**host;
+	unsigned int		nhosts;
+	unsigned int		maxhosts;
+};
+
+struct address_list{
+	struct in6_addr		*addr;
+	unsigned int		naddr;
+	unsigned int		maxaddr;
+};
+
 
 #define MAX_IFACES 10
 struct iface_entry{
@@ -268,6 +306,17 @@ struct iface_list{
 #define MAX_DOMAIN_LEN			512
 #define MAX_DNS_LABELS			50
 #define MAX_DNS_CLABELS         5
+
+
+/* ICMPv6 Types/Codes not defined in some OSes */
+#ifndef ICMP6_DST_UNREACH_FAILEDPOLICY
+	#define ICMP6_DST_UNREACH_FAILEDPOLICY	5
+#endif
+
+#ifndef ICMP6_DST_UNREACH_REJECTROUTE
+	#define ICMP6_DST_UNREACH_REJECTROUTE	6
+#endif
+
 
 #if !(defined (__FreeBSD__) || defined(__NetBSD__) || defined (__OpenBSD__) || defined(__APPLE__))
 
@@ -372,17 +421,23 @@ struct ni_reply_name {
 #endif
 
 
-
 struct iface_data{
 	char				iface[IFACE_LENGTH];
 	unsigned char		iface_f;
+	pcap_t				*pfd;
 	int					ifindex;
 	unsigned char		ifindex_f;
 	struct iface_list	iflist;
 	int					type;
 	int					flags;
 	int					fd;
-	pcap_t				*pfd;
+	unsigned int		pending_write_f;
+	void				*pending_write_data;
+	unsigned int		pending_write_size;
+	fd_set				*rset;
+	fd_set				*wset;
+	fd_set				*eset;
+	unsigned int		write_errors;
 	struct ether_addr	ether;
 	unsigned int		ether_flag;
 	unsigned int		linkhsize;
@@ -409,6 +464,7 @@ struct iface_data{
 	struct in6_addr		dstaddr;
 	unsigned int		dstaddr_f;
 	unsigned int		verbose_f;
+	char				loopback_f;
 
 	/* XXX
 	   The next four variables are kind of a duplicate of router_ip6 and router_ether above.
@@ -420,7 +476,9 @@ struct iface_data{
 	struct ether_addr	nhhaddr;
 	unsigned char		nhhaddr_f;
 	int					nhifindex;
-	unsigned char		nh_flag;
+	unsigned char		nhifindex_f;
+	char				nhiface[IFACE_LENGTH];
+	unsigned char		nh_f;
 };
 
 
@@ -445,7 +503,9 @@ struct next_hop{
 
 
 
+int					address_contains_ranges(char *);
 void				change_endianness(u_int32_t *, unsigned int);
+u_int16_t			dec_to_hex(u_int16_t);
 int					dns_decode(unsigned char *, unsigned int, unsigned char *, char *, unsigned int, unsigned char **);
 int					dns_str2wire(char *, unsigned int, char *, unsigned int);
 struct ether_addr	ether_multicast(const struct in6_addr *);
@@ -468,9 +528,11 @@ int					ipv6_to_ether(pcap_t *, struct iface_data *, struct in6_addr *, struct e
 unsigned int		ip6_longest_match(struct in6_addr *, struct in6_addr *);
 int					is_ip6_in_address_list(struct prefix_list *, struct in6_addr *);
 int					is_ip6_in_iface_entry(struct iface_list *, int, struct in6_addr *);
+int					is_ip6_in_list(struct in6_addr *, struct host_list *);
 int					is_ip6_in_prefix_list(struct in6_addr *, struct prefix_list *);
 int					is_eq_in6_addr(struct in6_addr *, struct in6_addr *);
 int					is_time_elapsed(struct timeval *, struct timeval *, unsigned long);
+int					keyval(char *, unsigned int, char **, char **);
 int					load_dst_and_pcap(struct iface_data *);
 unsigned int		match_ether(struct ether_addr *, unsigned int, struct ether_addr *);
 unsigned int		match_ipv6(struct in6_addr *, u_int8_t *, unsigned int, struct in6_addr *);
@@ -479,7 +541,10 @@ void				print_filters(struct iface_data *, struct filters *);
 void				print_filter_result(struct iface_data *, const u_char *, unsigned char);
 void				randomize_ether_addr(struct ether_addr *);
 void				randomize_ipv6_addr(struct in6_addr *, struct in6_addr *, u_int8_t);
+int					read_ipv6_address(char *, unsigned int, struct in6_addr *);
+int					read_prefix(char *, unsigned int, char **);
 void				release_privileges(void);
+void				sanitize_ipv4_prefix(struct prefix4_entry *);
 void				sanitize_ipv6_prefix(struct in6_addr *, u_int8_t);
 int 				send_neighbor_advert(struct iface_data *, pcap_t *,  const u_char *);
 int					send_neighbor_solicit(struct iface_data *, struct in6_addr *);

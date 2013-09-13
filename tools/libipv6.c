@@ -1867,6 +1867,8 @@ size_t Strnlen(const char *s, size_t maxlen){
  */
 
 int init_iface_data(struct iface_data *idata){
+	unsigned int i;
+
 	memset(idata, 0, sizeof(struct iface_data));
 
 	idata->mtu= ETH_DATA_LEN;
@@ -1894,8 +1896,24 @@ int init_iface_data(struct iface_data *idata){
 	if( ((idata->iflist).ifaces= malloc(sizeof(struct iface_entry) * MAX_IFACES)) == NULL)
 		return(FAILURE);
 
+	memset((idata->iflist).ifaces, 0, sizeof(struct iface_entry) * MAX_IFACES);
+
 	idata->iflist.nifaces=0;
 	idata->iflist.maxifaces= MAX_IFACES;
+
+	for(i=0; i<MAX_IFACES; i++){
+		if(( (idata->iflist).ifaces[i].ip6_global.prefix= malloc( sizeof(struct prefix_entry *) * MAX_LOCAL_ADDRESSES)) == NULL){
+			return(FAILURE);
+		}
+
+		(idata->iflist).ifaces[i].ip6_global.maxprefix= MAX_LOCAL_ADDRESSES;
+
+		if( ((idata->iflist).ifaces[i].ip6_local.prefix= malloc( sizeof(struct prefix_entry *) * MAX_LOCAL_ADDRESSES)) == NULL){
+			return(FAILURE);
+		}
+
+		(idata->iflist).ifaces[i].ip6_local.maxprefix= MAX_LOCAL_ADDRESSES;
+	}
 
 	return SUCCESS;
 }
@@ -1966,7 +1984,7 @@ int init_filters(struct filters *filters){
 
 
 /*
- * Function: sel_next_hop2()
+ * Function: sel_next_hop_ra()
  *
  * Performs next hop determination by sending the necessary packets
  *
@@ -2257,6 +2275,7 @@ int sel_next_hop(struct iface_data *idata){
 		if(idata->verbose_f)
 			puts("Error in bind()");
 
+		close(sockfd);
 		return(FAILURE);
 	}
 
@@ -2304,6 +2323,7 @@ int sel_next_hop(struct iface_data *idata){
 		if(idata->verbose_f)
 			puts("Error in send()");
 
+		close(sockfd);
 		return(FAILURE);
 	}
 
@@ -2313,6 +2333,7 @@ int sel_next_hop(struct iface_data *idata){
 		if(idata->verbose_f)
 			puts("Error in recv()");
 
+		close(sockfd);
 		return(FAILURE);
 	}
 
@@ -2321,10 +2342,10 @@ int sel_next_hop(struct iface_data *idata){
 	for(nlp = (struct nlmsghdr *)reply; NLMSG_OK(nlp,nll); nlp = NLMSG_NEXT(nlp, nll)){
 		rtp = (struct rtmsg *) NLMSG_DATA(nlp);
 
-		if(rtp->rtm_family == AF_INET6){
-			skip_f=0;
+		skip_f=0;
 
-			for (rtap = (struct rtattr *) RTM_RTA(rtp), rtl = RTM_PAYLOAD(nlp); RTA_OK(rtap, rtl); rtap = RTA_NEXT(rtap,rtl)) {
+		if(rtp->rtm_family == AF_INET6){
+			for(rtap = (struct rtattr *) RTM_RTA(rtp), rtl = RTM_PAYLOAD(nlp); RTA_OK(rtap, rtl); rtap = RTA_NEXT(rtap,rtl)) {
 				switch(rtap->rta_type){
 					case RTA_DST:
 						if(!is_eq_in6_addr(&(idata->dstaddr), (struct in6_addr *) RTA_DATA(rtap)))
@@ -2333,8 +2354,12 @@ int sel_next_hop(struct iface_data *idata){
 						break;
 
 					case RTA_OIF:
-						idata->ifindex= *((int *) RTA_DATA(rtap));
-						idata->ifindex_f= 1;
+						idata->nhifindex= *((int *) RTA_DATA(rtap));
+						if(if_indextoname(idata->nhifindex, idata->nhiface) == NULL){
+							if(idata->verbose_f)
+								puts("Error calling if_indextoname() from sel_next_hop()");
+						}
+						idata->nhifindex_f= 1;
 						break;
 
 					case RTA_GATEWAY:
@@ -2352,7 +2377,9 @@ int sel_next_hop(struct iface_data *idata){
 		}
 	}
 
-	if(idata->nhaddr_f && idata->ifindex_f)
+	close(sockfd);
+
+	if(idata->nhaddr_f && idata->nhifindex_f)
 		return(SUCCESS);
 	else
 		return(FAILURE);
@@ -2385,7 +2412,7 @@ int get_local_addrs(struct iface_data *idata){
 
 	if(getifaddrs(&ifptr) != 0){
 		if(idata->verbose_f > 1){
-			puts("Error while learning local addresses");
+			puts("Error in call to getifaddrs()");
 		}
 		return(FAILURE);
 	}
@@ -2537,8 +2564,6 @@ int is_ip6_in_iface_entry(struct iface_list *iflist, int ifindex, struct in6_add
 				return(TRUE);
 			else if(is_ip6_in_prefix_list(addr, &(iflist->ifaces[i].ip6_local)))
 				return(TRUE);
-			else
-				return(FALSE);
 		}
 	}
 
@@ -2561,15 +2586,28 @@ struct iface_entry *find_matching_address(struct iface_data *idata, struct iface
 		if(idata->iface_f && (idata->ifindex != (iflist->ifaces[i]).ifindex))
 			continue;
 
-		for(j=0; j < (iflist->ifaces[i]).ip6_global.maxprefix; j++){
-			if( (len= ip6_longest_match( &((iflist->ifaces[i].ip6_global.prefix[j])->ip6), match)) >= mlen){
+		for(j=0; j < (iflist->ifaces[i]).ip6_local.nprefix; j++){
+			if( (len= ip6_longest_match( &((iflist->ifaces[i].ip6_local.prefix[j])->ip6), dst)) >= mlen){
+				cif= &(iflist->ifaces[i]);
+				*match= (iflist->ifaces[i].ip6_local.prefix[j])->ip6;
+				mlen= len;
+			}
+
+			if(mlen >= 64){
+				return(cif);
+			}
+		}
+
+		for(j=0; j < (iflist->ifaces[i]).ip6_global.nprefix; j++){
+			if( (len= ip6_longest_match( &((iflist->ifaces[i].ip6_global.prefix[j])->ip6), dst)) >= mlen){
 				cif= &(iflist->ifaces[i]);
 				*match= (iflist->ifaces[i].ip6_global.prefix[j])->ip6;
 				mlen= len;
 			}
 
-			if(mlen >= 64)
+			if(mlen >= 64){
 				return(cif);
+			}
 		}
 	}
 
@@ -2619,8 +2657,9 @@ int sel_src_addr(struct iface_data *idata){
 	   If not, that's a failure. If specified, we give higher priority to link-local addresses
 	 */
 	if(IN6_IS_ADDR_LINKLOCAL(&(idata->dstaddr))){
-		if(!idata->iface_f)
+		if(!idata->iface_f){
 			return(FAILURE);
+		}
 		else{
 			if( (cif=find_iface_by_index( &(idata->iflist), idata->ifindex)) == NULL){
 				return(FAILURE);
@@ -2691,7 +2730,10 @@ int sel_src_addr(struct iface_data *idata){
 		else{
 			if( (cif=find_matching_address(idata, &(idata->iflist), &(idata->dstaddr), &match)) != NULL){
 				idata->srcaddr= match;
-
+				strncpy(idata->iface, cif->iface, IFACE_LENGTH-1);
+				idata->iface[IFACE_LENGTH-1]= 0;
+				idata->ifindex= cif->ifindex;
+				idata->ifindex_f= TRUE;
 
 				/*
 				   We know check whether the selected address belongs to the selected address belongs to the outgoing
@@ -2699,7 +2741,7 @@ int sel_src_addr(struct iface_data *idata){
 				 */
 
 				if(sel_next_hop(idata) == SUCCESS){
-					if(is_ip6_in_iface_entry(&(idata->iflist), idata->ifindex, &(idata->srcaddr)) == TRUE){
+					if(is_ip6_in_iface_entry(&(idata->iflist), idata->nhifindex, &(idata->srcaddr)) == TRUE){
 						if((cif->ip6_local).nprefix){
 							idata->ip6_local= (cif->ip6_local).prefix[0]->ip6;
 							idata->ip6_local_flag= TRUE;
@@ -2719,10 +2761,15 @@ int sel_src_addr(struct iface_data *idata){
 						   the previously-selected IPv6 Address, and select one that is assigned to the
 						   outgoing interface.
 						 */
-						if( (cif= find_iface_by_index(&(idata->iflist), idata->ifindex)) == NULL){
+						if( (cif= find_iface_by_index(&(idata->iflist), idata->nhifindex)) == NULL){
 							return(FAILURE);
 						}
 						else{
+							idata->ether= cif->ether;
+							idata->ether_flag= TRUE;
+							idata->ifindex= idata->nhifindex;
+							strncpy(idata->iface, idata->nhiface, IFACE_LENGTH-1);
+
 							if((cif->ip6_local).nprefix){
 								idata->ip6_local= (cif->ip6_local).prefix[0]->ip6;
 								idata->ip6_local_flag= TRUE;
@@ -2732,16 +2779,25 @@ int sel_src_addr(struct iface_data *idata){
 							if((idata->ip6_global).nprefix)
 								idata->ip6_global_flag= TRUE;
 
-							idata->ether= cif->ether;
-							idata->ether_flag= TRUE;
-
-							if(idata->ip6_global_flag){
-								idata->srcaddr= (cif->ip6_global.prefix[0])->ip6;
-								return(SUCCESS);
+							if(!IN6_IS_ADDR_LINKLOCAL(&(idata->dstaddr))){
+								if(idata->ip6_global_flag == TRUE){
+									idata->srcaddr= (cif->ip6_global.prefix[0])->ip6;
+									return(SUCCESS);
+								}
+								else if(idata->ip6_local_flag){
+									idata->srcaddr= idata->ip6_local;
+									return(SUCCESS);
+								}
 							}
-							else if(idata->ip6_local_flag){
-								idata->srcaddr= idata->ip6_local;
-								return(SUCCESS);
+							else{
+								if(idata->ip6_local_flag){
+									idata->srcaddr= idata->ip6_local;
+									return(SUCCESS);
+								}
+								else if(idata->ip6_global_flag){
+									idata->srcaddr= (cif->ip6_global.prefix[0])->ip6;
+									return(SUCCESS);
+								}
 							}
 						}
 					}
@@ -2789,54 +2845,70 @@ int load_dst_and_pcap(struct iface_data *idata){
 		        * If an interface has not been specified, select a source address taking into consideration
 		          all configured addresses.
 
-		   * If that doesn't succeed, try sending
+		   * If that doesn't succeed, try sending RAs
 
 		 */
-		if(idata->iface_f){
-			/*
-				Select an address from this particular interface. If that doesn't succeed, try sending a Router
-			    Advertisement
-			 */
-			if((cif=find_matching_address(idata, &(idata->iflist), &(idata->dstaddr), &(idata->srcaddr))) != NULL){
-				idata->ip6_global=cif->ip6_global;
-				if((cif->ip6_global).nprefix)
-					idata->ip6_global_flag= TRUE;
 
-				if( (cif->ip6_local).nprefix){
-					idata->ip6_local= ((cif->ip6_local).prefix[0])->ip6;
-					idata->ip6_local_flag= TRUE;
-				}
-
-				idata->ether= cif->ether;
-				idata->ether_flag= TRUE;
-			}
-			else{
-				/* This sends an RA, populates the local addresses and prefixes, and the local router */
-				if(sel_next_hop(idata) == -1){
-					puts("Could not learn a local router");
-					return(FAILURE);
-				}
+		if(sel_src_addr(idata) == SUCCESS){
+			if(sel_next_hop(idata) == SUCCESS){
+				idata->nh_f= TRUE;
 			}
 		}
-		else{
-			if(sel_src_addr(idata) == FAILURE || !idata->ether_flag || idata->ip6_global_flag || idata->ip6_local_flag){
-				puts("Could not obtain local address");
+
+		if(idata->nh_f == FALSE){
+			/* XXX Should really free the memory allocated by the other functions, since they are of no further use */
+			idata->ip6_local_flag= FALSE;
+			idata->ip6_global.nprefix=0;
+			idata->ip6_global_flag= FALSE;
+
+			if(!idata->iface_f){
+				if(idata->verbose_f)
+					puts("Could not determine next hop address");
+	
 				return(FAILURE);
 			}
 
-			if(sel_next_hop(idata) == FAILURE){
-				if(!idata->iface_f){
-					puts("Could not determine next hop address");
-					return(FAILURE);
-				}
+			/* This sends an RA, populates the local addresses and prefixes, and the local router */
+			if(sel_next_hop_ra(idata) == -1){
+				puts("Could not learn a local router");
+				return(FAILURE);
+			}
+
+			if(sel_src_addr_ra(idata, &(idata->dstaddr)) == FAILURE || !idata->ether_flag || !idata->ip6_global_flag || !idata->ip6_local_flag){
+				puts("Could not obtain local address **");
+				return(FAILURE);
+			}
+
+			idata->ifindex= if_nametoindex(idata->iface);
+			idata->ifindex_f= TRUE;
+		}
+	}
+	else{
+		if(get_local_addrs(idata) == FAILURE){
+			if(idata->verbose_f)
+				puts("Error while obtaining local addresses");
+			return(FAILURE);
+		}
+
+		if(sel_next_hop(idata) == SUCCESS){
+			idata->ifindex= idata->nhifindex;
+			idata->nh_f= TRUE;
+			strncpy(idata->iface, idata->nhiface, IFACE_LENGTH-1);
+			idata->iface[IFACE_LENGTH-1]=0;
+
+			if( (cif=find_iface_by_index(&(idata->iflist), idata->ifindex)) != NULL){
+				idata->ether= cif->ether;
+				idata->ether_flag= TRUE;
+			}
+		}
+		else{
+			/* This sends an RA, populates the local addresses and prefixes, and the local router */
+			if(sel_next_hop_ra(idata) == -1){
+				puts("Could not learn a local router");
+				return(FAILURE);
 			}
 		}
 	}
-
-	idata->ifindex= if_nametoindex(idata->iface);
-	idata->ifindex_f= TRUE;
-
-	idata->nhaddr_f=1;
 
 	if(!(idata->hsrcaddr_f)){
 		if(idata->ether_flag)
@@ -2851,6 +2923,13 @@ int load_dst_and_pcap(struct iface_data *idata){
 
 	if( (idata->pfd= pcap_open_live(idata->iface, PCAP_SNAP_LEN, PCAP_PROMISC, PCAP_TIMEOUT, errbuf)) == NULL){
 		printf("pcap_open_live(): %s\n", errbuf);
+		return(FAILURE);
+	}
+
+	if( (idata->fd= pcap_fileno(idata->pfd)) == -1){
+		if(idata->verbose_f)
+			puts("Error obtaining descriptor number for pcap_t");
+
 		return(FAILURE);
 	}
 
@@ -2873,13 +2952,250 @@ int load_dst_and_pcap(struct iface_data *idata){
 		return(FAILURE);
 	}
 
+
 	if(ipv6_to_ether(idata->pfd, idata, &(idata->nhaddr), &(idata->nhhaddr)) != 1){
 		puts("Error while performing Neighbor Discovery for the Destination Address");
 		return(FAILURE);
 	}
 
-	idata->nhhaddr_f= TRUE;
 	idata->hdstaddr= idata->nhhaddr;
 
 	return(SUCCESS);
 }
+
+
+/*
+ * sanitize_ipv4_prefix()
+ *
+ * Clears those bits in an IPv4 address that are not within a prefix length.
+ */
+
+void sanitize_ipv4_prefix(struct prefix4_entry *prefix4){
+	unsigned int	clear, i;
+	in_addr_t    	mask=0xffffffff;
+
+	clear= 32-prefix4->len;
+
+	for(i=0; i<clear; i++)
+		mask= mask>>1;
+
+	for(i=0; i<clear; i++)
+		mask= mask<<1;
+
+	prefix4->ip.s_addr= prefix4->ip.s_addr & htonl(mask);
+}
+
+
+
+/*
+ * Function: is_ip6_in_list()
+ *
+ * Checks whether an IPv6 address is present in an address list.
+ */
+
+int is_ip6_in_list(struct in6_addr *target, struct host_list *hlist){
+	unsigned int i;
+
+	for(i=0; i < hlist->nhosts; i++)
+		if(is_eq_in6_addr(target, &((hlist->host[i])->ip6)))
+			return 1;
+
+	return 0; 
+}
+
+
+
+/*
+ * Function: dec_to_hex()
+ *
+ * Convert a decimal number into a number that has the same representation in hexadecimal
+ */
+u_int16_t dec_to_hex(u_int16_t n){
+	u_int16_t	r=0;
+	unsigned int	d, i;
+
+	/* The source number is truncated to the first four digits */
+	n= n%10000;
+	d=1000;
+
+	for(i=0; i<4; i++){
+		r= (r << 4) | (n/d);
+		n= n%d;
+		d=d/10;
+	}
+
+	return(r);
+}
+
+
+/*
+ * Function: keyval()
+ *
+ * Obtains a (variable, value) pair from a line of text in "variable=value # comments" format
+ */
+
+int keyval(char *line, unsigned int len, char **key, char **val){
+	char *ptr;
+	ptr= line;
+
+	/* Skip initial spaces (e.g. "   variable=value") */
+	while( (*ptr==' ' || *ptr=='\t') && ptr < (line+len))
+		ptr++;
+
+	/* If we got to end of line or there is a comment or equal sign, there is no (variable, value) pair) */
+	if(ptr==(line+len) || *ptr=='#' || *ptr=='=' || *ptr=='\r' || *ptr=='\n')
+		return 0;
+
+	*key=ptr;
+
+	/* The variable name is everything till (and excluding) the first separator character (e.g., space or tab) */
+	while( (*ptr!=' ' && *ptr!='\t' && *ptr!='\r' && *ptr!='\n' && *ptr!='#' && *ptr!='=') && ptr < (line+len))
+		ptr++;
+
+	/*
+	   If the variable name is followed by a comment sign, or occupies the entire line, there's an error
+	   in the config file (i.e., there is no "variable=value" pair)
+	 */
+	if(ptr==(line+len) || *ptr=='#' || *ptr=='\r' || *ptr=='\n')
+		return -1;
+
+
+	if(*ptr==' ' || *ptr=='\t'){
+		/* The variable name is followed by spaces -- skip them, and find the "equal to" sign */
+		*ptr=0; /* NULL-terminate the key */
+		ptr++;
+
+		while(ptr<(line+len) &&  (*ptr==' ' || *ptr=='\t'))
+			ptr++;
+
+		if(ptr==(line+len) || *ptr!='=')
+			return -1;
+
+		ptr++;
+	}else{
+		/* The variable name is followed by the "equal to" sign */
+		*ptr=0; 
+		ptr++;
+	}
+
+	/*
+	   If the equal sign is followed by spaces, skip them
+	 */
+	while( (*ptr==' ' || *ptr=='\t') && ptr<(line+len))
+		ptr++;
+
+	/* We found the "value" in the "variable=value" pair */
+	*val=ptr;
+
+	/* The value is everthing till (and excluding) the first separator character */
+	while( (*ptr!='#' && *ptr!='\r' && *ptr!='\n' && *ptr!='\t' && *ptr!='=' && *ptr!=' ') && ptr < (line+len))
+		ptr++;
+
+	/* If the value string was actually "empty", we return an error */
+	if(ptr == *val)
+		return(-1);
+
+	*ptr=0;
+	return(1);
+}
+
+
+/*
+ * Function: address_contains_ranges()
+ *
+ * Checks whether a string contains ranges in the form YYYY-ZZZZ. A string that contains both ranges and a
+ * /length prefix is considered invalid.
+ */
+
+int address_contains_ranges(char *ptr){
+	unsigned char slash_f=0, dash_f=0;
+	unsigned int i=0;
+
+	while(i <= (MAX_RANGE_STR_LEN) && *ptr){
+		if(*ptr == '-')
+			dash_f=1;
+
+		if(*ptr=='/')
+			slash_f=1;
+
+		ptr++;
+		i++;
+	}
+
+	/* If the string contains both slashes and dashes, it is an error */
+	if(dash_f){
+		if(slash_f)
+			return(-1);
+		else
+			return(1);
+	}
+	else{
+		return(0);
+	}
+}
+
+
+/*
+ * Function: read_prefix()
+ *
+ * Obtain a pointer to the beginning of non-blank text, and zero-terminate that text upon space or comment.
+ */
+int read_prefix(char *line, unsigned int len, char **start){
+	char *end;
+
+	*start=line;
+
+	while( (*start < (line + len)) && (**start==' ' || **start=='\t' || **start=='\r' || **start=='\n')){
+		(*start)++;
+	}
+
+	if( *start == (line + len))
+		return(0);
+
+	if( **start == '#')
+		return(0);
+
+	end= *start;
+
+	while( (end < (line + len)) && !(*end==' ' || *end=='\t' || *end=='#' || *end=='\r' || *end=='\n'))
+		end++;
+
+	*end=0;
+	return(1);
+}
+
+
+/*
+ * Function: read_ipv6_address()
+ *
+ * Obtains an IPv6 address (struct in6_addr) from a line of text in "IPv6_address # comments" format
+ */
+
+int read_ipv6_address(char *line, unsigned int len, struct in6_addr *iid){
+	char *ptr, *ipv6addr;
+	ptr= line;
+
+	/* Skip initial spaces (e.g. "   IPv6_address") */
+	while( (*ptr==' ' || *ptr=='\t') && ptr < (line+len))
+		ptr++;
+
+	/* If we got to end of line or there is a comment or equal sign, there is no IPv6 address */
+	if(ptr==(line+len) || *ptr=='#' || *ptr=='=' || *ptr=='\r' || *ptr=='\n')
+		return 0;
+
+	ipv6addr=ptr;
+
+	/* The IPv6 address is everything till (and excluding) the first separator character (e.g., space or tab) */
+	while( (*ptr!=' ' && *ptr!='\t' && *ptr!='\r' && *ptr!='\n' && *ptr!='#' && *ptr!='=') && ptr < (line+len))
+		ptr++;
+
+	/* NULL-terminate the ASCII-encoded IPv6 address */
+	*ptr=0; 
+
+	if ( inet_pton(AF_INET6, ipv6addr, iid) <= 0){
+		return(-1);
+	}
+
+	return(1);
+}
+
