@@ -129,7 +129,7 @@ u_int8_t			hoplimit;
 
 char 				plinkaddr[ETHER_ADDR_PLEN];
 char 				psrcaddr[INET6_ADDRSTRLEN], pdstaddr[INET6_ADDRSTRLEN], pv6addr[INET6_ADDRSTRLEN];
-unsigned char 		iface_f=0, localaddr_f=0;
+unsigned char 		localaddr_f=0;
 unsigned char		srcprefix_f=0, hoplimit_f=0, flowidp_f=0, dstport_f=0, protocol_f=0;
 
 /* Support for Extension Headers */
@@ -207,7 +207,7 @@ int main(int argc, char **argv){
 
 			case 'i':  /* Interface */
 				strncpy(idata.iface, optarg, IFACE_LENGTH-1);
-				iface_f=1;
+				idata.iface_f=1;
 				break;
 
 			case 's':	/* IPv6 Source Address */
@@ -318,7 +318,7 @@ int main(int argc, char **argv){
 		exit(EXIT_FAILURE);
 	}
 
-	if(!iface_f){
+	if(!idata.iface_f){
 		if(idata.dstaddr_f && IN6_IS_ADDR_LINKLOCAL(&(idata.dstaddr))){
 			puts("Must specify a network interface for link-local destinations");
 			exit(EXIT_FAILURE);

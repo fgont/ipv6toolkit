@@ -72,7 +72,7 @@ void				frag_and_send(struct iface_data *);
 
 
 /* Flags */
-unsigned char 		iface_f=0, floodt_f=0;
+unsigned char 		floodt_f=0;
 unsigned char 		listen_f=0, accepted_f=0, loop_f=0, sleep_f=0;
 unsigned char		srcprefix_f=0, hoplimit_f=0, rand_link_src_f=0, rand_src_f=0;
 unsigned char		floods_f=0, floodp_f=0, donesending_f=0, startclose_f=0;
@@ -250,7 +250,7 @@ int main(int argc, char **argv){
 		switch(option) {
 			case 'i':  /* Interface */
 				strncpy(idata.iface, optarg, IFACE_LENGTH-1);
-				iface_f=1;
+				idata.iface_f=1;
 				break;
 
 			case 's':	/* IPv6 Source Address */
@@ -953,10 +953,10 @@ int main(int argc, char **argv){
 
 	/*
 	  If the flood option ("-F") has been specified, but no prefix has been specified,
-	  select the random Source Addresses from the link-local unicast prefix (fe80::/64).
+	  assume a /64 prefix.
 	*/
 	if(floods_f && !srcprefix_f){
-		srcpreflen=0;
+		srcpreflen=64;
 	}
 
 	if(srcprefix_f && !floods_f && loop_f){
@@ -974,7 +974,7 @@ int main(int argc, char **argv){
 		exit(EXIT_FAILURE);
 	}
 
-	if(!iface_f){
+	if(!idata.iface_f){
 		if(idata.dstaddr_f && IN6_IS_ADDR_LINKLOCAL(&(idata.dstaddr))){
 			puts("Must specify a network interface for link-local destinations");
 			exit(EXIT_FAILURE);

@@ -563,6 +563,13 @@ int main(int argc, char **argv){
 		exit(EXIT_FAILURE);
 	}
 
+	if(!idata.iface_f){
+		if(idata.dstaddr_f && IN6_IS_ADDR_LINKLOCAL(&(idata.dstaddr))){
+			puts("Must specify a network interface for link-local destinations");
+			exit(EXIT_FAILURE);
+		}
+	}
+
 	if(load_dst_and_pcap(&idata) == FAILURE){
 		puts("Error while learning Souce Address and Next Hop");
 		exit(EXIT_FAILURE);
