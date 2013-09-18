@@ -32,6 +32,7 @@
 	#include <netpacket/packet.h>   /* For datalink structure */
 #elif defined (__FreeBSD__) || defined(__NetBSD__) || defined (__OpenBSD__) || defined(__APPLE__)
 	#include <net/if_dl.h>
+	#include <net/route.h>
 #endif
 #include <netinet/tcp.h>
 
@@ -47,12 +48,14 @@ unsigned int		canjump;
 char				errbuf[PCAP_ERRBUF_SIZE];
 struct bpf_program	pcap_filter;
 
+#ifdef __linux__
 /* Netlink requests */
 struct nlrequest{
     struct nlmsghdr nl;
     struct rtmsg    rt;
     char   buf[MAX_NLPAYLOAD];
 };
+#endif
 
 /*
  * Function: dns_decode()
@@ -1212,11 +1215,15 @@ int is_ip6_in_prefix_list(struct in6_addr *target, struct prefix_list *plist){
 			if(target->s6_addr16[j] != (plist->prefix[i])->ip6.s6_addr16[j])
 				break;
 
-		if( (j == full16) && rest16){
-			mask16 = mask16 << (16 - rest16);
-
-			if( (target->s6_addr16[full16] & mask16) == ((plist->prefix[i])->ip6.s6_addr16[full16] & mask16))
+		if(j == full16){
+			if(rest16 == 0)
 				return 1;
+			else{
+				mask16 = mask16 << (16 - rest16);
+
+				if( (target->s6_addr16[full16] & mask16) == ((plist->prefix[i])->ip6.s6_addr16[full16] & mask16))
+					return 1;
+			}
 		}
 	}
 
@@ -2249,6 +2256,7 @@ int sel_next_hop(struct iface_data *idata){
 	int 				sockfd;
 	struct sockaddr_nl	addr, them;
 	int 				ret;
+	pid_t				pid;
 	char				reply[MAX_NLPAYLOAD];
 	struct msghdr		msg;
 	struct iovec		iov;
@@ -2268,7 +2276,7 @@ int sel_next_hop(struct iface_data *idata){
 
 	memset((void *)&addr, 0, sizeof(addr));
 	addr.nl_family = AF_NETLINK;
-	addr.nl_pid = getpid();
+	addr.nl_pid = pid= getpid();
 	addr.nl_groups = RTMGRP_IPV6_ROUTE;
 
 	if(bind(sockfd, (struct sockaddr *)&addr, sizeof(addr)) != 0){
@@ -2339,6 +2347,11 @@ int sel_next_hop(struct iface_data *idata){
 
 	nll = ret;
 
+
+	/*
+	   This should eventually be improved to handle the case where messages are lost, since Netlink messages
+	   reliable.
+	 */
 	for(nlp = (struct nlmsghdr *)reply; NLMSG_OK(nlp,nll); nlp = NLMSG_NEXT(nlp, nll)){
 		rtp = (struct rtmsg *) NLMSG_DATA(nlp);
 
@@ -2392,146 +2405,98 @@ int sel_next_hop(struct iface_data *idata){
  * Find the next hop for a target destination
 */
 int sel_next_hop(struct iface_data *idata){
-	int 				sockfd;
-	struct sockaddr_nl	addr, them;
-	int 				ret;
-	char				reply[MAX_NLPAYLOAD];
-	struct msghdr		msg;
-	struct iovec		iov;
-	struct nlrequest	req;
-	struct nlmsghdr		*nlp;
-	struct rtmsg		*rtp;
-	struct rtattr		*rtap;
-	int					nll,rtl;
-	unsigned char		skip_f;
+	int					sockfd;
+	pid_t				pid;
+	int					seq;
+	unsigned int		queries=0;
+	char				reply[MAX_RTPAYLOAD];
+	struct rt_msghdr	*rtm;
+	struct sockaddr_in6	*sin6;
+	struct	sockaddr_dl	*sockpptr;
+	struct sockaddr		*sa;
+	unsigned char		onlink_f=FALSE;
 
-	if( (sockfd=socket(AF_NETLINK,SOCK_RAW,NETLINK_ROUTE)) == -1){
+	if( (sockfd=socket(AF_ROUTE, SOCK_RAW, 0)) == -1){
 		if(idata->verbose_f)
-			puts("Error in socket()");
+			puts("Error in socket() call from sel_next_hop()");
 
 		return(FAILURE);
 	}
 
-	memset((void *)&addr, 0, sizeof(addr));
-	addr.nl_family = AF_NETLINK;
-	addr.nl_pid = getpid();
-	addr.nl_groups = RTMGRP_IPV6_ROUTE;
+	idata->nhaddr= idata->dstaddr;
 
-	if(bind(sockfd, (struct sockaddr *)&addr, sizeof(addr)) != 0){
-		if(idata->verbose_f)
-			puts("Error in bind()");
+	do{
+		rtm= (struct rt_msghdr *) reply;
+		memset(rtm, 0, sizeof(struct rt_msghdr));
+		rtm->rtm_msglen= sizeof(struct rt_msghdr) + sizeof(struct sockaddr_in6);
+		rtm->rtm_version= RTM_VERSION;
+		rtm->rtm_type= RTM_GET;
+		rtm->rtm_addrs= RTA_DST;
+		rtm->rtm_pid= pid= getpid();
+		rtm->rtm_seq= seq= random();
 
-		close(sockfd);
-		return(FAILURE);
-	}
+		sin6= (struct sockaddr_in6 *) (rtm + 1);
+		memset(sin6, 0, sizeof(struct sockaddr_in6));
+		sin6->sin6_len= sizeof(struct sockaddr_in6);
+		sin6->sin6_family= AF_INET6;
+		sin6->sin6_addr= idata->nhaddr;
 
-	memset(&req, 0, sizeof(req));
-	req.nl.nlmsg_len = NLMSG_LENGTH(sizeof(struct rtmsg));
-	req.nl.nlmsg_flags = NLM_F_REQUEST;
-	req.nl.nlmsg_type = RTM_GETROUTE;
-    req.rt.rtm_family= AF_INET6;
+		if(write(sockfd, rtm, rtm->rtm_msglen) == -1){
+			if(idata->verbose_f)
+				puts("No route to the intenteded destination in the local routing table");
 
-    rtap = (struct rtattr *) req.buf;
+			return(FAILURE);
+		}
 
-	/* Destination Address */
-	if(idata->dstaddr_f){
-		rtap->rta_type = RTA_DST;
-		rtap->rta_len = RTA_SPACE(sizeof(idata->dstaddr));
-		memcpy(RTA_DATA(rtap), &(idata->dstaddr), sizeof(idata->dstaddr));
-		req.nl.nlmsg_len += rtap->rta_len;
-	}
+		do{
+			if( (read(sockfd, rtm, MAX_RTPAYLOAD)) < 0){
+				puts("Error in read() call from sel_next_hop()");
+				exit(1);
+			}
+		}while( rtm->rtm_type != RTM_GET || rtm->rtm_pid != pid || rtm->rtm_seq != seq);
 
-	/* Source Address */
-	if(idata->srcaddr_f){
-		rtap = (struct rtattr *)((char *)rtap + (rtap->rta_len));
-		rtap->rta_type = RTA_SRC;
-		rtap->rta_len = RTA_SPACE(sizeof(idata->srcaddr));
-		memcpy(RTA_DATA(rtap), &(idata->srcaddr), sizeof(idata->srcaddr));
-		req.nl.nlmsg_len += rtap->rta_len;
-	}
+		queries++;
 
-	/* address it */
-	memset(&them, 0, sizeof(them));
-	them.nl_family = AF_NETLINK;
+		/* The rt_msghdr{} structure is fllowed by sockaddr structures */
+		sa= (struct sockaddr *) (rtm+1);
 
-	memset(&msg, 0, sizeof(msg));
-	msg.msg_name = (void *)&them;
-	msg.msg_namelen = sizeof(them);
+		if(rtm->rtm_addrs & RTA_DST)
+			SA_NEXT(sa);
 
-	iov.iov_base = (void *) &req.nl;
-	iov.iov_len  = req.nl.nlmsg_len;
+		if(rtm->rtm_addrs & RTA_GATEWAY){
+			if(sa->sa_family == AF_INET6){
+				idata->nhaddr= ((struct sockaddr_in6 *) sa)->sin6_addr;
+				idata->nhaddr_f=TRUE;
+			}
+			else if(sa->sa_family == AF_LINK){
+				sockpptr = (struct sockaddr_dl *) (sa);
+				idata->nhifindex= sockpptr->sdl_index;
+				idata->nhifindex_f=TRUE;
 
-	msg.msg_iov = &iov;
-	msg.msg_iovlen = 1;
-
-	/* send it */
-	if( (ret = sendmsg(sockfd, &msg, 0)) < 0){
-		if(idata->verbose_f)
-			puts("Error in send()");
-
-		close(sockfd);
-		return(FAILURE);
-	}
-
-	memset(reply, 0, sizeof(reply));
-
-	if( (ret = recv(sockfd, reply, sizeof(reply), 0)) < 0){
-		if(idata->verbose_f)
-			puts("Error in recv()");
-
-		close(sockfd);
-		return(FAILURE);
-	}
-
-	nll = ret;
-
-	for(nlp = (struct nlmsghdr *)reply; NLMSG_OK(nlp,nll); nlp = NLMSG_NEXT(nlp, nll)){
-		rtp = (struct rtmsg *) NLMSG_DATA(nlp);
-
-		skip_f=0;
-
-		if(rtp->rtm_family == AF_INET6){
-			for(rtap = (struct rtattr *) RTM_RTA(rtp), rtl = RTM_PAYLOAD(nlp); RTA_OK(rtap, rtl); rtap = RTA_NEXT(rtap,rtl)) {
-				switch(rtap->rta_type){
-					case RTA_DST:
-						if(!is_eq_in6_addr(&(idata->dstaddr), (struct in6_addr *) RTA_DATA(rtap)))
-							skip_f=1;
-
-						break;
-
-					case RTA_OIF:
-						idata->nhifindex= *((int *) RTA_DATA(rtap));
-						if(if_indextoname(idata->nhifindex, idata->nhiface) == NULL){
-							if(idata->verbose_f)
-								puts("Error calling if_indextoname() from sel_next_hop()");
-						}
-						idata->nhifindex_f= 1;
-						break;
-
-					case RTA_GATEWAY:
-						idata->nhaddr= *( (struct in6_addr *) RTA_DATA(rtap));
-						idata->nhaddr_f= 1;
-						break;
+				if(if_indextoname(idata->nhifindex, idata->nhiface) == NULL){
+					puts("Error calling if_indextoname() from sel_next_hop()");
 				}
 
-				if(skip_f)
-					break;
+				onlink_f=TRUE;
 			}
-
-			if(skip_f)
-				continue;
 		}
-	}
+	}while(!onlink_f && queries < 2);
 
 	close(sockfd);
 
-	if(idata->nhaddr_f && idata->nhifindex_f)
+	if(idata->nhaddr_f && idata->nhifindex_f){
+		if(IN6_IS_ADDR_LINKLOCAL(&(idata->nhaddr))){
+			/* BSDs store the interface index in s6_addr16[1], so we must clear it */
+			idata->nhaddr.s6_addr16[1] =0;
+			idata->nhaddr.s6_addr16[2] =0;
+			idata->nhaddr.s6_addr16[3] =0;
+		}
+
 		return(SUCCESS);
+	}
 	else
 		return(FAILURE);
 }
-
-
 #endif
 
 
@@ -2589,10 +2554,10 @@ int get_local_addrs(struct iface_data *idata){
 		if((ptr->ifa_addr)->sa_family == AF_LINK){
 			sockpptr = (struct sockaddr_dl *) (ptr->ifa_addr);
 			if(sockpptr->sdl_alen == ETHER_ADDR_LEN){
-				memcpy((cif->ether, (sockpptr->sdl_data + sockpptr->sdl_nlen), ETHER_ADDR_LEN);
+				memcpy(&(cif->ether), (sockpptr->sdl_data + sockpptr->sdl_nlen), ETHER_ADDR_LEN);
 			}
 
-			cif->ifindex= sockptr->sdl_index;
+			cif->ifindex= sockpptr->sdl_index;
 		}
 #endif
 		else if((ptr->ifa_addr)->sa_family == AF_INET6){
@@ -2613,14 +2578,14 @@ int get_local_addrs(struct iface_data *idata){
 					return(FAILURE);
 				}
 
-				(cif->ip6_local.prefix[cif->ip6_local.nprefix])->len = 64;
+				(cif->ip6_local.prefix[cif->ip6_local.nprefix])->len = 128;
 				(cif->ip6_local.prefix[cif->ip6_local.nprefix])->ip6 = sockin6ptr->sin6_addr;
 
 #if defined (__FreeBSD__) || defined(__NetBSD__) || defined (__OpenBSD__) || defined(__APPLE__)
 					/* BSDs store the interface index in s6_addr16[1], so we must clear it */
-				(cif->ip6_local.prefix[cif->ip6_local.nprefix]).s6_addr16[1] =0;
-				(cif->ip6_local.prefix[cif->ip6_local.nprefix]).s6_addr16[2] =0;
-				(cif->ip6_local.prefix[cif->ip6_local.nprefix]).s6_addr16[3] =0;					
+				(cif->ip6_local.prefix[cif->ip6_local.nprefix])->ip6.s6_addr16[1] =0;
+				(cif->ip6_local.prefix[cif->ip6_local.nprefix])->ip6.s6_addr16[2] =0;
+				(cif->ip6_local.prefix[cif->ip6_local.nprefix])->ip6.s6_addr16[3] =0;					
 #endif
 
 				cif->ip6_local.nprefix++;
@@ -2644,7 +2609,7 @@ int get_local_addrs(struct iface_data *idata){
 					return(FAILURE);
 				}
 
-				(cif->ip6_global.prefix[idata->ip6_global.nprefix])->len = 64;
+				(cif->ip6_global.prefix[idata->ip6_global.nprefix])->len = 128;
 				(cif->ip6_global.prefix[idata->ip6_global.nprefix])->ip6 = sockin6ptr->sin6_addr;
 				cif->ip6_global.nprefix++;
 			}
@@ -2723,7 +2688,7 @@ int is_ip6_in_iface_entry(struct iface_list *iflist, int ifindex, struct in6_add
 
 struct iface_entry *find_matching_address(struct iface_data *idata, struct iface_list *iflist, struct in6_addr *dst, struct in6_addr *match){
 	unsigned int i, j, mlen, len;
-	struct iface_entry	*cif;
+	struct iface_entry	*cif=NULL;  /* Not needed, but avoids warning in OpenBSD/gcc */
 	mlen= 0;
 
 	for(i=0; i < iflist->nifaces; i++){
@@ -2811,6 +2776,7 @@ int sel_src_addr(struct iface_data *idata){
 			else{
 				idata->ether= cif->ether;
 				idata->ether_flag= TRUE;
+				idata->flags= cif->flags;
 
 				if((cif->ip6_local).nprefix){
 					idata->ip6_local= (cif->ip6_local).prefix[0]->ip6;
@@ -2836,7 +2802,7 @@ int sel_src_addr(struct iface_data *idata){
 		/*
 		   If the destination address is not a link-local address, then:
 
-		   1) If the interface has been specified, we select an IPv6 address assigned to aht interface
+		   1) If the interface has been specified, we select an IPv6 address assigned to that interface
 		      (prioritizing "global" addresses)
 
 		   2) If an interface has not been specified, we select the longest-matching address for that
@@ -2849,6 +2815,7 @@ int sel_src_addr(struct iface_data *idata){
 			else{
 				idata->ether= cif->ether;
 				idata->ether_flag= TRUE;
+				idata->flags= cif->flags;
 
 				idata->ip6_global= cif->ip6_global;
 				if(cif->ip6_global.nprefix){
@@ -2878,9 +2845,10 @@ int sel_src_addr(struct iface_data *idata){
 				idata->iface[IFACE_LENGTH-1]= 0;
 				idata->ifindex= cif->ifindex;
 				idata->ifindex_f= TRUE;
+				idata->flags= cif->flags;
 
 				/*
-				   We know check whether the selected address belongs to the selected address belongs to the outgoing
+				   We know check whether the selected address belongs to the outgoing
 				   interface -- otherwise packets might be filtered
 				 */
 
@@ -2912,6 +2880,7 @@ int sel_src_addr(struct iface_data *idata){
 							idata->ether= cif->ether;
 							idata->ether_flag= TRUE;
 							idata->ifindex= idata->nhifindex;
+							idata->flags= cif->flags;
 							strncpy(idata->iface, idata->nhiface, IFACE_LENGTH-1);
 
 							if((cif->ip6_local).nprefix){
@@ -3096,10 +3065,11 @@ int load_dst_and_pcap(struct iface_data *idata){
 		return(FAILURE);
 	}
 
-
-	if(ipv6_to_ether(idata->pfd, idata, &(idata->nhaddr), &(idata->nhhaddr)) != 1){
-		puts("Error while performing Neighbor Discovery for the Destination Address");
-		return(FAILURE);
+	if(idata->flags != IFACE_TUNNEL && idata->flags != IFACE_LOOPBACK){
+		if(ipv6_to_ether(idata->pfd, idata, &(idata->nhaddr), &(idata->nhhaddr)) != 1){
+			puts("Error while performing Neighbor Discovery for the Destination Address");
+			return(FAILURE);
+		}
 	}
 
 	idata->hdstaddr= idata->nhhaddr;

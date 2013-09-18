@@ -494,8 +494,11 @@ struct iface_data{
 #ifdef __linux__
 /* Consulting the routing table */
 #define MAX_NLPAYLOAD 1024
-
+#else
+#define MAX_RTPAYLOAD 1024
 #endif
+
+
 
 struct next_hop{
 	struct in6_addr	srcaddr;
@@ -510,7 +513,16 @@ struct next_hop{
 	unsigned char	ifindex_f;
 };
 
+#ifndef SA_SIZE
+#define SA_SIZE(sa)                                            \
+        (  (!(sa) || ((struct sockaddr *)(sa))->sa_len == 0) ?  \
+           sizeof(long)         :                               \
+           1 + ( (((struct sockaddr *)(sa))->sa_len - 1) | (sizeof(long) - 1) ) )
+#endif
 
+#ifndef SA_NEXT
+#define SA_NEXT(sa) (sa= (struct sockaddr *) ( (char *) sa + SA_SIZE(sa)))
+#endif
 
 int					address_contains_ranges(char *);
 void				change_endianness(u_int32_t *, unsigned int);
