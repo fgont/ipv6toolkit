@@ -8,6 +8,7 @@ of the toolkit:
 
     Octavio Alvarez <alvarezp@alvarezp.com>
     Alistair Crooks <agc@pkgsrc.org>
+    Alexander Bluhm <bluhm@openbsd.org>
 
 
 ** Package maintainers **
@@ -38,4 +39,16 @@ These are the maintainers for each of the different packages:
   + OpenBSD
 
     Alexander Bluhm <bluhm@openbsd.org>
+
+
+** Troubleshooting/Debugging **
+
+Spotting bugs in networking tool can be tricky, since at times they only show
+up in specific network scenarios.
+
+The following indviduals provided great help in identifying bugs in the the
+toolkit (thus leading to fixes and improvements):
+
+    Stephane Bortzmeyer <stephane@bortzmeyer.org>
+
 
