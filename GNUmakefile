@@ -18,7 +18,7 @@
 # typically employed by package developers.
 
 
-CC= clang
+CC= gcc
 CFLAGS+= -Wall
 LDFLAGS+= -lpcap -lm
 
