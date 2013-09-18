@@ -546,6 +546,7 @@ int main(int argc, char **argv){
 					}
 				}
 
+				idata.dstaddr= prefix_list.target[0]->start;
 				dst_f=TRUE;
 				break;
 	    
