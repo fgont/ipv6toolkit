@@ -1,3 +1,30 @@
+SI6 Networks IPv6 Toolkit v1.5
+
+   * All: Improved the next-hop determination
+     Since the toolkit employs lipcap (as there is no portable way to forge
+     IPv6 addresses and do other tricks), it was relying on the user specifying
+     a network interface ("-i" was mandatory for all tools) and that routers
+     would send Router Advertisements on the local links. This not only was 
+     rather inconventient for users (specifying a network interace was not 
+     warranted), but also meant that in setups where RAs where not available
+     (e.g., manual configuration), the tools would fail. The toolkit now
+     eploys routing sockets (in BSDs) or Netlink (in Linux), and only uses
+     "sending RAs" as a fall-back in case of failure (IPv6 not configured on
+     the local host).
+
+   * All: Improved source address selection
+     This is closely related to the previous bullet.
+
+   * All: More code moved to libipv6
+     More and more code was moved to libipv6 and removed to the individual tool
+     source files. As wiht some of the above, this was painful and
+     time-consuming, but was necessary -- and in the long run it will make
+     code maintenance easier.
+
+   * All: libipv6 used throughout all tools
+     This was rather painful and non-exciting, but necessary.
+
+
 SI6 Networks' IPv6 Toolkit v1.4.1
 
    * frag6: Fixed bug that prevented Ethernet header from being filled
