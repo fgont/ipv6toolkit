@@ -1086,7 +1086,7 @@ int main(int argc, char **argv){
 		exit(EXIT_FAILURE);
 	}
 
-	if(scan_local_f && !iface_f){
+	if(scan_local_f && !idata.iface_f){
 		puts("Must specify the network interface with the -i option when a local scan is selected");
 		exit(EXIT_FAILURE);
 	}
