@@ -284,6 +284,7 @@ int main(int argc, char **argv){
 		switch(option) {
 			case 'i':  /* Interface */
 				strncpy(iface, optarg, IFACE_LENGTH-1);
+				iface[IFACE_LENGTH-1]=0;
 				iface_f=1;
 				break;
 

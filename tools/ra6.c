@@ -240,7 +240,9 @@ int main(int argc, char **argv){
 
 			case 'i':  /* Interface */
 				strncpy(idata.iface, optarg, IFACE_LENGTH-1);
-				iface_f=1;
+				idata.iface[IFACE_LENGTH-1]=0;
+				idata.ifindex= if_nametoindex(idata.iface);
+				idata.iface_f=TRUE;
 				break;
 
 			case 's':	/* IPv6 Source Address */

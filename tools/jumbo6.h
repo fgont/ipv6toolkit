@@ -3,6 +3,12 @@
  *
  */
 
+/* General constants */
+#define SUCCESS	1
+#define FAILURE 0
+#define TRUE 1
+#define FALSE 0
+
 #define LUI		long unsigned int
 
 #define ETH_ALEN	6		/* Octets in one ethernet addr	 */
@@ -126,11 +132,14 @@ struct prefix_list{
 
 
 struct iface_data{
-	char			iface[IFACE_LENGTH];
-	int			type;
-	int			flags;
-	int			fd;
-	pcap_t			*pd;
+	char				iface[IFACE_LENGTH];
+	int					type;
+	int					flags;
+	int					fd;
+	pcap_t				*pd;
+	unsigned char		iface_f;
+	pcap_t				*pfd;
+	int					ifindex;
 	struct ether_addr	ether;
 	unsigned int		ether_flag;
 	struct in6_addr		ip6_local;

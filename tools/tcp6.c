@@ -250,7 +250,9 @@ int main(int argc, char **argv){
 		switch(option) {
 			case 'i':  /* Interface */
 				strncpy(idata.iface, optarg, IFACE_LENGTH-1);
-				idata.iface_f=1;
+				idata.iface[IFACE_LENGTH-1]=0;
+				idata.ifindex= if_nametoindex(idata.iface);
+				idata.iface_f=TRUE;
 				break;
 
 			case 's':	/* IPv6 Source Address */
@@ -977,6 +979,10 @@ int main(int argc, char **argv){
 	if(!idata.iface_f){
 		if(idata.dstaddr_f && IN6_IS_ADDR_LINKLOCAL(&(idata.dstaddr))){
 			puts("Must specify a network interface for link-local destinations");
+			exit(EXIT_FAILURE);
+		}
+		else if(listen_f){
+			puts("Must specify a network interface when employing the 'listenging' mode");
 			exit(EXIT_FAILURE);
 		}
 	}

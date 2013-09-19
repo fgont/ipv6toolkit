@@ -3,6 +3,12 @@
  *
  */
 
+/* General constants */
+#define SUCCESS	1
+#define FAILURE 0
+#define TRUE 1
+#define FALSE 0
+
 #define LUI		long unsigned int
 
 #define ETH_ALEN	6		/* Octets in one ethernet addr	 */
