@@ -119,8 +119,6 @@ struct filters{
 #define PCAP_ICMPV6_RS_FILTER	"icmp6 and ip6[7]==255 and ip6[40]==133 and ip6[41]==0"
 #define PCAP_ICMPV6_NSECHOEXCEEDED_FILTER  "icmp6 and ((ip6[40]==3 and ip6[41]==1) or (ip6[40]==129 and ip6[41]==0) or (ip6[7]==255 and ip6[40]==135 and ip6[41]==0))"
 
-PCAP_ICMPV6_NSECHOEXCEEDED_FILTER
-
 /* Filter to receive Neighbor Solicitations and Fragmented packets */
 #define PCAP_ICMPV6NSFRAG_FILTER "(ip6[7]==255 and icmp6 and ip6[40]==135 and ip6[41]==0) or (ip6 and ip6[6]==44)"
 #define PCAP_NSTCP_FILTER "(ip6[7]==255 and icmp6 and ip6[40]==135 and ip6[41]==0) or (ip6 and ip6[6]==6)"
