@@ -560,6 +560,7 @@ unsigned int		match_ipv6(struct in6_addr *, u_int8_t *, unsigned int, struct in6
 int 				match_ipv6_to_prefixes(struct in6_addr *, struct prefix_list *);
 void				print_filters(struct iface_data *, struct filters *);
 void				print_filter_result(struct iface_data *, const u_char *, unsigned char);
+int					print_local_addrs(struct iface_data *);
 void				randomize_ether_addr(struct ether_addr *);
 void				randomize_ipv6_addr(struct in6_addr *, struct in6_addr *, u_int8_t);
 int					read_ipv6_address(char *, unsigned int, struct in6_addr *);

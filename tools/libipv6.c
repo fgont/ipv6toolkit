@@ -2536,6 +2536,7 @@ int get_local_addrs(struct iface_data *idata){
 			else{
 				cif= &(idata->iflist.ifaces[idata->iflist.nifaces]);
 				strncpy(cif->iface, ptr->ifa_name, IFACE_LENGTH-1);
+				cif->iface[IFACE_LENGTH-1]=0;
 				idata->iflist.nifaces++;
 			}
 		}
@@ -2609,8 +2610,8 @@ int get_local_addrs(struct iface_data *idata){
 					return(FAILURE);
 				}
 
-				(cif->ip6_global.prefix[idata->ip6_global.nprefix])->len = 128;
-				(cif->ip6_global.prefix[idata->ip6_global.nprefix])->ip6 = sockin6ptr->sin6_addr;
+				(cif->ip6_global.prefix[cif->ip6_global.nprefix])->len = 128;
+				(cif->ip6_global.prefix[cif->ip6_global.nprefix])->ip6 = sockin6ptr->sin6_addr;
 				cif->ip6_global.nprefix++;
 			}
 		}
@@ -2819,7 +2820,6 @@ int sel_src_addr(struct iface_data *idata){
 
 				idata->ip6_global= cif->ip6_global;
 				if(cif->ip6_global.nprefix){
-					/* XXX This should be replaced with "find the longest match for this list */
 					idata->ip6_global_flag= TRUE;
 				}
 
@@ -2829,6 +2829,7 @@ int sel_src_addr(struct iface_data *idata){
 				}
 
 				if(idata->ip6_global_flag){
+					/* XXX This should be replaced with "find the longest match for this list */
 					idata->srcaddr= (idata->ip6_global).prefix[0]->ip6;
 					return(SUCCESS);
 				}
@@ -3311,5 +3312,54 @@ int read_ipv6_address(char *line, unsigned int len, struct in6_addr *iid){
 	}
 
 	return(1);
+}
+
+
+/*
+ * Function: print_local_addrs()
+ *
+ * Debugging function to print all local addresses (starting from a struct iface_data *)
+ */
+
+int print_local_addrs(struct iface_data *idata){
+	unsigned int		i, j;
+	char				pv6addr[INET6_ADDRSTRLEN];
+	char 				plinkaddr[ETHER_ADDR_PLEN];
+
+	puts("List of local interfaces/addresses");
+
+	for(i=0; i < idata->iflist.nifaces; i++){
+		if(ether_ntop(&((idata->iflist).ifaces[i].ether), plinkaddr, sizeof(plinkaddr)) == 0){
+			puts("ether_ntop(): Error converting address");
+			exit(EXIT_FAILURE);
+		}
+
+		printf("Name: %s\tIndex: %d\t Address: %s\n", (idata->iflist.ifaces[i]).iface, (idata->iflist.ifaces[i]).ifindex, plinkaddr);
+		puts("Link-local addresses:");
+
+		for(j=0; j < idata->iflist.ifaces[i].ip6_local.nprefix; j++){
+			if(inet_ntop(AF_INET6, idata->iflist.ifaces[i].ip6_local.prefix[j], pv6addr, sizeof(pv6addr)) == NULL){
+				puts("inet_ntop(): Error converting IPv6 address to presentation format");
+				exit(EXIT_FAILURE);
+			}
+
+			printf("\t%s\n", pv6addr);
+		}
+
+		puts("Global addresses:");
+
+		for(j=0; j < idata->iflist.ifaces[i].ip6_global.nprefix; j++){
+			if(inet_ntop(AF_INET6, idata->iflist.ifaces[i].ip6_global.prefix[j], pv6addr, sizeof(pv6addr)) == NULL){
+				puts("inet_ntop(): Error converting IPv6 address to presentation format");
+				exit(EXIT_FAILURE);
+			}
+
+			printf("\t%s\n", pv6addr);
+		}
+
+		puts("");
+	}
+
+	return(SUCCESS);
 }
 
