@@ -20,9 +20,6 @@
  *
  * 
  * Build with: make scan6
- * 
- * This program has been tested to compile and run on: Debian GNU/Linux 6.0,
- * FreeBSD 8.2, NetBSD 5.1, OpenBSD 5.0, and Ubuntu 11.10, and Mac OS X.
  *
  * It requires that the libpcap library be installed on your system.
  *
@@ -40,7 +37,6 @@
 #include <ctype.h>
 #include <time.h>
 #include <getopt.h>
-#include <pwd.h>
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -53,6 +49,7 @@
 #include <netinet/in.h>
 #include <netinet/ip6.h>
 #include <netinet/icmp6.h>
+#include <netinet/tcp.h>
 #include <net/if.h>
 #include <ifaddrs.h>
 #ifdef __linux__
@@ -63,7 +60,7 @@
 #include "scan6.h"
 #include "ipv6toolkit.h"
 #include "libipv6.h"
-#include <netinet/tcp.h>
+
 
 /* Function prototypes */
 int					create_candidate_globals(struct iface_data *, struct host_list *, struct host_list *, \
@@ -136,7 +133,7 @@ struct in6_addr				*pkt_ipv6addr;
 unsigned int				pktbytes;
 struct icmp6_hdr			*pkt_icmp6;
 struct nd_neighbor_solicit	*pkt_ns;
-struct tcphdr				*pkt_tcp;
+struct tcp_hdr				*pkt_tcp;
 int							result;
 unsigned char				error_f;
 
@@ -1151,7 +1148,7 @@ int main(int argc, char **argv){
 				break;
 
 			case PROBE_TCP:
-				packetsize= MIN_IPV6_HLEN + sizeof(struct tcphdr) + rhbytes;
+				packetsize= MIN_IPV6_HLEN + sizeof(struct tcp_hdr) + rhbytes;
 				break;
 		}
 
@@ -1603,7 +1600,7 @@ int main(int argc, char **argv){
 					pkt_ether = (struct ether_header *) pktdata;
 					pkt_ipv6 = (struct ip6_hdr *)((char *) pkt_ether + idata.linkhsize);
 					pkt_icmp6 = (struct icmp6_hdr *) ((char *) pkt_ipv6 + sizeof(struct ip6_hdr));
-					pkt_tcp = (struct tcphdr *) ((char *) pkt_ipv6 + sizeof(struct ip6_hdr));
+					pkt_tcp = (struct tcp_hdr *) ((char *) pkt_ipv6 + sizeof(struct ip6_hdr));
 					pkt_ns= (struct nd_neighbor_solicit *) pkt_icmp6;
 					pkt_end = (unsigned char *) pktdata + pkthdr->caplen;
 
@@ -3007,7 +3004,7 @@ int send_probe_remote(struct iface_data *idata, struct scan_list *scan, struct i
 	struct dlt_null				*dlt_null;
 	unsigned char 				*v6buffer;
 	struct ip6_hdr				*ipv6;
-	struct tcphdr				*tcp;
+	struct tcp_hdr				*tcp;
 	struct ip6_dest				*destopth;
 	struct ip6_option			*opt;
 	u_int32_t					*uint32;
@@ -3121,15 +3118,15 @@ int send_probe_remote(struct iface_data *idata, struct scan_list *scan, struct i
 		case PROBE_TCP:
 			*prev_nh = IPPROTO_TCP;
 
-			if( (ptr+sizeof(struct tcphdr)) > (v6buffer + max_packet_size)){
+			if( (ptr+sizeof(struct tcp_hdr)) > (v6buffer + max_packet_size)){
 				if(idata->verbose_f)
 					puts("Packet Too Large while inserting TCP header");
 
 				return(0);
 			}
 
-			tcp = (struct tcphdr *) ptr;
-			bzero(tcp, sizeof(struct tcphdr));
+			tcp = (struct tcp_hdr *) ptr;
+			bzero(tcp, sizeof(struct tcp_hdr));
 
 			if(srcport_f)
 				tcp->th_sport= htons(srcport);
@@ -3154,7 +3151,7 @@ int send_probe_remote(struct iface_data *idata, struct scan_list *scan, struct i
 			tcp->th_win= htons( 4096 * (rand() % 9 + 1));
 
 			/* Current version of tcp6 does not support sending TCP options */
-			tcp->th_off= sizeof(struct tcphdr) >> 2;
+			tcp->th_off= sizeof(struct tcp_hdr) >> 2;
 			ptr+= tcp->th_off << 2;
 
 			if( (ptr + rhbytes) > v6buffer+max_packet_size){

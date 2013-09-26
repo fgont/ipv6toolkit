@@ -3508,7 +3508,7 @@ int find_ipv6_router(pcap_t *pfd, struct ether_addr *hsrcaddr, struct in6_addr *
 			pkt_ether = (struct ether_header *) pktdata;
 			pkt_ipv6 = (struct ip6_hdr *)((char *) pkt_ether + ETHER_HDR_LEN);
 			pkt_ra = (struct nd_router_advert *) ((char *) pkt_ipv6 + MIN_IPV6_HLEN);
-			pkt_end = (unsigned char *) pktdata + pkthdr->len;
+			pkt_end = (unsigned char *) pktdata + pkthdr->caplen;
 
 
 			/* The packet length is the minimum of what we capured, and what is specified in the

@@ -1486,7 +1486,7 @@ void send_packet(struct iface_data *idata, const u_char *pktdata, struct pcap_pk
 	if(pktdata != NULL){   /* Sending a Redirect in response to a received packet */
 		pkt_ether = (struct ether_header *) pktdata;
 		pkt_ipv6 = (struct ip6_hdr *)((char *) pkt_ether + ETHER_HDR_LEN);
-		pkt_end = (unsigned char *) pktdata + pkthdr->len;
+		pkt_end = (unsigned char *) pktdata + pkthdr->caplen;
 
 		/* The packet length is the minimum of what we capured, and what is specified in the
 		   IPv6 Total Lenght field
