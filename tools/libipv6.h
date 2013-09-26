@@ -104,14 +104,14 @@ struct filters{
 
 
 /* Constants used with the libcap functions */
-#define PCAP_ICMPV6_NA_FILTER	"icmp6 and ip6[7]==255 and ip6[40]==136 and ip6[41]==0"
-#define PCAP_ICMPV6_RANS_FILTER	"icmp6 and ip6[7]==255 and ((ip6[40]==134 and ip6[41]==0) or (ip6[40]==135 and ip6[41]==0))"
-#define PCAP_ICMPV6_NA_FILTER	"icmp6 and ip6[7]==255 and ip6[40]==136 and ip6[41]==0"
-#define PCAP_TCPIPV6_NS_FILTER	"ip6 and (tcp or (icmp6 and ip6[7]==255 and ip6[40]==135 and ip6[41]==0))"
 #define PCAP_IPV6_FILTER		"ip6"
 #define PCAP_TCPV6_FILTER		"ip6 and tcp"
 #define PCAP_UDPV6_FILTER		"ip6 and udp"
 #define PCAP_ICMPV6_FILTER		"icmp6"
+#define PCAP_ICMPV6_NA_FILTER	"icmp6 and ip6[7]==255 and ip6[40]==136 and ip6[41]==0"
+#define PCAP_ICMPV6_RA_FILTER "icmp6 and ip6[7]==255 and ip6[40]==134 and ip6[41]==0"
+#define PCAP_ICMPV6_RANS_FILTER	"icmp6 and ip6[7]==255 and ((ip6[40]==134 and ip6[41]==0) or (ip6[40]==135 and ip6[41]==0))"
+#define PCAP_TCPIPV6_NS_FILTER	"ip6 and (tcp or (icmp6 and ip6[7]==255 and ip6[40]==135 and ip6[41]==0))"
 #define PCAP_ICMPV6_NI_QUERY	"icmp6 and ip6[40]==139"
 #define PCAP_ICMPV6_NI_REPLY	"icmp6 and ip6[40]==140"
 #define PCAP_NOPACKETS_FILTER	"not ip and not ip6 and not arp"
@@ -233,6 +233,46 @@ struct ether_header
   struct ether_addr dst;	/* destination eth addr	*/
   struct ether_addr src;	/* source ether addr	*/
   u_int16_t ether_type;		/* packet type ID field	*/
+} __attribute__ ((__packed__));
+
+
+typedef	u_int32_t tcp_seq;
+
+/*
+ * TCP header.
+ * Per RFC 793, September, 1981.
+ */
+struct tcp_hdr{
+    u_int16_t th_sport;		/* source port */
+    u_int16_t th_dport;		/* destination port */
+    tcp_seq th_seq;		/* sequence number */
+    tcp_seq th_ack;		/* acknowledgement number */
+#  if __BYTE_ORDER == __LITTLE_ENDIAN
+    u_int8_t th_x2:4;		/* (unused) */
+    u_int8_t th_off:4;		/* data offset */
+#  endif
+#  if __BYTE_ORDER == __BIG_ENDIAN
+    u_int8_t th_off:4;		/* data offset */
+    u_int8_t th_x2:4;		/* (unused) */
+#  endif
+    u_int8_t th_flags;
+#  define TH_FIN	0x01
+#  define TH_SYN	0x02
+#  define TH_RST	0x04
+#  define TH_PUSH	0x08
+#  define TH_ACK	0x10
+#  define TH_URG	0x20
+    u_int16_t th_win;		/* window */
+    u_int16_t th_sum;		/* checksum */
+    u_int16_t th_urp;		/* urgent pointer */
+} __attribute__ ((__packed__));
+
+
+struct udp_hdr{
+  u_int16_t uh_sport;		/* source port */
+  u_int16_t uh_dport;		/* destination port */
+  u_int16_t uh_ulen;		/* udp length */
+  u_int16_t uh_sum;		/* udp checksum */
 } __attribute__ ((__packed__));
 
 
@@ -473,6 +513,7 @@ struct iface_data{
 	struct in6_addr		dstaddr;
 	unsigned int		dstaddr_f;
 	unsigned int		verbose_f;
+	unsigned char		listen_f;
 	char				loopback_f;
 
 	/* XXX
@@ -535,6 +576,7 @@ int					ether_pton(const char *, struct ether_addr *, unsigned int);
 void				ether_to_ipv6_linklocal(struct ether_addr *etheraddr, struct in6_addr *ipv6addr);
 void 				*find_iface_by_index(struct iface_list *, int);
 void				*find_iface_by_name(struct iface_list *, char *);
+int					find_ipv6_router(pcap_t *, struct ether_addr *, struct in6_addr *, struct ether_addr *, struct in6_addr *);
 int					find_ipv6_router_full(pcap_t *, struct iface_data *);
 struct iface_entry  *find_matching_address(struct iface_data *, struct iface_list *, struct in6_addr *, struct in6_addr *);
 void				generate_slaac_address(struct in6_addr *, struct ether_addr *, struct in6_addr *);

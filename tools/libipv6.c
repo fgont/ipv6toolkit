@@ -3,6 +3,26 @@
 #include <sys/socket.h>
 #include <sys/select.h>
 
+#ifndef __FAVOR_BSD
+	#define __FAVOR_BSD		/* This causes Linux to use the BSD definition of the TCP and UDP header fields */
+#endif
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <netinet/ip6.h>
+#include <netinet/icmp6.h>
+#include <netinet/tcp.h>
+#include <net/if.h>
+#include <ifaddrs.h>
+#ifdef __linux__
+	#include <asm/types.h>
+	#include <linux/netlink.h>
+	#include <linux/rtnetlink.h>
+	#include <netpacket/packet.h>   /* For datalink structure */
+#elif defined (__FreeBSD__) || defined(__NetBSD__) || defined (__OpenBSD__) || defined(__APPLE__)
+	#include <net/if_dl.h>
+	#include <net/route.h>
+#endif
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <errno.h>
@@ -15,26 +35,6 @@
 #include <pcap.h>
 #include <setjmp.h>
 #include <pwd.h>
-
-#ifndef __FAVOR_BSD
-	#define __FAVOR_BSD		/* This causes Linux to use the BSD definition of the TCP and UDP header fields */
-#endif
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <netinet/ip6.h>
-#include <netinet/icmp6.h>
-#include <net/if.h>
-#include <ifaddrs.h>
-#ifdef __linux__
-	#include <asm/types.h>
-	#include <linux/netlink.h>
-	#include <linux/rtnetlink.h>
-	#include <netpacket/packet.h>   /* For datalink structure */
-#elif defined (__FreeBSD__) || defined(__NetBSD__) || defined (__OpenBSD__) || defined(__APPLE__)
-	#include <net/if_dl.h>
-	#include <net/route.h>
-#endif
-#include <netinet/tcp.h>
 
 #include "libipv6.h"
 #include "ipv6toolkit.h"
@@ -3361,5 +3361,248 @@ int print_local_addrs(struct iface_data *idata){
 	}
 
 	return(SUCCESS);
+}
+
+
+/*
+ * Function: find_ipv6_router()
+ *
+ * Finds a local router (by means of Neighbor Discovery)
+ */
+
+int find_ipv6_router(pcap_t *pfd, struct ether_addr *hsrcaddr, struct in6_addr *srcaddr, \
+					struct ether_addr *result_ether, struct in6_addr *result_ipv6){
+
+	struct pcap_pkthdr			*pkthdr;
+	const u_char				*pktdata;
+	struct ether_header			*pkt_ether;
+	struct ip6_hdr				*pkt_ipv6;
+	struct nd_router_advert 	*pkt_ra;
+	unsigned char				*pkt_end;
+	unsigned char				*ptr, *prev_nh;
+	int							r;
+	size_t						nw;
+
+	unsigned char				buffer[65556];
+	unsigned int 				rs_max_packet_size;
+	struct ether_header 		*ether;
+	unsigned char 				*v6buffer;
+	struct ip6_hdr 				*ipv6;
+	struct nd_router_solicit	*rs;
+	struct nd_opt_slla 			*sllaopt;
+	volatile unsigned int 		tries=0;
+	volatile unsigned int 		foundrouter=0;
+	struct sigaction 			new_sig, old_sig;
+
+	rs_max_packet_size = ETH_DATA_LEN;
+
+	ether = (struct ether_header *) buffer;
+	v6buffer = buffer + sizeof(struct ether_header);
+	ipv6 = (struct ip6_hdr *) v6buffer;
+
+	if(pcap_compile(pfd, &pcap_filter, PCAP_ICMPV6_RA_FILTER, PCAP_OPT, PCAP_NETMASK_UNKNOWN) == -1){
+		printf("pcap_compile(): %s", pcap_geterr(pfd));
+		return(-1);
+	}
+    
+	if(pcap_setfilter(pfd, &pcap_filter) == -1){
+		printf("pcap_setfilter(): %s", pcap_geterr(pfd));
+		return(-1);
+	}
+
+	pcap_freecode(&pcap_filter);
+
+	ipv6->ip6_flow=0;
+	ipv6->ip6_vfc= 0x60;
+	ipv6->ip6_hlim= 255;
+	ipv6->ip6_src= *srcaddr;
+
+	if ( inet_pton(AF_INET6, ALL_ROUTERS_MULTICAST_ADDR, &(ipv6->ip6_dst)) <= 0){
+		puts("inet_pton(): Error converting All Routers address from presentation to network format");
+		return(-1);
+	}
+
+	ether->src = *hsrcaddr;
+
+	if(ether_pton(ETHER_ALLROUTERS_LINK_ADDR, &(ether->dst), sizeof(struct ether_addr)) == 0){
+	    puts("ether_pton(): Error converting all-nodes multicast address");
+	    return(-1);
+	}
+
+	ether->ether_type = htons(0x86dd);
+
+	prev_nh = (unsigned char *) &(ipv6->ip6_nxt);
+	*prev_nh = IPPROTO_ICMPV6;
+
+	ptr = (unsigned char *) v6buffer + MIN_IPV6_HLEN;
+
+	if( (ptr+sizeof(struct nd_router_solicit)) > (v6buffer+rs_max_packet_size)){
+		puts("Packet too large while inserting Router Solicitation header");
+		return(-1);
+	}
+
+	rs= (struct nd_router_solicit *) (ptr);
+
+	rs->nd_rs_type = ND_ROUTER_SOLICIT;
+	rs->nd_rs_code = 0;
+	rs->nd_rs_reserved = 0;
+
+	ptr += sizeof(struct nd_router_solicit);
+	sllaopt = (struct nd_opt_slla *) ptr;    
+
+	if( (ptr+sizeof(struct nd_opt_slla)) > (v6buffer+rs_max_packet_size)){
+		puts("RS message too large while processing source link-layer addresss opt.");
+		return(-1);
+	}
+
+	sllaopt->type= ND_OPT_SOURCE_LINKADDR;
+	sllaopt->length= SLLA_OPT_LEN;
+	bcopy( &(hsrcaddr->a), sllaopt->address, ETH_ALEN);
+	ptr += sizeof(struct nd_opt_slla);
+
+	ipv6->ip6_plen = htons((ptr - v6buffer) - MIN_IPV6_HLEN);
+	rs->nd_rs_cksum = 0;
+	rs->nd_rs_cksum = in_chksum(v6buffer, rs, ptr-((unsigned char *)rs), IPPROTO_ICMPV6);
+
+	/* We set the signal handler, and the anchor for siglongjump() */
+	canjump=0;
+	bzero(&new_sig, sizeof(struct sigaction));
+	sigemptyset(&new_sig.sa_mask);
+	new_sig.sa_handler= &sig_alarm;
+
+	alarm(0);
+
+	if( sigaction(SIGALRM, &new_sig, &old_sig) == -1){
+		puts("Error setting up 'Alarm' signal");
+		return(-1);
+	}
+
+	if(sigsetjmp(env, 1) != 0)
+		tries++;
+
+	canjump=1;
+
+	while(tries<3 && !foundrouter){
+		if((nw=pcap_inject(pfd, buffer, ptr - buffer)) == -1){
+			printf("pcap_inject(): %s\n", pcap_geterr(pfd));
+			return(-1);
+		}
+
+		if(nw != (ptr-buffer)){
+			printf("pcap_inject(): only wrote %lu bytes (rather than %lu bytes)\n", (LUI) nw, \
+																			(LUI) (ptr-buffer));
+			return(-1);
+		}
+
+		alarm(1);
+		
+		while(!foundrouter){
+			if( (r=pcap_next_ex(pfd, &pkthdr, &pktdata)) == -1){
+				printf("pcap_next_ex(): %s", pcap_geterr(pfd));
+				exit(EXIT_FAILURE);
+			}
+			else if(r == 0){
+				continue; /* Should never happen */
+			}
+			
+			pkt_ether = (struct ether_header *) pktdata;
+			pkt_ipv6 = (struct ip6_hdr *)((char *) pkt_ether + ETHER_HDR_LEN);
+			pkt_ra = (struct nd_router_advert *) ((char *) pkt_ipv6 + MIN_IPV6_HLEN);
+			pkt_end = (unsigned char *) pktdata + pkthdr->len;
+
+
+			/* The packet length is the minimum of what we capured, and what is specified in the
+			   IPv6 Total Lenght field
+			 */
+			if( pkt_end > ((unsigned char *)pkt_ra + pkt_ipv6->ip6_plen) )
+				pkt_end = (unsigned char *)pkt_ra + pkt_ipv6->ip6_plen;
+
+			/*
+			   Discard the packet if it is not of the minimum size to contain a Neighbor Advertisement
+			   message with a source link-layer address option
+			 */
+			if( (pkt_end - (unsigned char *) pkt_ra) < (sizeof(struct nd_router_advert) + \
+										sizeof(struct nd_opt_slla)))
+				continue;
+
+			/*
+			   Neighbor Discovery packets must have a Hop Limit of 255
+			 */
+			if(pkt_ipv6->ip6_hlim != 255)
+				continue;
+
+			/*
+			   Check that the IPv6 packet encapsulates an ICMPv6 message
+			 */
+			if(pkt_ipv6->ip6_nxt != IPPROTO_ICMPV6)
+				continue;
+
+			/*
+			   Check that the ICMPv6 type corresponds to RA
+			 */
+			if(pkt_ra->nd_ra_type != ND_ROUTER_ADVERT)
+				continue;
+
+			/*
+			   Check that the ICMPv6 code is 0
+			 */
+			if(pkt_ra->nd_ra_code != 0)
+				continue;
+
+			/*
+			   Check that the IPv6 Source Address of the Router Advertisement is an IPv6 link-local
+			   address.
+			 */
+			if( (pkt_ipv6->ip6_src.s6_addr16[0] & htons(0xffc0)) != htons(0xfe80))
+				continue;
+
+			/* 
+			   Check that that the Destination Address of the Router Advertisement is either the one
+			   that we used for sending the Router Solicitation message or a multicast address (typically the all-nodes)
+			 */
+			if(!is_eq_in6_addr(&(pkt_ipv6->ip6_dst), &(ipv6->ip6_src)) && !IN6_IS_ADDR_MULTICAST(&(pkt_ipv6->ip6_dst)))
+				continue;
+
+			/* Check that the ICMPv6 checksum is correct. If the received checksum is valid,
+			   and we compute the checksum over the received packet (including the Checkdum field)
+			   the result is 0. Otherwise, the packet has been corrupted.
+			*/
+			if(in_chksum(pkt_ipv6, pkt_ra, pkt_end- (unsigned char *)pkt_ra, IPPROTO_ICMPV6) != 0)
+				continue;
+
+			ptr= (unsigned char *) pkt_ra + sizeof(struct nd_router_advert);
+
+			/* Process Router Advertisement options */
+			while( (ptr+sizeof(struct nd_opt_slla)) <= pkt_end && (*(ptr+1) != 0)){
+				if(*ptr == ND_OPT_SOURCE_LINKADDR){
+					if( (*(ptr+1) * 8) != sizeof(struct nd_opt_tlla))
+						break;
+
+					/* Got a response, so we shouln't time out */
+					alarm(0);
+
+					/* Save the link-layer address */
+					*result_ether= *(struct ether_addr *) (ptr+2);
+					*result_ipv6= pkt_ipv6->ip6_src;
+					foundrouter=1;
+					break;
+				}
+
+				ptr= ptr + *(ptr+1) * 8;
+			} /* Processing options */
+
+		} /* Processing packets */
+
+	} /* Resending Router Solicitations */
+
+	if( sigaction(SIGALRM, &old_sig, NULL) == -1){
+		puts("Error setting up 'Alarm' signal");
+		return(-1);
+	}
+
+	if(foundrouter)
+		return 0;
+	else
+		return -1;
 }
 

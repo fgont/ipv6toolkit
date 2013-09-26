@@ -57,8 +57,8 @@ flow6: $(SRCPATH)/flow6.c $(SRCPATH)/flow6.h $(SRCPATH)/ipv6toolkit.h $(LIBS) $(
 frag6: $(SRCPATH)/frag6.c $(SRCPATH)/frag6.h $(SRCPATH)/ipv6toolkit.h $(LIBS) $(SRCPATH)/libipv6.h
 	$(CC) $(CPPFLAGS) $(CFLAGS) -o frag6 $(SRCPATH)/frag6.c $(LIBS) $(LDFLAGS)  
 
-icmp6: $(SRCPATH)/icmp6.c $(SRCPATH)/icmp6.h $(SRCPATH)/ipv6toolkit.h
-	$(CC) $(CPPFLAGS) $(CFLAGS) -o icmp6 $(SRCPATH)/icmp6.c $(LDFLAGS)
+icmp6: $(SRCPATH)/icmp6.c $(SRCPATH)/icmp6.h $(SRCPATH)/ipv6toolkit.h $(LIBS) $(SRCPATH)/libipv6.h
+	$(CC) $(CPPFLAGS) $(CFLAGS) -o icmp6 $(SRCPATH)/icmp6.c $(LIBS) $(LDFLAGS)
 
 jumbo6: $(SRCPATH)/jumbo6.c $(SRCPATH)/jumbo6.h $(SRCPATH)/ipv6toolkit.h
 	$(CC) $(CPPFLAGS) $(CFLAGS) -o jumbo6 $(SRCPATH)/jumbo6.c $(LDFLAGS)
@@ -75,8 +75,8 @@ ns6: $(SRCPATH)/ns6.c $(SRCPATH)/ns6.h $(SRCPATH)/ipv6toolkit.h $(LIBS) $(SRCPAT
 ra6: $(SRCPATH)/ra6.c $(SRCPATH)/ra6.h $(SRCPATH)/ipv6toolkit.h $(LIBS) $(SRCPATH)/libipv6.h
 	$(CC) $(CPPFLAGS) $(CFLAGS) -o ra6 $(SRCPATH)/ra6.c $(LIBS) $(LDFLAGS)
 
-rd6: $(SRCPATH)/rd6.c $(SRCPATH)/rd6.h $(SRCPATH)/ipv6toolkit.h
-	$(CC) $(CPPFLAGS) $(CFLAGS) -o rd6 $(SRCPATH)/rd6.c $(LDFLAGS)
+rd6: $(SRCPATH)/rd6.c $(SRCPATH)/rd6.h $(SRCPATH)/ipv6toolkit.h $(LIBS) $(SRCPATH)/libipv6.h
+	$(CC) $(CPPFLAGS) $(CFLAGS) -o rd6 $(SRCPATH)/rd6.c $(LIBS) $(LDFLAGS)
 
 rs6: $(SRCPATH)/rs6.c $(SRCPATH)/rs6.h $(SRCPATH)/ipv6toolkit.h $(LIBS) $(SRCPATH)/libipv6.h
 	$(CC) $(CPPFLAGS) $(CFLAGS) -o rs6 $(SRCPATH)/rs6.c $(LIBS) $(LDFLAGS)
