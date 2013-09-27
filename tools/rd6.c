@@ -18,11 +18,10 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
- *
  * 
  * Build with: make rd6
  * 
- * It requires that the libpcap library be installed on your system.
+ * The libpcap library must be previously installed on your system.
  *
  * Please send any bug reports to Fernando Gont <fgont@si6networks.com>
  */
@@ -1355,7 +1354,7 @@ void init_packet_data(struct iface_data *idata){
 
 	ethernet->src = idata->hsrcaddr;
 	ethernet->dst = idata->hdstaddr;
-	ethernet->ether_type = htons(0x86dd);
+	ethernet->ether_type = htons(ETHERTYPE_IPV6);
 
 	ipv6->ip6_flow=0;
 	ipv6->ip6_vfc= 0x60;

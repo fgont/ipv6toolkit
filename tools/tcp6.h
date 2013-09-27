@@ -29,5 +29,39 @@
 #define WIN_MODULATE_OPEN_LEN		30
 
 
+/* Constants for specifying the TCP connection state */
+#define TCP_CLOSED			1
+#define TCP_LISTEN			2
+#define TCP_SYN_SENT		3
+#define TCP_SYN_RECV		4
+#define	TCP_ESTABLISHED		5
+#define TCP_FIN_WAIT1		6
+#define TCP_FIN_WAIT2		7
+#define TCP_CLOSE_WAIT		8
+#define TCP_LAST_ACK		9
+#define TCP_CLOSING			10
+#define TCP_TIME_WAIT		11
 
+
+#define TCP_BUFFER_SIZE			65535
+#define TCP_INPUT_BUFFER_SIZE	TCP_BUFFER_SIZE
+#define TCP_OUTPUT_BUFFER_SIZE	TCP_BUFFER_SIZE
+
+struct tcp{
+	unsigned char	in[TCP_INPUT_BUFFER_SIZE];
+	unsigned char	*in_in;
+	unsigned char	*in_out;
+	u_int32_t		in_nxt;
+	unsigned char	out[TCP_OUTPUT_BUFFER_SIZE];
+	unsigned char	*out_una;
+	unsigned char	*out_nxt;    /* una         nxt   out in */
+	unsigned char	*out_in;
+	struct timeval	sent;
+	unsigned int	state;
+	u_int32_t		seq_una;
+	u_int32_t		seq_nxt;
+	u_int32_t		seq_wnd;
+	u_int32_t		ack;
+	u_int32_t		win;	
+};
 

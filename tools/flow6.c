@@ -35,10 +35,6 @@
 #include <sys/select.h>
 #include <sys/socket.h>
 
-#ifndef __FAVOR_BSD
-	#define __FAVOR_BSD
-#endif
-
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <netinet/ip6.h>
@@ -62,8 +58,6 @@
 #include <signal.h>
 #include <string.h>
 #include <pcap.h>
-#include <setjmp.h>
-#include <pwd.h>
 
 #include "flow6.h"
 #include "ipv6toolkit.h"
@@ -89,8 +83,8 @@ const u_char		*pktdata;
 unsigned char		*pkt_end, *pkt_ptr;
 struct ether_header	*pkt_ether;
 struct ip6_hdr		*pkt_ipv6;
-struct tcphdr		*pkt_tcp;
-struct udphdr		*pkt_udp;
+struct tcp_hdr		*pkt_tcp;
+struct udp_hdr		*pkt_udp;
 struct icmp6_hdr	*pkt_icmp6;
 struct nd_neighbor_solicit *pkt_ns;
 struct in6_addr		*pkt_ipv6addr;
@@ -542,10 +536,10 @@ int main(int argc, char **argv){
 				/* Perform TCP-specific validation checks */
 				if(protocol == IPPROTO_TCP){
 					if( (pkt_end - (unsigned char *) pkt_ipv6) < \
-							(sizeof(struct ip6_hdr) + sizeof(struct tcphdr)))
+							(sizeof(struct ip6_hdr) + sizeof(struct tcp_hdr)))
 						continue;
 
-					pkt_tcp= (struct tcphdr *) ((unsigned char *)pkt_ipv6 + sizeof(struct ip6_hdr));
+					pkt_tcp= (struct tcp_hdr *) ((unsigned char *)pkt_ipv6 + sizeof(struct ip6_hdr));
 
 					/*
 					 * The TCP Destination Port must correspond to one of the ports that we have used as
@@ -573,10 +567,10 @@ int main(int argc, char **argv){
 				/* Perform UDP-specific validation checks */
 				else if(protocol == IPPROTO_UDP){
 					if( (pkt_end - (unsigned char *) pkt_ipv6) < \
-							(sizeof(struct ip6_hdr) + sizeof(struct udphdr)))
+							(sizeof(struct ip6_hdr) + sizeof(struct udp_hdr)))
 						continue;
 
-					pkt_udp= (struct udphdr *) ((unsigned char *)pkt_ipv6 + sizeof(struct ip6_hdr));
+					pkt_udp= (struct udp_hdr *) ((unsigned char *)pkt_ipv6 + sizeof(struct ip6_hdr));
 
 					/*
 					 * The UDP Destination Port must correspond to one of the ports that we have used as
@@ -661,8 +655,8 @@ int send_fid_probe(void){
 	struct ether_header	*ethernet;
 	struct dlt_null		*dlt_null;
 	struct ip6_hdr		*ipv6;
-	struct tcphdr		*tcp;
-	struct udphdr		*udp;
+	struct tcp_hdr		*tcp;
+	struct udp_hdr		*udp;
 	unsigned char		*ptr;
 
 	ethernet= (struct ether_header *) buffer;
@@ -673,7 +667,7 @@ int send_fid_probe(void){
 	if(idata.type == DLT_EN10MB && idata.flags != IFACE_LOOPBACK){
 		ethernet->src = idata.hsrcaddr;
 		ethernet->dst = idata.hdstaddr;
-		ethernet->ether_type = htons(0x86dd);
+		ethernet->ether_type = htons(ETHERTYPE_IPV6);
 	}
 	else if(idata.type == DLT_NULL){
 		dlt_null->family= PF_INET6;
@@ -687,9 +681,9 @@ int send_fid_probe(void){
 	ipv6->ip6_nxt= protocol;
 
 	if(protocol == IPPROTO_TCP){
-		tcp= (struct tcphdr *) ( (unsigned char *) ipv6 + sizeof(struct ip6_hdr));
-		ptr= (unsigned char *) tcp + sizeof(struct tcphdr);
-		bzero(tcp, sizeof(struct tcphdr));
+		tcp= (struct tcp_hdr *) ( (unsigned char *) ipv6 + sizeof(struct ip6_hdr));
+		ptr= (unsigned char *) tcp + sizeof(struct tcp_hdr);
+		bzero(tcp, sizeof(struct tcp_hdr));
 		tcp->th_sport= htons(lastport);
 		tcp->th_dport= htons(dstport);
 		tcp->th_seq = htonl(tcpseq);
@@ -697,14 +691,14 @@ int send_fid_probe(void){
 		tcp->th_flags= TH_SYN;;
 		tcp->th_urp= htons(0);
 		tcp->th_win= htons(tcpwin);
-		tcp->th_off= sizeof(struct tcphdr) >> 2;
+		tcp->th_off= sizeof(struct tcp_hdr) >> 2;
 		ipv6->ip6_plen= htons(ptr - (unsigned char *) tcp);
 		tcp->th_sum = in_chksum(ipv6, tcp, (ptr - (unsigned char *) tcp), IPPROTO_TCP);
 	}
 	else{
-		udp= (struct udphdr *) ( (unsigned char *) ipv6 + sizeof(struct ip6_hdr));
-		ptr= (unsigned char *) udp + sizeof(struct udphdr);
-		bzero(udp, sizeof(struct udphdr));
+		udp= (struct udp_hdr *) ( (unsigned char *) ipv6 + sizeof(struct ip6_hdr));
+		ptr= (unsigned char *) udp + sizeof(struct udp_hdr);
+		bzero(udp, sizeof(struct udp_hdr));
 		udp->uh_sport= htons(lastport);
 		udp->uh_dport= htons(dstport);
 		ipv6->ip6_plen= htons(ptr - (unsigned char *) udp);

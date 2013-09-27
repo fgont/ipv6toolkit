@@ -326,7 +326,7 @@ int find_ipv6_router_full(pcap_t *pfd, struct iface_data *idata){
 		return(-1);
 	}
 
-	ether->ether_type = htons(0x86dd);
+	ether->ether_type = htons(ETHERTYPE_IPV6);
 
 	prev_nh = (unsigned char *) &(ipv6->ip6_nxt);
 	*prev_nh = IPPROTO_ICMPV6;
@@ -839,7 +839,7 @@ int ipv6_to_ether(pcap_t *pfd, struct iface_data *idata, struct in6_addr *target
 
 	ether->src = idata->ether;
 	ether->dst = ether_multicast(&(ipv6->ip6_dst));
-	ether->ether_type = htons(0x86dd);
+	ether->ether_type = htons(ETHERTYPE_IPV6);
 
 	prev_nh = (unsigned char *) &(ipv6->ip6_nxt);
 	*prev_nh = IPPROTO_ICMPV6;
@@ -1671,7 +1671,7 @@ int send_neighbor_advert(struct iface_data *idata, pcap_t *pfd,  const u_char *p
 	pkt_ipv6 = (struct ip6_hdr *)((char *) pkt_ether + ETHER_HDR_LEN);
 	pkt_ns = (struct nd_neighbor_solicit *) ((char *) pkt_ipv6 + MIN_IPV6_HLEN);
 
-	ethernet->ether_type = htons(0x86dd);
+	ethernet->ether_type = htons(ETHERTYPE_IPV6);
 	ipv6->ip6_flow=0;
 	ipv6->ip6_vfc= 0x60;
 	ipv6->ip6_hlim= 255;
@@ -2181,7 +2181,7 @@ int send_neighbor_solicit(struct iface_data *idata, struct in6_addr *target){
 
 	ether->src = idata->ether;
 	ether->dst = ether_multicast(&(ipv6->ip6_dst));
-	ether->ether_type = htons(0x86dd);
+	ether->ether_type = htons(ETHERTYPE_IPV6);
 
 	ipv6->ip6_flow=0;
 	ipv6->ip6_vfc= 0x60;
@@ -3429,7 +3429,7 @@ int find_ipv6_router(pcap_t *pfd, struct ether_addr *hsrcaddr, struct in6_addr *
 	    return(-1);
 	}
 
-	ether->ether_type = htons(0x86dd);
+	ether->ether_type = htons(ETHERTYPE_IPV6);
 
 	prev_nh = (unsigned char *) &(ipv6->ip6_nxt);
 	*prev_nh = IPPROTO_ICMPV6;

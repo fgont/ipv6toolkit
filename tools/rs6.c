@@ -22,10 +22,7 @@
  * 
  * Build with: make rs6
  *
- * This program has been tested to compile and run on: Debian GNU/Linux 6.0,
- * FreeBSD 8.2, NetBSD 5.1, OpenBSD 5.0, and Ubuntu 11.10.
- *
- * It requires that the libpcap library be installed on your system.
+ * The libpcap library must be previously installed on your system.
  *
  * Please send any bug reports to Fernando Gont <fgont@si6networks.com>
  */

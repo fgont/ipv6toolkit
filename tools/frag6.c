@@ -175,10 +175,6 @@ char				block8[8]={'a', 'a', 'd', 'd', 'c', 'c', 'b', 'b'};
 u_int16_t			addr_sig, addr_key;
 u_int32_t			icmp6_sig;
 
-/* IPv6 Address Resolution */
-sigjmp_buf			env;
-unsigned int		canjump;
-
 int main(int argc, char **argv){
 	extern char		*optarg;	
 	char			*endptr; /* Used by strtoul() */
@@ -609,12 +605,12 @@ int main(int argc, char **argv){
 		   Set filter for receiving Neighbor Solicitations, ICMPv6 Echo Responses, and ICMPv6 Time Exceeded
 		 */
 		if(pcap_compile(idata.pfd, &pcap_filter, PCAP_ICMPV6_NSECHOEXCEEDED_FILTER, PCAP_OPT, PCAP_NETMASK_UNKNOWN) == -1){
-			printf("pcap_compile(): %s", pcap_geterr(idata.pfd));
+			printf("pcap_compile(): %s\n", pcap_geterr(idata.pfd));
 			exit(EXIT_FAILURE);
 		}
 		
 		if(pcap_setfilter(idata.pfd, &pcap_filter) == -1){
-			printf("pcap_setfilter(): %s", pcap_geterr(idata.pfd));
+			printf("pcap_setfilter(): %s\n", pcap_geterr(idata.pfd));
 			exit(EXIT_FAILURE);
 		}
 
@@ -894,12 +890,12 @@ int main(int argc, char **argv){
 		   Set filter for receiving Neighbor Solicitations, and fragmented ICMPv6 Echo Responses
 		 */
 		if(pcap_compile(idata.pfd, &pcap_filter, PCAP_ICMPV6NSFRAG_FILTER, PCAP_OPT, PCAP_NETMASK_UNKNOWN) == -1){
-			printf("pcap_compile(): %s", pcap_geterr(idata.pfd));
+			printf("pcap_compile(): %s\n", pcap_geterr(idata.pfd));
 			exit(EXIT_FAILURE);
 		}
 		
 		if(pcap_setfilter(idata.pfd, &pcap_filter) == -1){
-			printf("pcap_setfilter(): %s", pcap_geterr(idata.pfd));
+			printf("pcap_setfilter(): %s\n", pcap_geterr(idata.pfd));
 			exit(EXIT_FAILURE);
 		}
 
@@ -1150,12 +1146,12 @@ int main(int argc, char **argv){
 		   Set filter for receiving Neighbor Solicitations, ICMPv6 Echo Responses, and ICMPv6 Time Exceeded
 		 */
 		if(pcap_compile(idata.pfd, &pcap_filter, PCAP_ICMPV6_NSECHOEXCEEDED_FILTER, PCAP_OPT, PCAP_NETMASK_UNKNOWN) == -1){
-			printf("pcap_compile(): %s", pcap_geterr(idata.pfd));
+			printf("pcap_compile(): %s\n", pcap_geterr(idata.pfd));
 			exit(EXIT_FAILURE);
 		}
 		
 		if(pcap_setfilter(idata.pfd, &pcap_filter) == -1){
-			printf("pcap_setfilter(): %s", pcap_geterr(idata.pfd));
+			printf("pcap_setfilter(): %s\n", pcap_geterr(idata.pfd));
 			exit(EXIT_FAILURE);
 		}
 
@@ -1210,12 +1206,12 @@ int main(int argc, char **argv){
 		   Set filter for receiving Neighbor Solicitations, ICMPv6 Echo Responses, and ICMPv6 Time Exceeded
 		 */
 		if(pcap_compile(idata.pfd, &pcap_filter, PCAP_ICMPV6_NSECHOEXCEEDED_FILTER, PCAP_OPT, PCAP_NETMASK_UNKNOWN) == -1){
-			printf("pcap_compile(): %s", pcap_geterr(idata.pfd));
+			printf("pcap_compile(): %s\n", pcap_geterr(idata.pfd));
 			exit(EXIT_FAILURE);
 		}
 		
 		if(pcap_setfilter(idata.pfd, &pcap_filter) == -1){
-			printf("pcap_setfilter(): %s", pcap_geterr(idata.pfd));
+			printf("pcap_setfilter(): %s\n", pcap_geterr(idata.pfd));
 			exit(EXIT_FAILURE);
 		}
 

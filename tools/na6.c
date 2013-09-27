@@ -20,12 +20,9 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  * 
- * Build with: gcc na6.c -Wall -lpcap -o na6
+ * Build with: make na6
  * 
- * This program has been tested to compile and run on: Debian GNU/Linux 6.0,
- * FreeBSD 8.2, NetBSD 5.1, OpenBSD 5.0, and Ubuntu 11.10.
- *
- * It requires that the libpcap library be installed on your system.
+ * The libpcap library must be previsously installed on your system.
  *
  * Please send any bug reports to Fernando Gont <fgont@si6networks.com>
  */
@@ -77,8 +74,7 @@ char 				dev[64], errbuf[PCAP_ERRBUF_SIZE];
 char 				all_nodes_addr[]= ALL_NODES_MULTICAST_ADDR;
 char 				buffer[65556];
 char 				*v6buffer, *ptr, *pref, *startofprefixes;
-char 				iface[IFACE_LENGTH];
-    
+   
 struct ip6_hdr		*ipv6, *pkt_ipv6;
 struct nd_neighbor_advert	*na;
 
@@ -99,15 +95,14 @@ unsigned long		ul_res, ul_val;
 unsigned int		i, j, startrand;
 unsigned int		skip;
 unsigned int		ntargets, sources, nsources, targets, nsleep;
-unsigned char		srcpreflen, targetpreflen;
+unsigned char		targetpreflen;
 
 u_int16_t			mask;
 u_int8_t			hoplimit;
 
 char				plinkaddr[ETHER_ADDR_PLEN];
 char 				psrcaddr[INET6_ADDRSTRLEN], pdstaddr[INET6_ADDRSTRLEN], pv6addr[INET6_ADDRSTRLEN];
-unsigned char 		verbose_f=0, iface_f=0, acceptfilters_f=0, floodt_f=0;
-unsigned char 		srcaddr_f=0, dstaddr_f=0, hsrcaddr_f=0, hdstaddr_f=0, targetaddr_f=0;
+unsigned char 		floodt_f=0, targetaddr_f=0;
 unsigned char 		listen_f = 0, multicastdst_f=0, accepted_f=0, loop_f=0, sleep_f=0;
 unsigned char		tllaopt_f=0, tllaopta_f=0, targetprefix_f=0, srcprefix_f=0, hoplimit_f=0;
 unsigned char		newdata_f=0, floods_f=0;
@@ -131,32 +126,10 @@ unsigned int		nfrags, fragsize, max_packet_size;
 char				*prev_nh, *startoffragment;
 
 
-/* Block Filters */
-struct in6_addr 	blocksrc[MAX_BLOCK_SRC], blockdst[MAX_BLOCK_DST];
-struct in6_addr		blocktarget[MAX_BLOCK_TARGET];
-u_int8_t			blocksrclen[MAX_BLOCK_SRC], blockdstlen[MAX_BLOCK_DST];
-u_int8_t			blocktargetlen[MAX_BLOCK_TARGET];
-struct ether_addr	blocklinksrc[MAX_BLOCK_LINK_SRC], blocklinkdst[MAX_BLOCK_LINK_DST];
-unsigned int		nblocksrc=0, nblockdst=0, nblocktarget=0;
-unsigned int		nblocklinksrc=0, nblocklinkdst=0;
-
-/* Accept Filters */
-struct in6_addr		acceptsrc[MAX_ACCEPT_SRC], acceptdst[MAX_ACCEPT_DST];
-struct in6_addr		accepttarget[MAX_ACCEPT_TARGET];
-u_int8_t			acceptsrclen[MAX_ACCEPT_SRC], acceptdstlen[MAX_ACCEPT_DST];
-u_int8_t			accepttargetlen[MAX_ACCEPT_TARGET];
-struct ether_addr	acceptlinksrc[MAX_ACCEPT_LINK_SRC], acceptlinkdst[MAX_ACCEPT_LINK_DST];
-unsigned int		nacceptsrc=0, nacceptdst=0, naccepttarget=0;
-unsigned int		nacceptlinksrc=0, nacceptlinkdst=0;
-
-
 int main(int argc, char **argv){
 	extern char		*optarg;
-	uid_t			ruid;
-	gid_t			rgid;
 	int				r, sel, fd;
 	fd_set			sset, rset;
-	struct passwd	*pwdptr;
 
 	static struct option longopts[] = {
 		{"interface", required_argument, 0, 'i'},
@@ -1151,7 +1124,7 @@ void init_packet_data(void){
 
 	ethernet->src = hsrcaddr;
 	ethernet->dst = hdstaddr;
-	ethernet->ether_type = htons(0x86dd);
+	ethernet->ether_type = htons(ETHERTYPE_IPV6);
 
 	ipv6->ip6_flow=0;
 	ipv6->ip6_vfc= 0x60;

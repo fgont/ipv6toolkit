@@ -18,7 +18,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * 
  * Build with: make scan6
  *
  * It requires that the libpcap library be installed on your system.
@@ -3027,7 +3026,7 @@ int send_probe_remote(struct iface_data *idata, struct scan_list *scan, struct i
 			}
 		}
 
-		ether->ether_type = htons(0x86dd);
+		ether->ether_type = htons(ETHERTYPE_IPV6);
 	}
 	else if(idata->type == DLT_NULL){
 		dlt_null->family= PF_INET6;
@@ -3288,7 +3287,7 @@ int multi_scan_local(pcap_t *pfd, struct iface_data *idata, struct in6_addr *src
 
 	ether->src = idata->ether;
 	ether->dst = ether_multicast(&(ipv6->ip6_dst));
-	ether->ether_type = htons(0x86dd);
+	ether->ether_type = htons(ETHERTYPE_IPV6);
 
 	prev_nh = (unsigned char *) &(ipv6->ip6_nxt);
 
@@ -3605,7 +3604,7 @@ int host_scan_local(pcap_t *pfd, struct iface_data *idata, struct in6_addr *srca
 
 	ether->src = idata->ether;
 	ether->dst = host->ether;
-	ether->ether_type = htons(0x86dd);
+	ether->ether_type = htons(ETHERTYPE_IPV6);
 
 	prev_nh = (unsigned char *) &(ipv6->ip6_nxt);
 

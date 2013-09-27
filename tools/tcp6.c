@@ -18,13 +18,9 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
- *
  * 
  * Build with: make tcp6
  * 
- * This program has been tested to compile and run on: Debian GNU/Linux 6.0,
- * FreeBSD 8.2, NetBSD 5.1, OpenBSD 5.0, and Ubuntu 11.10.
- *
  * It requires that the libpcap library be installed on your system.
  *
  * Please send any bug reports to Fernando Gont <fgont@si6networks.com>
@@ -59,7 +55,6 @@
 #include "ipv6toolkit.h"
 #include "tcp6.h"
 #include "libipv6.h"
-#include <netinet/tcp.h>
 
 
 /* Function prototypes */
@@ -74,7 +69,7 @@ void				frag_and_send(struct iface_data *);
 /* Flags */
 unsigned char 		floodt_f=0;
 unsigned char 		listen_f=0, accepted_f=0, loop_f=0, sleep_f=0;
-unsigned char		srcprefix_f=0, hoplimit_f=0, rand_link_src_f=0, rand_src_f=0;
+unsigned char		hoplimit_f=0, rand_link_src_f=0, rand_src_f=0;
 unsigned char		floods_f=0, floodp_f=0, donesending_f=0, startclose_f=0;
 unsigned char		data_f=0, senddata_f=0, useaddrkey_f=0, window_f=0, winmodulate_f=0;
 
@@ -87,7 +82,7 @@ unsigned int		ackdata_f=1, ackflags_f=1, window=0, time1_len=0, time2_len=0;
 u_int16_t			srcport, dstport, tcpurg, tcpwin, tcpwinm;
 u_int32_t			tcpseq, tcpack;
 u_int8_t			tcpflags=0;
-struct tcphdr		*rhtcp;
+struct tcp_hdr		*rhtcp;
 unsigned int		rhbytes, currentsize, packetsize;
 
 
@@ -101,7 +96,7 @@ unsigned char			*pkt_end;
 struct ether_header		*pkt_ether;
 struct nd_neighbor_solicit	*pkt_ns;
 struct ip6_hdr			*pkt_ipv6;
-struct tcphdr			*pkt_tcp;
+struct tcp_hdr			*pkt_tcp;
 struct in6_addr			*pkt_ipv6addr;
 unsigned int			pktbytes;
 
@@ -119,7 +114,7 @@ char 				iface[IFACE_LENGTH];
 char				line[LINE_BUFFER_SIZE];
     
 struct ip6_hdr		*ipv6;
-struct tcphdr		*tcp;
+struct tcp_hdr		*tcp;
 
 struct ether_header	*ethernet;
 struct nd_opt_tlla	*tllaopt;
@@ -136,7 +131,7 @@ unsigned long		ul_res, ul_val, rate;
 unsigned int		i, j, startrand;
 unsigned int		skip;
 unsigned int		sources, nsources, ports, nports, nsleep;
-unsigned char		srcpreflen, randpreflen;
+unsigned char		randpreflen;
 
 u_int16_t			mask;
 u_int8_t			hoplimit;
@@ -274,18 +269,18 @@ int main(int argc, char **argv){
 				idata.srcaddr_f = 1;
 		
 				if((charptr = strtok_r(NULL, " ", &lasts)) != NULL){
-					srcpreflen = atoi(charptr);
+					idata.srcpreflen = atoi(charptr);
 		
-					if(srcpreflen>128){
+					if(idata.srcpreflen>128){
 						puts("Prefix length error in IPv6 Source Address");
 						exit(EXIT_FAILURE);
 					}
 
-					if(srcpreflen == 64)
+					if(idata.srcpreflen == 64)
 						useaddrkey_f= 1;
 
-					sanitize_ipv6_prefix(&(idata.srcaddr), srcpreflen);
-					srcprefix_f=1;
+					sanitize_ipv6_prefix(&(idata.srcaddr), idata.srcpreflen);
+					idata.srcprefix_f=1;
 				}
 
 				break;
@@ -957,11 +952,11 @@ int main(int argc, char **argv){
 	  If the flood option ("-F") has been specified, but no prefix has been specified,
 	  assume a /64 prefix.
 	*/
-	if(floods_f && !srcprefix_f){
-		srcpreflen=64;
+	if(floods_f && !idata.srcprefix_f){
+		idata.srcpreflen=64;
 	}
 
-	if(srcprefix_f && !floods_f && loop_f){
+	if(idata.srcprefix_f && !floods_f && loop_f){
 		floods_f=1;
 		nsources= 1;
 	}
@@ -1032,7 +1027,7 @@ int main(int argc, char **argv){
 	}
 
 	if(bps_f){
-		packetsize= MIN_IPV6_HLEN +  sizeof(struct tcphdr) + rhbytes;
+		packetsize= MIN_IPV6_HLEN +  sizeof(struct tcp_hdr) + rhbytes;
 
 		for(i=0; i < ndstopthdr; i++)
 			packetsize+= dstopthdrlen[i];
@@ -1239,7 +1234,7 @@ int main(int argc, char **argv){
 
 				pkt_ether = (struct ether_header *) pktdata;
 				pkt_ipv6 = (struct ip6_hdr *)((char *) pkt_ether + idata.linkhsize);
-				pkt_tcp= (struct tcphdr *) ( (char *) pkt_ipv6 + MIN_IPV6_HLEN);
+				pkt_tcp= (struct tcp_hdr *) ( (char *) pkt_ipv6 + MIN_IPV6_HLEN);
 				pkt_ns= (struct nd_neighbor_solicit *) ( (char *) pkt_ipv6 + MIN_IPV6_HLEN);
 				pkt_end = (unsigned char *) pktdata + pkthdr->caplen;
 
@@ -1321,7 +1316,7 @@ int main(int argc, char **argv){
 
 				if(pkt_ipv6->ip6_nxt == IPPROTO_TCP){
 					/* Check that we are able to look into the TCP header */
-					if( (pkt_end -  pktdata) < (idata.linkhsize + MIN_IPV6_HLEN + sizeof(struct tcphdr))){
+					if( (pkt_end -  pktdata) < (idata.linkhsize + MIN_IPV6_HLEN + sizeof(struct tcp_hdr))){
 						continue;
 					}
 
@@ -1384,7 +1379,7 @@ int main(int argc, char **argv){
 							}
 
 							/* Check that the target address belongs to the prefix from which we are sending packets */
-							if(!match_ipv6(&(idata.srcaddr), &srcpreflen, 1, &(pkt_ns->nd_ns_target))){
+							if(!match_ipv6(&(idata.srcaddr), &idata.srcpreflen, 1, &(pkt_ns->nd_ns_target))){
 								continue;
 							}
 						}
@@ -1434,7 +1429,7 @@ void init_packet_data(struct iface_data *idata){
 	if(idata->flags != IFACE_TUNNEL && idata->flags != IFACE_LOOPBACK){
 		ethernet->src = idata->hsrcaddr;
 		ethernet->dst = idata->hdstaddr;
-		ethernet->ether_type = htons(0x86dd);
+		ethernet->ether_type = htons(ETHERTYPE_IPV6);
 	}
 
 	ipv6->ip6_flow=0;
@@ -1542,8 +1537,8 @@ void send_packet(struct iface_data *idata, const u_char *pktdata){
 	if(pktdata != NULL){   /* Sending a TCP segment in response to a received packet */
 		pkt_ether = (struct ether_header *) pktdata;
 		pkt_ipv6 = (struct ip6_hdr *)((char *) pkt_ether + idata->linkhsize);
-		pkt_tcp= (struct tcphdr *)( (char *) pkt_ipv6 + sizeof(struct ip6_hdr));
-		pkt_end = (unsigned char *) pktdata + pkthdr->len;
+		pkt_tcp= (struct tcp_hdr *)( (char *) pkt_ipv6 + sizeof(struct ip6_hdr));
+		pkt_end = (unsigned char *) pktdata + pkthdr->caplen;
 
 		/* The packet length is the minimum of what we capured, and what is specified in the
 		   IPv6 Total Lenght field
@@ -1585,7 +1580,7 @@ void send_packet(struct iface_data *idata, const u_char *pktdata){
 		}
 
 
-		if( (ptr+sizeof(struct tcphdr)) > (v6buffer+ idata->max_packet_size)){
+		if( (ptr+sizeof(struct tcp_hdr)) > (v6buffer+ idata->max_packet_size)){
 			puts("Packet Too Large while inserting TCP header");
 			exit(EXIT_FAILURE);
 		}
@@ -1594,8 +1589,8 @@ void send_packet(struct iface_data *idata, const u_char *pktdata){
 		if((tcpflags_auto_f || tcpopen_f || tcpclose_f) && pkt_tcp->th_flags & TH_RST)
 			return;
 
-		tcp = (struct tcphdr *) ptr;
-		bzero(tcp, sizeof(struct tcphdr));
+		tcp = (struct tcp_hdr *) ptr;
+		bzero(tcp, sizeof(struct tcp_hdr));
 
 		tcp->th_sport= pkt_tcp->th_dport;
 		tcp->th_dport= pkt_tcp->th_sport;
@@ -1832,7 +1827,7 @@ void send_packet(struct iface_data *idata, const u_char *pktdata){
 		tcp->th_urp= htons(tcpurg);
 
 		/* Current version of tcp6 does not support sending TCP options */
-		tcp->th_off= sizeof(struct tcphdr) >> 2;
+		tcp->th_off= sizeof(struct tcp_hdr) >> 2;
 		ptr+= tcp->th_off << 2;
 
 		if(rhbytes){
@@ -1861,7 +1856,7 @@ void send_packet(struct iface_data *idata, const u_char *pktdata){
 
 		if(senddata_f){
 			tcp->th_seq= htonl( ntohl(tcp->th_seq) + ptr-((unsigned char *)tcp + (tcp->th_off << 2)));
-			ptr= (unsigned char *)tcp + sizeof(struct tcphdr);
+			ptr= (unsigned char *)tcp + sizeof(struct tcp_hdr);
 
 			if((ptr+ datalen) > (v6buffer + idata->max_packet_size)){
 				if(idata->verbose_f)
@@ -1889,7 +1884,7 @@ void send_packet(struct iface_data *idata, const u_char *pktdata){
 
 		if(startclose_f){
 			tcp->th_seq= htonl( ntohl(tcp->th_seq) + ptr-((unsigned char *)tcp + (tcp->th_off << 2)));
-			ptr= (unsigned char *) tcp + sizeof(struct tcphdr);
+			ptr= (unsigned char *) tcp + sizeof(struct tcp_hdr);
 
 			if(tcpclose == CLOSE_ABORT){
 				tcp->th_flags= TH_ACK | TH_RST;
@@ -1921,13 +1916,13 @@ void send_packet(struct iface_data *idata, const u_char *pktdata){
 			}
 		}
 
-		if( (ptr+sizeof(struct tcphdr)) > (v6buffer + idata->max_packet_size)){
+		if( (ptr+sizeof(struct tcp_hdr)) > (v6buffer + idata->max_packet_size)){
 			puts("Packet Too Large while inserting TCP header");
 			exit(EXIT_FAILURE);
 		}
 
-		tcp= (struct tcphdr *) ptr;
-		bzero(ptr, sizeof(struct tcphdr));
+		tcp= (struct tcp_hdr *) ptr;
+		bzero(ptr, sizeof(struct tcp_hdr));
 		tcp->th_sport= htons(srcport);
 		tcp->th_dport= htons(dstport);
 		tcp->th_seq = htonl(tcpseq);
@@ -1946,7 +1941,7 @@ void send_packet(struct iface_data *idata, const u_char *pktdata){
 
 		tcp->th_urp= htons(tcpurg);
 		tcp->th_win= htons(tcpwin);
-		tcp->th_off= sizeof(struct tcphdr) >> 2;
+		tcp->th_off= sizeof(struct tcp_hdr) >> 2;
 
 		ptr += tcp->th_off << 2;
 
@@ -1974,7 +1969,7 @@ void send_packet(struct iface_data *idata, const u_char *pktdata){
 			   "srcaddr" and srcpreflen.
 			 */  
 
-			randomize_ipv6_addr( &(ipv6->ip6_src), &(idata->srcaddr), srcpreflen);
+			randomize_ipv6_addr( &(ipv6->ip6_src), &(idata->srcaddr), idata->srcpreflen);
 
 			/*
 			   If we need to respond to incomming packets, we set the Interface ID such that we can
@@ -2224,8 +2219,8 @@ void print_attack_info(struct iface_data *idata){
 		}
 	}
 	else{
-		printf("IPv6 Source Address: randomized, from the %s/%u prefix%s\n", psrcaddr, srcpreflen, \
-    									(!srcprefix_f)?" (default)":"");
+		printf("IPv6 Source Address: randomized, from the %s/%u prefix%s\n", psrcaddr, idata->srcpreflen, \
+    									(!idata->srcprefix_f)?" (default)":"");
 	}
 
 	if(idata->dstaddr_f){
@@ -2339,4 +2334,5 @@ void print_attack_info(struct iface_data *idata){
 
 	}
 }
+
 
