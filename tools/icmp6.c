@@ -1003,7 +1003,7 @@ int main(int argc, char **argv){
 		exit(EXIT_FAILURE);
 	}
 
-	if(load_dst_and_pcap(&idata) == FAILURE){
+	if(load_dst_and_pcap(&idata, LOAD_SRC_NXT_HOP) == FAILURE){
 		puts("Error while learning Souce Address and Next Hop");
 		exit(EXIT_FAILURE);
 	}

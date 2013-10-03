@@ -109,6 +109,7 @@ struct filters{
 #define PCAP_UDPV6_FILTER		"ip6 and udp"
 #define PCAP_ICMPV6_FILTER		"icmp6"
 #define PCAP_ICMPV6_NA_FILTER	"icmp6 and ip6[7]==255 and ip6[40]==136 and ip6[41]==0"
+#define PCAP_ICMPV6_NS_FILTER  "icmp6 and ((ip6[7]==255 and ip6[40]==135 and ip6[41]==0) or ip6[40]==4)"
 #define PCAP_ICMPV6_RA_FILTER "icmp6 and ip6[7]==255 and ip6[40]==134 and ip6[41]==0"
 #define PCAP_ICMPV6_RANS_FILTER	"icmp6 and ip6[7]==255 and ((ip6[40]==134 and ip6[41]==0) or (ip6[40]==135 and ip6[41]==0))"
 #define PCAP_TCPIPV6_NS_FILTER	"ip6 and (tcp or (icmp6 and ip6[7]==255 and ip6[40]==135 and ip6[41]==0))"
@@ -554,6 +555,12 @@ struct next_hop{
 	unsigned char	ifindex_f;
 };
 
+
+/* Flags that specify what the load_dst_and_pcap() function should do */
+#define LOAD_PCAP_ONLY		0x01
+#define	LOAD_SRC_NXT_HOP	0x02
+
+
 #ifndef SA_SIZE
 #define SA_SIZE(sa)                                            \
         (  (!(sa) || ((struct sockaddr *)(sa))->sa_len == 0) ?  \
@@ -596,7 +603,7 @@ int					is_ip6_in_prefix_list(struct in6_addr *, struct prefix_list *);
 int					is_eq_in6_addr(struct in6_addr *, struct in6_addr *);
 int					is_time_elapsed(struct timeval *, struct timeval *, unsigned long);
 int					keyval(char *, unsigned int, char **, char **);
-int					load_dst_and_pcap(struct iface_data *);
+int					load_dst_and_pcap(struct iface_data *, unsigned int);
 unsigned int		match_ether(struct ether_addr *, unsigned int, struct ether_addr *);
 unsigned int		match_ipv6(struct in6_addr *, u_int8_t *, unsigned int, struct in6_addr *);
 int 				match_ipv6_to_prefixes(struct in6_addr *, struct prefix_list *);

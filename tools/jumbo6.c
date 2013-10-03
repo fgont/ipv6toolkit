@@ -61,13 +61,11 @@
 
 
 /* Function prototypes */
-void				init_packet_data(void);
+void				init_packet_data(struct iface_data *);
 int					send_packet(struct iface_data *, struct pcap_pkthdr *, const u_char *);
-void 				print_icmp6_echo(struct pcap_pkthdr *, const u_char *);
-void 				print_icmp6_error(struct pcap_pkthdr *, const u_char *);
-void				print_attack_info(void);
-void				print_filters(void);
-void				print_filter_result(const u_char *, unsigned char);
+void 				print_icmp6_echo(struct iface_data *, struct pcap_pkthdr *, const u_char *);
+void 				print_icmp6_error(struct iface_data *, struct pcap_pkthdr *, const u_char *);
+void				print_attack_info(struct iface_data *);
 void				usage(void);
 void				print_help(void);
 int 				valid_icmp6_response(struct iface_data *, struct pcap_pkthdr *, const u_char *);
@@ -89,7 +87,6 @@ struct nd_neighbor_solicit *pkt_ns;
 struct in6_addr		*pkt_ipv6addr;
 unsigned int		pktbytes;
 
-
 bpf_u_int32			my_netmask;
 bpf_u_int32			my_ip;
 struct bpf_program	pcap_filter;
@@ -97,13 +94,11 @@ char 				dev[64], errbuf[PCAP_ERRBUF_SIZE];
 unsigned char		buffer[65556], buffrh[MIN_IPV6_HLEN + MIN_TCP_HLEN];
 unsigned char		*v6buffer, *ptr, *startofprefixes;
 char				*pref;
-char 				iface[IFACE_LENGTH];
     
 struct ip6_hdr		*ipv6;
 struct icmp6_hdr	*icmp6;
 
 struct ether_header	*ethernet;
-struct ether_addr	hsrcaddr, hdstaddr;
 struct nd_opt_tlla	*tllaopt;
 
 struct in6_addr		targetaddr;
@@ -147,6 +142,8 @@ unsigned int		hdrlen, ndstopthdr=0, nhbhopthdr=0, ndstoptuhdr=0;
 unsigned int		nfrags, fragsize, max_packet_size, linkhsize;
 unsigned char		*prev_nh, *startoffragment;
 
+struct iface_data	idata;
+
 int main(int argc, char **argv){
 	extern char		*optarg;	
 	char			*endptr; /* Used by strtoul() */
@@ -169,14 +166,6 @@ int main(int argc, char **argv){
 		{"ipv6-length", required_argument, 0, 'q'},
 		{"jumbo-length", required_argument, 0, 'Q'},
 		{"payload-size", required_argument, 0, 'P'},
-		{"block-src-addr", required_argument, 0, 'j'},
-		{"block-dst-addr", required_argument, 0, 'k'},
-		{"block-link-src-addr", required_argument, 0, 'J'},
-		{"block-link-dst-addr", required_argument, 0, 'K'},
-		{"accept-src-addr", required_argument, 0, 'b'},
-		{"accept-dst-addr", required_argument, 0, 'g'},
-		{"accept-link-src-addr", required_argument, 0, 'B'},
-		{"accept-link-dst-addr", required_argument, 0, 'G'},
 		{"loop", no_argument, 0, 'l'},
 		{"sleep", required_argument, 0, 'z'},
 		{"listen", no_argument, 0, 'L'},
@@ -184,7 +173,7 @@ int main(int argc, char **argv){
 		{"help", no_argument, 0, 'h'}
 	};
 
-	char shortopts[]= "i:s:d:A:u:U:H:y:S:D:q:Q:P:j:k:J:K:b:g:B:G:lz:Lvh";
+	char shortopts[]= "i:s:d:A:u:U:H:y:S:D:q:Q:P:lz:Lvh";
 
 	char option;
 
@@ -232,9 +221,6 @@ int main(int argc, char **argv){
 						puts("Prefix length error in IPv6 Source Address");
 						exit(EXIT_FAILURE);
 					}
-
-					if(idata.srcpreflen == 64)
-						useaddrkey_f= 1;
 
 					sanitize_ipv6_prefix(&(idata.srcaddr), idata.srcpreflen);
 					idata.srcprefix_f=1;
@@ -401,21 +387,21 @@ int main(int argc, char **argv){
 				break;
 
 			case 'S':	/* Source Ethernet address */
-				if(ether_pton(optarg, &hsrcaddr, sizeof(hsrcaddr)) == 0){
+				if(ether_pton(optarg, &(idata.hsrcaddr), sizeof(idata.hsrcaddr)) == 0){
 					puts("Error in Source link-layer address.");
 					exit(EXIT_FAILURE);
 				}
 		
-				hsrcaddr_f = 1;
+				idata.hsrcaddr_f = 1;
 				break;
 
 			case 'D':	/* Destination Ethernet Address */
-				if(ether_pton(optarg, &hdstaddr, sizeof(hdstaddr)) == 0){
+				if(ether_pton(optarg, &(idata.hdstaddr), sizeof(idata.hdstaddr)) == 0){
 					puts("Error in Source link-layer address.");
 					exit(EXIT_FAILURE);
 				}
 		
-				hdstaddr_f = 1;
+				idata.hdstaddr_f = 1;
 				break;
 
 			case 'P':	/* Payload Size*/
@@ -449,211 +435,6 @@ int main(int argc, char **argv){
 
 				break;
 
-			case 'j':	/* IPv6 Source Address (block) filter */
-				if(nblocksrc >= MAX_BLOCK_SRC){
-					puts("Too many IPv6 Source Address (block) filters.");
-					exit(EXIT_FAILURE);
-				}
-	    
-				if((pref = strtok_r(optarg, "/", &lasts)) == NULL){
-					printf("Error in IPv6 Source Address (block) filter number %u.\n", \
-												nblocksrc+1);
-					exit(EXIT_FAILURE);
-				}
-
-				if ( inet_pton(AF_INET6, pref, &blocksrc[nblocksrc]) <= 0){
-					printf("Error in IPv6 Source Address (block) filter number %u.", \
-											    nblocksrc+1);
-					exit(EXIT_FAILURE);
-				}
-
-				if((charptr = strtok_r(NULL, " ", &lasts)) == NULL){
-		    			blocksrclen[nblocksrc] = 128;
-				}
-				else{
-					blocksrclen[nblocksrc] = atoi(charptr);
-
-					if(blocksrclen[nblocksrc]>128){
-						printf("Length error in IPv6 Source Address (block) filter number %u.\n", \
-													nblocksrc+1);
-						exit(EXIT_FAILURE);
-		    			}
-				}
-
-				sanitize_ipv6_prefix(&blocksrc[nblocksrc], blocksrclen[nblocksrc]);
-				nblocksrc++;
-				break;
-
-			case 'k':	/* IPv6 Destination Address (block) filter */
-				if(nblockdst >= MAX_BLOCK_DST){
-					puts("Too many IPv6 Destination Address (block) filters.");
-					exit(EXIT_FAILURE);
-				}
-
-				if((pref = strtok_r(optarg, "/", &lasts)) == NULL){
-					printf("Error in IPv6 Destination Address (block) filter number %u.\n", \
-													nblockdst+1);
-					exit(EXIT_FAILURE);
-				}
-
-				if ( inet_pton(AF_INET6, pref, &blockdst[nblockdst]) <= 0){
-					printf("Error in IPv6 Source Address (block) filter number %u.", \
-											    nblockdst+1);
-					exit(EXIT_FAILURE);
-				}
-
-				if((charptr = strtok_r(NULL, " ", &lasts)) == NULL){
-					blockdstlen[nblockdst] = 128;
-				}
-				else{
-					blockdstlen[nblockdst] = atoi(charptr);
-		
-					if(blockdstlen[nblockdst]>128){
-						printf("Length error in IPv6 Source Address (block) filter number %u.\n", \
-													    nblockdst+1);
-						exit(EXIT_FAILURE);
-					}
-				}
-		
-				sanitize_ipv6_prefix(&blockdst[nblockdst], blockdstlen[nblockdst]);
-				nblockdst++;
-				break;
-
-			case 'J':	/* Link Source Address (block) filter */
-				if(nblocklinksrc > MAX_BLOCK_LINK_SRC){
-					puts("Too many link-layer Source Address (accept) filters.");
-					exit(EXIT_FAILURE);
-				}
-
-				if(ether_pton(optarg, &blocklinksrc[nblocklinksrc], sizeof(struct ether_addr)) == 0){
-					printf("Error in link-layer Source Address (blick) filter number %u.\n", \
-												    nblocklinksrc+1);
-					exit(EXIT_FAILURE);
-				}
-		
-				nblocklinksrc++;
-				break;
-
-			case 'K':	/* Link Destination Address (block) filter */
-				if(nblocklinkdst > MAX_BLOCK_LINK_DST){
-					puts("Too many link-layer Destination Address (block) filters.");
-					exit(EXIT_FAILURE);
-				}
-
-				if(ether_pton(optarg, &blocklinkdst[nblocklinkdst], sizeof(struct ether_addr)) == 0){
-					printf("Error in link-layer Destination Address (blick) filter number %u.\n", \
-												    nblocklinkdst+1);
-					exit(EXIT_FAILURE);
-				}
-		
-				nblocklinkdst++;
-				break;
-
-			case 'b':	/* IPv6 Source Address (accept) filter */
-				if(nacceptsrc > MAX_ACCEPT_SRC){
-					puts("Too many IPv6 Source Address (accept) filters.");
-					exit(EXIT_FAILURE);
-				}
-
-				if((pref = strtok_r(optarg, "/", &lasts)) == NULL){
-					printf("Error in IPv6 Source Address (accept) filter number %u.\n", \
-												nacceptsrc+1);
-					exit(EXIT_FAILURE);
-				}
-
-				if ( inet_pton(AF_INET6, pref, &acceptsrc[nacceptsrc]) <= 0){
-					printf("Error in IPv6 Source Address (accept) filter number %u.\n", \
-												nacceptsrc+1);
-					exit(EXIT_FAILURE);
-				}
-		
-				if((charptr = strtok_r(NULL, " ", &lasts)) == NULL){
-					acceptsrclen[nacceptsrc] = 128;
-				}
-				else{
-					acceptsrclen[nacceptsrc] = atoi(charptr);
-
-					if(acceptsrclen[nacceptsrc]>128){
-						printf("Length error in IPv6 Source Address (accept) filter number %u.\n", \
-														nacceptsrc+1);
-						exit(EXIT_FAILURE);
-					}
-				}
-
-				sanitize_ipv6_prefix(&acceptsrc[nacceptsrc], acceptsrclen[nacceptsrc]);
-				nacceptsrc++;
-				acceptfilters_f=1;
-				break;
-
-
-			case 'g':	/* IPv6 Destination Address (accept) filter */
-				if(nacceptdst > MAX_ACCEPT_DST){
-					puts("Too many IPv6 Destination Address (accept) filters.");
-					exit(EXIT_FAILURE);
-				}
-
-				if((pref = strtok_r(optarg, "/", &lasts)) == NULL){
-					printf("Error in IPv6 Destination Address (accept) filter number %u.\n", \
-													nacceptdst+1);
-					exit(EXIT_FAILURE);
-				}
-
-				if ( inet_pton(AF_INET6, pref, &acceptdst[nacceptdst]) <= 0){
-					printf("Error in IPv6 Source Address (accept) filter number %u.\n", \
-												    nacceptdst+1);
-					exit(EXIT_FAILURE);
-				}
-
-				if((charptr = strtok_r(NULL, " ", &lasts)) == NULL){
-					acceptdstlen[nacceptdst] = 128;
-				}
-				else{
-					acceptdstlen[nacceptdst] = atoi(charptr);
-		
-					if(acceptdstlen[nacceptdst]>128){
-						printf("Length error in IPv6 Source Address (accept) filter number %u.\n", \
-													    nacceptdst+1);
-						exit(EXIT_FAILURE);
-					}
-				}
-		
-				sanitize_ipv6_prefix(&acceptdst[nacceptdst], acceptdstlen[nacceptdst]);
-				nacceptdst++;
-				acceptfilters_f=1;
-				break;
-
-			case 'B':	/* Link-layer Source Address (accept) filter */
-				if(nacceptlinksrc > MAX_ACCEPT_LINK_SRC){
-					puts("Too many link-later Source Address (accept) filters.");
-					exit(EXIT_FAILURE);
-				}
-
-				if(ether_pton(optarg, &acceptlinksrc[nacceptlinksrc], sizeof(struct ether_addr)) == 0){
-					printf("Error in link-layer Source Address (accept) filter number %u.\n", \
-											    nacceptlinksrc+1);
-					exit(EXIT_FAILURE);
-				}
-		
-				nacceptlinksrc++;
-				acceptfilters_f=1;
-				break;
-
-			case 'G':	/* Link Destination Address (accept) filter */
-				if(nacceptlinkdst > MAX_ACCEPT_LINK_DST){
-					puts("Too many link-layer Destination Address (accept) filters.");
-					exit(EXIT_FAILURE);
-				}
-
-				if(ether_pton(optarg, &acceptlinkdst[nacceptlinkdst], sizeof(struct ether_addr)) == 0){
-					printf("Error in link-layer Destination Address (accept) filter number %u.\n",\
-												    nacceptlinkdst+1);
-					exit(EXIT_FAILURE);
-				}
-		
-				nacceptlinkdst++;
-				acceptfilters_f=1;
-				break;
-
 			case 'l':	/* "Loop mode */
 				loop_f = 1;
 				break;
@@ -673,7 +454,7 @@ int main(int argc, char **argv){
 				break;
 
 			case 'v':	/* Be verbose */
-				verbose_f++;
+				idata.verbose_f++;
 				break;
 		
 			case 'h':	/* Help */
@@ -711,19 +492,21 @@ int main(int argc, char **argv){
 		exit(EXIT_FAILURE);
 	}
 
-	if(!dstaddr_f && !listen_f){	/* Must specify IPv6 Destination Address if listening mode not used */
+	if(!idata.dstaddr_f && !listen_f){	/* Must specify IPv6 Destination Address if listening mode not used */
 		puts("IPv6 Destination Address not specified (and listening mode not selected)");
 		exit(EXIT_FAILURE);
 	}
 
-	if(load_dst_and_pcap(&idata) == FAILURE){
+	if(load_dst_and_pcap(&idata, LOAD_SRC_NXT_HOP) == FAILURE){
 		puts("Error while learning Souce Address and Next Hop");
 		exit(EXIT_FAILURE);
 	}
 
+	release_privileges();
+
 	srandom(time(NULL));
 
-	if((idata.ip6_local_flag && idata.ip6_global_flag) && !srcaddr_f)
+	if((idata.ip6_local_flag && idata.ip6_global_flag) && !idata.srcaddr_f)
 		localaddr_f=1;
 
 	if(!idata.ether_flag){
@@ -748,31 +531,31 @@ int main(int argc, char **argv){
 	else
 		max_packet_size = ETH_DATA_LEN;
 
-	if(verbose_f){
-		print_attack_info();
+	if(idata.verbose_f){
+		print_attack_info(&idata);
 	}
 
 	/*
 	   Set filter for receiving Neighbor Solicitations, ICMPv6 Echo Responses, and ICMPv6 Parameter Problem
 	 */
-	if(pcap_compile(idata.pd, &pcap_filter, PCAP_ICMPV6NS_FILTER, PCAP_OPT, PCAP_NETMASK_UNKNOWN) == -1){
-		printf("pcap_compile(): %s", pcap_geterr(idata.pd));
+	if(pcap_compile(idata.pfd, &pcap_filter, PCAP_ICMPV6_NS_FILTER, PCAP_OPT, PCAP_NETMASK_UNKNOWN) == -1){
+		printf("pcap_compile(): %s", pcap_geterr(idata.pfd));
 		exit(EXIT_FAILURE);
 	}
     
-	if(pcap_setfilter(idata.pd, &pcap_filter) == -1){
-		printf("pcap_setfilter(): %s", pcap_geterr(idata.pd));
+	if(pcap_setfilter(idata.pfd, &pcap_filter) == -1){
+		printf("pcap_setfilter(): %s", pcap_geterr(idata.pfd));
 		exit(EXIT_FAILURE);
 	}
 
 	pcap_freecode(&pcap_filter);
 
 	/* Set initial contents of the attack packet */
-	init_packet_data();
+	init_packet_data(&idata);
     
 	/* Fire a TCP segment if an IPv6 Destination Address was specified */
-	if(dstaddr_f){
-		if( (idata.fd= pcap_fileno(idata.pd)) == -1){
+	if(idata.dstaddr_f){
+		if( (idata.fd= pcap_fileno(idata.pfd)) == -1){
 			puts("Error obtaining descriptor number for pcap_t");
 			exit(EXIT_FAILURE);
 		}
@@ -793,7 +576,7 @@ int main(int argc, char **argv){
 
 				puts("Sending ICMPv6 Echo Request....\n");
 
-				if(send_packet(NULL, NULL) == -1){
+				if(send_packet(&idata, NULL, NULL) == -1){
 					puts("Error sending packet");
 					exit(EXIT_FAILURE);
 				}
@@ -817,8 +600,8 @@ int main(int argc, char **argv){
 				continue;
 
 			/* Read a packet (Echo Reply, Neighbor Solicitation, or ICMPv6 Error */
-			if((r=pcap_next_ex(idata.pd, &pkthdr, &pktdata)) == -1){
-				printf("pcap_next_ex(): %s", pcap_geterr(idata.pd));
+			if((r=pcap_next_ex(idata.pfd, &pkthdr, &pktdata)) == -1){
+				printf("pcap_next_ex(): %s", pcap_geterr(idata.pfd));
 				exit(EXIT_FAILURE);
 			}
 			else if(r == 0){
@@ -844,8 +627,8 @@ int main(int argc, char **argv){
 					    one of our addresses, and respond with a Neighbor Advertisement. Otherwise, the kernel
 					    will take care of that.
 					 */
-					if(!localaddr_f && is_eq_in6_addr(&(pkt_ns->nd_ns_target), &srcaddr)){
-							if(send_neighbor_advert(&idata, idata.pd, pktdata) == -1){
+					if(!localaddr_f && is_eq_in6_addr(&(pkt_ns->nd_ns_target), &idata.srcaddr)){
+							if(send_neighbor_advert(&idata, idata.pfd, pktdata) == -1){
 								puts("Error sending Neighbor Advertisement");
 								exit(EXIT_FAILURE);
 							}
@@ -864,11 +647,11 @@ int main(int argc, char **argv){
 
 					switch(pkt_icmp6->icmp6_type){
 						case ICMP6_ECHO_REPLY:
-							print_icmp6_echo(pkthdr, pktdata);
+							print_icmp6_echo(&idata, pkthdr, pktdata);
 							break;
 
 						case ICMP6_PARAM_PROB:
-							print_icmp6_error(pkthdr, pktdata);
+							print_icmp6_error(&idata, pkthdr, pktdata);
 							break;
 					}
 				}
@@ -878,7 +661,7 @@ int main(int argc, char **argv){
 		exit(EXIT_SUCCESS);
 	}
 
-	if(!dstaddr_f){
+	if(!idata.dstaddr_f){
 		puts("Error: Nothing to send! (Destination Address left unspecified)");
 		exit(EXIT_FAILURE);
 	}
@@ -892,10 +675,10 @@ int main(int argc, char **argv){
  *
  * Print information about a received ICMPv6 Echo Response packet
  */
-void print_icmp6_echo(struct pcap_pkthdr *pkthdr, const u_char *pktdata){
+void print_icmp6_echo(struct iface_data *idata, struct pcap_pkthdr *pkthdr, const u_char *pktdata){
 	struct ip6_hdr		*pkt_ipv6;
 
-	pkt_ipv6 = (struct ip6_hdr *) (pktdata + sizeof(struct ether_header));
+	pkt_ipv6 = (struct ip6_hdr *) (pktdata + idata->linkhsize);
 
 	if(inet_ntop(AF_INET6, &(pkt_ipv6->ip6_src), pv6addr, sizeof(pv6addr)) == NULL){
 		puts("inet_ntop(): Error converting IPv6 Source Address to presentation format");
@@ -911,12 +694,12 @@ void print_icmp6_echo(struct pcap_pkthdr *pkthdr, const u_char *pktdata){
  *
  * Print information about a received ICMPv6 error message
  */
-void print_icmp6_error(struct pcap_pkthdr *pkthdr, const u_char *pktdata){
+void print_icmp6_error(struct iface_data *idata, struct pcap_pkthdr *pkthdr, const u_char *pktdata){
 	struct ip6_hdr		*pkt_ipv6;
 	struct icmp6_hdr	*pkt_icmp6;
 
 
-	pkt_ipv6 = (struct ip6_hdr *) (pktdata + sizeof(struct ether_header));
+	pkt_ipv6 = (struct ip6_hdr *) (pktdata + idata->linkhsize);
 	pkt_icmp6= (struct icmp6_hdr *) ((unsigned char *) pkt_ipv6 + sizeof(struct ip6_hdr));
 
 	if(inet_ntop(AF_INET6, &(pkt_ipv6->ip6_src), pv6addr, sizeof(pv6addr)) == NULL){
@@ -948,27 +731,27 @@ void print_icmp6_error(struct pcap_pkthdr *pkthdr, const u_char *pktdata){
  * Initialize the contents of the attack packet (Ethernet header, IPv6 Header, and ICMPv6 header)
  * that are expected to remain constant for the specified attack.
  */
-void init_packet_data(void){
+void init_packet_data(struct iface_data *idata){
 	struct dlt_null *dlt_null;
 	ethernet= (struct ether_header *) buffer;
 	dlt_null= (struct dlt_null *) buffer;
 	v6buffer = buffer + linkhsize;
 	ipv6 = (struct ip6_hdr *) v6buffer;
 
-	if(idata.type == DLT_EN10MB && idata.flags != IFACE_LOOPBACK){
-		ethernet->src = hsrcaddr;
-		ethernet->dst = hdstaddr;
-		ethernet->ether_type = htons(0x86dd);
+	if(idata->type == DLT_EN10MB && idata->flags != IFACE_LOOPBACK){
+		ethernet->src = idata->hsrcaddr;
+		ethernet->dst = idata->hdstaddr;
+		ethernet->ether_type = htons(ETHERTYPE_IPV6);
 	}
-	else if(idata.type == DLT_NULL){
+	else if(idata->type == DLT_NULL){
 		dlt_null->family= PF_INET6;
 	}
 
 	ipv6->ip6_flow=0;
 	ipv6->ip6_vfc= 0x60;
 	ipv6->ip6_hlim= hoplimit;
-	ipv6->ip6_src= srcaddr;
-	ipv6->ip6_dst= dstaddr;
+	ipv6->ip6_src= idata->srcaddr;
+	ipv6->ip6_dst= idata->dstaddr;
 
 	prev_nh = (unsigned char *) &(ipv6->ip6_nxt);
 
@@ -1109,8 +892,8 @@ int send_packet(struct iface_data *idata, struct pcap_pkthdr *pkthdr, const u_ch
 		else
 			*jplengthptr= htonl((ptr - v6buffer) - MIN_IPV6_HLEN);
 
-		if((nw=pcap_inject(idata.pd, buffer, ptr - buffer)) == -1){
-			printf("pcap_inject(): %s\n", pcap_geterr(idata.pd));
+		if((nw=pcap_inject(idata->pfd, buffer, ptr - buffer)) == -1){
+			printf("pcap_inject(): %s\n", pcap_geterr(idata->pfd));
 			exit(EXIT_FAILURE);
 		}
 
@@ -1180,8 +963,8 @@ int send_packet(struct iface_data *idata, struct pcap_pkthdr *pkthdr, const u_ch
 				*fjplengthptr= htonl((fptr - fragbuffer) - MIN_IPV6_HLEN - ETHER_HDR_LEN);
 
 
-			if((nw=pcap_inject(idata.pd, fragbuffer, fptr - fragbuffer)) == -1){
-				printf("pcap_inject(): %s\n", pcap_geterr(idata.pd));
+			if((nw=pcap_inject(idata->pfd, fragbuffer, fptr - fragbuffer)) == -1){
+				printf("pcap_inject(): %s\n", pcap_geterr(idata->pfd));
 				exit(EXIT_FAILURE);
 			}
 
@@ -1238,15 +1021,7 @@ void print_help(void){
 	"  --ipv6-length, -q         IPv6 Payload Length\n"
 	"  --jumbo-length, -Q        Jumbo Payload Length\n"
 	"  --payload-size, -P        ICMPv6 payload size\n"
-	"  --block-src, -j           Block IPv6 Source Address prefix\n"
-	"  --block-dst, -k           Block IPv6 Destination Address prefix\n"
-	"  --block-link-src, -J      Block Ethernet Source Address\n"
-	"  --block-link-dst, -K      Block Ethernet Destination Address\n"
-	"  --accept-src, -b          Accept IPv6 Source Addres prefix\n"
-	"  --accept-dst, -g          Accept IPv6 Destination Address prefix\n"
-	"  --accept-link-src, -B     Accept Ethernet Source Address\n"
-	"  --accept-link-dst, -G     Accept Ethernet Destination Address\n"
-	"  --loop, -l                Send periodic Redirect messages\n"
+	"  --loop, -l                Send periodic Jumbo messages\n"
 	"  --sleep, -z               Pause between sending Redirect messages\n"
 	"  --listen, -L              Listen to incoming packets\n"
 	"  --verbose, -v             Be verbose\n"
@@ -1267,8 +1042,8 @@ void print_help(void){
 void print_attack_info(struct iface_data *idata){
 	puts( "jumbo6: Security assessment tool for attack vectors based on IPv6 Jumbo Payloads\n");
 
-	if(hsrcaddr_f){
-			if(ether_ntop(&hsrcaddr, plinkaddr, sizeof(plinkaddr)) == 0){
+	if(idata->hsrcaddr_f){
+			if(ether_ntop(&(idata->hsrcaddr), plinkaddr, sizeof(plinkaddr)) == 0){
 				puts("ether_ntop(): Error converting address");
 				exit(EXIT_FAILURE);
 			}
@@ -1276,14 +1051,14 @@ void print_attack_info(struct iface_data *idata){
 			printf("Ethernet Source Address: %s\n", plinkaddr);
 	}
 	else{
-		if(dstaddr_f){
-			if(ether_ntop(&hsrcaddr, plinkaddr, sizeof(plinkaddr)) == 0){
+		if(idata->dstaddr_f){
+			if(ether_ntop(&(idata->hsrcaddr), plinkaddr, sizeof(plinkaddr)) == 0){
 				puts("ether_ntop(): Error converting address");
 				exit(EXIT_FAILURE);
 			}
 
 			printf("Ethernet Source Address: %s%s\n", plinkaddr, \
-			((srcprefix_f)?" (randomized)":" (automatically selected)"));
+			((idata->srcprefix_f)?" (randomized)":" (automatically selected)"));
 		}
 		else
 			puts("Ethernet Source Address: Automatically selected for each packet");
@@ -1293,29 +1068,29 @@ void print_attack_info(struct iface_data *idata){
 	   Ethernet Destination Address only used if a IPv6 Destination Address or an
 	   Ethernet Destination Address were specified.
 	 */
-	if(dstaddr_f){
-		if(ether_ntop(&hdstaddr, plinkaddr, sizeof(plinkaddr)) == 0){
+	if(idata->dstaddr_f){
+		if(ether_ntop(&(idata->hdstaddr), plinkaddr, sizeof(plinkaddr)) == 0){
 			puts("ether_ntop(): Error converting address");
 			exit(EXIT_FAILURE);
 		}
 
 		printf("Ethernet Destination Address: %s%s\n", plinkaddr, \
-									((!hdstaddr_f)?" (automatically selected)":""));
+									((!idata->hdstaddr_f)?" (automatically selected)":""));
 	}
 
 
-	if(inet_ntop(AF_INET6, &srcaddr, psrcaddr, sizeof(psrcaddr)) == NULL){
+	if(inet_ntop(AF_INET6, &(idata->srcaddr), psrcaddr, sizeof(psrcaddr)) == NULL){
 		puts("inet_ntop(): Error converting IPv6 Source Address to presentation format");
 		exit(EXIT_FAILURE);
 	}
 
 
-	if(dstaddr_f){
-		printf("IPv6 Source Address: %s%s\n", psrcaddr, ((srcprefix_f)?" (randomized)":""));
+	if(idata->dstaddr_f){
+		printf("IPv6 Source Address: %s%s\n", psrcaddr, ((idata->srcprefix_f)?" (randomized)":""));
 	}
 
-	if(dstaddr_f){
-		if(inet_ntop(AF_INET6, &dstaddr, pdstaddr, sizeof(pdstaddr)) == NULL){
+	if(idata->dstaddr_f){
+		if(inet_ntop(AF_INET6, &(idata->dstaddr), pdstaddr, sizeof(pdstaddr)) == NULL){
 			puts("inet_ntop(): Error converting IPv6 Destination Address to presentation format");
 			exit(EXIT_FAILURE);
 		}
@@ -1338,35 +1113,6 @@ void print_attack_info(struct iface_data *idata){
 		printf("Sending each packet in fragments of %u bytes (plus the Unfragmentable part)\n", nfrags);
 
 }
-
-
-/*
- * Function: init_iface_data()
- *
- * Initializes the contents of "iface_data" structure
- */
-
-int init_iface_data(struct iface_data *idata){
-	bzero(idata, sizeof(struct iface_data));
-	idata->local_retrans = 0;
-	idata->local_timeout = 1;
-
-	idata->ip6_global.prefix= prefix_local;
-	idata->ip6_global.nprefix=0;
-	idata->ip6_global.maxprefix= MAX_LOCAL_ADDRESSES;
-
-	idata->prefix_ol.prefix= prefix_ols;
-	idata->prefix_ol.nprefix= 0;
-	idata->prefix_ol.maxprefix= MAX_PREFIXES_ONLINK;
-
-	idata->prefix_ac.prefix= prefix_acs;
-	idata->prefix_ac.nprefix= 0;
-	idata->prefix_ac.maxprefix= MAX_PREFIXES_AUTO;
-
-	return 0;
-}
-
-
 
 
 
@@ -1461,7 +1207,7 @@ int valid_icmp6_response(struct iface_data *idata, struct pcap_pkthdr *pkthdr, c
 	   Check that that the Destination Address of the incoming packet is one
 	   of our addresses.
 	 */
-	if(!is_eq_in6_addr(&srcaddr, &(pkt_ipv6->ip6_dst))){
+	if(!is_eq_in6_addr(&(idata->srcaddr), &(pkt_ipv6->ip6_dst))){
 		return 0;
 	}
 
@@ -1472,5 +1218,4 @@ int valid_icmp6_response(struct iface_data *idata, struct pcap_pkthdr *pkthdr, c
 
 	return 1;
 }
-
 

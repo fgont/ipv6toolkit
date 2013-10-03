@@ -93,7 +93,6 @@ struct in6_addr			router_ipv6, rs_ipv6;
 
 
 /* Data structures for packets read from the wire */
-struct iface_data		idata;
 struct pcap_pkthdr		*pkthdr;
 const u_char			*pktdata;
 unsigned char			*pkt_end;
@@ -152,6 +151,8 @@ unsigned char			*fragpart, *fptr, *fptrend, *ptrend, *ptrhdr, *ptrhdrend;
 unsigned int			hdrlen, ndstopthdr=0, nhbhopthdr=0, ndstoptuhdr=0;
 unsigned int			nfrags, fragsize;
 unsigned char			*prev_nh, *startoffragment;
+
+struct iface_data		idata;
 struct filters			filters;
 
 int main(int argc, char **argv){
@@ -993,7 +994,7 @@ int main(int argc, char **argv){
 		}
 	}
 
-	if(load_dst_and_pcap(&idata) == FAILURE){
+	if(load_dst_and_pcap(&idata, (idata.dstaddr_f?LOAD_SRC_NXT_HOP:LOAD_PCAP_ONLY)) == FAILURE){
 		puts("Error while learning Souce Address and Next Hop");
 		exit(EXIT_FAILURE);
 	}
@@ -1349,12 +1350,14 @@ int main(int argc, char **argv){
  */
 void init_packet_data(struct iface_data *idata){
 	ethernet= (struct ether_header *) buffer;
-	v6buffer = buffer + sizeof(struct ether_header);
+	v6buffer = buffer + idata->linkhsize;
 	ipv6 = (struct ip6_hdr *) v6buffer;
 
-	ethernet->src = idata->hsrcaddr;
-	ethernet->dst = idata->hdstaddr;
-	ethernet->ether_type = htons(ETHERTYPE_IPV6);
+	if(idata->flags != IFACE_TUNNEL && idata->flags != IFACE_LOOPBACK){
+		ethernet->src = idata->hsrcaddr;
+		ethernet->dst = idata->hdstaddr;
+		ethernet->ether_type = htons(ETHERTYPE_IPV6);
+	}
 
 	ipv6->ip6_flow=0;
 	ipv6->ip6_vfc= 0x60;
@@ -1484,7 +1487,7 @@ void init_packet_data(struct iface_data *idata){
 void send_packet(struct iface_data *idata, const u_char *pktdata, struct pcap_pkthdr *pkthdr){
 	if(pktdata != NULL){   /* Sending a Redirect in response to a received packet */
 		pkt_ether = (struct ether_header *) pktdata;
-		pkt_ipv6 = (struct ip6_hdr *)((char *) pkt_ether + ETHER_HDR_LEN);
+		pkt_ipv6 = (struct ip6_hdr *)((char *) pkt_ether + idata->linkhsize);
 		pkt_end = (unsigned char *) pktdata + pkthdr->caplen;
 
 		/* The packet length is the minimum of what we capured, and what is specified in the

@@ -925,7 +925,7 @@ int main(int argc, char **argv){
 	}
 
 
-	if(load_dst_and_pcap(&idata) == FAILURE){
+	if(load_dst_and_pcap(&idata, LOAD_SRC_NXT_HOP) == FAILURE){
 		puts("Error while learning Souce Address and Next Hop");
 		exit(EXIT_FAILURE);
 	}
@@ -1663,7 +1663,7 @@ void init_packet_data(struct iface_data *idata){
 	if(idata->type == DLT_EN10MB && idata->type != IFACE_LOOPBACK){
 		ethernet->src = idata->hsrcaddr;
 		ethernet->dst = idata->hdstaddr;
-		ethernet->ether_type = htons(0x86dd);
+		ethernet->ether_type = htons(ETHERTYPE_IPV6);
 	}
 	else if(idata->type == DLT_NULL){
 		dlt_null->family= PF_INET6;

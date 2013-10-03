@@ -139,13 +139,11 @@ char 						*charptr;
 char 						plinkaddr[ETHER_ADDR_PLEN], phsrcaddr[ETHER_ADDR_PLEN], phdstaddr[ETHER_ADDR_PLEN];
 char 						psrcaddr[INET6_ADDRSTRLEN], pdstaddr[INET6_ADDRSTRLEN], pprefix[INET6_ADDRSTRLEN];
 char						pv6addr[INET6_ADDRSTRLEN];
-unsigned char				srcpreflen;
 
 
 /* Flags used for option processing */
 unsigned char 				managed_f=0, other_f=0, home_f=0, proxy_f=0;
-unsigned char 				mtuopt_f=0, sllopt_f=0, sllopta_f=0, iface_f=0, srcprefix_f=0, prefopt_f=0;
-unsigned char				fragh_f=0, hoplimit_f=0;
+unsigned char 				mtuopt_f=0, sllopt_f=0, sllopta_f=0, prefopt_f=0, fragh_f=0, hoplimit_f=0;
 unsigned char 				listen_f = 0, floodp_f=0, floods_f=0, floodr_f=0, multicastdst_f=0, floodd_f=0;
 unsigned char				loop_f=0, sleep_f=0, accepted_f=0, newdata_f=0;
 
@@ -257,15 +255,15 @@ int main(int argc, char **argv){
 				idata.srcaddr_f = 1;
 		
 				if((charptr = strtok_r(NULL, " ", &lasts)) != NULL){
-					srcpreflen = atoi(charptr);
+					idata.srcpreflen = atoi(charptr);
 		
-					if(srcpreflen>128){
+					if(idata.srcpreflen>128){
 						puts("Prefix length error in IPv6 Source Address");
 						exit(EXIT_FAILURE);
 					}
 
-					sanitize_ipv6_prefix(&(idata.srcaddr), srcpreflen);
-					srcprefix_f=1;
+					sanitize_ipv6_prefix(&(idata.srcaddr), idata.srcpreflen);
+					idata.srcprefix_f=1;
 				}
 
 				break;
@@ -1008,13 +1006,13 @@ int main(int argc, char **argv){
 		exit(EXIT_FAILURE);
 	}
 
-	if(!iface_f){
+	if(!idata.iface_f){
 		puts("Must specify the network interface with the -i option");
 		exit(EXIT_FAILURE);
 	}
 
-	if( (idata.pfd= pcap_open_live(idata.iface, PCAP_SNAP_LEN, PCAP_PROMISC, PCAP_TIMEOUT, errbuf)) == NULL){
-		printf("pcap_open_live(): %s\n", errbuf);
+	if(load_dst_and_pcap(&idata, LOAD_PCAP_ONLY) == FAILURE){
+		puts("Error while learning Souce Address and Next Hop");
 		exit(EXIT_FAILURE);
 	}
 
@@ -1060,13 +1058,13 @@ int main(int argc, char **argv){
 	   If the flood option ("-F") has been specified, but no prefix has been specified,
 	    select the random Source Addresses from the link-local unicast prefix (fe80::/64).
 	 */
-	if(floods_f && !srcprefix_f){
+	if(floods_f && !idata.srcprefix_f){
 		idata.srcaddr.s6_addr16[0]= htons(0xfe80); /* Link-local unicast prefix */
 
 		for(i=1;i<8;i++)
 			idata.srcaddr.s6_addr16[i]=0x0000;
 	
-		srcpreflen=64;
+		idata.srcpreflen=64;
 	}
 
 	if(!idata.dstaddr_f)		/* Destination Address defaults to all-nodes (ff02::1) */
@@ -1306,12 +1304,14 @@ int main(int argc, char **argv){
  */
 void init_packet_data(struct iface_data *idata){
 	ethernet= (struct ether_header *) buffer;
-	v6buffer = buffer + sizeof(struct ether_header);
+	v6buffer = buffer + idata->linkhsize;
 	ipv6 = (struct ip6_hdr *) v6buffer;
 
-	ethernet->src = idata->hsrcaddr;
-	ethernet->dst = idata->hdstaddr;
-	ethernet->ether_type = htons(ETHERTYPE_IPV6);
+	if(idata->flags != IFACE_TUNNEL && idata->flags != IFACE_LOOPBACK){
+		ethernet->src = idata->hsrcaddr;
+		ethernet->dst = idata->hdstaddr;
+		ethernet->ether_type = htons(ETHERTYPE_IPV6);
+	}
 
 	ipv6->ip6_flow=0;
 	ipv6->ip6_vfc= 0x60;
@@ -1320,7 +1320,7 @@ void init_packet_data(struct iface_data *idata){
 	ipv6->ip6_dst= idata->dstaddr;
 	prev_nh = (unsigned char *) &(ipv6->ip6_nxt);
 
-    ptr = (unsigned char *) v6buffer + MIN_IPV6_HLEN;
+	ptr = (unsigned char *) v6buffer + MIN_IPV6_HLEN;
     
 	if(hbhopthdr_f){
 		hbhopthdrs=0;
@@ -1378,24 +1378,24 @@ void init_packet_data(struct iface_data *idata){
 		prev_nh = (unsigned char *) &fraghdr;
 	}
 
-    if(dstopthdr_f){
-	dstopthdrs=0;
+	if(dstopthdr_f){
+		dstopthdrs=0;
 	
-	while(dstopthdrs < ndstopthdr){
-	    if((ptr+ dstopthdrlen[dstopthdrs]) > (v6buffer+max_packet_size)){
-		puts("Packet too large while processing Dest. Opt. Header (should be using the Frag. option?)");
-		exit(EXIT_FAILURE);
-	    }
-	    
-	    *prev_nh = IPPROTO_DSTOPTS;
-	    prev_nh = ptr;
-	    memcpy(ptr, dstopthdr[dstopthdrs], dstopthdrlen[dstopthdrs]);
-	    ptr = ptr + dstopthdrlen[dstopthdrs];
-	    dstopthdrs++;
+		while(dstopthdrs < ndstopthdr){
+			if((ptr+ dstopthdrlen[dstopthdrs]) > (v6buffer+max_packet_size)){
+				puts("Packet too large while processing Dest. Opt. Header (should be using the Frag. option?)");
+				exit(EXIT_FAILURE);
+			}
+			
+			*prev_nh = IPPROTO_DSTOPTS;
+			prev_nh = ptr;
+			memcpy(ptr, dstopthdr[dstopthdrs], dstopthdrlen[dstopthdrs]);
+			ptr = ptr + dstopthdrlen[dstopthdrs];
+			dstopthdrs++;
+		}
 	}
-    }
 
-    *prev_nh = IPPROTO_ICMPV6;
+	*prev_nh = IPPROTO_ICMPV6;
 
 	if( (ptr+sizeof(struct nd_router_advert)) > (v6buffer+max_packet_size)){
 		puts("Packet too large while inserting Router Advertisement header (should be using Frag. option?)");
@@ -1441,13 +1441,13 @@ void init_packet_data(struct iface_data *idata){
  * send the attack packet(s).
  */
 void send_packet(struct iface_data *idata, const u_char *pktdata){
-    if(pktdata==NULL){
-	sources=0;	
-    }
-    else{     /* Sending a response to a Router Solicitation message */
-	pkt_ether = (struct ether_header *) pktdata;
-	pkt_ipv6 = (struct ip6_hdr *)((char *) pkt_ether + ETHER_HDR_LEN);
-	pkt_ipv6addr = &(pkt_ipv6->ip6_src);
+	if(pktdata==NULL){
+		sources=0;	
+	}
+	else{     /* Sending a response to a Router Solicitation message */
+		pkt_ether = (struct ether_header *) pktdata;
+		pkt_ipv6 = (struct ip6_hdr *)((char *) pkt_ether + idata->linkhsize);
+		pkt_ipv6addr = &(pkt_ipv6->ip6_src);
 
 	/* If the IPv6 Source Address of the incoming Router Solicitation is the unspecified 
 	   address (::), the Router Advertisement must be directed to the IPv6 all-nodes multicast
@@ -1455,23 +1455,23 @@ void send_packet(struct iface_data *idata, const u_char *pktdata){
 	   the Router Advertisement is directed to the IPv6 Source Address (and Ethernet Source
 	   Address) of the incoming Router Solicitation message
 	 */
-	if(IN6_IS_ADDR_UNSPECIFIED(pkt_ipv6addr)){
-	    if ( inet_pton(AF_INET6, ALL_NODES_MULTICAST_ADDR, &(ipv6->ip6_dst)) <= 0){
-		perror("inet_pton():");
-		exit(EXIT_FAILURE);
-	    }
+		if(IN6_IS_ADDR_UNSPECIFIED(pkt_ipv6addr)){
+			if ( inet_pton(AF_INET6, ALL_NODES_MULTICAST_ADDR, &(ipv6->ip6_dst)) <= 0){
+				perror("inet_pton():");
+				exit(EXIT_FAILURE);
+			}
 
-	    if(ether_pton(ETHER_ALLNODES_LINK_ADDR, &(ethernet->dst), ETHER_ADDR_LEN) == 0){
-		puts("ether_pton(): Error converting all-nodes link-local address");
-		exit(EXIT_FAILURE);
-	    }
-	}
-	else{
-	    ipv6->ip6_dst = pkt_ipv6->ip6_src;
-	    ethernet->dst = pkt_ether->src;
-	}
+			if(ether_pton(ETHER_ALLNODES_LINK_ADDR, &(ethernet->dst), ETHER_ADDR_LEN) == 0){
+				puts("ether_pton(): Error converting all-nodes link-local address");
+				exit(EXIT_FAILURE);
+			}
+		}
+		else{
+			ipv6->ip6_dst = pkt_ipv6->ip6_src;
+			ethernet->dst = pkt_ether->src;
+		}
 
-	pkt_ipv6addr = &(pkt_ipv6->ip6_dst);
+		pkt_ipv6addr = &(pkt_ipv6->ip6_dst);
 
 	/* If the Router Solicitation message was directed to a unicast address (unlikely), the
 	   IPv6 Source Address and the Ethernet Source Address of the Router Advertisement are set
@@ -1500,7 +1500,7 @@ void send_packet(struct iface_data *idata, const u_char *pktdata){
 	        Randomize the IPv6 Source address based on the specified prefix and prefix length
 	        (defaults to fe80::/64).
 	     */  
-	    startrand= srcpreflen/16;
+	    startrand= idata->srcpreflen/16;
 
 	    for(i=0; i<startrand; i++)
 		ipv6->ip6_src.s6_addr16[i]= 0;
@@ -1509,17 +1509,17 @@ void send_packet(struct iface_data *idata, const u_char *pktdata){
 		ipv6->ip6_src.s6_addr16[i]=random();
 
 
-	    if(srcpreflen%16){
+	    if(idata->srcpreflen%16){
 		mask=0xffff;
 	    
-		for(i=0; i<(srcpreflen%16); i++)
+		for(i=0; i<(idata->srcpreflen%16); i++)
 		    mask= mask>>1;
 
 		ipv6->ip6_src.s6_addr16[startrand]= ipv6->ip6_src.s6_addr16[startrand] & htons(mask);
 		    
 	    }
 
-	    for(i=0; i<=(srcpreflen/16); i++)
+	    for(i=0; i<=(idata->srcpreflen/16); i++)
 		ipv6->ip6_src.s6_addr16[i]= ipv6->ip6_src.s6_addr16[i] | idata->srcaddr.s6_addr16[i];
 
 	    if(!idata->hsrcaddr_f){
@@ -1918,8 +1918,8 @@ void print_attack_info(struct iface_data *idata){
 	printf("IPv6 Source Address: %s%s\n", psrcaddr, ((!idata->srcaddr_f)?" (randomized)":""));
     }
     else{
-    	printf("IPv6 Source Address: randomized, from the %s/%u prefix%s\n", psrcaddr, srcpreflen, \
-    									(!srcprefix_f)?" (default)":"");
+    	printf("IPv6 Source Address: randomized, from the %s/%u prefix%s\n", psrcaddr, idata->srcpreflen, \
+    									(!idata->srcprefix_f)?" (default)":"");
     }
 
 

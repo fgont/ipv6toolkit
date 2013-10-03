@@ -2930,99 +2930,122 @@ int sel_src_addr(struct iface_data *idata){
  *
  * Selects a Source Address for a given Destination
  */
-int load_dst_and_pcap(struct iface_data *idata){
+int load_dst_and_pcap(struct iface_data *idata, unsigned int mode){
 	struct iface_entry	*cif;
 	struct in6_addr		randprefix;
 	unsigned char		randpreflen;
 	char				errbuf[PCAP_ERRBUF_SIZE];
 
-	if(idata->srcprefix_f){
-		randprefix= idata->srcaddr;
-		randpreflen= idata->srcpreflen;
-		randomize_ipv6_addr(&(idata->srcaddr), &randprefix, randpreflen);
-		idata->srcaddr_f=1;
-	}
-	else if(!idata->srcaddr_f){
-		if(get_local_addrs(idata) == FAILURE){
-			puts("Error while obtaining local addresses");
-			return(FAILURE);
+	if(mode != LOAD_PCAP_ONLY){
+		if(idata->srcprefix_f){
+			randprefix= idata->srcaddr;
+			randpreflen= idata->srcpreflen;
+			randomize_ipv6_addr(&(idata->srcaddr), &randprefix, randpreflen);
+			idata->srcaddr_f=1;
 		}
-
-		/*
-		   If no source address or prefix have been specified, then we need to automatically learn our IPv6
-		   address. This is our appraoch:
-
-		   * Firstly, assume that our host has IPv6 connectivity:
-		        + If an interface has been specified, select an IPv6 address from one of the configures addresses
-			      of such interface.
-
-		        * If an interface has not been specified, select a source address taking into consideration
-		          all configured addresses.
-
-		   * If that doesn't succeed, try sending RAs
-
-		 */
-
-		if(sel_src_addr(idata) == SUCCESS){
-			if(sel_next_hop(idata) == SUCCESS){
-				idata->nh_f= TRUE;
-			}
-		}
-
-		if(idata->nh_f == FALSE){
-			/* XXX Should really free the memory allocated by the other functions, since they are of no further use */
-			idata->ip6_local_flag= FALSE;
-			idata->ip6_global.nprefix=0;
-			idata->ip6_global_flag= FALSE;
-
-			if(!idata->iface_f){
-				if(idata->verbose_f)
-					puts("Could not determine next hop address");
-	
-				return(FAILURE);
-			}
-
-			/* This sends an RA, populates the local addresses and prefixes, and the local router */
-			if(sel_next_hop_ra(idata) == -1){
-				puts("Could not learn a local router");
-				return(FAILURE);
-			}
-
-			if(sel_src_addr_ra(idata, &(idata->dstaddr)) == FAILURE || !idata->ether_flag || !idata->ip6_global_flag || !idata->ip6_local_flag){
-				puts("Could not obtain local address **");
-				return(FAILURE);
-			}
-
-			idata->ifindex= if_nametoindex(idata->iface);
-			idata->ifindex_f= TRUE;
-		}
-	}
-	else{
-		if(get_local_addrs(idata) == FAILURE){
-			if(idata->verbose_f)
+		else if(!idata->srcaddr_f){
+			if(get_local_addrs(idata) == FAILURE){
 				puts("Error while obtaining local addresses");
-			return(FAILURE);
-		}
+				return(FAILURE);
+			}
 
-		if(sel_next_hop(idata) == SUCCESS){
-			idata->ifindex= idata->nhifindex;
-			idata->nh_f= TRUE;
-			strncpy(idata->iface, idata->nhiface, IFACE_LENGTH-1);
-			idata->iface[IFACE_LENGTH-1]=0;
+			/*
+			   If no source address or prefix have been specified, then we need to automatically learn our IPv6
+			   address. This is our appraoch:
 
-			if( (cif=find_iface_by_index(&(idata->iflist), idata->ifindex)) != NULL){
-				idata->ether= cif->ether;
-				idata->ether_flag= TRUE;
+			   * Firstly, assume that our host has IPv6 connectivity:
+				+ If an interface has been specified, select an IPv6 address from one of the configures addresses
+				      of such interface.
+
+				* If an interface has not been specified, select a source address taking into consideration
+				  all configured addresses.
+
+			   * If that doesn't succeed, try sending RAs
+
+			 */
+
+			if(sel_src_addr(idata) == SUCCESS){
+				if(sel_next_hop(idata) == SUCCESS){
+					idata->nh_f= TRUE;
+				}
+			}
+
+			if(idata->nh_f == FALSE){
+				/* XXX Should really free the memory allocated by the other functions, since they are of no further use */
+				idata->ip6_local_flag= FALSE;
+				idata->ip6_global.nprefix=0;
+				idata->ip6_global_flag= FALSE;
+
+				if(!idata->iface_f){
+					if(idata->verbose_f)
+						puts("Could not determine next hop address");
+	
+					return(FAILURE);
+				}
+
+				/* This sends an RA, populates the local addresses and prefixes, and the local router */
+				if(sel_next_hop_ra(idata) == -1){
+					puts("Could not learn a local router");
+					return(FAILURE);
+				}
+
+				if(sel_src_addr_ra(idata, &(idata->dstaddr)) == FAILURE || !idata->ether_flag || !idata->ip6_global_flag || !idata->ip6_local_flag){
+					puts("Could not obtain local address **");
+					return(FAILURE);
+				}
+
+				idata->ifindex= if_nametoindex(idata->iface);
+				idata->ifindex_f= TRUE;
 			}
 		}
 		else{
-			/* This sends an RA, populates the local addresses and prefixes, and the local router */
-			if(sel_next_hop_ra(idata) == -1){
-				puts("Could not learn a local router");
+			if(get_local_addrs(idata) == FAILURE){
+				if(idata->verbose_f)
+					puts("Error while obtaining local addresses");
 				return(FAILURE);
+			}
+
+			if(sel_next_hop(idata) == SUCCESS){
+				idata->ifindex= idata->nhifindex;
+				idata->nh_f= TRUE;
+				strncpy(idata->iface, idata->nhiface, IFACE_LENGTH-1);
+				idata->iface[IFACE_LENGTH-1]=0;
+
+				if( (cif=find_iface_by_index(&(idata->iflist), idata->ifindex)) != NULL){
+					idata->ether= cif->ether;
+					idata->ether_flag= TRUE;
+				}
+			}
+			else{
+				/* This sends an RA, populates the local addresses and prefixes, and the local router */
+				if(sel_next_hop_ra(idata) == -1){
+					puts("Could not learn a local router");
+					return(FAILURE);
+				}
 			}
 		}
 	}
+	else{
+		if(!idata->iface_f){
+			if(idata->verbose_f){
+				puts("Error opening pcap socket because interface was not specified");
+			}
+
+			return(FAILURE);
+		}
+
+		idata->ifindex= if_nametoindex(idata->iface);
+		idata->ifindex_f= TRUE;
+
+		if(get_if_addrs(idata) == -1){
+			if(idata->verbose_f){
+				puts("Error while obtaining local interface data");
+			}
+
+			return(FAILURE);
+		}
+	}
+
 
 	if(!(idata->hsrcaddr_f)){
 		if(idata->ether_flag)
@@ -3065,6 +3088,9 @@ int load_dst_and_pcap(struct iface_data *idata){
 		printf("Error: Interface %s is not an Ethernet or tunnel interface", idata->iface);
 		return(FAILURE);
 	}
+
+	if(mode == LOAD_PCAP_ONLY)
+		return(SUCCESS);
 
 	if(idata->flags != IFACE_TUNNEL && idata->flags != IFACE_LOOPBACK){
 		if(ipv6_to_ether(idata->pfd, idata, &(idata->nhaddr), &(idata->nhhaddr)) != 1){
