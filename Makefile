@@ -60,11 +60,11 @@ frag6: $(SRCPATH)/frag6.c $(SRCPATH)/frag6.h $(SRCPATH)/ipv6toolkit.h $(LIBS) $(
 icmp6: $(SRCPATH)/icmp6.c $(SRCPATH)/icmp6.h $(SRCPATH)/ipv6toolkit.h $(LIBS) $(SRCPATH)/libipv6.h
 	$(CC) $(CPPFLAGS) $(CFLAGS) -o icmp6 $(SRCPATH)/icmp6.c $(LIBS) $(LDFLAGS)
 
-jumbo6: $(SRCPATH)/jumbo6.c $(SRCPATH)/jumbo6.h $(SRCPATH)/ipv6toolkit.h
-	$(CC) $(CPPFLAGS) $(CFLAGS) -o jumbo6 $(SRCPATH)/jumbo6.c $(LDFLAGS)
+jumbo6: $(SRCPATH)/jumbo6.c $(SRCPATH)/jumbo6.h $(SRCPATH)/ipv6toolkit.h $(LIBS) $(SRCPATH)/libipv6.h
+	$(CC) $(CPPFLAGS) $(CFLAGS) -o jumbo6 $(SRCPATH)/jumbo6.c $(LIBS) $(LDFLAGS)
 
-na6: $(SRCPATH)/na6.c $(SRCPATH)/na6.h $(SRCPATH)/ipv6toolkit.h
-	$(CC) $(CPPFLAGS) $(CFLAGS) -o na6 $(SRCPATH)/na6.c $(LDFLAGS)
+na6: $(SRCPATH)/na6.c $(SRCPATH)/na6.h $(SRCPATH)/ipv6toolkit.h $(LIBS) $(SRCPATH)/libipv6.h
+	$(CC) $(CPPFLAGS) $(CFLAGS) -o na6 $(SRCPATH)/na6.c $(LIBS) $(LDFLAGS)
 
 ni6: $(SRCPATH)/ni6.c $(SRCPATH)/ni6.h $(SRCPATH)/ipv6toolkit.h $(LIBS) $(SRCPATH)/libipv6.h
 	$(CC) $(CPPFLAGS) $(CFLAGS) -o ni6 $(SRCPATH)/ni6.c $(LIBS) $(LDFLAGS)
