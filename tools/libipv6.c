@@ -1324,6 +1324,20 @@ void print_filters(struct iface_data *idata, struct filters *filters){
 		printf("\n");
 	}
 
+	if(filters->nblocktarget){
+		printf("Block filter for Target Address: ");
+	
+		for(i=0; i< filters->nblocktarget; i++){
+			if(inet_ntop(AF_INET6, &(filters->blocktarget[i]), pv6addr, sizeof(pv6addr)) == NULL){
+				puts("inet_ntop(): Error converting Target Addr. filter to presentation format");
+				exit(EXIT_FAILURE);
+			}
+
+			printf("%s/%u   ", pv6addr, filters->blocktargetlen[i]);
+		}
+		printf("\n");
+	}
+
 	if(idata->type == DLT_EN10MB && idata->flags != IFACE_LOOPBACK){
 		if(filters->nblocklinksrc){
 			printf("Block filter for link-layer Source Address: ");
@@ -1378,6 +1392,20 @@ void print_filters(struct iface_data *idata, struct filters *filters){
 			}
 
 			printf("%s/%u   ", pv6addr, filters->acceptdstlen[i]);
+		}
+		printf("\n");
+	}
+
+	if(filters->naccepttarget){
+		printf("Accept filter for Target Address: ");
+	
+		for(i=0; i < filters->naccepttarget; i++){
+			if(inet_ntop(AF_INET6, &(filters->accepttarget[i]), pv6addr, sizeof(pv6addr)) == NULL){
+				puts("inet_ntop(): Error converting Target Addr. filter to presentation format");
+				exit(EXIT_FAILURE);
+			}
+
+			printf("%s/%u   ", pv6addr, filters->accepttargetlen[i]);
 		}
 		printf("\n");
 	}
