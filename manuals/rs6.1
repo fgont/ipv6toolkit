@@ -3,7 +3,9 @@
 rs6 \- A security assessment tool for attack vectors based on ICMPv6 Router Solicitation messages
 .SH SYNOPSIS
 .B rs6
-\-i INTERFACE [\-s SRC_ADDR[/LEN]] [\-d DST_ADDR] [\-y FRAG_SIZE] [\-u DST_OPT_HDR_SIZE] [\-U DST_OPT_U_HDR_SIZE] [\-H HBH_OPT_HDR_SIZE] [\-S LINK_SRC_ADDR] [\-D LINK-DST-ADDR] [\-E LINK_ADDR] [\-e] [\-F N_SOURCES] [\-z SECONDS] [\-l] [\-v] [\-h]
+.RB [\| \-i
+.IR INTERFACE\| ]
+[\-s SRC_ADDR[/LEN]] [\-d DST_ADDR] [\-y FRAG_SIZE] [\-u DST_OPT_HDR_SIZE] [\-U DST_OPT_U_HDR_SIZE] [\-H HBH_OPT_HDR_SIZE] [\-S LINK_SRC_ADDR] [\-D LINK-DST-ADDR] [\-E LINK_ADDR] [\-e] [\-F N_SOURCES] [\-z SECONDS] [\-l] [\-v] [\-h]
 
 .SH DESCRIPTION
 .B rs6
@@ -16,17 +18,16 @@ takes its parameters as command-line options. Each of the options can be specifi
 Depending on the amount of information (i.e., options and option data) to be conveyed into the Router Solicitations, it may be necessary for rs6 to split that information into more than one Router Solicitation. Also, when the rs6 tool is instructed to flood the victim with Router Solicitations from different sources ("\-\-flood\-sources" option), multiple packets may need to be generated. rs6 supports IPv6 fragmentation, which may be of use if a large amount of information needs to be conveyed within a single Router Solicitation message. IPv6 fragmentation is not enabled by default, and must be explicitly enabled with the "\-y" option.
 
 .TP
-\-\-interface, \-i
-
-This option specifies the network interface that the rs6 tool will use. The network interface must be specified (i.e., the tool does not select any network interface "by default").
+.BI \-i\  INTERFACE ,\ \-\-interface\  INTERFACE
+This option specifies the network interface that the tool will use. If the destination address ("\-d" option) is a link-local address, the interface must be explicitly specified. The interface may also be specified along with a destination address, with the "\-d" option.
 
 .TP
-\-\-src\-address, \-s
+.BI \-s\  SRC_ADDR ,\ \-\-src\-address\  SRC_ADDR
 
 This option is meant to specify the IPv6 Source Address (or IPv6 prefix) to be used for the Router Solicitation messages. If left unspecified, a randomized link-local unicast (fe80::/64) address is selected.
 
 .TP
-\-\-dst\-address, \-d
+.BI \-d\  DST_ADDR ,\ \-\-dst\-address\  DST_ADDR
 
 This option specifies the IPv6 Destination Address of the Router Solicitation messages. If left unspecified, but the Ethernet Destination Address is specified, the "all-routers link-local multicast" address (ff02::2) is selected as the IPv6 Destination Address. 
 
@@ -36,32 +37,32 @@ This option specifies the IPv6 Destination Address of the Router Solicitation me
 This option specifies the IPv6 Hop Limit to be used for the Router Solicitation messages. It defaults to 255. Note that IPv6 nodes are required to check that the Hop Limit of incoming Router Solicitation messages is 255. Therefore, this option is only useful to assess whether an IPv6 implementation fails to enforce the aforementioned check.
 
 .TP
-\-\-frag\-hdr, \-y
+.BI \-y\  SIZE ,\ \-\-frag\-hdr\  SIZE
 
 This option specifies that the resulting packet must be fragmented. The fragment size must be specified as an argument to this option.
 
 .TP
-\-\-dst\-opt\-hdr, \-u
+.BI \-u\  HDR_SIZE ,\ \-\-dst\-opt\-hdr\  HDR_SIZE
 
 This option specifies that a Destination Options header is to be included in the resulting packet. The extension header size must be specified as an argument to this option (the header is filled with padding options). Multiple Destination Options headers may be specified by means of multiple "\-u" options.
 
 .TP
-\-\-dst\-opt\-u\-hdr, \-U
+.BI \-U\  HDR_SIZE ,\ \-\-dst\-opt\-u\-hdr\  HDR_SIZE
 
 This option specifies a Destination Options header to be included in the "unfragmentable part" of the resulting packet. The header size must be specified as an argument to this option (the header is filled with padding options). Multiple Destination Options headers may be specified by means of multiple "\-U" options. This option is only valid if the "\-y" option is specified (as the concept of "unfragmentable part" only makes sense when fragmentation is employed).
 
 .TP
-\-\-hbh\-opt\-hdr, \-H
+.BI \-H\  HDR_SIZE ,\ \-\-hbh\-opt\-hdr\  HDR_SIZE
 
-This option specifies that a Hop-by-Hop Options header is to be included in the resulting packet. The header size must be specified as an argument to this option (the header is filled with padding options). Multiple Hop-by-Hop Options headers may be specified by means of multiple "\-H" options.
+This option specifies that a Hop-by-Hop Options header is to be included in the resulting packet. The header size must be specified as an argument to this option (the header is filled with padding options). Multiple Hop\-by\-Hop Options headers may be specified by means of multiple "\-H" options.
 
 .TP
-\-\-src\-link\-address, \-S
+.BI \-S\  SRC_LINK_ADDR ,\ \-\-src\-link\-address\  SRC_LINK_ADDR
 
 This option specifies the link-layer Source Address of the Router Solicitation messages (currently, only Ethernet is supported). If left unspecified, the link-layer Source Address is randomized.
 
 .TP
-\-\-link\-dst\-address, \-D
+.BI \-D\  DST_LINK_ADDR ,\ \-\-dst\-link\-address\  DST_LINK_ADDR
 
 This option specifies the link-layer Destination Address of the Router Solicitation messages (currently, only Ethernet is supported). If left unspecified, the link-layer Destination Address is set to "33:33:00:00:00:02" (the Ethernet address that corresponds to the "all-routers link-local multicast" address).
 
@@ -78,7 +79,7 @@ This option instructs the rs6 tool to include a source link-layer address option
 .TP
 \-\-flood\-sources, \-F
 
-This option instructs the rs6 tool to send Neighbor Solicitations from multiple (and random) IPv6 Source Addresses. The number of different sources is specified as "\-F number". The IPv6 Source Address of each Router Solicitation is a randomized from the IPv6 prefix specified with the "\-s" option, and defaults to a random link-local unicast address (fe80::/64).
+This option instructs the rs6 tool to send Router Solicitations from multiple (and random) IPv6 Source Addresses. The number of different sources is specified as "\-F number". The IPv6 Source Address of each Router Solicitation is a randomized from the IPv6 prefix specified with the "\-s" option, and defaults to a random link-local unicast address (fe80::/64).
 
 .TP
 \-\-loop, \-l
@@ -88,7 +89,7 @@ This option instructs the rs6 tool to send periodic Router Solicitations to the 
 .TP
 \-\-sleep, \-z
 
-This option instructs the rs6 tool to the amount of time to pause between sending Neighbor Solicitations. If left unspecified, it defaults to 1 second.
+This option instructs the rs6 tool to the amount of time to pause between sending Router Solicitation messages. If left unspecified, it defaults to 1 second.
 
 .TP
 \-\-verbose, \-v
@@ -125,7 +126,7 @@ Send 100 Router Solicitation messages using a random Ethernet Source Address and
 Send one Router Solicitation message using a random Ethernet Source Address and a random link-local unicast (i.e., fe80::/64) IPv6 Source Address, to the Ethernet Destination Address "33:33:00:00:00:02" (default) and the IPv6 Destination Address "fe80::1". Each Router Solicitation includes a source link-layer address option that contains the Ethernet address "ff:ff:ff:ff:ff:ff". Be verbose.
 
 .SH SEE ALSO
-"Security/Robustness Assessment of IPv6 Neighbor Discovery Implementations" (available at: <http://www.si6networks.com/tools/ipv6toolkit/si6networks-ipv6\-nd-assessment.pdf>) for a discussion of Neighbor Discovery vulnerabilities, and additional examples of how to use the na6 tool to exploit them.
+"Security/Robustness Assessment of IPv6 Neighbor Discovery Implementations" (available at: <http://www.si6networks.com/tools/ipv6toolkit/si6networks\-ipv6\-nd\-assessment.pdf>) for a discussion of Neighbor Discovery vulnerabilities, and additional examples of how to use the na6 tool to exploit them.
 
 .SH AUTHOR
 The
@@ -138,5 +139,5 @@ for SI6 Networks
 .SH COPYRIGHT
 Copyright (c) 2011\-2013 Fernando Gont.
 
-Permission is granted to copy, distribute and/or modify this document under the terms of the GNU Free Documentation License, Version 1.3 or any later version published by the Free Software Foundation; with no Invariant Sections, no Front-Cover Texts, and no Back-Cover Texts.  A copy of the license is available at
+Permission is granted to copy, distribute and/or modify this document under the terms of the GNU Free Documentation License, Version 1.3 or any later version published by the Free Software Foundation; with no Invariant Sections, no Front\-Cover Texts, and no Back\-Cover Texts.  A copy of the license is available at
 .IR <http://www.gnu.org/licenses/fdl.html> .

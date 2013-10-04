@@ -3,7 +3,9 @@
 frag6 \- A security assessment tool for IPv6 fragmentation
 .SH SYNOPSIS
 .B frag6
-\-i INTERFACE \-d DST_ADDR [\-S LINK_SRC_ADDR] [\-D LINK-DST-ADDR] [\-s SRC_ADDR[/LEN]] [\-A HOP_LIMIT] [\-u DST_OPT_HDR_SIZE] [\-U DST_OPT_U_HDR_SIZE] [\-H HBH_OPT_HDR_SIZE] [\-P FRAG_SIZE] [\-O FRAG_TYPE] [\-o FRAG_OFFSET] [\-I FRAG_ID] [\-T] [\-n] [\-p | \-W | \-X | \-F N_FRAGS] [\-l] [\-z SECONDS] [\-v] [\-h]
+.RB [\| \-i
+.IR INTERFACE\| ]
+\-d DST_ADDR [\-S LINK_SRC_ADDR] [\-D LINK-DST-ADDR] [\-s SRC_ADDR[/LEN]] [\-A HOP_LIMIT] [\-u DST_OPT_HDR_SIZE] [\-U DST_OPT_U_HDR_SIZE] [\-H HBH_OPT_HDR_SIZE] [\-P FRAG_SIZE] [\-O FRAG_TYPE] [\-o FRAG_OFFSET] [\-I FRAG_ID] [\-T] [\-n] [\-p | \-W | \-X | \-F N_FRAGS] [\-l] [\-z SECONDS] [\-v] [\-h]
 
 .SH DESCRIPTION
 .B frag6
@@ -15,17 +17,17 @@ takes it parameters as command-line options. Each of the options can be specifie
 
 .TP
 .BI \-i\  INTERFACE ,\ \-\-interface\  INTERFACE
-This option specifies the network interface that the tool will use. The network interface must be specified (i.e., the tool does not select any network interface "by default").
+This option specifies the network interface that the tool will use. If the destination address ("\-d" option) is a link-local address, the interface must be explicitly specified. The interface may also be specified along with a destination address, with the "\-d" option.
 
 .TP
 .BI \-S\  SRC_LINK_ADDR ,\ \-\-src\-link\-address\  SRC_LINK_ADDR
 
-This option specifies the link-layer Source Address of the probe packets (currently, only Ethernet is supported). If left unspecified, the link-layer Source Address of the packets is set to the real link-layer address of the network interface.
+This option specifies the link\-layer Source Address of the probe packets. If left unspecified, the link\-layer Source Address of the packets is set to the real link\-layer address of the network interface.
 
 .TP
 .BI \-D\  DST_LINK_ADDR ,\ \-\-dst\-link\-address\  DST_LINK_ADDR
 
-This option specifies the link-layer Destination Address of the probe packets (currently, only Ethernet is supported). By default, the link-layer Destination Address is automatically set to the link-layer address of the destination host (for on-link destinations) or to the link-layer address of the first-hop router.
+This option specifies the link\-layer Destination Address of the probe packets. By default, the link\-layer Destination Address is automatically set to the link\-layer address of the destination host (for on-link destinations) or to the link\-layer address of the first-hop router.
 
 .TP
 .BI \-s\  SRC_ADDR ,\ \-\-src\-address\  SRC_ADDR
@@ -201,25 +203,25 @@ tool.
 
 \fBExample #1\fR
 
-# frag6 \-i eth0 \-\-frag\-id\-policy \-d fc00:1::1 \-v
+# frag6 \-\-frag\-id\-policy \-d fc00:1::1 \-v
 
-Assess the fragment Identification generation policy of the host "fc00:1::1", using the network interface "eth0". Be verbose.
+Assess the fragment Identification generation policy of the host "fc00:1::1". Be verbose.
 
 \fBExample #2\fR
 
-# frag6 \-i eth0 \-\-frag\-reass\-policy \-d fc00:1::1 \-v
+# frag6 \-\-frag\-reass\-policy \-d fc00:1::1 \-v
 
-Assess the fragment reassembly policy of the host "fc00:1::1", using the network interface "eth0". Be verbose.
+Assess the fragment reassembly policy of the host "fc00:1::1". Be verbose.
 
 \fBExample #3\fR
 
-# frag6 \-i eth0 –frag-type atomic \-d fc00:1::1 \-v
+# frag6 \-\-frag\-type atomic \-d fc00:1::1 \-v
 
-Send an IPv6 atomic fragment to the host "fc00:1::1", using the network interface "eth0". Be verbose.
+Send an IPv6 atomic fragment to the host "fc00:1::1". Be verbose.
 
 \fBExample #4\fR
 
-# frag6 \-i eth0 \-s ::/0 \-\-flood\-frags 100 \-l \-z 5 \-d fc00:1::1 \-v
+# frag6 \-s ::/0 \-\-flood\-frags 100 \-l \-z 5 \-d fc00:1::1 \-v
 
 Send 100 fragments (every 5 seconds) to the host fc00:1::1, using a forged IPv6 Source Address from the prefix ::/0. The aforementioned fragments should have an offset of 0, and the M bit set (i.e., be first-fragments). Be verbose.
 
@@ -231,5 +233,5 @@ tool and the corresponding manual pages were produced by Fernando Gont <fgont@si
 .SH COPYRIGHT
 Copyright (c) 2011\-2013 Fernando Gont.
 
-Permission is granted to copy, distribute and/or modify this document under the terms of the GNU Free Documentation License, Version 1.3 or any later version published by the Free Software Foundation; with no Invariant Sections, no Front-Cover Texts, and no Back-Cover Texts.  A copy of the license is available at
+Permission is granted to copy, distribute and/or modify this document under the terms of the GNU Free Documentation License, Version 1.3 or any later version published by the Free Software Foundation; with no Invariant Sections, no Front\-Cover Texts, and no Back\-Cover Texts.  A copy of the license is available at
 .IR <http://www.gnu.org/licenses/fdl.html> .

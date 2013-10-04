@@ -3,7 +3,8 @@
 flow6 \- A security assessment tool for the IPv6 Flow Label field
 .SH SYNOPSIS
 .B flow6
-.BI \-i \|\ INTERFACE
+.RB [\| \-i
+.IR INTERFACE\| ]
 .BI \-d \|\ DST_ADDR
 .RB [\| \-S
 .IR LINK_SRC_ADDR\| ]
@@ -30,9 +31,9 @@ sends a number of probe packets to the target node, and samples the Flow Label v
 .PP
 The tool will first send a number of probe packets from single IPv6 address, such that the per-destination policy is determined. The tool will then send probe packets from random IPv6 addresses (from the same prefix as the first probes) such that the "global" Flow Label generation policy can be determined.
 .PP
-The tool computes the expected value and the standard deviation of the difference between consecutive-sampled Flow Label values (Labeln – Labeln-1) with the intent of inferring the Flow Label generation algorithm of the target node. 
+The tool computes the expected value and the standard deviation of the difference between consecutive-sampled Flow Label values (Labeln \- Labeln\-1) with the intent of inferring the Flow Label generation algorithm of the target node. 
 .PP
-If the standard deviation of [Labeln – Labeln-1] is 0, the Flow Label is assumed to be set to a constant value, and the corresponding value is informed to the user. For small values of the standard deviation, the Flow Label is assumed to be a monotonically-increasing function with increments of the "expected value", and such "expected value" together with the standard deviation, are informed to the user. For large values of the standard deviation, the Flow Label is assumed to be randomized, and the expected value and standard deviation are informed to the user, as indicators of the "quality" of the Flow Label generation algorithm.
+If the standard deviation of [Labeln \- Labeln\-1] is 0, the Flow Label is assumed to be set to a constant value, and the corresponding value is informed to the user. For small values of the standard deviation, the Flow Label is assumed to be a monotonically\-increasing function with increments of the "expected value", and such "expected value" together with the standard deviation, are informed to the user. For large values of the standard deviation, the Flow Label is assumed to be randomized, and the expected value and standard deviation are informed to the user, as indicators of the "quality" of the Flow Label generation algorithm.
 
 .SH OPTIONS
 .B flow6
@@ -40,7 +41,7 @@ takes it parameters as command-line options. Each of the options can be specifie
 
 .TP
 .BI \-i\  INTERFACE ,\ \-\-interface\  INTERFACE
-This option specifies the network interface that the tool will use. The network interface must be specified (i.e., the tool does not select any network interface "by default").
+This option specifies the network interface that the tool will use. If the destination address ("\-d" option) is a link-local address, the interface must be explicitly specified. The interface may also be specified alon with a destination address, with the "\-d" option.
 
 .TP
 .BI \-s\  SRC_ADDR ,\ \-\-src\-address\  SRC_ADDR
@@ -60,12 +61,12 @@ This option specifies the Hop Limit to be used for the IPv6 packets. By default,
 .TP
 .BI \-S\  SRC_LINK_ADDR ,\ \-\-src\-link\-address\  SRC_LINK_ADDR
 
-This option specifies the link-layer Source Address of the probe packets (currently, only Ethernet is supported). If left unspecified, the link-layer Source Address of the packets is set to the real link-layer address of the network interface.
+This option specifies the link\-layer Source Address of the probe packets (currently, only Ethernet is supported). If left unspecified, the link\-layer Source Address of the packets is set to the real link\-layer address of the network interface.
 
 .TP
 .BI \-D\  DST_LINK_ADDR ,\ \-\-dst\-link\-address\  DST_LINK_ADDR
 
-This option specifies the link-layer Destination Address of the probe packets (currently, only Ethernet is supported). By default, the link-layer Destination Address is automatically set to the link-layer address of the destination host (for on-link destinations) or to the link-layer address of the first-hop router.
+This option specifies the link\-layer Destination Address of the probe packets (currently, only Ethernet is supported). By default, the link\-layer Destination Address is automatically set to the link\-layer address of the destination host (for on-link destinations) or to the link\-layer address of the first\-hop router.
 
 .TP
 .BI \-P\  PROTOCOL ,\ \-\-protocol\  PROTOCOL
@@ -104,13 +105,13 @@ tool.
 
 # flow6 \-i eth0 \-\-flow-label-policy \-d fe80::1 \-v
 
-Assess the Flow Label generation policy of the host "fe80::1", using the network interface "eth0". Probe packets are TCP segments directed to port 80 (default). Be verbose.
+Assess the Flow Label generation policy of the host "fe80::1", using the network interface "eth0". Probe packets are TCP segments directed to port 80 (default). Be verbose. In this example, since the IPv6 destination address is a link-local address, the network interface ccard must be explicitly specified.
 
 \fBExample #2\fR
 
-# flow6 \-i eth0 \-d fe80::1 \-\-flow\-label\-policy \-P TCP \-p 22 \-vv
+# flow6 \-d 2001:db8::1 \-\-flow\-label\-policy \-P TCP \-p 22 \-vv
 
-Assess the Flow Label generation policy of the host "fe80::1", using the network interface "eth0". Probe packets are TCP segments directed to port 22. Be very verbose (i.e., list the sampled Flow Label values).
+Assess the Flow Label generation policy of the host "2001:db8::1". Probe packets are TCP segments directed to port 22. Be very verbose (i.e., list the sampled Flow Label values).
 
 .SH AUTHOR
 The
@@ -120,5 +121,5 @@ tool and the corresponding manual pages were produced by Fernando Gont <fgont@si
 .SH COPYRIGHT
 Copyright (c) 2011\-2013 Fernando Gont.
 
-Permission is granted to copy, distribute and/or modify this document under the terms of the GNU Free Documentation License, Version 1.3 or any later version published by the Free Software Foundation; with no Invariant Sections, no Front-Cover Texts, and no Back-Cover Texts.  A copy of the license is available at
+Permission is granted to copy, distribute and/or modify this document under the terms of the GNU Free Documentation License, Version 1.3 or any later version published by the Free Software Foundation; with no Invariant Sections, no Front\-Cover Texts, and no Back\-Cover Texts.  A copy of the license is available at
 .IR <http://www.gnu.org/licenses/fdl.html> .

@@ -3,7 +3,9 @@
 rd6 \- A security assessment tool for attack vectors based on ICMPv6 Redirect messages
 .SH SYNOPSIS
 .B rd6
-\-i INTERFACE [\-s SRC_ADDR[/LEN]] [\-d DST_ADDR] [\-S LINK_SRC_ADDR] [\-D LINK-DST-ADDR] [\-A HOP_LIMIT] [\-y FRAG_SIZE] [\-u DST_OPT_HDR_SIZE] [\-U DST_OPT_U_HDR_SIZE] [\-H HBH_OPT_HDR_SIZE] [\-r RD_DESTADDR/LEN] [\-t RD_TARGETADDR/LEN] [\-p PAYLOAD_TYPE] [\-P PAYLOAD_SIZE] [\-n] [\-c HOP_LIMIT] [\-x SRC_ADDR] [\-a SRC_PORT] [\-o DST_PORT] [\-X TCP_FLAGS] [\-q TCP_SEQ] [\-Q TCP_ACK] [\-V TCP_URP] [\-w TCP_WIN] [\-M] [\-O] [\-N] [\-E LINK_ADDR] [\-e] [\-j PREFIX[/LEN]] [\-k PREFIX[/LEN]] [\-J LINK_ADDR] [\-K LINK_ADDR] [\-b PREFIX[/LEN]] [\-g PREFIX[/LEN]] [\-B LINK_ADDR] [\-G LINK_ADDR] [\-f] [\-R N_DESTS] [\-T N_TARGETS] [\-F N_SOURCES] [\-L | \-l] [\-z] [\-v] [\-h]
+.RB [\| \-i
+.IR INTERFACE\| ]
+[\-s SRC_ADDR[/LEN]] [\-d DST_ADDR] [\-S LINK_SRC_ADDR] [\-D LINK-DST-ADDR] [\-A HOP_LIMIT] [\-y FRAG_SIZE] [\-u DST_OPT_HDR_SIZE] [\-U DST_OPT_U_HDR_SIZE] [\-H HBH_OPT_HDR_SIZE] [\-r RD_DESTADDR/LEN] [\-t RD_TARGETADDR/LEN] [\-p PAYLOAD_TYPE] [\-P PAYLOAD_SIZE] [\-n] [\-c HOP_LIMIT] [\-x SRC_ADDR] [\-a SRC_PORT] [\-o DST_PORT] [\-X TCP_FLAGS] [\-q TCP_SEQ] [\-Q TCP_ACK] [\-V TCP_URP] [\-w TCP_WIN] [\-M] [\-O] [\-N] [\-E LINK_ADDR] [\-e] [\-j PREFIX[/LEN]] [\-k PREFIX[/LEN]] [\-J LINK_ADDR] [\-K LINK_ADDR] [\-b PREFIX[/LEN]] [\-g PREFIX[/LEN]] [\-B LINK_ADDR] [\-G LINK_ADDR] [\-f] [\-R N_DESTS] [\-T N_TARGETS] [\-F N_SOURCES] [\-L | \-l] [\-z] [\-v] [\-h]
 
 .SH DESCRIPTION
 .B rd6
@@ -20,19 +22,18 @@ takes it parameters as command-line options. Each of the options can be specifie
 Depending on the amount of information (i.e., options) to be conveyed into the ICMPv6 Redirect messages, it may be necessary for the rd6 tool to split that information into more than one Redirect message. Also, if the tool is instructed to e.g. flood the victim with Redirect messages from different sources ("\-\-flood\-sources" option), multiple packets may need to be generated. rd6 supports IPv6 fragmentation, which might be of use to circumvent layer-2 filtering and/or Network Intrusion Detection Systems (NIDS). However, IPv6 fragmentation is not enabled by default, and must be explicitly enabled with the "\-y" option.
 
 .TP
-\-\-interface, \-i
-
-This option specifies the network interface that the tool will use. The network interface must be specified (i.e., the tool does not select any network interface "by default").
+.BI \-i\  INTERFACE ,\ \-\-interface\  INTERFACE
+This option specifies the network interface that the tool will use. If the destination address ("\-d" option) is a link-local address, or the "listening" ("-L") mode is selected, the interface must be explicitly specified. The interface may also be specified along with a destination address, with the "\-d" option.
 
 .TP
-\-\-src\-address, \-s
+.BI \-s\  SRC_ADDR ,\ \-\-src\-address\  SRC_ADDR
 
 This option specifies the IPv6 source address (or IPv6 prefix) to be used for the Source Address of the attack packets. This address typically corresponds to the IPv6 link-local address of the default router. If the "\-F" ("\-\-flood\-sources") option is specified, this option includes an IPv6 prefix, from which random addresses are selected. See the description of the "\-F" option for further information on how the "\-s" option is processed in that specific case.
 
 Note: Instead of specifying the "Source Address" with this option, the "\-\-learn\-router" option could be set, such that the tool automatically learns the IPv6 link-local address of the default router, and uses this address for the "Source Address" of the Redirect messages.
 
 .TP
-\-\-dst\-address, \-d
+.BI \-d\  DST_ADDR ,\ \-\-dst\-address\  DST_ADDR
 
 This option specifies the IPv6 Destination Address of the victim. It can be left unspecified only if the "\-L" option is selected (i.e., if the tool is to operate in "Passive" mode).
 
@@ -44,36 +45,36 @@ When operating in passive mode ("\-L" option), the IPv6 Destination Address is s
 This option specifies the Hop Limit to be used for the Redirect messages. It defaults to 255. Note that IPv6 nodes are required to check that the Hop Limit of incoming Redirect messages is 255. Therefore, this option is only useful to assess whether an IPv6 implementation fails to enforce the aforementioned check.
 
 .TP
-\-\-frag\-hdr, \-y
+.BI \-y\  SIZE ,\ \-\-frag\-hdr\  SIZE
 
 This option specifies that the resulting packet must be fragmented. The fragment size must be specified as an argument to this option.
 
 .TP
-\-\-dst\-opt\-hdr, \-u
+.BI \-u\  HDR_SIZE ,\ \-\-dst\-opt\-hdr\  HDR_SIZE
 
 This option specifies that a Destination Options header is to be included in the resulting packet. The extension header size must be specified as an argument to this option (the header is filled with padding options). Multiple Destination Options headers may be specified by means of multiple "\-u" options.
 
 .TP
-\-\-dst\-opt\-u\-hdr, \-U
+.BI \-U\  HDR_SIZE ,\ \-\-dst\-opt\-u\-hdr\  HDR_SIZE
 
 This option specifies a Destination Options header to be included in the "unfragmentable part" of the resulting packet. The header size must be specified as an argument to this option (the header is filled with padding options). Multiple Destination Options headers may be specified by means of multiple "\-U" options. This option is only valid if the "\-y" option is specified (as the concept of "unfragmentable part" only makes sense when fragmentation is employed).
 
 .TP
-\-\-hbh\-opt\-hdr, \-H
+.BI \-H\  HDR_SIZE ,\ \-\-hbh\-opt\-hdr\  HDR_SIZE
 
-This option specifies that a Hop-by-Hop Options header is to be included in the resulting packet. The header size must be specified as an argument to this option (the header is filled with padding options). Multiple Hop-by-Hop Options headers may be specified by means of multiple "\-H" options.
-
-.TP
-\-\-src\-link\-address, \-S
-
-This option specifies the link-layer Source Address of the Redirect messages (currently, only Ethernet is supported). If left unspecified, the link-layer Source Address is randomized. However, if this option is left unspecified, but the "\-\-learn\-router" option is set, the link-layer Source Address is set to that of the default router for the local network.
+This option specifies that a Hop-by-Hop Options header is to be included in the resulting packet. The header size must be specified as an argument to this option (the header is filled with padding options). Multiple Hop\-by\-Hop Options headers may be specified by means of multiple "\-H" options.
 
 .TP
-\-\-link\-dst\-address, \-D
+.BI \-S\  SRC_LINK_ADDR ,\ \-\-src\-link\-address\  SRC_LINK_ADDR
 
-This option specifies the link-layer Destination Address of the Redirect messages (currently, only Ethernet is supported). If left unspecified, it is set to the "all-nodes link-local multicast" address (ff02::1).
+This option specifies the link\-layer Source Address of the Redirect messages (this option is only valid for Ethernet interfaces). If left unspecified, the link\-layer Source Address is randomized. However, if this option is left unspecified, but the "\-\-learn\-router" option is set, the link\-layer Source Address is set to that of the default router for the local network.
 
-When operating in passive mode, the link-layer Destination Address is set according to the link-layer Source Address of the incoming packet.
+.TP
+.BI \-D\  DST_LINK_ADDR ,\ \-\-dst\-link\-address\  DST_LINK_ADDR
+
+This option specifies the link\-layer Destination Address of the Redirect messages (this option is only valid for Ethernet interfaces). If left unspecified, it is set to the "all-nodes link-local multicast" address (ff02::1).
+
+When operating in passive mode, the link\-layer Destination Address is set according to the link\-layer Source Address of the incoming packet.
 
 .TP
 \-\-redir\-target, \-t
@@ -176,64 +177,64 @@ This option instructs the tool to set the Redirect Target Address to the same va
 .TP
 \-\-learn\-router, \-N
 
-This option instructs the tool to learn the link-layer and the (link-local) IPv6 addresses of the local router by means of Router Solicitation and Router Advertisement messages. If the IPv6 Source Address or the link-layer Source Address are left unspecified, the corresponding values learned with this option will be used.
+This option instructs the tool to learn the link\-layer and the (link-local) IPv6 addresses of the local router by means of Router Solicitation and Router Advertisement messages. If the IPv6 Source Address or the link\-layer Source Address are left unspecified, the corresponding values learned with this option will be used.
 
 Note: This option is very useful to avoid having to manually enter the IPv6 and/or Ethernet addresses of the router.
 
 .TP
 \-\-target\-lla\-opt, \-E
 
-This option specifies the contents of a target link-layer address option to be included in the Redirect messages. If a single option is specified, it is included in all the outgoing Redirect messages. If more than one target link-layer address is specified (by means of multiple "\-E" options), and all the resulting options cannot be conveyed into a single Redirect message, multiple Redirect messages will be sent as needed.
+This option specifies the contents of a target link\-layer address option to be included in the Redirect messages. If a single option is specified, it is included in all the outgoing Redirect messages. If more than one target link\-layer address is specified (by means of multiple "\-E" options), and all the resulting options cannot be conveyed into a single Redirect message, multiple Redirect messages will be sent as needed.
 
 .TP
 \-\-add\-tlla\-opt, \-e
 
-This option instructs the rd6 tool to include a target link-layer address option in the Redirect messages that it sends. When this option is employed, the link-layer Source Address must be specified, and such value will be used for the target link-layer address option. The difference between this option and the "\-E" option is that the "\-e" option does not specify the actual value of the option, but just instructs the tool to include a target link-layer address option (the actual value of the option is selected as explained before).
+This option instructs the rd6 tool to include a target link\-layer address option in the Redirect messages that it sends. When this option is employed, the link\-layer Source Address must be specified, and such value will be used for the target link\-layer address option. The difference between this option and the "\-E" option is that the "\-e" option does not specify the actual value of the option, but just instructs the tool to include a target link\-layer address option (the actual value of the option is selected as explained before).
 
 .TP
-\-\-block\-src, \-j
+.BI \-j\  SRC_ADDR ,\ \-\-block\-src\  SRC_ADDR
 
 This option sets a block filter for the incoming packets, based on their IPv6 Source Address. It allows the specification of an IPv6 prefix in the form "\-j prefix/prefixlen". If the prefix length is not specified, a prefix length of "/128" is selected (i.e., the option assumes that a single IPv6 address, rather than an IPv6 prefix, has been specified).
 
 .TP
-\-\-block\-dst, \-k
+.BI \-k\  DST_ADDR ,\ \-\-block\-dst\  DST_ADDR
 
-This option sets a block filter for the incoming packets, based on their IPv6 Destination Address. It allows the specification of an IPv6 prefix in the form "\-k prefix/prefixlen". If the prefix length is not specified, a prefix length of "/128" is selected (i.e., the option assumes that a single IPv6 address, rather than an IPv6 prefix, has been specified).
-
-.TP
-\-\-block\-link\-src, \-J
-
-This option sets a block filter for the incoming packets, based on their link-layer Source Address. The option must be followed by a link-layer address (currently, only Ethernet is supported).
+This option sets a block filter for the incoming Neighbor Solicitation messages, based on their IPv6 Destination Address. It allows the specification of an IPv6 prefix in the form "\-k prefix/prefixlen". If the prefix length is not specified, a prefix length of "/128" is selected (i.e., the option assumes that a single IPv6 address, rather than an IPv6 prefix, has been specified).
 
 .TP
-\-\-block\-link\-dst, \-K
+.BI \-J\  SRC_ADDR ,\ \-\-block\-link\-src\  SRC_ADDR
 
-This option sets a block filter for the incoming packets, based on their link-layer Destination Address. The option must be followed by a link-layer address (currently, only Ethernet is supported).
+This option sets a block filter for the incoming packets, based on their link\-layer Source Address. The option must be followed by a link\-layer address (this option is only valid for Ethernet interfaces).
 
 .TP
-\-\-accept\-src, \-b
+.BI \-K\  DST_ADDR ,\ \-\-block\-link\-dst\  DST_ADDR
+
+This option sets a block filter for the incoming packets, based on their link\-layer Destination Address. The option must be followed by a link\-layer address (this option is only valid for Ethernet interfaces).
+
+.TP
+.BI \-b\  SRC_ADDR ,\ \-\-accept\-src\  SRC_ADDR
 
 This option sets an accept filter for the incoming packets, based on their IPv6 Source Address. It allows the specification of an IPv6 prefix in the form "\-b prefix/prefixlen". If the prefix length is not specified, a prefix length of "/128" is selected (i.e., the option assumes that a single IPv6 address, rather than an IPv6 prefix, has been specified).
 
 .TP
-\-\-accept\-dst, \-g
+.BI \-g\  DST_ADDR ,\ \-\-accept\-dst\  DST_ADDR
 
 This option sets a accept filter for the incoming packets, based on their IPv6 Destination Address. It allows the specification of an IPv6 prefix in the form "\-g prefix/prefixlen". If the prefix length is not specified, a prefix length of "/128" is selected (i.e., the option assumes that a single IPv6 address, rather than an IPv6 prefix, has been specified).
 
 .TP
-\-\-accept\-link\-src, \-B
+.BI \-B\  SRC_ADDR ,\ \-\-accept\-link\-src\  SRC_ADDR
 
-This option sets an accept filter for the incoming packets, based on their link-layer Source Address. The option must be followed by a link-layer address (currently, only Ethernet is supported).
+This option sets an accept filter for the incoming Neighbor Solicitation messages, based on their link\-layer Source Address. The option must be followed by a link\-layer address (this option is only valid for Ethernet interfaces).
 
 .TP
-\-\-accept\-link\-dst, \-K
+.BI \-G\  DST_ADDR ,\ \-\-accept\-link\-dst\  DST_ADDR
 
-This option sets an accept filter for the incoming packets, based on their link-layer Destination Address. The option must be followed by a link-layer address (currently, only Ethernet is supported).
+This option sets an accept filter for the incoming packets, based on their link\-layer Destination Address. The option must be followed by a link\-layer address (this option is only valid for Ethernet interfaces).
 
 .TP
 \-\-sanity\-filters, \-w
 
-This option automatically adds an "accept filter" for the link-layer Destination Address corresponding to the local router (either learned as a result of the "\-\-learn\-router" option, or specified by the "\-S" option), and a block filter for the IPv6 Source Address fe80::/16.
+This option automatically adds an "accept filter" for the link\-layer Destination Address corresponding to the local router (either learned as a result of the "\-\-learn\-router" option, or specified by the "\-S" option), and a block filter for the IPv6 Source Address fe80::/16.
 
 Note: This option is desirable in virtually all scenarios, such that the tool does not respond to link-local traffic, etc.
 
@@ -293,7 +294,7 @@ The tool uses the network interface "eth0", and operates in passive mode ("\-L" 
 
 # rd6 \-i eth0 \-\-learn\-router \-d 2001:db8::1 \-r 2001:db8::/64 \-t fe80::bad \-R 100 \-l \-v
 
-Flood the victim host (specified with the "\-d" option) with batches of 100 Redirect messages ("\-R 100" option). Each Redirect message redirects a random address from the prefix "2001:db8::/64" to the address "fe80::bad". The IPv6 and link-layer addresses of the current local router is dynamically learned by means of RS/RA messages ("\-\-learn\-router" option). The process is repeated every second ("\-l" option, with the default delay of 1 second).
+Flood the victim host (specified with the "\-d" option) with batches of 100 Redirect messages ("\-R 100" option). Each Redirect message redirects a random address from the prefix "2001:db8::/64" to the address "fe80::bad". The IPv6 and link\-layer addresses of the current local router is dynamically learned by means of RS/RA messages ("\-\-learn\-router" option). The process is repeated every second ("\-l" option, with the default delay of 1 second).
 
 .SH SEE ALSO
 "Security/Robustness Assessment of IPv6 Neighbor Discovery Implementations" (available at: <http://www.si6networks.com/tools/ipv6toolkit/si6networks\-ipv6\-nd\-assessment.pdf>) for a discussion of Neighbor Discovery vulnerabilities, and additional examples of how to use the na6 tool to exploit them.
@@ -309,5 +310,5 @@ for SI6 Networks
 .SH COPYRIGHT
 Copyright (c) 2011\-2013 Fernando Gont.
 
-Permission is granted to copy, distribute and/or modify this document under the terms of the GNU Free Documentation License, Version 1.3 or any later version published by the Free Software Foundation; with no Invariant Sections, no Front-Cover Texts, and no Back-Cover Texts.  A copy of the license is available at
+Permission is granted to copy, distribute and/or modify this document under the terms of the GNU Free Documentation License, Version 1.3 or any later version published by the Free Software Foundation; with no Invariant Sections, no Front\-Cover Texts, and no Back\-Cover Texts.  A copy of the license is available at
 .IR <http://www.gnu.org/licenses/fdl.html> .

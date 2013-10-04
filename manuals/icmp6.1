@@ -3,7 +3,9 @@
 icmp6 \- A security assessment tool for attack vectors based on ICMPv6 packets
 .SH SYNOPSIS
 .B icmp6
-\-i INTERFACE [\-s SRC_ADDR[/LEN]] [\-d DST_ADDR] [\-S LINK_SRC_ADDR] [\-D LINK-DST-ADDR] [\-c HOP_LIMIT] [\-y FRAG_SIZE] [\-u DST_OPT_HDR_SIZE] [\-U DST_OPT_U_HDR_SIZE] [\-H HBH_OPT_HDR_SIZE] [\-t TYPE[:CODE] | \-e CODE | \-A CODE \-V CODE \-R CODE] [\-r TARGET_ADDR] [\-x PEER_ADDR] [\-c HOP_LIMIT] [\-m MTU] [\-O POINTER] [\-p PAYLOAD_TYPE] [\-P PAYLOAD_SIZE] [\-n] [\-a SRC_PORTL[:SRC_PORTH]] [\-o DST_PORTL[:DST_PORTH]] [\-X TCP_FLAGS] [\-q TCP_SEQ] [\-Q TCP_ACK] [\-V TCP_URP] [\-w TCP_WIN] [\-M] [\-j PREFIX[/LEN]] [\-k PREFIX[/LEN]] [\-J LINK_ADDR] [\-K LINK_ADDR] [\-b PREFIX[/LEN]] [\-g PREFIX[/LEN]] [\-B LINK_ADDR] [\-G LINK_ADDR] [\-f] [\-L | \-l] [\-z] [\-v] [\-h]
+.RB [\| \-i
+.IR INTERFACE\| ]
+[\-s SRC_ADDR[/LEN]] [\-d DST_ADDR] [\-S LINK_SRC_ADDR] [\-D LINK-DST-ADDR] [\-c HOP_LIMIT] [\-y FRAG_SIZE] [\-u DST_OPT_HDR_SIZE] [\-U DST_OPT_U_HDR_SIZE] [\-H HBH_OPT_HDR_SIZE] [\-t TYPE[:CODE] | \-e CODE | \-A CODE \-V CODE \-R CODE] [\-r TARGET_ADDR] [\-x PEER_ADDR] [\-c HOP_LIMIT] [\-m MTU] [\-O POINTER] [\-p PAYLOAD_TYPE] [\-P PAYLOAD_SIZE] [\-n] [\-a SRC_PORTL[:SRC_PORTH]] [\-o DST_PORTL[:DST_PORTH]] [\-X TCP_FLAGS] [\-q TCP_SEQ] [\-Q TCP_ACK] [\-V TCP_URP] [\-w TCP_WIN] [\-M] [\-j PREFIX[/LEN]] [\-k PREFIX[/LEN]] [\-J LINK_ADDR] [\-K LINK_ADDR] [\-b PREFIX[/LEN]] [\-g PREFIX[/LEN]] [\-B LINK_ADDR] [\-G LINK_ADDR] [\-f] [\-L | \-l] [\-z] [\-v] [\-h]
 
 .SH DESCRIPTION
 .B icmp6
@@ -21,8 +23,7 @@ The icmp6 tool supports IPv6 fragmentation, which might be of use to circumvent 
 
 .TP
 .BI \-i\  INTERFACE ,\ \-\-interface\  INTERFACE
-
-This option specifies the network interface that the tool will use. The network interface must be specified (i.e., the tool does not select any network interface "by default").
+This option specifies the network interface that the tool will use. If the destination address ("\-d" option) is a link-local address, or the "listening" ("-L") mode is selected, the interface must be explicitly specified. The interface may also be specified along with a destination address, with the "\-d" option.
 
 .TP
 .BI \-s\  SRC_ADDR ,\ \-\-src\-address\  SRC_ADDR
@@ -35,6 +36,18 @@ This option specifies the IPv6 source address (or IPv6 prefix) to be used for th
 This option specifies the IPv6 Destination Address of the victim. It can be left unspecified only if the "\-L" option is selected (that is, if the tool is to operate in "listening" mode).
 
 When operating in "listening" mode ("\-L" option), the IPv6 Destination Address is selected according to the IPv6 Source Address of the incoming packet. 
+
+.TP
+.BI \-S\  SRC_LINK_ADDR ,\ \-\-src\-link\-address\  SRC_LINK_ADDR
+
+This option specifies the link\-layer Source Address of the attack packets. If left unspecified, the link\-layer Source Address is randomized.
+
+.TP
+.BI \-D\  DST_LINK_ADDR ,\ \-\-dst\-link\-address\  DST_LINK_ADDR
+
+This option specifies the link\-layer Destination Address of the attack packets. If left unspecified, it is set to that of the local router (for non-local destinations) or to that corresponding to the destination host (for local hosts).
+
+When operating in "listening" mode, the link\-layer Destination Address is set to the link\-layer Source Address of the incoming packet.
 
 .TP
 .BI \-c\  HOP_LIMIT ,\ \-\-hop\-limit\  HOP_LIMIT
@@ -60,18 +73,6 @@ This option specifies a Destination Options header to be included in the "unfrag
 .BI \-H\  HDR_SIZE ,\ \-\-hbh\-opt\-hdr\  HDR_SIZE
 
 This option specifies that a Hop-by-Hop Options header is to be included in the outgoing packet(s). The header size must be specified as an argument to this option (the header is filled with padding options). Multiple Hop-by-Hop Options headers may be specified by means of multiple "\-H" options.
-
-.TP
-.BI \-S\  SRC_LINK_ADDR ,\ \-\-src\-link\-address\  SRC_LINK_ADDR
-
-This option specifies the link-layer Source Address of the attack packets (currently, only Ethernet is supported). If left unspecified, the link-layer Source Address is randomized.
-
-.TP
-.BI \-D\  DST_LINK_ADDR ,\ \-\-dst\-link\-address\  DST_LINK_ADDR
-
-This option specifies the link-layer Destination Address of the attack packets (currently, only Ethernet is supported). If left unspecified, it is set to that of the local router (for non-local destinations) or to that corresponding to the destination host (for local hosts).
-
-When operating in "listening" mode, the link-layer Destination Address is set to the link-layer Source Address of the incoming packet.
 
 .TP
 .BI \-t\  TYPE ,\ \-\-icmp6\ TYPE
@@ -218,12 +219,12 @@ This option sets a block filter for the incoming Neighbor Solicitation messages,
 .TP
 .BI \-J\  SRC_ADDR ,\ \-\-block\-link\-src\  SRC_ADDR
 
-This option sets a block filter for the incoming packets, based on their link-layer Source Address. The option must be followed by a link-layer address (currently, only Ethernet is supported).
+This option sets a block filter for the incoming packets, based on their link\-layer Source Address. The option must be followed by a link\-layer address (currently, only Ethernet is supported).
 
 .TP
 .BI \-K\  DST_ADDR ,\ \-\-block\-link\-dst\  DST_ADDR
 
-This option sets a block filter for the incoming packets, based on their link-layer Destination Address. The option must be followed by a link-layer address (currently, only Ethernet is supported).
+This option sets a block filter for the incoming packets, based on their link\-layer Destination Address. The option must be followed by a link\-layer address (currently, only Ethernet is supported).
 
 .TP
 .BI \-b\  SRC_ADDR ,\ \-\-accept\-src\  SRC_ADDR
@@ -238,12 +239,12 @@ This option sets a accept filter for the incoming packets, based on their IPv6 D
 .TP
 .BI \-B\  SRC_ADDR ,\ \-\-accept\-link\-src\  SRC_ADDR
 
-This option sets an accept filter for the incoming Neighbor Solicitation messages, based on their link-layer Source Address. The option must be followed by a link-layer address (currently, only Ethernet is supported).
+This option sets an accept filter for the incoming Neighbor Solicitation messages, based on their link\-layer Source Address. The option must be followed by a link\-layer address (currently, only Ethernet is supported).
 
 .TP
 .BI \-G\  DST_ADDR ,\ \-\-accept\-link\-dst\  DST_ADDR
 
-This option sets an accept filter for the incoming packets, based on their link-layer Destination Address. The option must be followed by a link-layer address (currently, only Ethernet is supported).
+This option sets an accept filter for the incoming packets, based on their link\-layer Destination Address. The option must be followed by a link\-layer address (currently, only Ethernet is supported).
 
 .TP
 .BR \-f\| ,\  \-\-sanity\-filters
@@ -286,18 +287,18 @@ tool.
 
 \fBExample #1\fR
 
-# ./icmp6 \-i eth0 \-L \-p TCP \-v
+# icmp6 \-i eth0 \-L \-p TCP \-v
 
-The tool uses the network interface "eth0", and operates in "Listening" mode ("\-L" option). Each ICMPv6 error message will contain the ICMPv6 Payload as many bytes from the captured packet without exceeding the minimum IPv6 MTU (1280 bytes). The tool will print detailed information about the attack ("\-v" option).
+The tool employs the network interface "eth0", and operates in "Listening" mode ("\-L" option). Each ICMPv6 error message will contain the ICMPv6 Payload as many bytes from the captured packet without exceeding the minimum IPv6 MTU (1280 bytes). The tool will print detailed information about the attack ("\-v" option).
 
 \fBExample #2\fR
 
-# ./icmp6 \-i eth0 \-\-icmp6\-packet\-too\-big \-p ICMP6 \-d 2001:db8:10::1 \-\-peer\-addr 2001:db8:11::2 \-m 1240 \-v
+# icmp6 \-\-icmp6\-packet\-too\-big \-p ICMP6 \-d 2001:db8:10::1 \-\-peer\-addr 2001:db8:11::2 \-m 1240 \-v
 
-The tool uses the network interface "eth0" to send an ICMPv6 Packet Too Big error message that advertises an MTU of 1240 bytes. The ICMPv6 error message will be sent to the address " "2001:db8:10::1". The ICMPv6 error message will embed an ICMPv6 Echo Request message with the Source Address set to  "2001:db8:10::1" (i.e., Destination Address of the error message), and the Destination Address set to "2001:db8:11::2) ("\-\-peer\-addr" option). The value of the "Identifier" and "Sequence Number" fields of the embedded ICMPv6 Echo Request message randomized. The tool will provide detailed information about the attack ("\-v" option).
+The tool will send an ICMPv6 Packet Too Big error message that advertises an MTU of 1240 bytes. The ICMPv6 error message will be sent to the address " "2001:db8:10::1". The ICMPv6 error message will embed an ICMPv6 Echo Request message with the Source Address set to  "2001:db8:10::1" (i.e., Destination Address of the error message), and the Destination Address set to "2001:db8:11::2) ("\-\-peer\-addr" option). The value of the "Identifier" and "Sequence Number" fields of the embedded ICMPv6 Echo Request message will be randomized. The tool will provide detailed information about the attack ("\-v" option).
 
 .SH SEE ALSO
-RFC 5927 (available at <http://www.rfc-editor.org/rfc/rfc5927.txt>) and "Security Assessment of the Transmission Control Protocol (TCP)" (available at <http://www.si6networks.com/publications/tn-03\-09\-security-assessment-TCP.pdf>) for a discussion of ICMPv6 attacks against TCP.
+RFC 5927 (available at <http://www.rfc-editor.org/rfc/rfc5927.txt>) and "Security Assessment of the Transmission Control Protocol (TCP)" (available at <http://www.si6networks.com/publications/tn\-03\-09\-security\-assessment\-TCP.pdf>) for a discussion of ICMPv6 attacks against TCP.
 
 .SH AUTHOR
 The
@@ -307,5 +308,5 @@ tool and the corresponding manual pages were produced by Fernando Gont <fgont@si
 .SH COPYRIGHT
 Copyright (c) 2011\-2013 Fernando Gont.
 
-Permission is granted to copy, distribute and/or modify this document under the terms of the GNU Free Documentation License, Version 1.3 or any later version published by the Free Software Foundation; with no Invariant Sections, no Front-Cover Texts, and no Back-Cover Texts.  A copy of the license is available at
+Permission is granted to copy, distribute and/or modify this document under the terms of the GNU Free Documentation License, Version 1.3 or any later version published by the Free Software Foundation; with no Invariant Sections, no Front\-Cover Texts, and no Back\-Cover Texts.  A copy of the license is available at
 .IR <http://www.gnu.org/licenses/fdl.html> .

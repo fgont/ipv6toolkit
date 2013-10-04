@@ -3,7 +3,9 @@
 ra6 \- A security assessment tool for attack vectors based on ICMPv6 Router Advertisement messages
 .SH SYNOPSIS
 .B ra6
-\-i INTERFACE [\-s SRC_ADDR[/LEN]] [\-d DST_ADDR] [\-y FRAG_SIZE] [\-u DST_OPT_HDR_SIZE] [\-U DST_OPT_U_HDR_SIZE] [\-H HBH_OPT_HDR_SIZE] [\-S LINK_SRC_ADDR] [\-D LINK_DST_ADDR] [\-c CUR_HOP] [\-t ROUTER_LIFETIME] [\-r REACHABLE_TIME] [\-x RETRANS_TIMER] [\-m] [\-o] [\-a] [\-q] [\-p PREFERENCE] [\-E LINK_ADDR] [\-e] [\-P PREFIX/LEN[#FLAGS[#VALID[#PREFERRED]]]] [\-M MTU] [\-N [LIFETIME[#DNS_ADDR]]] [\-R PREFIX/LEN[#PREF[#LIFETIME]]] [\-f N_PREFIXES] [\-F N_SOURCES] [\-w N_ROUTES] [\-W N_ADDRS[#ADDRSPEROPT]] [\-j PREFIX[/LEN]] [\-k PREFIX[/LEN]] [\-J LINK_ADDR] [\-K LINK_ADDR] [\-b PREFIX[/LEN]] [\-g PREFIX[/LEN]] [\-B LINK_ADDR] [\-G LINK_ADDR] [\-L] [\-v] [\-h]
+.RB [\| \-i
+.IR INTERFACE\| ]
+[\-s SRC_ADDR[/LEN]] [\-d DST_ADDR] [\-y FRAG_SIZE] [\-u DST_OPT_HDR_SIZE] [\-U DST_OPT_U_HDR_SIZE] [\-H HBH_OPT_HDR_SIZE] [\-S LINK_SRC_ADDR] [\-D LINK_DST_ADDR] [\-c CUR_HOP] [\-t ROUTER_LIFETIME] [\-r REACHABLE_TIME] [\-x RETRANS_TIMER] [\-m] [\-o] [\-a] [\-q] [\-p PREFERENCE] [\-E LINK_ADDR] [\-e] [\-P PREFIX/LEN[#FLAGS[#VALID[#PREFERRED]]]] [\-M MTU] [\-N [LIFETIME[#DNS_ADDR]]] [\-R PREFIX/LEN[#PREF[#LIFETIME]]] [\-f N_PREFIXES] [\-F N_SOURCES] [\-w N_ROUTES] [\-W N_ADDRS[#ADDRSPEROPT]] [\-j PREFIX[/LEN]] [\-k PREFIX[/LEN]] [\-J LINK_ADDR] [\-K LINK_ADDR] [\-b PREFIX[/LEN]] [\-g PREFIX[/LEN]] [\-B LINK_ADDR] [\-G LINK_ADDR] [\-L] [\-v] [\-h]
 
 .SH DESCRIPTION
 .B ra6
@@ -20,17 +22,16 @@ Depending on the amount of information (i.e., options and option data) to be con
 The tool supports filtering of incoming Router Solicitation messages based on the Ethernet Source Address, the Ethernet Destination Address, the IPv6 Source Address, and the IPv6 Destination Address.  There are two types of filters: "block filters" and "accept filters". If any "block filter" is specified, and the incoming Router Solicitation message matches any of those filters, the message is discarded (and thus no Router Advertisements are sent in response). If any "accept filter" is specified, incoming Router Solicitation messages must match the specified filters in order for the ra6 tool to respond with Router Advertisement messages. 
 
 .TP
-\-\-interface, \-i
-
-This option is meant to specify the network interface to use for performing the attack. The network interface must be specified (i.e., the tool does not select any network interface "by default").
+.BI \-i\  INTERFACE ,\ \-\-interface\  INTERFACE
+This option specifies the network interface that the tool will use. If the destination address ("\-d" option) is a link-local address, or the "listening" ("-L") mode is selected, the interface must be explicitly specified. The interface may also be specified along with a destination address, with the "\-d" option.
 
 .TP
-\-\-src\-address, \-s
+.BI \-s\  SRC_ADDR ,\ \-\-src\-address\  SRC_ADDR
 
 This option specifies the IPv6 Source Address (or IPv6 prefix) to be used for the Router Advertisement messages. If left unspecified, a randomized link-local unicast (fe80::/64) address is selected.
 
 .TP
-\-\-dst\-address, \-d
+.BI \-d\  DST_ADDR ,\ \-\-dst\-address\  DST_ADDR
 
 This specifies the IPv6 Destination Address of the Router Advertisement messages. If this option is left unspecified, but the Ethernet Destination Address is specified, the "all-nodes link-local multicast" address (ff02::1) is selected as the IPv6 Destination Address. 
 
@@ -42,24 +43,24 @@ When operating in passive mode ("\-L" option), the IPv6 Destination Address is s
 This option specifies the Hop Limit of the Router Advertisement messages. It defaults to 255. Note that IPv6 nodes are required to check that the Hop Limit of incoming Router Advertisement messages is 255. Therefore, this option is only useful to assess whether an IPv6 implementation fails to enforce the aforementioned check.
 
 .TP
-\-\-frag\-hdr, \-y
+.BI \-y\  SIZE ,\ \-\-frag\-hdr\  SIZE
 
 This option specifies that the resulting packet must be fragmented. The fragment size must be specified as an argument to this option.
 
 .TP
-\-\-dst\-opt\-hdr, \-u
+.BI \-u\  HDR_SIZE ,\ \-\-dst\-opt\-hdr\  HDR_SIZE
 
 This option specifies that a Destination Options header is to be included in the resulting packet. The extension header size must be specified as an argument to this option (the header is filled with padding options). Multiple Destination Options headers may be specified by means of multiple "\-u" options.
 
 .TP
-\-\-dst\-opt\-u\-hdr, \-U
+.BI \-U\  HDR_SIZE ,\ \-\-dst\-opt\-u\-hdr\  HDR_SIZE
 
 This option specifies a Destination Options header to be included in the "unfragmentable part" of the resulting packet. The header size must be specified as an argument to this option (the header is filled with padding options). Multiple Destination Options headers may be specified by means of multiple "\-U" options. This option is only valid if the "\-y" option is specified (as the concept of "unfragmentable part" only makes sense when fragmentation is employed).
 
 .TP
-\-\-hbh\-opt\-hdr, \-H
+.BI \-H\  HDR_SIZE ,\ \-\-hbh\-opt\-hdr\  HDR_SIZE
 
-This option specifies that a Hop-by-Hop Options header is to be included in the resulting packet. The header size must be specified as an argument to this option (the header is filled with padding options). Multiple Hop-by-Hop Options headers may be specified by means of multiple "\-H" options.
+This option specifies that a Hop-by-Hop Options header is to be included in the resulting packet. The header size must be specified as an argument to this option (the header is filled with padding options). Multiple Hop\-by\-Hop Options headers may be specified by means of multiple "\-H" options.
  
 .TP
 \-\-curhop, \-c
@@ -107,33 +108,33 @@ This option causes the ra6 tool to set the ‘P’ ("ND Proxy") bit in the Route
 This option specifies the Preference field of the Router Advertisement messages, with "1" meaning "High", "0" meaning "Normal", and "\-1" meaning "low" (the value "\-2" is forbidden). If left unspecified, a Preference value of "1" (High) is selected.
 
 .TP
-\-\-src\-link\-address, \-S
+.BI \-S\  SRC_LINK_ADDR ,\ \-\-src\-link\-address\  SRC_LINK_ADDR
 
-This option specifies the link-layer Source Address of the Router Advertisement messages (currently, only Ethernet is supported). If left unspecified, the link-layer Source Address is randomized.
+This option specifies the link\-layer Source Address of the Router Advertisement messages (this option is only valid for Ethernet interfaces). If left unspecified, the link\-layer Source Address is randomized.
 
-When operating in passive mode, the link-layer Source Address is selected according to the IPv6 Destination Address of the incoming Router Solicitation messages. If the IPv6 Destination Address of the incoming Router Solicitation message is a multicast address (usually the "all-routers link-local multicast" address "ff02::02"), the link-layer Source Address is set to the address specified by the "\-S" option (or to a random address if the "\-S" option was left unspecified). If the IPv6 Destination Address of the incoming Router Solicitation is not a multicast address (i.e., it is a unicast address), the link-layer Source Address is set to the Ethernet Destination Address of the incoming Router Solicitation message.
+When operating in passive mode, the link\-layer Source Address is selected according to the IPv6 Destination Address of the incoming Router Solicitation messages. If the IPv6 Destination Address of the incoming Router Solicitation message is a multicast address (usually the "all-routers link-local multicast" address "ff02::02"), the link\-layer Source Address is set to the address specified by the "\-S" option (or to a random address if the "\-S" option was left unspecified). If the IPv6 Destination Address of the incoming Router Solicitation is not a multicast address (i.e., it is a unicast address), the link\-layer Source Address is set to the Ethernet Destination Address of the incoming Router Solicitation message.
 
 .TP
-\-\-link\-dst\-address, \-D
+.BI \-D\  DST_LINK_ADDR ,\ \-\-dst\-link\-address\  DST_LINK_ADDR
 
-This option is meant to specify the link-layer Destination Address of the Router Advertisement messages (currently, only Ethernet is supported). If left unspecified, it is set to "33:33:00:00:00:01" (the Ethernet multicast address corresponding to the IPv6 "all-nodes link-local multicast" address).
+This option is meant to specify the link\-layer Destination Address of the Router Advertisement messages (this option is only valid for Ethernet interfaces). If left unspecified, it is set to "33:33:00:00:00:01" (the Ethernet multicast address corresponding to the IPv6 "all-nodes link-local multicast" address).
 
-When operating in passive mode, the link-layer Destination Address is set depending to the IPv6 Source Address of the incoming Router Solicitation message. If the IPv6 Source Address of the incoming Router Solicitation message is the unspecified address (::), the link-layer destination address is set to "33:33:00:00:00:01" (the Ethernet multicast address corresponding to the IPv6 "all-nodes link-local multicast" address). Otherwise, the link-layer Destination Address is set to the same value as the link-layer Source Address of the incoming Router Solicitation message.
+When operating in passive mode, the link\-layer Destination Address is set depending to the IPv6 Source Address of the incoming Router Solicitation message. If the IPv6 Source Address of the incoming Router Solicitation message is the unspecified address (::), the link\-layer destination address is set to "33:33:00:00:00:01" (the Ethernet multicast address corresponding to the IPv6 "all-nodes link-local multicast" address). Otherwise, the link\-layer Destination Address is set to the same value as the link\-layer Source Address of the incoming Router Solicitation message.
 
 .TP
 \-\-source\-lla\-opt, \-E
 
-This option specifies the contents of a source link-layer address option to be included in the Router Advertisement messages. If a single option is specified, it is included in all the outgoing Router Advertisement messages. If more than one source link-layer address is specified, they are included only in the first packet of a set of Router Advertisements (if more than one Router Advertisement needs to be sent in order to convey all the specified information).
+This option specifies the contents of a source link\-layer address option to be included in the Router Advertisement messages. If a single option is specified, it is included in all the outgoing Router Advertisement messages. If more than one source link\-layer address is specified, they are included only in the first packet of a set of Router Advertisements (if more than one Router Advertisement needs to be sent in order to convey all the specified information).
 
 .TP
 \-\-add\-slla\-opt, \-e
 
-This option instructs the ra6 tool to include a source link-layer address option in the Router Advertisement messages. The link-layer address included in the option is the same as the Ethernet Source Address used for the outgoing Router Advertisement message. The difference between this option and the "\-E" option is that the latter does not specify the actual value of the option, but just instructs the tool include the option (the actual value of the option is selected according to the Ethernet Source address used in the outgoing packet).
+This option instructs the ra6 tool to include a source link\-layer address option in the Router Advertisement messages. The link\-layer address included in the option is the same as the Ethernet Source Address used for the outgoing Router Advertisement message. The difference between this option and the "\-E" option is that the latter does not specify the actual value of the option, but just instructs the tool include the option (the actual value of the option is selected according to the Ethernet Source address used in the outgoing packet).
 
 .TP
 \-\-prefix\-opt, \-P
 
-This option specifies the contents of a Prefix Information option to be included in Router advertisement messages, with the following format: "\-P prefix/length#flags#valid#preferred". Where "prefix/length" is a mandatory field that indicates an IPv6 prefix (e.g., "2001::/16"). "flags" is an optional argument that indicates which flags should be set for this prefix (‘L’ for the "on-link" flag, ‘A’ for the "autonomous address-configuration" flag, ‘R’ for "Router Address", and ‘-‘ for indicating that no flags should be set for this prefix) -- if this field is left unspecified, the "L" and "A" flags are set for in the specified Prefix Information option. "valid" is an optional field that indicates the "Valid Lifetime" for this prefix (the length of time in seconds during which this information can be used for on-link determination. If left unspecified, a value of 0xffffffff (infinity) is used. "preferred" is an optional argument that specifies the "Preferred Lifetime" value for this prefix (the length of time in seconds that addresses generated from this prefix via stateless address auto-configuration remain preferred). If left unspecified, a value of 0xffffffff (infinity) is used.
+This option specifies the contents of a Prefix Information option to be included in Router advertisement messages, with the following format: "\-P prefix/length#flags#valid#preferred". Where "prefix/length" is a mandatory field that indicates an IPv6 prefix (e.g., "2001::/16"). "flags" is an optional argument that indicates which flags should be set for this prefix (‘L’ for the "on-link" flag, ‘A’ for the "autonomous address-configuration" flag, ‘R’ for "Router Address", and ‘-‘ for indicating that no flags should be set for this prefix) \-\- if this field is left unspecified, the "L" and "A" flags are set for in the specified Prefix Information option. "valid" is an optional field that indicates the "Valid Lifetime" for this prefix (the length of time in seconds during which this information can be used for on-link determination. If left unspecified, a value of 0xffffffff (infinity) is used. "preferred" is an optional argument that specifies the "Preferred Lifetime" value for this prefix (the length of time in seconds that addresses generated from this prefix via stateless address auto-configuration remain preferred). If left unspecified, a value of 0xffffffff (infinity) is used.
 
 .TP
 \-\-route\-opt, \-R
@@ -185,12 +186,12 @@ This option sets a block filter for the incoming Router Solicitation messages, b
 .TP
 \-\-block\-link\-src, \-J
 
-This option sets a block filter for the incoming Router Solicitation messages, based on their link-layer Source Address. The option must be followed by a link-layer address (currently, only Ethernet is supported).
+This option sets a block filter for the incoming Router Solicitation messages, based on their link\-layer Source Address. The option must be followed by a link\-layer address (this option is only valid for Ethernet interfaces).
 
 .TP
 \-\-block\-link\-dst, \-K
 
-This option sets a block filter for the incoming Router Solicitation messages, based on their link-layer Destination Address. The option must be followed by a link-layer address (currently, only Ethernet is supported).
+This option sets a block filter for the incoming Router Solicitation messages, based on their link\-layer Destination Address. The option must be followed by a link\-layer address (this option is only valid for Ethernet interfaces).
 
 .TP
 \-\-accept\-src, \-b
@@ -205,12 +206,12 @@ This option sets a accept filter for the incoming Router Solicitation messages, 
 .TP
 \-\-accept\-link\-src, \-B
 
-This option sets an accept filter for the incoming Router Solicitation messages, based on their link-layer Source Address. The option must be followed by a link-layer address (currently, only Ethernet is supported).
+This option sets an accept filter for the incoming Router Solicitation messages, based on their link\-layer Source Address. The option must be followed by a link\-layer address (this option is only valid for Ethernet interfaces).
 
 .TP
 \-\-accept\-link\-dst, \-K
 
-This option sets an accept filter for the incoming Router Solicitation messages, based on their link-layer Destination Address. The option must be followed by a link-layer address (currently, only Ethernet is supported).
+This option sets an accept filter for the incoming Router Solicitation messages, based on their link\-layer Destination Address. The option must be followed by a link\-layer address (this option is only valid for Ethernet interfaces).
 
 .TP
 \-\-loop, \-l
@@ -247,19 +248,19 @@ tool.
 
 # ra6 \-i eth0 \-P 2001::/64#LA \-P 2002::/64#A \-e \-L
 
-Listen ("\-L") for incoming Router Solicitations on interface eth0 ("\-i eth0"), and advertise the prefix 2001::/64 for both on-link determination and auto-configuration ("\-P 2001::/64#LA") and the prefix 2002::/64 only for auto-configuration ("\-P 2002::/64#A"). Include a source link-layer address option ("\-e") in the Router Advertisements.
+Listen ("\-L") for incoming Router Solicitations on interface eth0 ("\-i eth0"), and advertise the prefix 2001::/64 for both on-link determination and auto-configuration ("\-P 2001::/64#LA") and the prefix 2002::/64 only for auto-configuration ("\-P 2002::/64#A"). Include a source link\-layer address option ("\-e") in the Router Advertisements.
 
 \fBExample #2\fR
 
 # ra6 \-i eth0 \-d fe80::1 \-D 01:02:03:04:05:06 \-c 5 \-\-lifetime 100 \-o \-e \-M 1400
 
-Use the network interface "eth0" to send a Router Advertisement using a random link-local IPv6 Source Address and a random Ethernet Source Address, to the IPv6 Destination address fe80::1 and the Ethernet Destination Address 01:02:03:04:05:06. The Router Advertisement includes a "Router Lifetime" of 100, and advertises a CurHop value of 5 (i.e., a recommended "Hop Limit" of "5"). The ‘O’ bit is set (thus indicating that other configuration information is available via DHCP). The Router Advertisement includes a source link-layer address option (containing the same address as the Ethernet Source Address of the packet) and an MTU option with a value of 1400.
+Use the network interface "eth0" to send a Router Advertisement using a random link-local IPv6 Source Address and a random Ethernet Source Address, to the IPv6 Destination address fe80::1 and the Ethernet Destination Address 01:02:03:04:05:06. The Router Advertisement includes a "Router Lifetime" of 100, and advertises a CurHop value of 5 (i.e., a recommended "Hop Limit" of "5"). The ‘O’ bit is set (thus indicating that other configuration information is available via DHCP). The Router Advertisement includes a source link\-layer address option (containing the same address as the Ethernet Source Address of the packet) and an MTU option with a value of 1400.
 
 \fBExample #3\fR
 
 # ra6 \-i eth0 \-\-flood\-sources 10 \-\-flood\-routes 50 \-\-flood\-prefixes 40 \-R ::/64#1 \-P ::/48#LA \-L \-e
 
-Listen for incoming Router Solicitation messages on the interface "eth0", and respond with Router Advertisements from 10 different link-local unicast IPv6 Source Addresses (randomized) and 10 different (randomized) Ethernet Source Addresses. Each Router Advertisement includes 50 Route Information options, each of them with a randomized /64 prefix and a preference of 1 ("high"). The Router Advertisements also contain 40 Prefix Information options, each with a randomized /48 prefix and the ‘A’ (auto-configuration) and ‘L’ (on-link determination) bits set. In addition, each Router Advertisement includes a source link-layer address option, containing the same (randomized) address as that used for the Ethernet Source Address field.
+Listen for incoming Router Solicitation messages on the interface "eth0", and respond with Router Advertisements from 10 different link-local unicast IPv6 Source Addresses (randomized) and 10 different (randomized) Ethernet Source Addresses. Each Router Advertisement includes 50 Route Information options, each of them with a randomized /64 prefix and a preference of 1 ("high"). The Router Advertisements also contain 40 Prefix Information options, each with a randomized /48 prefix and the ‘A’ (auto-configuration) and ‘L’ (on-link determination) bits set. In addition, each Router Advertisement includes a source link\-layer address option, containing the same (randomized) address as that used for the Ethernet Source Address field.
 
 \fBExample #4\fR
 
@@ -287,5 +288,5 @@ for SI6 Networks
 .SH COPYRIGHT
 Copyright (c) 2011\-2013 Fernando Gont.
 
-Permission is granted to copy, distribute and/or modify this document under the terms of the GNU Free Documentation License, Version 1.3 or any later version published by the Free Software Foundation; with no Invariant Sections, no Front-Cover Texts, and no Back-Cover Texts.  A copy of the license is available at
+Permission is granted to copy, distribute and/or modify this document under the terms of the GNU Free Documentation License, Version 1.3 or any later version published by the Free Software Foundation; with no Invariant Sections, no Front\-Cover Texts, and no Back\-Cover Texts.  A copy of the license is available at
 .IR <http://www.gnu.org/licenses/fdl.html> .
