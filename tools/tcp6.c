@@ -59,12 +59,25 @@
 
 /* Function prototypes */
 void				init_packet_data(struct iface_data *);
-void				send_packet(struct iface_data *, const u_char *);
+int				is_valid_tcp_segment(struct iface_data *, const u_char *, struct pcap_pkthdr *);
+void				send_packet(struct iface_data *, const u_char *, struct pcap_pkthdr *);
 void				print_attack_info(struct iface_data *);
 void				usage(void);
 void				print_help(void);
 void				frag_and_send(struct iface_data *);
-
+unsigned int		queue_data(struct queue *, unsigned char *, unsigned int);
+unsigned int		dequeue_data(struct queue *, unsigned char *, unsigned int);
+unsigned int		queue_copy(struct queue *, unsigned char *, unsigned int, unsigned char *, unsigned int);
+unsigned int		queue_remove(struct queue *, unsigned char *, unsigned int);
+void				queue_purge( struct queue *);
+int					tcp_init(struct tcp *);
+int					tcp_open(struct iface_data *, struct tcp *, unsigned int);
+int					tcp_close(struct iface_data *, struct tcp *);
+int					tcp_send(struct iface_data *, struct tcp *, unsigned char *, unsigned int);
+int					tcp_receive(struct iface_data *, struct tcp *, unsigned char *, unsigned int);
+int					tcp_input(struct iface_data *, struct tcp *, const u_char *, struct pcap_pkthdr *, struct packet *);
+int					tcp_output(struct iface_data *, struct tcp *, struct packet *, struct timeval *);
+int					is_valid_tcp_segment(struct iface_data *, const u_char *, struct pcap_pkthdr *);
 
 /* Flags */
 unsigned char 		floodt_f=0;
@@ -74,14 +87,17 @@ unsigned char		floods_f=0, floodp_f=0, donesending_f=0, startclose_f=0;
 unsigned char		data_f=0, senddata_f=0, useaddrkey_f=0, window_f=0, winmodulate_f=0;
 
 /* Flags used for TCP (specifically) */ 
-unsigned int		srcport_f=0, dstport_f=0;
-unsigned int		tcpseq_f=0, tcpack_f=0, tcpurg_f=0, tcpflags_f=0, tcpwin_f=0;
-unsigned int		rhbytes_f=0, tcpflags_auto_f=0, tcpopen_f=0, tcpclose_f=0;
-unsigned int		tcpopen=0, tcpclose=0, win1_size=0, win2_size=0, pps_f=0, bps_f=0;
-unsigned int		ackdata_f=1, ackflags_f=1, window=0, time1_len=0, time2_len=0;
+unsigned char		srcport_f=0, dstport_f=0;
+unsigned char		tcpseq_f=0, tcpack_f=0, tcpurg_f=0, tcpflags_f=0, tcpwin_f=0;
+unsigned char		rhbytes_f=0, tcpflags_auto_f=0, tcpopen_f=0, tcpclose_f=0;
+unsigned char		pps_f=0, bps_f=0, debug_f=0, probe_f=0, retrans_f=0, rto_f=0;
+unsigned char		ackdata_f=1, ackflags_f=1;
+unsigned int		debug, tcpopen=0, tcpclose=0, win1_size=0, win2_size=0, window=0, time1_len=0, time2_len=0;
+
 u_int16_t			srcport, dstport, tcpurg, tcpwin, tcpwinm;
+unsigned int		retrans, rto;
 u_int32_t			tcpseq, tcpack;
-u_int8_t			tcpflags=0;
+u_int8_t			tcpflags=0, pkt_tcp_flags;
 struct tcp_hdr		*rhtcp;
 unsigned int		rhbytes, currentsize, packetsize;
 
@@ -163,10 +179,15 @@ struct filters		filters;
 int main(int argc, char **argv){
 	extern char		*optarg;	
 	char			*endptr; /* Used by strtoul() */
-	fd_set			sset, rset;
+	fd_set			sset, rset;	
+/*	fd_set			wset, eset; */
 	int				r, sel;
 	struct timeval	timeout, stimeout, curtime, lastprobe, wmtimeout;
-	unsigned long	pktinterval=0;
+	/*struct tcp		tcb; */
+	/* unsigned char	end_f=0, error_f; */
+	unsigned char		end_f=0;
+	unsigned long	pktinterval=0; /*Add  datasent=0*/
+	unsigned int	retr=0;
 
 	static struct option longopts[] = {
 		{"interface", required_argument, 0, 'i'},
@@ -210,11 +231,14 @@ int main(int argc, char **argv){
 		{"rate-limit", required_argument, 0, 'r'},
 		{"sleep", required_argument, 0, 'z'},
 		{"listen", no_argument, 0, 'L'},
+		{"probe", no_argument, 0, 'p'},
+		{"retrans", required_argument, 0, 'x'},
 		{"verbose", no_argument, 0, 'v'},
+		{"debug", required_argument, 0, 'Y'},
 		{"help", no_argument, 0, 'h'}
 	};
 
-	char shortopts[]= "i:s:d:A:c:C:Z:u:U:H:y:S:D:P:o:a:X:q:Q:V:w:W:M:Nnj:k:J:K:b:g:B:G:F:T:fRlr:z:Lvh";
+	char shortopts[]= "i:s:d:A:c:C:Z:u:U:H:y:S:D:P:o:a:X:q:Q:V:w:W:M:Nnj:k:J:K:b:g:B:G:F:T:fRlr:z:Lpx:vyY:h";
 
 	char option;
 
@@ -242,7 +266,7 @@ int main(int argc, char **argv){
 	while((r=getopt_long(argc, argv, shortopts, longopts, NULL)) != -1) {
 		option= r;
 
-		switch(option) {
+		switch(option){
 			case 'i':  /* Interface */
 				strncpy(idata.iface, optarg, IFACE_LENGTH-1);
 				idata.iface[IFACE_LENGTH-1]=0;
@@ -309,6 +333,9 @@ int main(int argc, char **argv){
 				else if(strncmp(optarg, "abort", MAX_CMDLINE_OPT_LEN) == 0){
 					tcpopen= OPEN_ABORT;
 				}
+				else if(strncmp(optarg, "active", MAX_CMDLINE_OPT_LEN) == 0){
+					tcpopen= OPEN_ACTIVE;
+				}
 				else{
 					puts("Error: Unknown open mode in '-c' option");
 					exit(EXIT_FAILURE);
@@ -353,10 +380,10 @@ int main(int argc, char **argv){
 			case 'Z': /* Data */
 				datalen= Strnlen(optarg, MAX_CMDLINE_OPT_LEN);
 
-				if(datalen > DATA_BUFFER_LEN)
-					datalen= DATA_BUFFER_LEN;
+				if(datalen >= DATA_BUFFER_LEN)
+					datalen= DATA_BUFFER_LEN-1;
 
-				strncpy(data, optarg, DATA_BUFFER_LEN);
+				strncpy(data, optarg, DATA_BUFFER_LEN-1);
 				data_f=1;
 				break;
 
@@ -927,7 +954,31 @@ int main(int argc, char **argv){
 			case 'v':	/* Be verbose */
 				(idata.verbose_f)++;
 				break;
-		
+
+			case 'p':	/* Probe mode */
+				probe_f=1;
+				break;
+
+			case 'x':	/* Number of retrnasmissions */
+				retrans= atoi(optarg);
+				retrans_f=1;
+				break;
+
+			case 'Y':
+				if(strncmp(optarg, "dump", MAX_CMDLINE_OPT_LEN) == 0){
+					debug= DEBUG_DUMP;
+				}
+				else if(strncmp(optarg, "script", MAX_CMDLINE_OPT_LEN) == 0){
+					debug= DEBUG_SCRIPT;
+				}
+				else{
+					puts("Error: Unknown open mode in '-Y' option");
+					exit(EXIT_FAILURE);
+				}
+
+				debug_f=1;
+				break;
+
 			case 'h':	/* Help */
 				print_help();
 				exit(EXIT_FAILURE);
@@ -992,7 +1043,7 @@ int main(int argc, char **argv){
 	if(data_f){
 		data[datalen]=0;
 
-		if(!string_escapes(data, &datalen)){
+		if(!string_escapes(data, &datalen, DATA_BUFFER_LEN-1)){
 			puts("Error in data string option ('-Z')");
 			exit(EXIT_FAILURE);
 		}
@@ -1141,6 +1192,121 @@ int main(int argc, char **argv){
 		tcpwinm= win1_size;
 	}
     
+
+	if(probe_f){
+		end_f=0;
+
+		if(!dstport_f)
+			dstport= 80;
+
+		if(!srcport_f)
+			srcport= 50000 + random() % 15000; /* We select ports from the "high ports" range */
+
+		if(!rto_f)
+			rto=1;
+
+		if(!retrans_f)
+			retrans=0;
+
+		retr=0;
+		retrans++;
+
+		FD_ZERO(&sset);
+		FD_SET(idata.fd, &sset);
+
+		lastprobe.tv_sec= 0;	
+		lastprobe.tv_usec=0;
+
+		while(!end_f){
+			if(gettimeofday(&curtime, NULL) == -1){
+				if(idata.verbose_f)
+					perror("tcp6");
+
+				exit(EXIT_FAILURE);
+			}			
+
+			if(is_time_elapsed(&curtime, &lastprobe, 1) && retr < retrans){
+				retr++;
+				lastprobe= curtime;
+				send_packet(&idata, NULL, NULL);
+			}
+
+			if(is_time_elapsed(&curtime, &lastprobe, rto) && retr >= retrans){
+				end_f=1;
+				break;
+			}
+
+			rset= sset;
+			timeout.tv_usec=0;
+			timeout.tv_sec= (rto < 1)?rto:1;
+
+			if((sel=select(idata.fd+1, &rset, NULL, NULL, &timeout)) == -1){
+				if(errno == EINTR){
+					continue;
+				}
+				else{
+					puts("Error in select()");
+					exit(EXIT_FAILURE);
+				}
+			}
+
+			if(sel){
+				if(FD_ISSET(idata.fd, &rset)){
+					/* Read a packet */
+					if((r=pcap_next_ex(idata.pfd, &pkthdr, &pktdata)) == -1){
+						printf("pcap_next_ex(): %s", pcap_geterr(idata.pfd));
+						exit(EXIT_FAILURE);
+					}
+					else if(r == 0){
+						continue; /* Should never happen */
+					}
+
+					pkt_ether = (struct ether_header *) pktdata;
+					pkt_ipv6 = (struct ip6_hdr *)((char *) pkt_ether + idata.linkhsize);
+					pkt_tcp= (struct tcp_hdr *) ( (char *) pkt_ipv6 + MIN_IPV6_HLEN);
+					pkt_ns= (struct nd_neighbor_solicit *) ( (char *) pkt_ipv6 + MIN_IPV6_HLEN);
+					pkt_end = (unsigned char *) pktdata + pkthdr->caplen;
+					pkt_tcp_flags= pkt_tcp->th_flags;
+
+					/* Check that we are able to look into the IPv6 header */
+					if( (pkt_end -  pktdata) < (idata.linkhsize + MIN_IPV6_HLEN))
+						continue;
+
+					if(is_eq_in6_addr(&(pkt_ipv6->ip6_src), &(idata.srcaddr))){
+						continue;
+					}
+
+					if(!is_eq_in6_addr(&(pkt_ipv6->ip6_dst), &(idata.srcaddr))){
+						continue;
+					}
+
+					if(pkt_tcp->th_sport != htons(dstport)){
+						continue;
+					}
+
+					if(pkt_tcp->th_dport != htons(srcport)){
+						continue;
+					}
+
+					/* The TCP checksum must be valid */
+					if(in_chksum(pkt_ipv6, pkt_tcp, pkt_end-((unsigned char *)pkt_tcp), IPPROTO_TCP) != 0)
+						continue;
+
+					printf("PROBE:RESPONSE:%s%s%s%s%s%s\n", ((pkt_tcp_flags & TH_FIN)?"F":""), \
+						((pkt_tcp_flags & TH_SYN)?"S":""), \
+						((pkt_tcp_flags & TH_RST)?"R":""), ((pkt_tcp_flags & TH_PUSH)?"P":""),\
+						((pkt_tcp_flags & TH_ACK)?"A":""), ((pkt_tcp_flags & TH_URG)?"U":""));
+
+					exit(0);
+				}
+			}
+		}
+
+		puts("PROBE:TIMEOUT:");
+		exit(0);
+	}
+
+
 	/* Fire a TCP segment if an IPv6 Destination Address was specified */
 	if(!listen_f && idata.dstaddr_f){
 		if(loop_f){
@@ -1149,10 +1315,10 @@ int main(int argc, char **argv){
 											((nsleep>1)?"s":""));
 		}
 
-		while(!donesending_f){
-				send_packet(&idata, NULL);
+		do{
+				send_packet(&idata, NULL, NULL);
 
-				if((sel=select(0, NULL, NULL, NULL, &timeout)) == -1){
+				if(loop_f && (sel=select(0, NULL, NULL, NULL, &timeout)) == -1){
 					if(errno == EINTR){
 						continue;
 					}
@@ -1161,7 +1327,7 @@ int main(int argc, char **argv){
 						exit(EXIT_FAILURE);
 					}
 				}
-		}
+		}while(loop_f);
 
 		if(idata.verbose_f)    
 			puts("Initial attack packet(s) sent successfully.");
@@ -1350,6 +1516,10 @@ int main(int argc, char **argv){
 							}
 						}
 
+						/* The TCP checksum must be valid */
+						if(in_chksum(pkt_ipv6, pkt_tcp, pkt_end-((unsigned char *)pkt_tcp), IPPROTO_TCP) != 0)
+							continue;
+
 						if(pkt_tcp->th_sport != htons(dstport)){
 							continue;
 						}
@@ -1360,7 +1530,7 @@ int main(int argc, char **argv){
 					}
 
 					/* Send a TCP segment */
-					send_packet(&idata, pktdata);
+					send_packet(&idata, pktdata, pkthdr);
 				}
 				else if(pkt_ipv6->ip6_nxt == IPPROTO_ICMPV6){
 
@@ -1398,7 +1568,7 @@ int main(int argc, char **argv){
 			}
 			if((!sel || is_time_elapsed(&curtime, &lastprobe, pktinterval)) && !donesending_f){
 				lastprobe= curtime;
-				send_packet(&idata, NULL);
+				send_packet(&idata, NULL, NULL);
 			}
 		}
     
@@ -1527,7 +1697,7 @@ void init_packet_data(struct iface_data *idata){
  *
  * Initialize the remaining fields of the TCP segment, and send the attack packet(s).
  */
-void send_packet(struct iface_data *idata, const u_char *pktdata){
+void send_packet(struct iface_data *idata, const u_char *pktdata, struct pcap_pkthdr *pkthdr){
 	static unsigned int	sources=0, ports=0;	
 	ptr=startofprefixes;
 
@@ -2154,9 +2324,6 @@ void print_help(void){
 }
 
 
-
-
-
 /*
  * Function: print_attack_info()
  *
@@ -2335,4 +2502,446 @@ void print_attack_info(struct iface_data *idata){
 	}
 }
 
+
+
+/*
+ * Function: queue_data()
+ *
+ * Puts data into a queue
+ */
+
+unsigned int queue_data(struct queue *q, unsigned char *data, unsigned int nbytes){
+	unsigned int	fbytes, nleft;
+
+	/*
+	   We have to scenarios: in >= out and in < out
+	   In the first scenario, the circular buffer may be "split in two". In the second one,
+	   all available space is clustered together.
+	 */
+	if(q->in >= q->out){
+		fbytes= (q->data+ q->size) - q->in -1;
+		fbytes= fbytes+ (q->out - q->data);
+
+		if(nbytes > fbytes)
+			nbytes= fbytes;
+		
+		/* There is enough space available on the right side of the buffer */
+		if( (q->data + q->size - q->in) >= nbytes){
+			memcpy(q->in, data, nbytes);
+
+			q->in= q->in + nbytes;
+			
+			if(q->in == (q->data + q->size))
+				q->in= q->data;
+
+			return(nbytes);
+		}
+		else{
+			nleft= nbytes;
+			memcpy(q->in, data, (q->data + q->size - q->in));
+
+			nleft= nleft - (q->data + q->size - q->in);
+			q->in= q->data;
+
+			memcpy(q->in, data, nleft);
+			return(nbytes);
+		}
+	}
+	else{
+		fbytes= q->out - q->in - 1;
+
+		if(nbytes > fbytes)
+			nbytes= fbytes;
+
+		memcpy(q->in, data, nbytes);
+		q->in= q->in + nbytes;
+
+		if(q->in == (q->data + q->size))
+			q->in= q->data;
+
+		return(nbytes);
+	}
+
+	/* Should never reach here, but avoid compiler warnings */
+	return(0);
+}
+
+
+/*
+ * Function: dequeue_data()
+ *
+ * Reads data from a queue
+ */
+
+unsigned int dequeue_data(struct queue *q, unsigned char *data, unsigned int nbytes){
+	unsigned int	dbytes, nleft;
+
+	/*
+	   We have to scenarios: out > in and out <= in
+	   In the first scenario, the circular buffer may be "split in two". In the second one,
+	   all available data are clustered together.
+	 */
+	if(q->out > q->in){
+		dbytes= (q->data+ q->size) - q->out;
+		dbytes= dbytes+ (q->in - q->out);
+
+		if(nbytes > dbytes)
+			nbytes= dbytes;
+		
+		/* There is enough data available on the right side of the buffer */
+		if( (q->data + q->size - q->out) >= nbytes){
+			memcpy(data, q->out, nbytes);
+
+			q->out= q->out + nbytes;
+			
+			if(q->out == (q->data + q->size))
+				q->out= q->data;
+
+			return(nbytes);
+		}
+		else{
+			/* Data are split in two parts */
+			nleft= nbytes;
+			memcpy(data, q->out, (q->data + q->size - q->out));
+			data= data+ (q->data + q->size - q->out);
+
+			nleft= nleft - (q->data + q->size - q->out);
+			q->out= q->data;
+
+			memcpy(data, q->out, nleft);
+			q->out= q->out + nleft;
+
+			return(nbytes);
+		}
+	}
+	else{
+		dbytes= q->in - q->out;
+
+		if(nbytes > dbytes)
+			nbytes= dbytes;
+
+		memcpy(data, q->out, nbytes);
+		q->out= q->out + nbytes;
+
+		if(q->out == (q->data + q->size))
+			q->out= q->data;
+
+		return(nbytes);
+	}
+
+	/* Should never reach here, but avoid compiler warnings */
+	return(0);
+}
+
+
+
+/*
+ * Function: queue_copy()
+ *
+ * Copies data from queue, without removing it
+ */
+
+unsigned int queue_copy(struct queue *q, unsigned char *org, unsigned int offset, unsigned char *data, unsigned int nbytes){
+	unsigned int	dbytes, nleft;
+
+	if(org+offset >= (q->data + q->size)){
+		org= q->data + offset - (q->data + q->size - org);
+	}
+
+	/* | in    out
+	   We have to scenarios: out > in and out <= in
+	   In the first scenario, the circular buffer may be "split in two". In the second one,
+	   all available data are clustered together.
+	 */
+	if(org > q->in){
+		dbytes= (q->data+ q->size) - org;
+		dbytes= dbytes+ (q->in - org);
+
+		if(nbytes > dbytes)
+			nbytes= dbytes;
+		
+		/* There is enough data available on the right side of the buffer */
+		if( (q->data + q->size - org) >= nbytes){
+			memcpy(data, org, nbytes);
+			return(nbytes);
+		}
+		else{
+			/* Data are split in two parts */
+			nleft= nbytes;
+			memcpy(data, org, (q->data + q->size - org));
+			data= data + (q->data + q->size - org);
+
+			nleft= nleft - (q->data + q->size - org);
+			org= q->data;
+
+			memcpy(data, org, nleft);
+			return(nbytes);
+		}
+	}
+	else{
+		dbytes= q->in - org;
+
+		if(nbytes > dbytes)
+			nbytes= dbytes;
+
+		memcpy(data, org, nbytes);
+		return(nbytes);
+	}
+
+	/* Should never reach here, buts avoid compiler warnings */
+	return(0);
+}
+
+
+/*
+ * Function: queue_remove()
+ *
+ * Discards data from queue
+ * Note: This function is employed to discard data from the TCP send buffer when they are ACKed
+ * by the remote TCP endpoint.
+ */
+
+unsigned int queue_remove(struct queue *q, unsigned char *data, unsigned int nbytes){
+	unsigned int	dbytes, nleft;
+
+	/*
+	   We have to scenarios: out > in and out <= in
+	   In the first scenario, the circular buffer may be "split in two". In the second one,
+	   all available data are clustered together.
+	 */
+	if(q->out > q->in){
+		dbytes= (q->data+ q->size) - q->out;
+		dbytes= dbytes+ (q->in - q->out);
+
+		if(nbytes > dbytes)
+			nbytes= dbytes;
+		
+		/* There is enough data available on the right side of the buffer */
+		if( (q->data + q->size - q->out) >= nbytes){
+			q->out= q->out + nbytes;
+			
+			if(q->out == (q->data + q->size))
+				q->out= q->data;
+
+			return(nbytes);
+		}
+		else{
+			/* Data are split in two parts */
+			nleft= nbytes;
+			data= data+ (q->data + q->size - q->out);
+			nleft= nleft - (q->data + q->size - q->out);
+			q->out= q->data;
+			q->out= q->out + nleft;
+			return(nbytes);
+		}
+	}
+	else{
+		dbytes= q->in - q->out;
+
+		if(nbytes > dbytes)
+			nbytes= dbytes;
+
+		memcpy(data, q->out, nbytes);
+		q->out= q->out + nbytes;
+
+		if(q->out == (q->data + q->size))
+			q->out= q->data;
+
+		return(nbytes);
+	}
+
+	/* Should never reach here, but avoid compiler warnings */
+	return(0);
+}
+
+
+
+/*
+ * Function: tcp_init()
+ *
+ * Initilizes a TCP structure
+ */
+
+int tcp_init(struct tcp *tcp){
+	memset(&(tcp->srcaddr), 0, sizeof(struct in6_addr));
+	memset(&(tcp->dstaddr), 0, sizeof(struct in6_addr));
+	tcp->srcport= 0;
+	tcp->dstport= 0;
+
+	tcp->in.in = tcp->in.data;
+	tcp->in.out= tcp->in.data;
+	tcp->in.size= sizeof(tcp->in.data);
+
+	tcp->rcv_nxt= 0;
+	tcp->rcv_nxtwnd= 0;
+
+	tcp->out.in= tcp->out.data;
+	tcp->out.out= tcp->out.data;
+	tcp->out.size= sizeof(tcp->out.data);
+
+	tcp->out_una= tcp->out.data;
+	tcp->out_nxt= tcp->out.data;
+
+	tcp->snd_una=0;
+	tcp->snd_nxtwnd=0;
+	
+	memset(&(tcp->time), 0, sizeof(struct timeval));
+	tcp->state= TCP_CLOSED;
+
+	tcp->ack= 0;
+	tcp->win= sizeof(tcp->in.data) - 1;
+
+	return(SUCCESS);
+}
+
+
+
+/*
+ * Function: tcp_open()
+ *
+ * Performs an open (active or passive) on a TCP socket
+ */
+
+int tcp_open(struct iface_data *idata, struct tcp *tcb, unsigned int mode){
+	if(mode == OPEN_ACTIVE){
+		tcb->state= TCP_SYN_SENT;
+		tcb->flags= TH_SYN;
+		tcb->snd_una= random();
+		tcb->snd_nxt= tcb->snd_una + 1;
+		tcb->pending_write_f= TRUE;
+		return(SUCCESS);
+	}
+	else if(mode == OPEN_PASSIVE){
+		tcb->state= TCP_LISTEN;
+		return(SUCCESS);
+	}
+
+	return(FAILURE);
+}
+
+
+/*
+ * Function: tcp_close()
+ *
+ * Performs a close on a TCP socket
+ */
+
+int tcp_close(struct iface_data *idata, struct tcp *tcb){
+	tcb->fin_flag= TRUE;
+	tcb->fin_seq= tcb->snd_nxt;
+	tcb->pending_write_f= TRUE;
+	return(SUCCESS);
+}
+
+
+/*
+ * Function: tcp_send()
+ *
+ * Sends data over TCP (actually copies it to the TCP send buffer)
+ */
+
+int tcp_send(struct iface_data *idata, struct tcp *tcb, unsigned char *data, unsigned int nbytes){
+	if(tcb->fin_flag == TRUE)
+		return(-1);
+	else
+		return(queue_data( &(tcb->out), data, nbytes));
+}
+
+
+/*
+ * Function: tcp_receive()
+ *
+ * Receive data from a TCP socket
+ */
+
+int tcp_receive(struct iface_data *idata, struct tcp *tcb, unsigned char *data, unsigned int nbytes){
+	unsigned int	r;
+
+	r= dequeue_data(&(tcb->in), data, nbytes);
+
+	if(r > 0)
+		tcb->pending_write_f= TRUE;
+
+	return(r);
+}
+
+
+/*
+ * Function: tcp_input()
+ *
+ * Processes an incoming TCP segment
+ */
+
+int tcp_input(struct iface_data *idata, struct tcp *tcb, const u_char *pktdata, struct pcap_pkthdr *pkthdr, struct packet *packet){
+	return(SUCCESS);
+}
+
+
+
+/*
+ * Function: tcp_output()
+ *
+ * Sends TCP segments as necessary
+ */
+
+int tcp_output(struct iface_data *idata, struct tcp *tcb, struct packet *packet, struct timeval *curtime){
+	/* Placeholder */
+	return(SUCCESS);
+}
+
+
+
+/*
+ * Function: is_valid_tcp_segment()
+ *
+ * Performs sanity checks on an incomming TCP/IPv6 segment
+ */
+
+int is_valid_tcp_segment(struct iface_data *idata, const u_char *pktdata, struct pcap_pkthdr *pkthdr){
+	struct ether_header	*pkt_ether;
+	struct ip6_hdr		*pkt_ipv6;
+	struct tcp_hdr		*pkt_tcp;
+	unsigned char		*pkt_end;
+
+	pkt_ether = (struct ether_header *) pktdata;
+	pkt_ipv6 = (struct ip6_hdr *)((char *) pkt_ether + idata->linkhsize);
+	pkt_tcp = (struct tcp_hdr *) ((char *) pkt_ipv6 + MIN_IPV6_HLEN);
+
+	pkt_end = (unsigned char *) pktdata + pkthdr->caplen;
+
+	/* XXX: We are assuming no extension headers on incoming packets -- this should be improved! */
+
+	/* The packet length is the minimum of what we capured, and what is specified in the
+	   IPv6 Total Lenght field
+	 */
+	if( pkt_end > ((unsigned char *)pkt_tcp + pkt_ipv6->ip6_plen) )
+		pkt_end = (unsigned char *)pkt_tcp + pkt_ipv6->ip6_plen;
+
+	/*
+	   Discard the packet if it is not of the minimum size to contain a TCP header
+	 */
+	if( (pkt_end - (unsigned char *) pkt_tcp) < sizeof(struct tcp_hdr)){
+		return FALSE;
+	}
+
+	/* Check that the TCP checksum is correct */
+	if(in_chksum(pkt_ipv6, pkt_tcp, pkt_end-((unsigned char *)pkt_tcp), IPPROTO_TCP) != 0){
+		return FALSE;
+	}
+
+
+	/* XXX: Should perform additional checks on the IPv6 header */
+	/*
+	   Sanity checks on the Source Address and the Destination Address
+	 */
+	if(IN6_IS_ADDR_UNSPECIFIED(&(pkt_ipv6->ip6_src)) || IN6_IS_ADDR_UNSPECIFIED(&(pkt_ipv6->ip6_dst))){
+		return FALSE;
+	}
+
+	if(IN6_IS_ADDR_MULTICAST(&(pkt_ipv6->ip6_src)) || IN6_IS_ADDR_MULTICAST(&(pkt_ipv6->ip6_dst))){
+		return FALSE;
+	}
+
+	return TRUE;
+}
 

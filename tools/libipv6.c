@@ -1831,12 +1831,12 @@ int send_neighbor_advert(struct iface_data *idata, pcap_t *pfd,  const u_char *p
  * Replace some escape sequences in a string
  */
 
-int string_escapes(char *data, unsigned int *datalen){
+int string_escapes(char *data, unsigned int *datalen, unsigned int maxlen){
 	char *org, *dst;
 	org=data;
 	dst=data;
 
-	while(org < (data+ *datalen)){
+	while(org < (data+ *datalen) && dst <= (data+maxlen)){
 		if(*org == '\\'){
 			if((org+1) < (data+ *datalen)){
 				org++;
@@ -2420,7 +2420,7 @@ int sel_next_hop(struct iface_data *idata){
 
 	close(sockfd);
 
-	if(idata->nhaddr_f && idata->nhifindex_f)
+	if(idata->nhifindex_f)
 		return(SUCCESS);
 	else
 		return(FAILURE);
@@ -2512,7 +2512,7 @@ int sel_next_hop(struct iface_data *idata){
 
 	close(sockfd);
 
-	if(idata->nhaddr_f && idata->nhifindex_f){
+	if(idata->nhifindex_f){
 		if(IN6_IS_ADDR_LINKLOCAL(&(idata->nhaddr))){
 			/* BSDs store the interface index in s6_addr16[1], so we must clear it */
 			idata->nhaddr.s6_addr16[1] =0;
@@ -2749,10 +2749,7 @@ struct iface_entry *find_matching_address(struct iface_data *idata, struct iface
 		}
 	}
 
-	if(mlen)
-		return(cif);
-	else
-		return(NULL);
+	return(cif);
 }
 
 
@@ -2954,9 +2951,9 @@ int sel_src_addr(struct iface_data *idata){
 
 
 /*
- * Function: sel_src_addr()
+ * Function: load_dst_and_pcap()
  *
- * Selects a Source Address for a given Destination
+ * Finds the Sorurce Address, Next-Hop, and outgoing interface for a given Destination Address
  */
 int load_dst_and_pcap(struct iface_data *idata, unsigned int mode){
 	struct iface_entry	*cif;
@@ -3087,7 +3084,7 @@ int load_dst_and_pcap(struct iface_data *idata, unsigned int mode){
 	}
 
 	if( (idata->pfd= pcap_open_live(idata->iface, PCAP_SNAP_LEN, PCAP_PROMISC, PCAP_TIMEOUT, errbuf)) == NULL){
-		printf("pcap_open_live(): %s\n", errbuf);
+		printf("pcap_open_live(%s): %s\n", idata->iface, errbuf);
 		return(FAILURE);
 	}
 
@@ -3121,13 +3118,15 @@ int load_dst_and_pcap(struct iface_data *idata, unsigned int mode){
 		return(SUCCESS);
 
 	if(idata->flags != IFACE_TUNNEL && idata->flags != IFACE_LOOPBACK){
-		if(ipv6_to_ether(idata->pfd, idata, &(idata->nhaddr), &(idata->nhhaddr)) != 1){
-			puts("Error while performing Neighbor Discovery for the Destination Address");
-			return(FAILURE);
+		if(!idata->nhaddr_f){
+			if(ipv6_to_ether(idata->pfd, idata, &(idata->nhaddr), &(idata->nhhaddr)) != 1){
+				puts("Error while performing Neighbor Discovery for the Destination Address");
+				return(FAILURE);
+			}
 		}
-	}
 
-	idata->hdstaddr= idata->nhhaddr;
+		idata->hdstaddr= idata->nhhaddr;
+	}
 
 	return(SUCCESS);
 }

@@ -471,6 +471,13 @@ struct ni_reply_name {
 #endif
 
 
+struct packet{
+	unsigned char	*link;
+	unsigned char	*ipv6;
+	unsigned char	*upper;
+	unsigned long	maxsize;
+};
+
 struct iface_data{
 	char				iface[IFACE_LENGTH];
 	unsigned char		iface_f;
@@ -625,7 +632,7 @@ int					sel_next_hop(struct iface_data *);
 int					sel_next_hop_ra(struct iface_data *);
 void				sig_alarm(int);
 struct in6_addr		solicited_node(const struct in6_addr *);
-int					string_escapes(char *, unsigned int *);
+int					string_escapes(char *, unsigned int *, unsigned int);
 size_t				Strnlen(const char *, size_t);
 
 
