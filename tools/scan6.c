@@ -268,7 +268,9 @@ int main(int argc, char **argv){
 		{"tgt-virtual-machines", required_argument, 0, 'V'},
 		{"tgt-low-byte", no_argument, 0, 'b'},
 		{"tgt-ipv4", required_argument, 0, 'B'},
+		{"tgt-ipv4-embedded", required_argument, 0, 'B'},
 		{"tgt-port", no_argument, 0, 'g'},
+		{"tgt-port-embedded", no_argument, 0, 'g'},
 		{"tgt-ieee-oui", required_argument, 0, 'k'},
 		{"tgt-vendor", required_argument, 0, 'K'},
 		{"tgt-iids-file", required_argument, 0, 'w'},
@@ -1106,9 +1108,24 @@ int main(int argc, char **argv){
 		dst_f=TRUE;
 	}
 
-	if(load_dst_and_pcap(&idata, LOAD_SRC_NXT_HOP) == FAILURE){
-		puts("Error while learning Souce Address and Next Hop");
+	if(!dst_f && !scan_local_f){
+		if(idata.verbose_f)
+			puts("Must specify either a destination prefix ('-d'), or a local scan ('-L')");
+
 		exit(EXIT_FAILURE);
+	}
+
+	if(!scan_local_f){
+		if(load_dst_and_pcap(&idata, LOAD_SRC_NXT_HOP) == FAILURE){
+			puts("Error while learning Souce Address and Next Hop");
+			exit(EXIT_FAILURE);
+		}
+	}
+	else{
+		if(load_dst_and_pcap(&idata, LOAD_PCAP_ONLY) == FAILURE){
+			puts("Error while learning Souce Address and Next Hop");
+			exit(EXIT_FAILURE);
+		}
 	}
 
 	release_privileges();
@@ -1176,13 +1193,6 @@ int main(int argc, char **argv){
 	if(loop_f && !dst_f){
 		puts("Loop mode '-l' set, but no targets ('-d') specified!");
 		puts("Note: '-l' option changed since IPv6 toolkit v1.3.4!");
-	}
-
-	if(!dst_f && !scan_local_f){
-		if(idata.verbose_f)
-			puts("Must specify either a destination prefix ('-d'), or a local scan ('-L')");
-
-		exit(EXIT_FAILURE);
 	}
 
 	if(dst_f && !(tgt_ipv4mapped32_f || tgt_ipv4mapped64_f || tgt_lowbyte_f || tgt_oui_f || tgt_vendor_f || \
