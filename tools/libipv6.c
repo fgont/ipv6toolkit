@@ -2273,7 +2273,6 @@ int send_neighbor_solicit(struct iface_data *idata, struct in6_addr *target){
 }
 
 
-
 #ifdef __linux__
 /*
  * Function: sel_next_hop()
@@ -2389,8 +2388,13 @@ int sel_next_hop(struct iface_data *idata){
 			for(rtap = (struct rtattr *) RTM_RTA(rtp), rtl = RTM_PAYLOAD(nlp); RTA_OK(rtap, rtl); rtap = RTA_NEXT(rtap,rtl)) {
 				switch(rtap->rta_type){
 					case RTA_DST:
+						/* XXX
+						   If Destination is different from Destination Address, this just means that we need to send
+						   our packets to a local router
+
 						if(!is_eq_in6_addr(&(idata->dstaddr), (struct in6_addr *) RTA_DATA(rtap)))
 							skip_f=1;
+						*/
 
 						break;
 
@@ -2420,12 +2424,13 @@ int sel_next_hop(struct iface_data *idata){
 
 	close(sockfd);
 
-	if(idata->nhifindex_f)
+	if(idata->nhifindex_f){
+		idata->nh_f=TRUE;
 		return(SUCCESS);
+	}
 	else
 		return(FAILURE);
 }
-
 #elif defined (__FreeBSD__) || defined(__NetBSD__) || defined (__OpenBSD__) || defined(__APPLE__)
 /*
  * Function: sel_next_hop()
@@ -2776,8 +2781,6 @@ unsigned int ip6_longest_match(struct in6_addr *addr1, struct in6_addr *addr2){
 }
 
 
-
-
 /*
  * Function: sel_src_addr()
  *
@@ -3118,18 +3121,17 @@ int load_dst_and_pcap(struct iface_data *idata, unsigned int mode){
 		return(SUCCESS);
 
 	if(idata->flags != IFACE_TUNNEL && idata->flags != IFACE_LOOPBACK){
-		if(!idata->nhaddr_f){
-			if(ipv6_to_ether(idata->pfd, idata, &(idata->nhaddr), &(idata->nhhaddr)) != 1){
-				puts("Error while performing Neighbor Discovery for the Destination Address");
-				return(FAILURE);
-			}
+		if(ipv6_to_ether(idata->pfd, idata, &(idata->nhaddr), &(idata->nhhaddr)) != 1){
+			puts("Error while performing Neighbor Discovery for the Destination Address");
+			return(FAILURE);
 		}
-
-		idata->hdstaddr= idata->nhhaddr;
 	}
+
+	idata->hdstaddr= idata->nhhaddr;
 
 	return(SUCCESS);
 }
+
 
 
 /*
