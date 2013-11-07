@@ -277,7 +277,7 @@ struct tcp_hdr{
  * TCP header.
  * Per RFC 793, September, 1981.
  */
-struct tcphdr {
+struct tcp_hdr {
 	u_int16_t th_sport;		/* source port */
 	u_int16_t th_dport;		/* destination port */
 	tcp_seq	  th_seq;		/* sequence number */
