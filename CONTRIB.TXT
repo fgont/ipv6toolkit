@@ -50,5 +50,9 @@ The following indviduals provided great help in identifying bugs in the the
 toolkit (thus leading to fixes and improvements):
 
     Stephane Bortzmeyer <stephane@bortzmeyer.org>
+    Marc Heuse <mh@mh-sec.de>
+    Tim <tim-security@sentinelchicken.org>
+    Erik Muller <erikm@buh.org>
+
 
 
