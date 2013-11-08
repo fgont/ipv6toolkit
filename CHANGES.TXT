@@ -1,3 +1,7 @@
+SI6 Networks IPv6 Toolkit v1.5.1
+   * Fix Mac OS breakage
+     libipv6.h had incorrect definitions for "struct tcp_hdr".
+
 SI6 Networks IPv6 Toolkit v1.5
 
    * All: Improved the next-hop determination
