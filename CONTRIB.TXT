@@ -7,8 +7,9 @@ The following people sent patches that were incorporated into this release
 of the toolkit:
 
     Octavio Alvarez <alvarezp@alvarezp.com>
-    Alistair Crooks <agc@pkgsrc.org>
     Alexander Bluhm <bluhm@openbsd.org>
+    Alistair Crooks <agc@pkgsrc.org>
+    Declan A Rieb   <darieb@sandia.gov>
 
 
 ** Package maintainers **
@@ -51,8 +52,7 @@ toolkit (thus leading to fixes and improvements):
 
     Stephane Bortzmeyer <stephane@bortzmeyer.org>
     Marc Heuse <mh@mh-sec.de>
-    Tim <tim-security@sentinelchicken.org>
     Erik Muller <erikm@buh.org>
-
-
+    Declan A Rieb <darieb@sandia.gov>
+    Tim <tim-security@sentinelchicken.org>
 
