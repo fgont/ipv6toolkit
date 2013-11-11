@@ -33,6 +33,11 @@ These are the maintainers for each of the different packages:
 
     Robin H. Johnson <robbat2@gentoo.org>
 
+  + Mac OS
+
+    Declan A Rieb <darieb@sandia.gov> tests the toolkit on multiple Mac OS
+    versions, to ensure clean compiles on such platforms.
+
   + NetBSD (pkgsrc framework)
 
     Alistair Crooks <agc@pkgsrc.org>
