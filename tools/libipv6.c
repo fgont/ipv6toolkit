@@ -629,15 +629,21 @@ int ether_ntop(const struct ether_addr *ether, char *ascii, size_t s){
 
 void ether_to_ipv6_linklocal(struct ether_addr *etheraddr, struct in6_addr *ipv6addr){
 	unsigned int i;
-	ipv6addr->s6_addr16[0]= htons(0xfe80); /* Link-local unicast prefix */
+	ipv6addr->s6_addr[0] = 0xfe; /* Link-local unicast prefix */
+	ipv6addr->s6_addr[1] = 0x80;
 
-	for(i=1;i<4;i++)
-		ipv6addr->s6_addr16[i]=0x0000;
+	for(i=2;i<8;i++)
+		ipv6addr->s6_addr[i]=0x00;
 
-	ipv6addr->s6_addr16[4]=  htons(((u_int16_t)etheraddr->a[0] << 8) | etheraddr->a[1]);
-	ipv6addr->s6_addr16[5]=  htons( ((u_int16_t)etheraddr->a[2] << 8) | 0xff);
-	ipv6addr->s6_addr16[6]=  htons((u_int16_t) 0xfe00 | etheraddr->a[3]);
-	ipv6addr->s6_addr16[7]=  htons(((u_int16_t)etheraddr->a[4] << 8) | etheraddr->a[5]);
+	ipv6addr->s6_addr[9]=  etheraddr->a[0];
+	ipv6addr->s6_addr[10]=  etheraddr->a[1];
+	ipv6addr->s6_addr[11]=  etheraddr->a[2];
+	ipv6addr->s6_addr[12]=  0xff;
+	ipv6addr->s6_addr[13]=  0xfe;
+	ipv6addr->s6_addr[14]=  etheraddr->a[3];
+	ipv6addr->s6_addr[15]=  etheraddr->a[4];
+	ipv6addr->s6_addr[16]=  etheraddr->a[5];
+
 }
 
 
