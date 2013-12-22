@@ -450,7 +450,7 @@ int find_ipv6_router_full(pcap_t *pfd, struct iface_data *idata){
 			   Check that the IPv6 Source Address of the Router Advertisement is an IPv6 link-local
 			   address.
 			 */
-			if( (pkt_ipv6->ip6_src.s6_addr16[0] & htons(0xffc0)) != htons(0xfe80))
+			if( (pkt_ipv6->ip6_src.s6_addr[0] != 0xff || (pkt_ipv6->ip6_src.s6_addr[1] & 0xc0) != 0x80))
 				continue;
 
 			/* 
