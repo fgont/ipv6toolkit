@@ -287,6 +287,31 @@ This option specifies the rate limit to use when performing a remote address sca
 This instructs the tcp6 tool to operate in listening mode (possibly after attacking a given node). Note that this option cannot be used in conjunction with the "\-l" ("\-\-loop") option.
 
 .TP
+.BI \-p\   PROBE_MODE ,\ \-\-probe\-mode\  PROBE_MODE
+
+This option instructs tcp6 to operate in probe mode. The specific probe mode is specified as an argument to this option (currently, only "script" mode is supported). In probe mode, 
+.B tcp6 
+sends probe segments, and waits for response packets. The response packets are decoded based on the selected probe mode.
+
+In the "script" probe mode, the tool decodes TCP segments as follows:
+
+     RESPONSE:RESPONSE_TYPE:RESPONSE_DECODE...
+
+Where the string RESPONSE is fixed, and RESPONSE_TYPE indicates the response received. As of this version of the tool, the following RESPONSE_TYPE values are supported:
+
+   \+ TCP6: Indicates that the tool received a TCP/IPv6 packet
+   \+ TIMEOUT: Indicates that the tool received no response
+
+If RESPONSE_TYPE is TCP6, RESPONSE code contains the TCP flags set in the receive TCP segment. The TCP flags are encoded as "F" (FIN), "S" (SYN), "R" (RST), "P" (PSH), "A" (ACK), and "U" (URG).
+
+Possibe output lines of the tool are:
+
+    RESPONSE:TIMEOUT:
+    RESPONSE:TCP6:RA:
+
+Note: Future versions of the tool will also decode ICMPv6 error messages, and will include additional data regarding the incoming TCP segments (e.g., ACK value, payload size, etc.).
+
+.TP
 .BR \-v\| ,\  \-\-verbose 
 
 This option instructs the tcp6 tool to be verbose.  When the option is set twice, the tool is "very verbose", and the tool also informs which packets have been accepted or discarded as a result of applying the specified filters. 
@@ -335,6 +360,13 @@ will send an HTTP application request.
 # tcp6 \-i eth0 \-d fc00:1::1 \-a 80 \-L \-s fc00:1::/112 \-l \-r 1000pps \-\-tcp\-flags auto \-v \-\-data "GET / HTTP/1.0\\r\\n\\r\\n" \-\-flood\-ports 10 \-\-window\-mode close
 
 Flood the target node (fc00:1::1) with TCP connections (on port 80). On each connection that is established, an HTTP request is sent, and the TCP window is immediately closed. For each forged IPv6 source address ten different TCP source ports are randomized. The bandwidth of the attack is limited to 1000 pps.
+
+
+\fBExample #5\fR
+
+# tcp6 \-d fc00:1::1 \-a 80 \-\-tcp\-flags A \-\-dst-opt-hdr 8 \-\-payload\-size 50 \-\-probe\-mode script
+
+Send a probe TCP segment to TCP port 80 at fc00:1::1. The probe packet consists of an IPv6 packet with a Destination Options header of 8 bytes, and an IPv6 payload consisting of a TCP segment with the ACK bit set, and 50 data bytes. The probe mode is "script".
 
 
 .SH SEE ALSO
