@@ -2318,9 +2318,9 @@ int sel_next_hop(struct iface_data *idata){
 	req.nl.nlmsg_len = NLMSG_LENGTH(sizeof(struct rtmsg));
 	req.nl.nlmsg_flags = NLM_F_REQUEST;
 	req.nl.nlmsg_type = RTM_GETROUTE;
-    req.rt.rtm_family= AF_INET6;
+	req.rt.rtm_family= AF_INET6;
 
-    rtap = (struct rtattr *) req.buf;
+	rtap = (struct rtattr *) req.buf;
 
 	/* Destination Address */
 	if(idata->dstaddr_f){
@@ -2971,7 +2971,8 @@ int load_dst_and_pcap(struct iface_data *idata, unsigned int mode){
 			randomize_ipv6_addr(&(idata->srcaddr), &randprefix, randpreflen);
 			idata->srcaddr_f=1;
 		}
-		else if(!idata->srcaddr_f){
+
+		if(!idata->srcaddr_f){
 			if(get_local_addrs(idata) == FAILURE){
 				puts("Error while obtaining local addresses");
 				return(FAILURE);
