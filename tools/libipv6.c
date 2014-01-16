@@ -900,9 +900,9 @@ int ipv6_to_ether(pcap_t *pfd, struct iface_data *idata, struct in6_addr *target
 	canjump=1;
 
 	while(tries<3 && !foundaddr && !error_f){
-		if((nw=pcap_inject(pfd, buffer, ptr - buffer)) == -1){
+		if((nw=pcap_inject(idata->pfd, buffer, ptr - buffer)) == -1){
 			if(idata->verbose_f>1)
-				printf("pcap_inject(): %s\n", pcap_geterr(pfd));
+				printf("pcap_inject(): %s\n", pcap_geterr(idata->pfd));
 
 			error_f=1;
 			break;
@@ -920,7 +920,7 @@ int ipv6_to_ether(pcap_t *pfd, struct iface_data *idata, struct in6_addr *target
 		
 		while(!foundaddr && !error_f){
 			do{
-				if( (result=pcap_next_ex(pfd, &pkthdr, &pktdata)) == -1){
+				if( (result=pcap_next_ex(idata->pfd, &pkthdr, &pktdata)) == -1){
 					if(idata->verbose_f>1)
 						printf("pcap_next_ex(): %s", pcap_geterr(pfd));
 
