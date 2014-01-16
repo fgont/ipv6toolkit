@@ -1,3 +1,13 @@
+SI6 Networks IPv6 Toolkit v1.5.2
+
+   * All: Add support for GNU Debian/kfreebsd
+     The toolkit would not build on GNU Debian/kfreebsd before this release.
+
+   * tcp6: Add support for TCP/IPv6 probes
+     tcp6 can now send TCP/IPv6 packets ("--probe-mode" option), and read the 
+     TCP response packets, if any. This can be leveraged for port scans, and
+     miscellaneous measurements.
+
 SI6 Networks IPv6 Toolkit v1.5.1
    * Fix Mac OS breakage
      libipv6.h had incorrect definitions for "struct tcp_hdr".
