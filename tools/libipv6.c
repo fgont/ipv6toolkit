@@ -18,7 +18,7 @@
 	#include <linux/netlink.h>
 	#include <linux/rtnetlink.h>
 	#include <netpacket/packet.h>   /* For datalink structure */
-#elif defined (__FreeBSD__) || defined(__NetBSD__) || defined (__OpenBSD__) || defined(__APPLE__)
+#elif defined (__FreeBSD__) || defined(__NetBSD__) || defined (__OpenBSD__) || defined(__APPLE__) || defined(__FreeBSD_kernel__)
 	#include <net/if_dl.h>
 	#include <net/route.h>
 #endif
@@ -1087,7 +1087,7 @@ int get_if_addrs(struct iface_data *idata){
 
 #ifdef __linux__
 	struct sockaddr_ll	*sockpptr;
-#elif defined (__FreeBSD__) || defined(__NetBSD__) || defined (__OpenBSD__) || defined(__APPLE__)
+#elif defined (__FreeBSD__) || defined(__NetBSD__) || defined (__OpenBSD__) || defined(__APPLE__) || defined(__FreeBSD_kernel__)
 	struct sockaddr_dl	*sockpptr;
 #endif
 
@@ -1112,7 +1112,7 @@ int get_if_addrs(struct iface_data *idata){
 				}
 			}
 		}
-#elif defined (__FreeBSD__) || defined(__NetBSD__) || defined (__OpenBSD__) || defined(__APPLE__)
+#elif defined (__FreeBSD__) || defined(__NetBSD__) || defined (__OpenBSD__) || defined(__APPLE__) || defined(__FreeBSD_kernel__)
 		if( !(idata->ether_flag) && ((ptr->ifa_addr)->sa_family == AF_LINK)){
 			if(strncmp(idata->iface, ptr->ifa_name, IFACE_LENGTH-1) == 0){
 				sockpptr = (struct sockaddr_dl *) (ptr->ifa_addr);
@@ -1130,7 +1130,7 @@ int get_if_addrs(struct iface_data *idata){
 															== htons(0xfe80))){
 				if(strncmp(idata->iface, ptr->ifa_name, IFACE_LENGTH-1) == 0){
 					idata->ip6_local = sockin6ptr->sin6_addr;
-#if defined (__FreeBSD__) || defined(__NetBSD__) || defined (__OpenBSD__) || defined(__APPLE__)
+#if defined (__FreeBSD__) || defined(__NetBSD__) || defined (__OpenBSD__) || defined(__APPLE__) || defined(__FreeBSD_kernel__)
 					/* BSDs store the interface index in s6_addr16[1], so we must clear it */
 					idata->ip6_local.s6_addr16[1] =0;
 					idata->ip6_local.s6_addr16[2] =0;
@@ -2431,7 +2431,7 @@ int sel_next_hop(struct iface_data *idata){
 	else
 		return(FAILURE);
 }
-#elif defined (__FreeBSD__) || defined(__NetBSD__) || defined (__OpenBSD__) || defined(__APPLE__)
+#elif defined (__FreeBSD__) || defined(__NetBSD__) || defined (__OpenBSD__) || defined(__APPLE__) || defined(__FreeBSD_kernel__)
 /*
  * Function: sel_next_hop()
  *
@@ -2548,7 +2548,7 @@ int get_local_addrs(struct iface_data *idata){
 
 #ifdef __linux__
 	struct sockaddr_ll	*sockpptr;
-#elif defined (__FreeBSD__) || defined(__NetBSD__) || defined (__OpenBSD__) || defined(__APPLE__)
+#elif defined (__FreeBSD__) || defined(__NetBSD__) || defined (__OpenBSD__) || defined(__APPLE__) || defined(__FreeBSD_kernel__)
 	struct sockaddr_dl	*sockpptr;
 #endif
 
@@ -2584,7 +2584,7 @@ int get_local_addrs(struct iface_data *idata){
 
 			cif->ifindex= sockpptr->sll_ifindex;
 		}
-#elif defined (__FreeBSD__) || defined(__NetBSD__) || defined (__OpenBSD__) || defined(__APPLE__)
+#elif defined (__FreeBSD__) || defined(__NetBSD__) || defined (__OpenBSD__) || defined(__APPLE__) || defined(__FreeBSD_kernel__)
 		if((ptr->ifa_addr)->sa_family == AF_LINK){
 			sockpptr = (struct sockaddr_dl *) (ptr->ifa_addr);
 			if(sockpptr->sdl_alen == ETHER_ADDR_LEN){
@@ -2615,7 +2615,7 @@ int get_local_addrs(struct iface_data *idata){
 				(cif->ip6_local.prefix[cif->ip6_local.nprefix])->len = 128;
 				(cif->ip6_local.prefix[cif->ip6_local.nprefix])->ip6 = sockin6ptr->sin6_addr;
 
-#if defined (__FreeBSD__) || defined(__NetBSD__) || defined (__OpenBSD__) || defined(__APPLE__)
+#if defined (__FreeBSD__) || defined(__NetBSD__) || defined (__OpenBSD__) || defined(__APPLE__) || defined(__FreeBSD_kernel__)
 					/* BSDs store the interface index in s6_addr16[1], so we must clear it */
 				(cif->ip6_local.prefix[cif->ip6_local.nprefix])->ip6.s6_addr16[1] =0;
 				(cif->ip6_local.prefix[cif->ip6_local.nprefix])->ip6.s6_addr16[2] =0;

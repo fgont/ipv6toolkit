@@ -240,7 +240,7 @@ struct ether_header
 typedef	u_int32_t tcp_seq;
 
 
-#ifdef __linux__
+#if defined(__linux__) || ( !defined(__FreeBSD__) && defined(__FreeBSD_kernel__))
 /* Linux definition */
 
 /*
