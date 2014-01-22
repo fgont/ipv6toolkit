@@ -2731,7 +2731,7 @@ int load_vendor_entries(struct scan_list *scan, struct scan_entry *dst, char *ve
 		if( (( (char *)line + lines) - charptr) >= OUI_HEX_STRING_SIZE){
 
 			/* If we find the "(hex)" string, we must skip it */
-			if( bcmp(oui_hex_string, charptr, OUI_HEX_STRING_SIZE) == 0)
+			if( memcmp(oui_hex_string, charptr, OUI_HEX_STRING_SIZE) == 0)
 				charptr+= OUI_HEX_STRING_SIZE;
 
 			/* Now we mst skip any whitespaces between the "(hex)" string and the vendor name */
