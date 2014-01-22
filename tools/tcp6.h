@@ -45,8 +45,8 @@
 
 
 /* Constants for debug mode */
-#define DEBUG_DUMP			1
-#define DEBUG_SCRIPT		2
+#define PROBE_DUMP			1
+#define PROBE_SCRIPT		2
 
 /* Constants for TCP buffers */
 #define TCP_BUFFER_SIZE			65535
