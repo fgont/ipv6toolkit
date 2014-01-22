@@ -160,9 +160,9 @@ int main(int argc, char **argv){
 		{"help", no_argument, 0, 'h'}
 	};
 
-    char shortopts[]= "i:s:d:A:u:U:H:y:S:D:t:roceE:j:k:J:K:w:b:g:B:G:W:T:F:lz:vhL";
+	char shortopts[]= "i:s:d:A:u:U:H:y:S:D:t:roceE:j:k:J:K:w:b:g:B:G:W:T:F:lz:vhL";
 
-    char option;
+	char option;
 
 	if(argc<=1){
 		usage();
@@ -1125,7 +1125,7 @@ void init_packet_data(struct iface_data *idata){
 			tllaopt = (struct nd_opt_tlla *) ptr;
 			tllaopt->type= ND_OPT_TARGET_LINKADDR;
 			tllaopt->length= TLLA_OPT_LEN;
-			bcopy(linkaddr[0].a, tllaopt->address, ETH_ALEN);
+			memcpy(tllaopt->address, linkaddr[0].a, ETH_ALEN);
 			ptr += sizeof(struct nd_opt_tlla);
 		}
 		else{
@@ -1251,7 +1251,7 @@ int send_packet(struct iface_data *idata, struct pcap_pkthdr *pkthdr, const u_ch
 			}
 	    
 			if(tllaopt_f && !tllaopta_f){
-				bcopy(ethernet->src.a, tllaopt->address, ETH_ALEN);
+				memcpy(tllaopt->address, ethernet->src.a, ETH_ALEN);
 			}
 		}
 
@@ -1304,7 +1304,7 @@ int send_packet(struct iface_data *idata, struct pcap_pkthdr *pkthdr, const u_ch
 					tllaopt = (struct nd_opt_tlla *) ptr;
 					tllaopt->type= ND_OPT_TARGET_LINKADDR;
 					tllaopt->length= TLLA_OPT_LEN;
-					bcopy(linkaddr[linkaddrs].a, tllaopt->address, ETH_ALEN);
+					memcpy(tllaopt->address, linkaddr[linkaddrs].a, ETH_ALEN);
 					ptr += sizeof(struct nd_opt_tlla);
 					linkaddrs++;
 					newdata_f=1;

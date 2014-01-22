@@ -112,7 +112,7 @@ int dns_decode(unsigned char *start, unsigned int size, unsigned char *ptr, \
 					return(0);
 				}
 				else{
-					bcopy( (ptr+1), w, *ptr);
+					memcpy(w, (ptr+1), *ptr);
 					w= w + *ptr;
 					*w= '.';
 					w++;
@@ -186,7 +186,7 @@ int dns_str2wire(char *str, unsigned int slen, char *wire, unsigned int wlen){
 		
 		*dst= llen;
 		dst++;
-		bcopy(label, dst, llen);
+		memcpy(dst, label, llen);
 		dst+= llen;		
 
 		if(*src == 0){
@@ -358,7 +358,7 @@ int find_ipv6_router_full(pcap_t *pfd, struct iface_data *idata){
 
 	sllaopt->type= ND_OPT_SOURCE_LINKADDR;
 	sllaopt->length= SLLA_OPT_LEN;
-	bcopy( &(idata->ether.a), sllaopt->address, ETH_ALEN);
+	memcpy(sllaopt->address, &(idata->ether.a), ETH_ALEN);
 	ptr += sizeof(struct nd_opt_slla);
 
 	ipv6->ip6_plen = htons((ptr - v6buffer) - MIN_IPV6_HLEN);
@@ -872,7 +872,7 @@ int ipv6_to_ether(pcap_t *pfd, struct iface_data *idata, struct in6_addr *target
 
 	sllaopt->type= ND_OPT_SOURCE_LINKADDR;
 	sllaopt->length= SLLA_OPT_LEN;
-	bcopy( &(idata->ether.a), sllaopt->address, ETH_ALEN);
+	memcpy(sllaopt->address, &(idata->ether.a), ETH_ALEN);
 	ptr += sizeof(struct nd_opt_slla);
 
 	ipv6->ip6_plen = htons((ptr - v6buffer) - MIN_IPV6_HLEN);
@@ -1720,7 +1720,7 @@ int send_neighbor_advert(struct iface_data *idata, pcap_t *pfd,  const u_char *p
 		tllaopt = (struct nd_opt_tlla *) ptr;
 		tllaopt->type= ND_OPT_TARGET_LINKADDR;
 		tllaopt->length= TLLA_OPT_LEN;
-		bcopy(idata->ether.a, tllaopt->address, ETH_ALEN);
+		memcpy(tllaopt->address, idata->ether.a, ETH_ALEN);
 		ptr += sizeof(struct nd_opt_tlla);
 	}
 	else{
@@ -2248,7 +2248,7 @@ int send_neighbor_solicit(struct iface_data *idata, struct in6_addr *target){
 
 	sllaopt->type= ND_OPT_SOURCE_LINKADDR;
 	sllaopt->length= SLLA_OPT_LEN;
-	bcopy( &(idata->ether.a), sllaopt->address, ETH_ALEN);
+	memcpy(sllaopt->address, &(idata->ether.a), ETH_ALEN);
 	ptr += sizeof(struct nd_opt_slla);
 
 	ipv6->ip6_plen = htons((ptr - v6buffer) - MIN_IPV6_HLEN);
@@ -3513,7 +3513,7 @@ int find_ipv6_router(pcap_t *pfd, struct ether_addr *hsrcaddr, struct in6_addr *
 
 	sllaopt->type= ND_OPT_SOURCE_LINKADDR;
 	sllaopt->length= SLLA_OPT_LEN;
-	bcopy( &(hsrcaddr->a), sllaopt->address, ETH_ALEN);
+	memcpy(sllaopt->address, &(hsrcaddr->a), ETH_ALEN);
 	ptr += sizeof(struct nd_opt_slla);
 
 	ipv6->ip6_plen = htons((ptr - v6buffer) - MIN_IPV6_HLEN);

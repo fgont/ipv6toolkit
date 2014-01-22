@@ -1550,7 +1550,7 @@ void send_packet(struct iface_data *idata, const u_char *pktdata, struct pcap_pk
 						exit(EXIT_FAILURE);
 					}
 
-					bcopy(pkt_ipv6, ptr, rhbytes);
+					memcpy(ptr, pkt_ipv6, rhbytes);
 					ptr+= rhbytes;
 				}
 				else{
@@ -1597,11 +1597,11 @@ void send_packet(struct iface_data *idata, const u_char *pktdata, struct pcap_pk
 						rhtcp->th_sum = random();
 
 						if(rhbytes <= (MIN_IPV6_HLEN + MIN_TCP_HLEN)){
-							bcopy(rhbuff, ptr, rhbytes);
+							memcpy(ptr, rhbuff, rhbytes);
 							ptr+= rhbytes;
 						}
 						else{
-							bcopy(rhbuff, ptr, MIN_IPV6_HLEN+MIN_TCP_HLEN);
+							memcpy(ptr, rhbuff, MIN_IPV6_HLEN+MIN_TCP_HLEN);
 							ptr += MIN_IPV6_HLEN+MIN_TCP_HLEN;
 							rhbytes -= MIN_IPV6_HLEN+MIN_TCP_HLEN;
 
@@ -1622,11 +1622,11 @@ void send_packet(struct iface_data *idata, const u_char *pktdata, struct pcap_pk
 						rhudp->uh_sum= random();
 
 						if(rhbytes <= (MIN_IPV6_HLEN + MIN_UDP_HLEN)){
-							bcopy(rhbuff, ptr, rhbytes);
+							memcpy(ptr, rhbuff, rhbytes);
 							ptr+= rhbytes;
 						}
 						else{
-							bcopy(rhbuff, ptr, MIN_IPV6_HLEN+MIN_UDP_HLEN);
+							memcpy(ptr, rhbuff, MIN_IPV6_HLEN+MIN_UDP_HLEN);
 							ptr += MIN_IPV6_HLEN+MIN_UDP_HLEN;
 							rhbytes -= MIN_IPV6_HLEN+MIN_UDP_HLEN;
 							while(rhbytes>=4){
@@ -1646,11 +1646,11 @@ void send_packet(struct iface_data *idata, const u_char *pktdata, struct pcap_pk
 						rhicmp6->icmp6_data16[1]= random(); /* Sequence Number */
 
 						if(rhbytes <= (MIN_IPV6_HLEN + MIN_ICMP6_HLEN)){
-							bcopy(rhbuff, ptr, rhbytes);
+							memcpy(ptr, rhbuff, rhbytes);
 							ptr+= rhbytes;
 						}
 						else{
-							bcopy(rhbuff, ptr, MIN_IPV6_HLEN+MIN_ICMP6_HLEN);
+							memcpy(ptr, rhbuff, MIN_IPV6_HLEN+MIN_ICMP6_HLEN);
 							ptr += MIN_IPV6_HLEN+MIN_ICMP6_HLEN;
 							rhbytes -= MIN_IPV6_HLEN+MIN_ICMP6_HLEN;
 							while(rhbytes>=4){

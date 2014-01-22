@@ -673,7 +673,7 @@ void init_packet_data(struct iface_data *idata){
         	sllaopt = (struct nd_opt_slla *) ptr;
         	sllaopt->type= ND_OPT_SOURCE_LINKADDR;
         	sllaopt->length= SLLA_OPT_LEN;
-        	bcopy(linkaddr[0].a, sllaopt->address, ETH_ALEN);
+        	memcpy(sllaopt->address, linkaddr[0].a, ETH_ALEN);
         	ptr += sizeof(struct nd_opt_slla);
         }
         else{
@@ -739,7 +739,7 @@ void send_packet(struct iface_data *idata){
 				   specified we set it to the randomized Ethernet Source Address
 				 */
 				if(sllopt_f && !sllopta_f){
-					bcopy(ethernet->src.a, sllaopt->address, ETH_ALEN);
+					memcpy(sllaopt->address, ethernet->src.a, ETH_ALEN);
 				}
 			}
 		}
@@ -757,7 +757,7 @@ void send_packet(struct iface_data *idata){
 				sllaopt = (struct nd_opt_slla *) ptr;
 				sllaopt->type= ND_OPT_SOURCE_LINKADDR;
 				sllaopt->length= SLLA_OPT_LEN;
-				bcopy(linkaddr[linkaddrs].a, sllaopt->address, ETH_ALEN);
+				memcpy(sllaopt->address, linkaddr[linkaddrs].a, ETH_ALEN);
 				ptr += sizeof(struct nd_opt_slla);
 				linkaddrs++;
 				newdata_f=1;

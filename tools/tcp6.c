@@ -90,9 +90,9 @@ unsigned char		data_f=0, senddata_f=0, useaddrkey_f=0, window_f=0, winmodulate_f
 unsigned char		srcport_f=0, dstport_f=0;
 unsigned char		tcpseq_f=0, tcpack_f=0, tcpurg_f=0, tcpflags_f=0, tcpwin_f=0;
 unsigned char		rhbytes_f=0, tcpflags_auto_f=0, tcpopen_f=0, tcpclose_f=0;
-unsigned char		pps_f=0, bps_f=0, debug_f=0, probe_f=0, retrans_f=0, rto_f=0;
+unsigned char		pps_f=0, bps_f=0, probemode_f=0, retrans_f=0, rto_f=0;
 unsigned char		ackdata_f=1, ackflags_f=1;
-unsigned int		debug, tcpopen=0, tcpclose=0, win1_size=0, win2_size=0, window=0, time1_len=0, time2_len=0;
+unsigned int		probemode, tcpopen=0, tcpclose=0, win1_size=0, win2_size=0, window=0, time1_len=0, time2_len=0;
 
 u_int16_t			srcport, dstport, tcpurg, tcpwin, tcpwinm;
 unsigned int		retrans, rto;
@@ -231,14 +231,13 @@ int main(int argc, char **argv){
 		{"rate-limit", required_argument, 0, 'r'},
 		{"sleep", required_argument, 0, 'z'},
 		{"listen", no_argument, 0, 'L'},
-		{"probe", no_argument, 0, 'p'},
+		{"probe-mode", required_argument, 0, 'p'},
 		{"retrans", required_argument, 0, 'x'},
 		{"verbose", no_argument, 0, 'v'},
-		{"debug", required_argument, 0, 'Y'},
 		{"help", no_argument, 0, 'h'}
 	};
 
-	char shortopts[]= "i:s:d:A:c:C:Z:u:U:H:y:S:D:P:o:a:X:q:Q:V:w:W:M:Nnj:k:J:K:b:g:B:G:F:T:fRlr:z:Lpx:vyY:h";
+	char shortopts[]= "i:s:d:A:c:C:Z:u:U:H:y:S:D:P:o:a:X:q:Q:V:w:W:M:Nnj:k:J:K:b:g:B:G:F:T:fRlr:z:Lp:x:vyh";
 
 	char option;
 
@@ -951,32 +950,28 @@ int main(int argc, char **argv){
 				listen_f = 1;
 				break;
 
-			case 'v':	/* Be verbose */
-				(idata.verbose_f)++;
-				break;
-
 			case 'p':	/* Probe mode */
-				probe_f=1;
-				break;
-
-			case 'x':	/* Number of retrnasmissions */
-				retrans= atoi(optarg);
-				retrans_f=1;
-				break;
-
-			case 'Y':
 				if(strncmp(optarg, "dump", MAX_CMDLINE_OPT_LEN) == 0){
-					debug= DEBUG_DUMP;
+					probemode= PROBE_DUMP;
 				}
 				else if(strncmp(optarg, "script", MAX_CMDLINE_OPT_LEN) == 0){
-					debug= DEBUG_SCRIPT;
+					probemode= PROBE_SCRIPT;
 				}
 				else{
 					puts("Error: Unknown open mode in '-Y' option");
 					exit(EXIT_FAILURE);
 				}
 
-				debug_f=1;
+				probemode_f=1;
+				break;
+
+			case 'v':	/* Be verbose */
+				(idata.verbose_f)++;
+				break;
+
+			case 'x':	/* Number of retrnasmissions */
+				retrans= atoi(optarg);
+				retrans_f=1;
 				break;
 
 			case 'h':	/* Help */
@@ -1193,7 +1188,7 @@ int main(int argc, char **argv){
 	}
     
 
-	if(probe_f){
+	if(probemode_f){
 		end_f=0;
 
 		if(!dstport_f)
@@ -1253,6 +1248,7 @@ int main(int argc, char **argv){
 			if(sel){
 				if(FD_ISSET(idata.fd, &rset)){
 					/* Read a packet */
+
 					if((r=pcap_next_ex(idata.pfd, &pkthdr, &pktdata)) == -1){
 						printf("pcap_next_ex(): %s", pcap_geterr(idata.pfd));
 						exit(EXIT_FAILURE);
@@ -1292,7 +1288,7 @@ int main(int argc, char **argv){
 					if(in_chksum(pkt_ipv6, pkt_tcp, pkt_end-((unsigned char *)pkt_tcp), IPPROTO_TCP) != 0)
 						continue;
 
-					printf("PROBE:RESPONSE:%s%s%s%s%s%s\n", ((pkt_tcp_flags & TH_FIN)?"F":""), \
+					printf("RESPONSE:TCP6:%s%s%s%s%s%s:\n", ((pkt_tcp_flags & TH_FIN)?"F":""), \
 						((pkt_tcp_flags & TH_SYN)?"S":""), \
 						((pkt_tcp_flags & TH_RST)?"R":""), ((pkt_tcp_flags & TH_PUSH)?"P":""),\
 						((pkt_tcp_flags & TH_ACK)?"A":""), ((pkt_tcp_flags & TH_URG)?"U":""));
@@ -1302,7 +1298,7 @@ int main(int argc, char **argv){
 			}
 		}
 
-		puts("PROBE:TIMEOUT:");
+		puts("RESPONSE:TIMEOUT:");
 		exit(0);
 	}
 

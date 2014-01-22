@@ -1834,7 +1834,7 @@ int send_packet(struct iface_data *idata, const u_char *pktdata, struct pcap_pkt
 
 					bzero(ptr, 4);
 					ptr+=4;
-					bcopy(dlpointer, ptr, dlsize);
+					memcpy(ptr, dlpointer, dlsize);
 					ptr+= dlsize;
 				}
 				else if(named_f){
@@ -1849,7 +1849,7 @@ int send_packet(struct iface_data *idata, const u_char *pktdata, struct pcap_pkt
 					bzero(ptr, 4);
 					ptr+= 4;
 
-					bcopy(named, ptr, namedlen);
+					memcpy(ptr, named, namedlen);
 					ptr+= namedlen;
 
 					if(snamedslabel_f){
@@ -2064,7 +2064,7 @@ int send_packet(struct iface_data *idata, const u_char *pktdata, struct pcap_pkt
 					return(-1);
 			}
 
-			bcopy(name, ptr, namelen);
+			memcpy(ptr, name, namelen);
 			ptr+= namelen;
 
 			if(snameslabel_f){
@@ -2169,7 +2169,7 @@ int send_packet(struct iface_data *idata, const u_char *pktdata, struct pcap_pkt
 
 			bzero(ptr, 4);
 			ptr+=4;
-			bcopy(slpointer, ptr, slsize);
+			memcpy(ptr, slpointer, slsize);
 			ptr+= slsize;
 		}
 	}

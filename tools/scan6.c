@@ -2745,7 +2745,7 @@ int load_vendor_entries(struct scan_list *scan, struct scan_entry *dst, char *ve
 
 		if(match_strings(vendor, charptr)){
 			/* Copy the actual OUI to our array */
-			bcopy(line, oui_ascii, 8);
+			memcpy(oui_ascii, line, 8);
 
 			/* Patch the dashes with colons (i.e., s/-/:/ */
 			oui_ascii[2]=':';
