@@ -367,7 +367,7 @@ int find_ipv6_router_full(pcap_t *pfd, struct iface_data *idata){
 
 	/* We set the signal handler, and the anchor for siglongjump() */
 	canjump=0;
-	bzero(&new_sig, sizeof(struct sigaction));
+	memset(&new_sig, 0, sizeof(struct sigaction));
 	sigemptyset(&new_sig.sa_mask);
 	new_sig.sa_handler= &sig_alarm;
 
@@ -712,7 +712,7 @@ u_int16_t in_chksum(void *ptr_ipv6, void *ptr_icmpv6, size_t len, u_int8_t proto
 
 	v6packet=ptr_ipv6;
 	
-	bzero(&pseudohdr, sizeof(struct ipv6pseudohdr));
+	memset(&pseudohdr, 0, sizeof(struct ipv6pseudohdr));
 	pseudohdr.srcaddr= v6packet->ip6_src;
 	pseudohdr.dstaddr= v6packet->ip6_dst;
 	pseudohdr.len = htons(len);
@@ -881,7 +881,7 @@ int ipv6_to_ether(pcap_t *pfd, struct iface_data *idata, struct in6_addr *target
 
 	/* We set the signal handler, and the anchor for siglongjump() */
 	canjump=0;
-	bzero(&new_sig, sizeof(struct sigaction));
+	memset(&new_sig, 0, sizeof(struct sigaction));
 	sigemptyset(&new_sig.sa_mask);
 	new_sig.sa_handler= &sig_alarm;
 
@@ -3522,7 +3522,7 @@ int find_ipv6_router(pcap_t *pfd, struct ether_addr *hsrcaddr, struct in6_addr *
 
 	/* We set the signal handler, and the anchor for siglongjump() */
 	canjump=0;
-	bzero(&new_sig, sizeof(struct sigaction));
+	memset(&new_sig, 0, sizeof(struct sigaction));
 	sigemptyset(&new_sig.sa_mask);
 	new_sig.sa_handler= &sig_alarm;
 

@@ -20,9 +20,6 @@
  * 
  * Build with: make frag6
  * 
- * This program has been tested to compile and run on: Debian GNU/Linux 6.0,
- * FreeBSD 9.0, NetBSD 5.1, OpenBSD 5.0, and Ubuntu 11.10.
- *
  * It requires that the libpcap library be installed on your system.
  *
  * Please send any bug reports to Fernando Gont <fgont@si6networks.com>
@@ -1738,7 +1735,7 @@ int send_fragment2(struct iface_data *idata, u_int16_t ip6len, unsigned int id, 
 	   send_packet() function.
 	*/
 	fh= (struct ip6_frag *) ptr;
-	bzero(ptr, FRAG_HDR_SIZE);
+	memset(ptr, 0, FRAG_HDR_SIZE);
 
 	fh->ip6f_ident= htonl(id);
 
@@ -1908,7 +1905,7 @@ int send_fragment(struct iface_data *idata, unsigned int id, unsigned int offset
 	   send_packet() function.
 	*/
 	fh= (struct ip6_frag *) ptr;
-	bzero(ptr, FRAG_HDR_SIZE);
+	memset(ptr, 0, FRAG_HDR_SIZE);
 
 	fh->ip6f_ident= htonl(id);
 
@@ -2095,7 +2092,7 @@ int send_fid_probe(struct iface_data *idata){
 	ptr = (unsigned char *) v6buffer + sizeof(struct ip6_hdr);
 
 	frag= (struct ip6_frag *) ptr;
-	bzero(frag, sizeof(struct ip6_frag));
+	memset(frag, 0, sizeof(struct ip6_frag));
 	frag->ip6f_nxt= IPPROTO_ICMPV6;
 
 	ptr+= sizeof(struct ip6_frag);

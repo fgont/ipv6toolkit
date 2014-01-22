@@ -1419,7 +1419,7 @@ void init_packet_data(struct iface_data *idata){
 		   This Fragment Header will be used (an assembled with the rest of the packet by the 
 		   send_packet() function.
 		*/
-		bzero(&fraghdr, FRAG_HDR_SIZE);
+		memset(&fraghdr, 0, FRAG_HDR_SIZE);
 		*prev_nh = IPPROTO_FRAGMENT;
 		prev_nh = (unsigned char *) &fraghdr;
 	}
@@ -1744,7 +1744,7 @@ void send_packet(struct iface_data *idata, const u_char *pktdata, struct pcap_pk
 						if(rhtcp_f || rhdefault_f){
 							rhipv6->ip6_nxt= IPPROTO_TCP;
 							rhtcp= (struct tcp_hdr *) (rhbuff + sizeof(struct ip6_hdr));
-							bzero(rhtcp, sizeof(struct tcp_hdr));
+							memset(rhtcp, 0, sizeof(struct tcp_hdr));
 							rhtcp->th_sport= htons(peerport);
 							rhtcp->th_dport= htons(redirport);
 							rhtcp->th_seq = htonl(tcpseq);

@@ -3135,7 +3135,7 @@ int send_probe_remote(struct iface_data *idata, struct scan_list *scan, struct i
 			}
 
 			tcp = (struct tcp_hdr *) ptr;
-			bzero(tcp, sizeof(struct tcp_hdr));
+			memset(tcp, 0, sizeof(struct tcp_hdr));
 
 			if(srcport_f)
 				tcp->th_sport= htons(srcport);
@@ -3375,7 +3375,7 @@ int multi_scan_local(pcap_t *pfd, struct iface_data *idata, struct in6_addr *src
 
 	/* We set the signal handler, and the anchor for siglongjump() */
 	canjump=0;
-	bzero(&new_sig, sizeof(struct sigaction));
+	memset(&new_sig, 0, sizeof(struct sigaction));
 	sigemptyset(&new_sig.sa_mask);
 	new_sig.sa_handler= &local_sig_alarm;
 
@@ -3477,7 +3477,7 @@ int multi_scan_local(pcap_t *pfd, struct iface_data *idata, struct in6_addr *src
 							break;
 						}
 
-						bzero(hlist->host[hlist->nhosts], sizeof(struct host_entry));
+						memset(hlist->host[hlist->nhosts], 0, sizeof(struct host_entry));
 
 						(hlist->host[hlist->nhosts])->ip6= pkt_ipv6->ip6_src;
 						(hlist->host[hlist->nhosts])->ether= pkt_ether->src;
@@ -3693,7 +3693,7 @@ int host_scan_local(pcap_t *pfd, struct iface_data *idata, struct in6_addr *srca
 
 	/* We set the signal handler, and the anchor for siglongjump() */
 	canjump=0;
-	bzero(&new_sig, sizeof(struct sigaction));
+	memset(&new_sig, 0, sizeof(struct sigaction));
 	sigemptyset(&new_sig.sa_mask);
 	new_sig.sa_handler= &local_sig_alarm;
 
@@ -3945,7 +3945,7 @@ int create_candidate_globals(struct iface_data *idata, struct host_list *local, 
 					return(-1);
 				}
 
-				bzero(candidate->host[candidate->nhosts], sizeof(struct host_entry));
+				memset(candidate->host[candidate->nhosts], 0, sizeof(struct host_entry));
 
 				(candidate->host[candidate->nhosts])->ip6 = caddr;
 				(candidate->host[candidate->nhosts])->ether = (local->host[i])->ether;

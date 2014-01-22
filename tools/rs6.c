@@ -18,7 +18,6 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
- *
  * 
  * Build with: make rs6
  *
@@ -632,7 +631,7 @@ void init_packet_data(struct iface_data *idata){
     	   This Fragment Header will be used (an assembled with the rest of the packet by the 
     	   send_packet() function.
     	*/
-    	bzero(&fraghdr, FRAG_HDR_SIZE);
+    	memset(&fraghdr, 0, FRAG_HDR_SIZE);
     	*prev_nh = IPPROTO_FRAGMENT;
     	prev_nh = (unsigned char *) &fraghdr;
     }

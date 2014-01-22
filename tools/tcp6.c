@@ -1658,7 +1658,7 @@ void init_packet_data(struct iface_data *idata){
 		   This Fragment Header will be used (an assembled with the rest of the packet by the 
 		   send_packet() function.
 		*/
-		bzero(&fraghdr, FRAG_HDR_SIZE);
+		memset(&fraghdr, 0, FRAG_HDR_SIZE);
 		*prev_nh = IPPROTO_FRAGMENT;
 		prev_nh = (unsigned char *) &fraghdr;
 	}
@@ -1756,7 +1756,7 @@ void send_packet(struct iface_data *idata, const u_char *pktdata, struct pcap_pk
 			return;
 
 		tcp = (struct tcp_hdr *) ptr;
-		bzero(tcp, sizeof(struct tcp_hdr));
+		memset(tcp, 0, sizeof(struct tcp_hdr));
 
 		tcp->th_sport= pkt_tcp->th_dport;
 		tcp->th_dport= pkt_tcp->th_sport;
@@ -2088,7 +2088,7 @@ void send_packet(struct iface_data *idata, const u_char *pktdata, struct pcap_pk
 		}
 
 		tcp= (struct tcp_hdr *) ptr;
-		bzero(ptr, sizeof(struct tcp_hdr));
+		memset(ptr, 0, sizeof(struct tcp_hdr));
 		tcp->th_sport= htons(srcport);
 		tcp->th_dport= htons(dstport);
 		tcp->th_seq = htonl(tcpseq);

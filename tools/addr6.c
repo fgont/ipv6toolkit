@@ -17,10 +17,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  * 
- * Build with: gcc addr6.c -Wall -o addr6
- * 
- * This program has been tested to compile and run on: Debian GNU/Linux 6.0,
- * FreeBSD 9.0, NetBSD 5.1, OpenBSD 5.0, and Ubuntu 11.10.
+ * Build with: make addr6
  *
  * It requires that the libpcap library be installed on your system.
  *
@@ -1426,7 +1423,7 @@ size_t Strnlen(const char *s, size_t maxlen){
 int init_host_list(struct host_list *hlist){
 	unsigned int i;
 
-	bzero(hlist, sizeof(struct host_list));
+	memset(hlist, 0, sizeof(struct host_list));
 
 	if( (hlist->host = malloc(MAX_LIST_ENTRIES * sizeof(struct host_entry *))) == NULL){
 		return(0);
@@ -1475,7 +1472,7 @@ struct host_entry *add_host_entry(struct host_list *hlist, struct in6_addr *ipv6
 		return(NULL);
 	}
 
-	bzero(hentry, sizeof(struct host_entry));
+	memset(hentry, 0, sizeof(struct host_entry));
 	hentry->ip6 = *ipv6;
 	hentry->next= NULL;
 

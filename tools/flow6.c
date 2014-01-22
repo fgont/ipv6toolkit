@@ -22,9 +22,6 @@
  * 
  * Build with: make flow6
  * 
- * This program has been tested to compile and run on: Debian GNU/Linux 6.0,
- * FreeBSD 9.0, NetBSD 5.1, OpenBSD 5.0, Ubuntu 11.10, and Mac OS X.
- *
  * It requires that the libpcap library be installed on your system.
  *
  * Please send any bug reports to Fernando Gont <fgont@si6networks.com>
@@ -683,7 +680,7 @@ int send_fid_probe(void){
 	if(protocol == IPPROTO_TCP){
 		tcp= (struct tcp_hdr *) ( (unsigned char *) ipv6 + sizeof(struct ip6_hdr));
 		ptr= (unsigned char *) tcp + sizeof(struct tcp_hdr);
-		bzero(tcp, sizeof(struct tcp_hdr));
+		memset(tcp, 0, sizeof(struct tcp_hdr));
 		tcp->th_sport= htons(lastport);
 		tcp->th_dport= htons(dstport);
 		tcp->th_seq = htonl(tcpseq);
@@ -698,7 +695,7 @@ int send_fid_probe(void){
 	else{
 		udp= (struct udp_hdr *) ( (unsigned char *) ipv6 + sizeof(struct ip6_hdr));
 		ptr= (unsigned char *) udp + sizeof(struct udp_hdr);
-		bzero(udp, sizeof(struct udp_hdr));
+		memset(udp, 0, sizeof(struct udp_hdr));
 		udp->uh_sport= htons(lastport);
 		udp->uh_dport= htons(dstport);
 		ipv6->ip6_plen= htons(ptr - (unsigned char *) udp);

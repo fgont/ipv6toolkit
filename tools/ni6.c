@@ -18,7 +18,6 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
- *
  * 
  * Build with: make ni6
  * 
@@ -35,7 +34,6 @@
 #include <unistd.h>
 #include <signal.h>
 #include <string.h>
-#include <strings.h>
 #include <pcap.h>
 #include <sys/types.h>
 #include <sys/param.h>
@@ -1725,7 +1723,7 @@ void init_packet_data(struct iface_data *idata){
 		   This Fragment Header will be used (an assembled with the rest of the packet by the 
 		   send_packet() function.
 		*/
-		bzero(&fraghdr, FRAG_HDR_SIZE);
+		memset(&fraghdr, 0, FRAG_HDR_SIZE);
 		*prev_nh = IPPROTO_FRAGMENT;
 		prev_nh = (unsigned char *) &fraghdr;
 	}
@@ -1832,7 +1830,7 @@ int send_packet(struct iface_data *idata, const u_char *pktdata, struct pcap_pkt
 							return(-1);
 					}
 
-					bzero(ptr, 4);
+					memset(ptr, 0, 4);
 					ptr+=4;
 					memcpy(ptr, dlpointer, dlsize);
 					ptr+= dlsize;
@@ -1846,7 +1844,7 @@ int send_packet(struct iface_data *idata, const u_char *pktdata, struct pcap_pkt
 					}
 
 					/* The response contains a TTL, and it is set to 0 */
-					bzero(ptr, 4);
+					memset(ptr, 0, 4);
 					ptr+= 4;
 
 					memcpy(ptr, named, namedlen);
@@ -1875,7 +1873,7 @@ int send_packet(struct iface_data *idata, const u_char *pktdata, struct pcap_pkt
 					}
 
 					/* The response contains a TTL, and it is set to 0 */
-					bzero(ptr, 4);
+					memset(ptr, 0, 4);
 					ptr+= 4;
 		
 					i=fnamedlen-1; /* There is a zero-length label at the end */
@@ -1933,7 +1931,7 @@ int send_packet(struct iface_data *idata, const u_char *pktdata, struct pcap_pkt
 					}
 
 					/* The response contains a TTL, and it is set to 0 */
-					bzero(ptr, 4);
+					memset(ptr, 0, 4);
 					ptr+= 4;
 
 					*ptr= exceedpd;
@@ -1951,7 +1949,7 @@ int send_packet(struct iface_data *idata, const u_char *pktdata, struct pcap_pkt
 					}
 
 					/* The response contains a TTL, and it is set to 0 */
-					bzero(ptr, 4);
+					memset(ptr, 0, 4);
 					ptr+= 4;
 
 					for(i=0; i<payloadsize; i++){
@@ -2167,7 +2165,7 @@ int send_packet(struct iface_data *idata, const u_char *pktdata, struct pcap_pkt
 					return(-1);
 			}
 
-			bzero(ptr, 4);
+			memset(ptr, 0, 4);
 			ptr+=4;
 			memcpy(ptr, slpointer, slsize);
 			ptr+= slsize;
