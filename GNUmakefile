@@ -11,8 +11,8 @@
 # variable accordingly. The path of the manual pages can be overriden by setting
 # the MANPREFIX variable. Typically, packages will set these variables as follows:
 #
-# PREFIX=usr/
-# MANPREFIX=usr/share
+# PREFIX=/usr
+# MANPREFIX=/usr/share
 #
 # Finally, please note that this makefile supports the DESTDIR variable, as 
 # typically employed by package developers.
@@ -46,7 +46,7 @@ BINTOOLS= addr6
 TOOLS= $(BINTOOLS) $(SBINTOOLS)
 LIBS= libipv6.o
 
-all: $(TOOLS) $(LIBS) ipv6toolkit.conf
+all: $(TOOLS) ipv6toolkit.conf
 
 addr6: $(SRCPATH)/addr6.c $(SRCPATH)/addr6.h $(SRCPATH)/ipv6toolkit.h
 	$(CC) $(CPPFLAGS) $(CFLAGS) -o addr6 $(SRCPATH)/addr6.c $(LDFLAGS) 
@@ -55,7 +55,7 @@ flow6: $(SRCPATH)/flow6.c $(SRCPATH)/flow6.h $(SRCPATH)/ipv6toolkit.h $(LIBS) $(
 	$(CC) $(CPPFLAGS) $(CFLAGS) -o flow6 $(SRCPATH)/flow6.c $(LIBS) $(LDFLAGS)
 
 frag6: $(SRCPATH)/frag6.c $(SRCPATH)/frag6.h $(SRCPATH)/ipv6toolkit.h $(LIBS) $(SRCPATH)/libipv6.h
-	$(CC) $(CPPFLAGS) $(CFLAGS) -o frag6 $(SRCPATH)/frag6.c $(LIBS) $(LDFLAGS) 
+	$(CC) $(CPPFLAGS) $(CFLAGS) -o frag6 $(SRCPATH)/frag6.c $(LIBS) $(LDFLAGS)
 
 icmp6: $(SRCPATH)/icmp6.c $(SRCPATH)/icmp6.h $(SRCPATH)/ipv6toolkit.h $(LIBS) $(SRCPATH)/libipv6.h
 	$(CC) $(CPPFLAGS) $(CFLAGS) -o icmp6 $(SRCPATH)/icmp6.c $(LIBS) $(LDFLAGS)
