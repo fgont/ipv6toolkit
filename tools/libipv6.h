@@ -240,102 +240,35 @@ struct ether_header
 typedef	u_int32_t tcp_seq;
 
 
-#if defined(__linux__) || ( !defined(__FreeBSD__) && defined(__FreeBSD_kernel__))
-/* Linux definition */
-
-/*
- * TCP header.
- * Per RFC 793, September, 1981.
- */
 struct tcp_hdr{
-    u_int16_t th_sport;		/* source port */
-    u_int16_t th_dport;		/* destination port */
-    tcp_seq th_seq;		/* sequence number */
-    tcp_seq th_ack;		/* acknowledgement number */
-#  if __BYTE_ORDER == __LITTLE_ENDIAN
-    unsigned int th_x2:4;		/* (unused) */
-    unsigned int th_off:4;		/* data offset */
-#  endif
-#  if __BYTE_ORDER == __BIG_ENDIAN
-    unsigned int th_off:4;		/* data offset */
-    unsigned int th_x2:4;		/* (unused) */
-#  endif
-    u_int8_t th_flags;
-#  define TH_FIN	0x01
-#  define TH_SYN	0x02
-#  define TH_RST	0x04
-#  define TH_PUSH	0x08
-#  define TH_ACK	0x10
-#  define TH_URG	0x20
-    u_int16_t th_win;		/* window */
-    u_int16_t th_sum;		/* checksum */
-    u_int16_t th_urp;		/* urgent pointer */
+	u_int16_t th_sport;              /* source port */
+	u_int16_t th_dport;              /* destination port */
+	tcp_seq th_seq;                  /* sequence number */
+	tcp_seq th_ack;                  /* acknowledgement number */
+#if (defined(__BYTE_ORDER) && defined(__LITTLE_ENDIAN) && __BYTE_ORDER == __LITTLE_ENDIAN) || \
+  (defined(__BYTE_ORDER__) && defined(__ORDER_LITTLE_ENDIAN__) && __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__) || \
+  (defined(_BYTE_ORDER) && defined(_LITTLE_ENDIAN) && _BYTE_ORDER == _LITTLE_ENDIAN)
+	unsigned int th_x2:4;            /* (unused) */
+	unsigned int th_off:4;           /* data offset */
+#elif (defined(__BYTE_ORDER) && defined(__BIG_ENDIAN) && __BYTE_ORDER == __BIG_ENDIAN) || \
+  (defined(__BYTE_ORDER__) && defined(__ORDER_BIG_ENDIAN__) && __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__) || \
+  (defined(_BYTE_ORDER) && defined(_BIG_ENDIAN) && _BYTE_ORDER == _BIG_ENDIAN)
+	unsigned int th_off:4;           /* data offset */
+	unsigned int th_x2:4;            /* (unused) */
+#endif
+	u_int8_t th_flags;
+#define TH_FIN    0x01
+#define TH_SYN    0x02
+#define TH_RST    0x04
+#define TH_PUSH   0x08
+#define TH_ACK    0x10
+#define TH_URG    0x20
+#define TH_ECE    0x40
+#define TH_CWR    0x80
+	u_int16_t th_win;                /* window */
+	u_int16_t th_sum;                /* checksum */
+	u_int16_t th_urp;                /* urgent pointer */
 } __attribute__ ((__packed__));
-#elif defined(__APPLE__)
-/* Mac OS definition */
-
-/*
- * TCP header.
- * Per RFC 793, September, 1981.
- */
-struct tcp_hdr{
-    u_int16_t th_sport;		/* source port */
-    u_int16_t th_dport;		/* destination port */
-    tcp_seq th_seq;		/* sequence number */
-    tcp_seq th_ack;		/* acknowledgement number */
-#  if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
-    unsigned int th_x2:4;		/* (unused) */
-    unsigned int th_off:4;		/* data offset */
-#  endif
-#  if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
-    unsigned int th_off:4;		/* data offset */
-    unsigned int th_x2:4;		/* (unused) */
-#  endif
-    u_int8_t th_flags;
-#  define TH_FIN	0x01
-#  define TH_SYN	0x02
-#  define TH_RST	0x04
-#  define TH_PUSH	0x08
-#  define TH_ACK	0x10
-#  define TH_URG	0x20
-    u_int16_t th_win;		/* window */
-    u_int16_t th_sum;		/* checksum */
-    u_int16_t th_urp;		/* urgent pointer */
-} __attribute__ ((__packed__));
-#else
-/* BSD definition */
-
-/*
- * TCP header.
- * Per RFC 793, September, 1981.
- */
-struct tcp_hdr {
-	u_int16_t th_sport;		/* source port */
-	u_int16_t th_dport;		/* destination port */
-	tcp_seq	  th_seq;		/* sequence number */
-	tcp_seq	  th_ack;		/* acknowledgement number */
-#if _BYTE_ORDER == _LITTLE_ENDIAN
-	unsigned int th_x2:4,		/* (unused) */
-	unsigned int th_off:4;		/* data offset */
-#endif
-#if _BYTE_ORDER == _BIG_ENDIAN
-	unsigned int th_off:4,		/* data offset */
-	unsigned int th_x2:4;		/* (unused) */
-#endif
-	u_int8_t  th_flags;
-#define	TH_FIN	  0x01
-#define	TH_SYN	  0x02
-#define	TH_RST	  0x04
-#define	TH_PUSH	  0x08
-#define	TH_ACK	  0x10
-#define	TH_URG	  0x20
-#define	TH_ECE	  0x40
-#define	TH_CWR	  0x80
-	u_int16_t th_win;			/* window */
-	u_int16_t th_sum;			/* checksum */
-	u_int16_t th_urp;			/* urgent pointer */
-};
-#endif
 
 struct udp_hdr{
   u_int16_t uh_sport;		/* source port */
