@@ -18,8 +18,8 @@
 # typically employed by package developers.
 
 
-CC= gcc
-CFLAGS+= -Wall
+CC= gcc -std=c99 -pedantic -D_GNU_SOURCE -Wall -Wextra -Wno-sign-compare -Wno-unused-parameter
+CFLAGS+= 
 LDFLAGS+= -lpcap -lm
 
 .ifndef(PREFIX)
