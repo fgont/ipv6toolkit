@@ -45,18 +45,18 @@ void					usage(void);
 void					print_help(void);
 int						read_prefix(char *, unsigned int, char **);
 size_t					Strnlen(const char *, size_t);
-unsigned int			is_service_port(u_int16_t);
+unsigned int			is_service_port(uint16_t);
 unsigned int			zero_byte_iid(struct in6_addr *);
 void					decode_ipv6_address(struct decode6 *, struct stats6 *);
 void					stat_ipv6_address(struct decode6 *, struct stats6 *);
 void					print_dec_address_script(struct decode6 *);
 int						init_host_list(struct host_list *);
-u_int16_t				key(struct host_list *, struct in6_addr *);
+uint16_t				key(struct host_list *, struct in6_addr *);
 struct host_entry *		add_host_entry(struct host_list *, struct in6_addr *);
 unsigned int			is_ip6_in_list(struct host_list *, struct in6_addr *);
 int 					is_eq_in6_addr(struct in6_addr *, struct in6_addr *);
-unsigned int			match_ipv6(struct in6_addr *, u_int8_t *, unsigned int, struct in6_addr *);
-void					sanitize_ipv6_prefix(struct in6_addr *, u_int8_t);
+unsigned int			match_ipv6(struct in6_addr *, uint8_t *, unsigned int, struct in6_addr *);
+void					sanitize_ipv6_prefix(struct in6_addr *, uint8_t);
 void					print_stats(struct stats6 *);
 
 unsigned char			stdin_f=0, addr_f=0, verbose_f=0, decode_f=0, print_unique_f=0, stats_f=0, filter_f=0;
@@ -80,12 +80,12 @@ int main(int argc, char **argv){
 
 	/* Block Filters */
 	struct in6_addr 	block[MAX_BLOCK];
-	u_int8_t			blocklen[MAX_BLOCK];
+	uint8_t			blocklen[MAX_BLOCK];
 	unsigned int		nblock=0;
 
 	/* Accept Filters */
 	struct in6_addr		accept[MAX_ACCEPT];
-	u_int8_t			acceptlen[MAX_ACCEPT];
+	uint8_t			acceptlen[MAX_ACCEPT];
 	unsigned int		naccept=0;
 
 	static struct option longopts[] = {
@@ -696,20 +696,20 @@ int read_prefix(char *line, unsigned int len, char **start){
  * Check whether a short int is in the list of service ports (in hexadecmal or decimal "notations")
  */
 
-unsigned int is_service_port(u_int16_t port){
+unsigned int is_service_port(uint16_t port){
 	unsigned int 	i;
-	u_int16_t		service_ports_hex[]={0x21, 0x22, 0x23, 0x25, 0x49, 0x53, 0x80, 0x110, 0x123, 0x179, 0x220, 0x389, \
+	uint16_t		service_ports_hex[]={0x21, 0x22, 0x23, 0x25, 0x49, 0x53, 0x80, 0x110, 0x123, 0x179, 0x220, 0x389, \
 						                 0x443, 0x547, 0x993, 0x995, 0x1194, 0x3306, 0x5060, 0x5061, 0x5432, 0x6446, 0x8080};
-	u_int16_t		service_ports_dec[]={21, 22, 23, 25, 49, 53, 80, 110, 123, 179, 220, 389, \
+	uint16_t		service_ports_dec[]={21, 22, 23, 25, 49, 53, 80, 110, 123, 179, 220, 389, \
 						                 443, 547, 993, 995, 1194, 3306, 5060, 5061, 5432, 6446, 8080};
 
 	
-	for(i=0; i< (sizeof(service_ports_hex)/sizeof(u_int16_t)); i++){
+	for(i=0; i< (sizeof(service_ports_hex)/sizeof(uint16_t)); i++){
 		if(port == service_ports_hex[i])
 			return(1);
 	}
 
-	for(i=0; i< (sizeof(service_ports_hex)/sizeof(u_int16_t)); i++){
+	for(i=0; i< (sizeof(service_ports_hex)/sizeof(uint16_t)); i++){
 		if(port == service_ports_dec[i])
 			return(1);
 	}
@@ -742,7 +742,7 @@ unsigned int zero_byte_iid(struct in6_addr *ipv6){
  */
 
 void decode_ipv6_address(struct decode6 *addr, struct stats6 *stats){
-	u_int16_t	scope;
+	uint16_t	scope;
 
 	if(IN6_IS_ADDR_UNSPECIFIED(&(addr->ip6))){
 		addr->type= IPV6_UNSPEC;
@@ -1446,7 +1446,7 @@ int init_host_list(struct host_list *hlist){
  * Compute a key for accessing the hash-table of a host_list structure
  */
 
-u_int16_t key(struct host_list *hlist, struct in6_addr *ipv6){
+uint16_t key(struct host_list *hlist, struct in6_addr *ipv6){
 		return( ((hlist->key_l ^ ipv6->s6_addr16[0] ^ ipv6->s6_addr16[7]) \
 				^ (hlist->key_h ^ ipv6->s6_addr16[1] ^ ipv6->s6_addr16[6])) % MAX_LIST_ENTRIES);
 }
@@ -1460,7 +1460,7 @@ u_int16_t key(struct host_list *hlist, struct in6_addr *ipv6){
 
 struct host_entry *add_host_entry(struct host_list *hlist, struct in6_addr *ipv6){
 	struct host_entry	*hentry, *ptr;
-	u_int16_t			hkey;
+	uint16_t			hkey;
 
 	hkey= key(hlist, ipv6);
 
@@ -1502,7 +1502,7 @@ struct host_entry *add_host_entry(struct host_list *hlist, struct in6_addr *ipv6
  */
 
 unsigned int is_ip6_in_list(struct host_list *hlist, struct in6_addr *target){
-	u_int16_t			ckey;
+	uint16_t			ckey;
 	struct host_entry	*chentry;
 
 	ckey= key(hlist, target);
@@ -1638,7 +1638,7 @@ void print_stats(struct stats6 *stats){
  * Finds if an IPv6 address matches a prefix in a list of prefixes.
  */
 
-unsigned int match_ipv6(struct in6_addr *prefixlist, u_int8_t *prefixlen, unsigned int nprefix, 
+unsigned int match_ipv6(struct in6_addr *prefixlist, uint8_t *prefixlen, unsigned int nprefix, 
 								struct in6_addr *ipv6addr){
 
     unsigned int 	i, j;
@@ -1666,9 +1666,9 @@ unsigned int match_ipv6(struct in6_addr *prefixlist, u_int8_t *prefixlen, unsign
  * Clears those bits in an IPv6 address that are not within a prefix length.
  */
 
-void sanitize_ipv6_prefix(struct in6_addr *ipv6addr, u_int8_t prefixlen){
+void sanitize_ipv6_prefix(struct in6_addr *ipv6addr, uint8_t prefixlen){
     unsigned int skip, i;
-    u_int16_t	mask;
+    uint16_t	mask;
     
     skip= (prefixlen+15)/16;
 

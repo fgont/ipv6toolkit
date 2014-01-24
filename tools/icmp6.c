@@ -61,7 +61,7 @@
 
 /* Function prototypes */
 void				init_packet_data(struct iface_data *);
-void				send_packet(struct iface_data *, const u_char *, struct pcap_pkthdr *);
+void				send_packet(struct iface_data *, const unsigned char *, struct pcap_pkthdr *);
 void				print_attack_info(struct iface_data *);
 void				usage(void);
 void				print_help(void);
@@ -78,16 +78,16 @@ unsigned int		ip6hoplimit_f=0, ip6length_f=0, rhdefault_f=0;
 unsigned int		learnrouter_f=0, sanityfilters_f=0, useaddrkey_f=0;
 
 /* Variables used for ICMPv6 Error messages (specifically) */
-u_int8_t			icmp6type=0, icmp6code=0;
-u_int32_t			mtu, pointer;
-u_int16_t			ip6length;
+uint8_t			icmp6type=0, icmp6code=0;
+uint32_t			mtu, pointer;
+uint16_t			ip6length;
 struct in6_addr		targetaddr, peeraddr;
 unsigned char		redirpreflen, targetpreflen;
 unsigned int		targetport, peerport;
-u_int16_t			targetportl, targetporth, peerportl, peerporth, auxint16;
-u_int16_t			tcpurg, tcpwin, icmp6id, icmp6seq;
-u_int32_t			tcpseq, tcpack;
-u_int8_t			tcpflags=0, ip6hoplimit;
+uint16_t			targetportl, targetporth, peerportl, peerporth, auxint16;
+uint16_t			tcpurg, tcpwin, icmp6id, icmp6seq;
+uint32_t			tcpseq, tcpack;
+uint8_t			tcpflags=0, ip6hoplimit;
 struct ip6_hdr		*rhipv6;
 struct udp_hdr		*rhudp;
 struct tcp_hdr		*rhtcp;
@@ -110,7 +110,7 @@ unsigned char		randpreflen;
 
 /* Data structures for packets read from the wire */
 struct pcap_pkthdr	*pkthdr;
-const u_char		*pktdata;
+const unsigned char		*pktdata;
 unsigned char		*pkt_end;
 struct ether_header	*pkt_ether;
 struct ip6_hdr		*pkt_ipv6;
@@ -141,8 +141,8 @@ unsigned int		i, j, startrand;
 unsigned int		skip;
 unsigned int		ntargets, sources, nsources, targets, nsleep;
 
-u_int16_t			mask;
-u_int8_t			hoplimit;
+uint16_t			mask;
+uint8_t			hoplimit;
 
 char 				plinkaddr[ETHER_ADDR_PLEN];
 char 				psrcaddr[INET6_ADDRSTRLEN], pdstaddr[INET6_ADDRSTRLEN], pv6addr[INET6_ADDRSTRLEN];
@@ -1069,7 +1069,7 @@ int main(int argc, char **argv){
 			tcpseq= random();
 
 		if(!tcpwin_f)
-			tcpwin= ((u_int16_t) random() + 1500) & (u_int16_t)0x7f00;
+			tcpwin= ((uint16_t) random() + 1500) & (uint16_t)0x7f00;
 
 		if(!peerportl_f){
 			peerportl= random();
@@ -1469,7 +1469,7 @@ void init_packet_data(struct iface_data *idata){
  * Initialize the remaining fields of the Neighbor Advertisement Message, and
  * send the attack packet(s).
  */
-void send_packet(struct iface_data *idata, const u_char *pktdata, struct pcap_pkthdr * pkthdr){
+void send_packet(struct iface_data *idata, const unsigned char *pktdata, struct pcap_pkthdr * pkthdr){
 	if(pktdata != NULL){   /* Sending a Redirect in response to a received packet */
 		pkt_ether = (struct ether_header *) pktdata;
 		pkt_ipv6 = (struct ip6_hdr *)((char *) pkt_ether + idata->linkhsize);
@@ -1586,8 +1586,8 @@ void send_packet(struct iface_data *idata, const u_char *pktdata, struct pcap_pk
 						rhipv6->ip6_nxt= IPPROTO_TCP;
 						rhtcp= (struct tcp_hdr *) (rhbuff + sizeof(struct ip6_hdr));
 						memset(rhtcp, 0, sizeof(struct tcp_hdr));
-						rhtcp->th_sport= htons((u_int16_t) targetport);
-						rhtcp->th_dport= htons((u_int16_t) peerport);
+						rhtcp->th_sport= htons((uint16_t) targetport);
+						rhtcp->th_dport= htons((uint16_t) peerport);
 						rhtcp->th_seq = htonl(tcpseq);
 						rhtcp->th_ack= htonl(tcpack);
 						rhtcp->th_flags= tcpflags;
@@ -1606,9 +1606,9 @@ void send_packet(struct iface_data *idata, const u_char *pktdata, struct pcap_pk
 							rhbytes -= MIN_IPV6_HLEN+MIN_TCP_HLEN;
 
 							while(rhbytes>=4){
-								*(u_int32_t *)ptr = random();
-								ptr += sizeof(u_int32_t);
-								rhbytes -= sizeof(u_int32_t);
+								*(uint32_t *)ptr = random();
+								ptr += sizeof(uint32_t);
+								rhbytes -= sizeof(uint32_t);
 							}
 						}
 					}
@@ -1630,9 +1630,9 @@ void send_packet(struct iface_data *idata, const u_char *pktdata, struct pcap_pk
 							ptr += MIN_IPV6_HLEN+MIN_UDP_HLEN;
 							rhbytes -= MIN_IPV6_HLEN+MIN_UDP_HLEN;
 							while(rhbytes>=4){
-								*(u_int32_t *)ptr = random();
-								ptr += sizeof(u_int32_t);
-								rhbytes -= sizeof(u_int32_t);
+								*(uint32_t *)ptr = random();
+								ptr += sizeof(uint32_t);
+								rhbytes -= sizeof(uint32_t);
 							}
 						}
 					}
@@ -1654,9 +1654,9 @@ void send_packet(struct iface_data *idata, const u_char *pktdata, struct pcap_pk
 							ptr += MIN_IPV6_HLEN+MIN_ICMP6_HLEN;
 							rhbytes -= MIN_IPV6_HLEN+MIN_ICMP6_HLEN;
 							while(rhbytes>=4){
-								*(u_int32_t *)ptr = random();
-								ptr += sizeof(u_int32_t);
-								rhbytes -= sizeof(u_int32_t);
+								*(uint32_t *)ptr = random();
+								ptr += sizeof(uint32_t);
+								rhbytes -= sizeof(uint32_t);
 							}
 						}
 					}

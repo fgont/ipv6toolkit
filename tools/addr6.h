@@ -75,8 +75,8 @@ struct host_list{
 	struct host_entry	**host;			/* Double-linked list of host entries */
 	unsigned int		nhosts;			/* Current number of host entries */
 	unsigned int		maxhosts;		/* Maximum number of host entries */
-	u_int16_t			key_l;			/* Low-order word of the hash key */
-	u_int16_t			key_h;			/* High-order word of the hash key */
+	uint16_t			key_l;			/* Low-order word of the hash key */
+	uint16_t			key_h;			/* High-order word of the hash key */
 };
 
 

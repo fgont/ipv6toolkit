@@ -60,15 +60,15 @@
 
 /* Function prototypes */
 void				init_packet_data(struct iface_data *);
-int					send_packet(struct iface_data *, const u_char *, struct pcap_pkthdr *);
+int					send_packet(struct iface_data *, const unsigned char *, struct pcap_pkthdr *);
 void				print_attack_info(struct iface_data *);
 void				usage(void);
 void				print_help(void);
-int					print_ni_data(struct iface_data *, const u_char *, struct pcap_pkthdr *);
-int					print_ni_addr(struct iface_data *, const u_char *, struct pcap_pkthdr *);
-int					print_ni_addr6(struct iface_data *, const u_char *, struct pcap_pkthdr *);
-int					print_ni_name(struct iface_data *, const u_char *, struct pcap_pkthdr *);
-int					print_ni_noop(struct iface_data *, const u_char *, struct pcap_pkthdr *);
+int					print_ni_data(struct iface_data *, const unsigned char *, struct pcap_pkthdr *);
+int					print_ni_addr(struct iface_data *, const unsigned char *, struct pcap_pkthdr *);
+int					print_ni_addr6(struct iface_data *, const unsigned char *, struct pcap_pkthdr *);
+int					print_ni_name(struct iface_data *, const unsigned char *, struct pcap_pkthdr *);
+int					print_ni_noop(struct iface_data *, const unsigned char *, struct pcap_pkthdr *);
 
 
 /* Variables used for learning the default router */
@@ -81,7 +81,7 @@ unsigned char		randpreflen;
 
 /* Data structures for packets read from the wire */
 struct pcap_pkthdr	*pkthdr;
-const u_char		*pktdata;
+const unsigned char		*pktdata;
 unsigned char		*pkt_end;
 struct ether_header	*pkt_ether;
 struct ip6_hdr		*pkt_ipv6;
@@ -115,8 +115,8 @@ unsigned int		skip;
 unsigned int		nsleep;
 unsigned char		srcpreflen;
 
-u_int16_t			mask;
-u_int8_t			hoplimit;
+uint16_t			mask;
+uint8_t			hoplimit;
 
 char 				plinkaddr[ETHER_ADDR_PLEN];
 char 				psrcaddr[INET6_ADDRSTRLEN], pdstaddr[INET6_ADDRSTRLEN], pv6addr[INET6_ADDRSTRLEN];
@@ -153,9 +153,9 @@ unsigned int		maxlabel, slvariant, slsize, dlvariant, dlsize;
 char				*name, *named;
 unsigned int		fnamelen, exceedp, fnamedlen, exceedpd, payloadsize;
 int					namelen, namedlen;
-u_int8_t			qtype, type;
-u_int8_t			code=0;
-u_int16_t			flags=0;
+uint8_t			qtype, type;
+uint8_t			code=0;
+uint16_t			flags=0;
 unsigned char		*slpointer, *dlpointer;
 
 struct filters		filters;
@@ -1299,7 +1299,7 @@ int main(int argc, char **argv){
  * Wrapper to call the different functions that print the contents of NI replies
  */
 
-int	print_ni_data(struct iface_data *idata, const u_char *pktdata, struct pcap_pkthdr * pkthdr){
+int	print_ni_data(struct iface_data *idata, const unsigned char *pktdata, struct pcap_pkthdr * pkthdr){
 	struct icmp6_nodeinfo	*pkt_ni;
 
 	pkt_ni= (struct icmp6_nodeinfo *) ((char *)pktdata + idata->linkhsize + sizeof(struct ip6_hdr));
@@ -1349,12 +1349,12 @@ int	print_ni_data(struct iface_data *idata, const u_char *pktdata, struct pcap_p
  * Print responses to ICMPv6 NI queries for IPv4 addresses
  */
 
-int	print_ni_addr(struct iface_data *idata, const u_char *pktdata, struct pcap_pkthdr * pkthdr){
+int	print_ni_addr(struct iface_data *idata, const unsigned char *pktdata, struct pcap_pkthdr * pkthdr){
 	struct ether_header 	*pkt_ether;
 	struct ip6_hdr 			*pkt_ipv6;
 	struct icmp6_nodeinfo	*pkt_ni;
 	unsigned char			*pkt_end;
-	u_int16_t				flags;
+	uint16_t				flags;
 	struct ni_reply_ip		*pkt_nidata;
 
 	pkt_ether = (struct ether_header *) pktdata;
@@ -1437,7 +1437,7 @@ int	print_ni_addr(struct iface_data *idata, const u_char *pktdata, struct pcap_p
  * Print responses to NOOP ICMPv6 NI queries
  */
 
-int	print_ni_noop(struct iface_data *idata, const u_char *pktdata, struct pcap_pkthdr * pkthdr){
+int	print_ni_noop(struct iface_data *idata, const unsigned char *pktdata, struct pcap_pkthdr * pkthdr){
 	struct ether_header 	*pkt_ether;
 	struct ip6_hdr 			*pkt_ipv6;
 	struct icmp6_nodeinfo	*pkt_ni;
@@ -1491,12 +1491,12 @@ int	print_ni_noop(struct iface_data *idata, const u_char *pktdata, struct pcap_p
  * Print responses to ICMPv6 NI queries for IPv6 addresses
  */
 
-int	print_ni_addr6(struct iface_data *idata, const u_char *pktdata, struct pcap_pkthdr * pkthdr){
+int	print_ni_addr6(struct iface_data *idata, const unsigned char *pktdata, struct pcap_pkthdr * pkthdr){
 	struct ether_header 	*pkt_ether;
 	struct ip6_hdr 			*pkt_ipv6;
 	struct icmp6_nodeinfo	*pkt_ni;
 	unsigned char			*pkt_end;
-	u_int16_t				flags;
+	uint16_t				flags;
 	struct ni_reply_ip6     *pkt_nidata;
 
 	pkt_ether = (struct ether_header *) pktdata;
@@ -1580,7 +1580,7 @@ int	print_ni_addr6(struct iface_data *idata, const u_char *pktdata, struct pcap_
  * Print responses to ICMPv6 NI queries for names
  */
 
-int	print_ni_name(struct iface_data *idata, const u_char *pktdata, struct pcap_pkthdr * pkthdr){
+int	print_ni_name(struct iface_data *idata, const unsigned char *pktdata, struct pcap_pkthdr * pkthdr){
 	struct ether_header 	*pkt_ether;
 	struct ip6_hdr 			*pkt_ipv6;
 	struct icmp6_nodeinfo	*pkt_ni;
@@ -1758,7 +1758,7 @@ void init_packet_data(struct iface_data *idata){
  * Initialize the remaining fields of the Neighbor Advertisement Message, and
  * send the attack packet(s).
  */
-int send_packet(struct iface_data *idata, const u_char *pktdata, struct pcap_pkthdr * pkthdr){
+int send_packet(struct iface_data *idata, const unsigned char *pktdata, struct pcap_pkthdr * pkthdr){
 	ptr=startofprefixes;
 
 	if(pktdata != NULL){   /* Sending a NI Reply in response to a received query */

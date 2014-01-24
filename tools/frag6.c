@@ -62,20 +62,20 @@
 
 
 /* Function prototypes */
-int					predict_frag_id(u_int32_t *, unsigned int, u_int32_t *, unsigned int);
+int					predict_frag_id(uint32_t *, unsigned int, uint32_t *, unsigned int);
 void				print_attack_info(struct iface_data *);
 void				print_help(void);
-void 				print_icmp6_echo(struct iface_data *, struct pcap_pkthdr *, const u_char *);
-void 				print_icmp6_timed(struct iface_data *, struct pcap_pkthdr *, const u_char *);
-void 				process_icmp6_echo(struct iface_data *, struct pcap_pkthdr *, const u_char *, unsigned char *, unsigned int *);
-void 				process_icmp6_timed(struct iface_data *, struct pcap_pkthdr *, const u_char *, unsigned char *);
+void 				print_icmp6_echo(struct iface_data *, struct pcap_pkthdr *, const unsigned char *);
+void 				print_icmp6_timed(struct iface_data *, struct pcap_pkthdr *, const unsigned char *);
+void 				process_icmp6_echo(struct iface_data *, struct pcap_pkthdr *, const unsigned char *, unsigned char *, unsigned int *);
+void 				process_icmp6_timed(struct iface_data *, struct pcap_pkthdr *, const unsigned char *, unsigned char *);
 int					send_fid_probe(struct iface_data *);
 int 				send_fragment(struct iface_data *, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int);
-int 				send_fragment2(struct iface_data *, u_int16_t, unsigned int, unsigned int, unsigned int, unsigned int, char *);
+int 				send_fragment2(struct iface_data *, uint16_t, unsigned int, unsigned int, unsigned int, unsigned int, char *);
 int					test_frag_pattern(unsigned char *, unsigned int, char *);
 void				usage(void);
-int 				valid_icmp6_response(struct iface_data *, struct pcap_pkthdr *, const u_char *);
-int					valid_icmp6_response2(struct iface_data *, struct pcap_pkthdr *, const u_char *, unsigned int);
+int 				valid_icmp6_response(struct iface_data *, struct pcap_pkthdr *, const unsigned char *);
+int					valid_icmp6_response2(struct iface_data *, struct pcap_pkthdr *, const unsigned char *, unsigned int);
 
 /* Used for router discovery */
 struct iface_data	idata;
@@ -86,7 +86,7 @@ unsigned char		randpreflen;
 
 /* Data structures for packets read from the wire */
 struct pcap_pkthdr	*pkthdr;
-const u_char		*pktdata;
+const unsigned char		*pktdata;
 unsigned char		*pkt_end, *pkt_ptr;
 struct ether_header	*pkt_ether;
 struct ip6_hdr		*pkt_ipv6;
@@ -123,8 +123,8 @@ unsigned long		ul_res, ul_val;
 unsigned int		i, j, startrand;
 unsigned int		skip;
 unsigned int		frags, nfrags, nsleep;
-u_int16_t			mask, ip6length;
-u_int8_t			hoplimit;
+uint16_t			mask, ip6length;
+uint8_t			hoplimit;
 
 char 				plinkaddr[ETHER_ADDR_PLEN];
 char 				psrcaddr[INET6_ADDRSTRLEN], pdstaddr[INET6_ADDRSTRLEN], pv6addr[INET6_ADDRSTRLEN];
@@ -134,7 +134,7 @@ unsigned char 		loop_f=0, sleep_f=0, localaddr_f=0, tstamp_f=1, pod_f=0;
 unsigned char		srcprefix_f=0, hoplimit_f=0, ip6length_f=0, icmp6psize_f=0;
 unsigned char		fsize_f=0, forder_f=0, foffset_f=0, fid_f=0, fragp_f=0, fragidp_f=0, resp_f=1;
 
-u_int32_t			fsize, foffset, fid, id;
+uint32_t			fsize, foffset, fid, id;
 unsigned int		forder, overlap, minfragsize;
 
 /* Support for Extension Headers */
@@ -169,8 +169,8 @@ char				block8[8]={'a', 'a', 'd', 'd', 'c', 'c', 'b', 'b'};
 
 
 /* For the sampling of Fragment Identification values */
-u_int16_t			addr_sig, addr_key;
-u_int32_t			icmp6_sig;
+uint16_t			addr_sig, addr_key;
+uint32_t			icmp6_sig;
 
 int main(int argc, char **argv){
 	extern char		*optarg;	
@@ -186,7 +186,7 @@ int main(int argc, char **argv){
 	unsigned char	test[5];
 
 	/* Arrays for storing the Fragment ID samples */
-	u_int32_t		test1[NSAMPLES], test2[NSAMPLES];
+	uint32_t		test1[NSAMPLES], test2[NSAMPLES];
 	unsigned int	ntest1=0, ntest2=0;
 	unsigned char	testtype;
 
@@ -1041,7 +1041,7 @@ int main(int argc, char **argv){
 			}
 			else if(pkt_ipv6->ip6_nxt == IPPROTO_FRAGMENT){
 				if( (pkt_end - (unsigned char *) pkt_ipv6) < \
-					(sizeof(struct ip6_hdr) + sizeof(struct ip6_frag) + sizeof(struct icmp6_hdr) + sizeof(u_int32_t)))
+					(sizeof(struct ip6_hdr) + sizeof(struct ip6_frag) + sizeof(struct icmp6_hdr) + sizeof(uint32_t)))
 					continue;
 
 				pkt_fh= (struct ip6_frag *) ( (unsigned char *)pkt_ipv6 + sizeof(struct ip6_hdr));
@@ -1074,7 +1074,7 @@ int main(int argc, char **argv){
 
 					/* XXX Not used when sampling non-first fragments */
 					if(!(pkt_fh->ip6f_offlg & IP6F_OFF_MASK)){
-						if( *(u_int32_t *)((unsigned char *)pkt_icmp6+ sizeof(struct icmp6_hdr)) != icmp6_sig){
+						if( *(uint32_t *)((unsigned char *)pkt_icmp6+ sizeof(struct icmp6_hdr)) != icmp6_sig){
 							continue;
 						}
 					}
@@ -1093,7 +1093,7 @@ int main(int argc, char **argv){
 
 					/* XXX Not used when sampling non-first fragments */
 					if(!(pkt_fh->ip6f_offlg & IP6F_OFF_MASK)){
-						if( *(u_int32_t *)((unsigned char *)pkt_icmp6+ sizeof(struct icmp6_hdr)) != icmp6_sig){
+						if( *(uint32_t *)((unsigned char *)pkt_icmp6+ sizeof(struct icmp6_hdr)) != icmp6_sig){
 							continue;
 						}
 					}
@@ -1352,7 +1352,7 @@ int main(int argc, char **argv){
  *
  * Print information about a received ICMPv6 Echo Response packet
  */
-void print_icmp6_echo(struct iface_data *idata, struct pcap_pkthdr *pkthdr, const u_char *pktdata){
+void print_icmp6_echo(struct iface_data *idata, struct pcap_pkthdr *pkthdr, const unsigned char *pktdata){
 	struct ip6_hdr		*pkt_ipv6;
 	time_t				rtt;
 
@@ -1366,7 +1366,7 @@ void print_icmp6_echo(struct iface_data *idata, struct pcap_pkthdr *pkthdr, cons
 	rtt= time(NULL) - *(time_t *) ( (unsigned char *) pkt_ipv6 + (sizeof(struct ip6_hdr) + sizeof(struct icmp6_hdr)));
 	printf("ICMPv6 echo Reply from %s", pv6addr);
 	if(rtt > 0)
-		printf(" (RTT: %u second%s)\n", (u_int32_t)rtt, (rtt>1)?"s":"");
+		printf(" (RTT: %u second%s)\n", (uint32_t)rtt, (rtt>1)?"s":"");
 	else
 		puts(" (RTT: < 1 second)"); 
 }
@@ -1377,12 +1377,12 @@ void print_icmp6_echo(struct iface_data *idata, struct pcap_pkthdr *pkthdr, cons
  *
  * Print information about a received ICMPv6 Time Exceeded error message
  */
-void print_icmp6_timed(struct iface_data *idata, struct pcap_pkthdr *pkthdr, const u_char *pktdata){
+void print_icmp6_timed(struct iface_data *idata, struct pcap_pkthdr *pkthdr, const unsigned char *pktdata){
 	struct ip6_hdr		*pkt_ipv6, *pkt_ipv6_ipv6;
 	struct icmp6_hdr	*pkt_icmp6, *pkt_icmp6_icmp6;
 	struct ip6_ext		*pkt_ext;
 	struct ip6_frag		*pkt_fh_fh;
-	u_int8_t			pkt_prev_nh;
+	uint8_t			pkt_prev_nh;
 	time_t				rtt;
 
 	pkt_ipv6 = (struct ip6_hdr *) (pktdata + idata->linkhsize);
@@ -1442,7 +1442,7 @@ void print_icmp6_timed(struct iface_data *idata, struct pcap_pkthdr *pkthdr, con
 		pkt_ptr= ((unsigned char *) pkt_icmp6_icmp6+ sizeof(struct icmp6_hdr));
 
 		/* Verify our "checksum" */
-		if(*(u_int32_t *)(pkt_ptr+sizeof(time_t)) != ((*(u_int32_t *)pkt_ptr) ^ 0xabcdabcd)){
+		if(*(uint32_t *)(pkt_ptr+sizeof(time_t)) != ((*(uint32_t *)pkt_ptr) ^ 0xabcdabcd)){
 			return;
 		}
 
@@ -1463,7 +1463,7 @@ void print_icmp6_timed(struct iface_data *idata, struct pcap_pkthdr *pkthdr, con
  * Process ICMPv6 echo reply messages received in response to our probe packets that investigate
  * the fragment reassembly policy of a target
  */
-void process_icmp6_echo(struct iface_data *idata, struct pcap_pkthdr *pkthdr, const u_char *pktdata, unsigned char *test, unsigned int *responses){
+void process_icmp6_echo(struct iface_data *idata, struct pcap_pkthdr *pkthdr, const unsigned char *pktdata, unsigned char *test, unsigned int *responses){
 	struct ip6_hdr		*pkt_ipv6;
 	struct icmp6_hdr	*pkt_icmp6;
 
@@ -1583,12 +1583,12 @@ void process_icmp6_echo(struct iface_data *idata, struct pcap_pkthdr *pkthdr, co
  * Process ICMPv6 Time Exceeded messages received in response to our probe packets that investigate
  * the fragment reassembly policy of a target
  */
-void process_icmp6_timed(struct iface_data *idata, struct pcap_pkthdr *pkthdr, const u_char *pktdata, unsigned char *test){
+void process_icmp6_timed(struct iface_data *idata, struct pcap_pkthdr *pkthdr, const unsigned char *pktdata, unsigned char *test){
 	struct ip6_hdr		*pkt_ipv6, *pkt_ipv6_ipv6;
 	struct icmp6_hdr	*pkt_icmp6, *pkt_icmp6_icmp6;
 	struct ip6_ext		*pkt_ext;
 	struct ip6_frag		*pkt_fh_fh;
-	u_int8_t			pkt_prev_nh;
+	uint8_t			pkt_prev_nh;
 
 	pkt_ipv6 = (struct ip6_hdr *) (pktdata + idata->linkhsize);
 	pkt_icmp6= (struct icmp6_hdr *) ((unsigned char *) pkt_ipv6 + sizeof(struct ip6_hdr));
@@ -1693,7 +1693,7 @@ void process_icmp6_timed(struct iface_data *idata, struct pcap_pkthdr *pkthdr, c
  *
  * Sends an IPv6 for evaluating the fragment reassembly policy
  */
-int send_fragment2(struct iface_data *idata, u_int16_t ip6len, unsigned int id, unsigned int offset, unsigned int fsize, unsigned int order, \
+int send_fragment2(struct iface_data *idata, uint16_t ip6len, unsigned int id, unsigned int offset, unsigned int fsize, unsigned int order, \
 						char *block){
 	unsigned char	*ptrend;
 
@@ -1970,8 +1970,8 @@ int send_fragment(struct iface_data *idata, unsigned int id, unsigned int offset
 		ptr+= sizeof(struct icmp6_hdr);
 		fsize-= sizeof(struct icmp6_hdr);
 
-		if(tstamp_f && fsize >= (sizeof(time_t)+sizeof(u_int32_t))){
-			if((ptr+ (sizeof(time_t) + sizeof(u_int32_t))) > (v6buffer+max_packet_size)){
+		if(tstamp_f && fsize >= (sizeof(time_t)+sizeof(uint32_t))){
+			if((ptr+ (sizeof(time_t) + sizeof(uint32_t))) > (v6buffer+max_packet_size)){
 				puts("Packet too large while inserting timestamp");
 				return(-1);
 			}
@@ -1982,19 +1982,19 @@ int send_fragment(struct iface_data *idata, unsigned int id, unsigned int offset
 			ptr+= sizeof(time_t);
 
 			/* We include a "checksum" such that we can tell the responses we elicit from other packets */
-			*(u_int32_t *)ptr= (u_int32_t)tstamp ^ 0xabcdabcd;
-			ptr+= sizeof(u_int32_t);
+			*(uint32_t *)ptr= (uint32_t)tstamp ^ 0xabcdabcd;
+			ptr+= sizeof(uint32_t);
 			
 
-			if(fsize > (sizeof(time_t)+sizeof(u_int32_t)))
-				fsize-= (sizeof(time_t)+sizeof(u_int32_t));
+			if(fsize > (sizeof(time_t)+sizeof(uint32_t)))
+				fsize-= (sizeof(time_t)+sizeof(uint32_t));
 			else
 				fsize=0;
 		}
 
 		for(i=0; i< (fsize/4); i++){
-			*(u_int32_t *)ptr = random();
-			ptr += sizeof(u_int32_t);
+			*(uint32_t *)ptr = random();
+			ptr += sizeof(uint32_t);
 		}
 
 		ipv6->ip6_plen= htons(ptr-(v6buffer + MIN_IPV6_HLEN));
@@ -2002,7 +2002,7 @@ int send_fragment(struct iface_data *idata, unsigned int id, unsigned int offset
 	}
 	else{
 		if(tstamp_f){
-			if((ptr+ (sizeof(time_t) + sizeof(u_int32_t))) > (v6buffer+max_packet_size)){
+			if((ptr+ (sizeof(time_t) + sizeof(uint32_t))) > (v6buffer+max_packet_size)){
 				puts("Packet too large while inserting timestamp");
 				return(-1);
 			}
@@ -2013,11 +2013,11 @@ int send_fragment(struct iface_data *idata, unsigned int id, unsigned int offset
 			ptr+= sizeof(time_t);
 
 			/* We include a "checksum" such that we can tell the responses we elicit from other packets */
-			*(u_int32_t *)ptr= (u_int32_t)tstamp ^ 0xabcdabcd;
+			*(uint32_t *)ptr= (uint32_t)tstamp ^ 0xabcdabcd;
 			
 
-			if(fsize > (sizeof(time_t)+sizeof(u_int32_t)))
-				fsize-= (sizeof(time_t)+sizeof(u_int32_t));
+			if(fsize > (sizeof(time_t)+sizeof(uint32_t)))
+				fsize-= (sizeof(time_t)+sizeof(uint32_t));
 			else
 				fsize=0;
 		}
@@ -2027,14 +2027,14 @@ int send_fragment(struct iface_data *idata, unsigned int id, unsigned int offset
 			fsize= (fsize>>3) << 3;
 		}
 
-		if((ptr+ (sizeof(time_t) + sizeof(u_int32_t))) > (v6buffer+max_packet_size)){
+		if((ptr+ (sizeof(time_t) + sizeof(uint32_t))) > (v6buffer+max_packet_size)){
 			puts("Packet too large while inserting timestamp");
 			return(-1);
 		}
 
 		for(i=0; i<(fsize/4); i++){
-			*(u_int32_t *)ptr = random();
-			ptr += sizeof(u_int32_t);
+			*(uint32_t *)ptr = random();
+			ptr += sizeof(uint32_t);
 		}
 
 		ipv6->ip6_plen= htons(ptr-(v6buffer + MIN_IPV6_HLEN));
@@ -2108,12 +2108,12 @@ int send_fid_probe(struct iface_data *idata){
 	icmp6->icmp6_data16[1]= htons(random());	/* Sequence Number */
 
 	ptr+= sizeof(struct icmp6_hdr);
-	*(u_int32_t *)ptr= icmp6_sig;
-	ptr+= sizeof(u_int32_t);
+	*(uint32_t *)ptr= icmp6_sig;
+	ptr+= sizeof(uint32_t);
 
 	for(i=0;i<400; i++){
-		*(u_int32_t *)ptr= random();
-		ptr+=sizeof(u_int32_t);
+		*(uint32_t *)ptr= random();
+		ptr+=sizeof(uint32_t);
 	}
 
 	icmp6->icmp6_cksum = in_chksum(v6buffer, icmp6, ptr-(unsigned char *)icmp6, IPPROTO_ICMPV6);
@@ -2299,7 +2299,7 @@ void print_attack_info(struct iface_data *idata){
  * Checks whether the response to an ICMPv6 probe is valid
  */
 
-int valid_icmp6_response(struct iface_data *idata, struct pcap_pkthdr *pkthdr, const u_char *pktdata){
+int valid_icmp6_response(struct iface_data *idata, struct pcap_pkthdr *pkthdr, const unsigned char *pktdata){
 
 	struct ether_header	*pkt_ether;
 	struct ip6_hdr		*pkt_ipv6, *pkt_ipv6_ipv6;
@@ -2307,7 +2307,7 @@ int valid_icmp6_response(struct iface_data *idata, struct pcap_pkthdr *pkthdr, c
 	struct icmp6_hdr	*pkt_icmp6, *pkt_icmp6_icmp6;
 	struct ip6_frag		*pkt_fh_fh;
 	unsigned char		*pkt_end, *pkt_ptr;
-	u_int8_t			pkt_prev_nh;
+	uint8_t			pkt_prev_nh;
 	unsigned int		minfragsize;
 
 	pkt_ether = (struct ether_header *) pktdata;
@@ -2347,7 +2347,7 @@ int valid_icmp6_response(struct iface_data *idata, struct pcap_pkthdr *pkthdr, c
 
 			if(tstamp_f){
 				pkt_ptr= ((unsigned char *) pkt_icmp6+ sizeof(struct icmp6_hdr));
-				if( *(u_int32_t *) pkt_ptr != (*(u_int32_t *) (pkt_ptr+sizeof(u_int32_t)) ^ 0xabcdabcd)){
+				if( *(uint32_t *) pkt_ptr != (*(uint32_t *) (pkt_ptr+sizeof(uint32_t)) ^ 0xabcdabcd)){
 					return 0;
 				}
 			}
@@ -2361,7 +2361,7 @@ int valid_icmp6_response(struct iface_data *idata, struct pcap_pkthdr *pkthdr, c
 			 */
 			minfragsize= sizeof(struct ip6_hdr) + sizeof(struct icmp6_hdr)+sizeof(struct ip6_hdr) + \
 							sizeof(struct ip6_frag) + sizeof(struct icmp6_hdr) + (fsize_f?fsize:MIN_FRAG_SIZE) + \
-							(tstamp_f?(sizeof(time_t)+sizeof(u_int32_t)):0);
+							(tstamp_f?(sizeof(time_t)+sizeof(uint32_t)):0);
 
 			if( ((pkt_end - (unsigned char *) pkt_ipv6) < minfragsize) &&  \
 										(pkt_end - (unsigned char *) pkt_ipv6) < MIN_IPV6_MTU){
@@ -2413,7 +2413,7 @@ int valid_icmp6_response(struct iface_data *idata, struct pcap_pkthdr *pkthdr, c
 
 				if(tstamp_f){
 					pkt_ptr= ((unsigned char *) pkt_icmp6_icmp6+ sizeof(struct icmp6_hdr));
-					if( *(u_int32_t *) pkt_ptr != (*(u_int32_t *) (pkt_ptr+sizeof(u_int32_t)) ^ 0xabcdabcd)){
+					if( *(uint32_t *) pkt_ptr != (*(uint32_t *) (pkt_ptr+sizeof(uint32_t)) ^ 0xabcdabcd)){
 						return 0;
 					}
 				}
@@ -2463,7 +2463,7 @@ int valid_icmp6_response(struct iface_data *idata, struct pcap_pkthdr *pkthdr, c
  * Checks whether the response to an ICMPv6 probe (for identifying the fragment reassembly policy) is valid
  */
 
-int valid_icmp6_response2(struct iface_data *idata, struct pcap_pkthdr *pkthdr, const u_char *pktdata, unsigned int minsize){
+int valid_icmp6_response2(struct iface_data *idata, struct pcap_pkthdr *pkthdr, const unsigned char *pktdata, unsigned int minsize){
 
 	struct ether_header	*pkt_ether;
 	struct ip6_hdr		*pkt_ipv6, *pkt_ipv6_ipv6;
@@ -2471,7 +2471,7 @@ int valid_icmp6_response2(struct iface_data *idata, struct pcap_pkthdr *pkthdr, 
 	struct icmp6_hdr	*pkt_icmp6, *pkt_icmp6_icmp6;
 	struct ip6_frag		*pkt_fh_fh;
 	unsigned char		*pkt_end;
-	u_int8_t			pkt_prev_nh;
+	uint8_t			pkt_prev_nh;
 
 	pkt_ether = (struct ether_header *) pktdata;
 	pkt_ipv6 = (struct ip6_hdr *)((char *) pkt_ether + idata->linkhsize);
@@ -2623,8 +2623,8 @@ int test_frag_pattern(unsigned char *ptr, unsigned int size, char *block){
  *
  * Identifies and prints the Fragment Identification generation policy
 */
-int predict_frag_id(u_int32_t *s1, unsigned int n1, u_int32_t *s2, unsigned int n2){
-	u_int32_t		diff1_avg, diff2_avg;
+int predict_frag_id(uint32_t *s1, unsigned int n1, uint32_t *s2, unsigned int n2){
+	uint32_t		diff1_avg, diff2_avg;
 	double			diff1_sdev, diff2_sdev;
 
 	if(inc_sdev(s1, n1, &diff1_avg, &diff1_sdev) == -1){

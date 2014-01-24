@@ -54,7 +54,7 @@
 
 /* Function prototypes */
 void				init_packet_data(struct iface_data *);
-void				send_packet(struct iface_data *, const u_char *, struct pcap_pkthdr *);
+void				send_packet(struct iface_data *, const unsigned char *, struct pcap_pkthdr *);
 void				print_attack_info(struct iface_data *);
 void				usage(void);
 void				print_help(void);
@@ -70,12 +70,12 @@ unsigned int		learnrouter_f=0, sanityfilters_f=0;
 
 /* Variables used for ICMPv6 Redirect (specifically) */
 
-u_int16_t			ip6length;
+uint16_t			ip6length;
 struct in6_addr		rediraddr, peeraddr;
 unsigned char		redirpreflen, targetpreflen;
-u_int16_t			redirport, peerport, tcpurg, tcpwin, icmp6id, icmp6seq;
-u_int32_t			tcpseq, tcpack;
-u_int8_t			tcpflags=0, ip6hoplimit;
+uint16_t			redirport, peerport, tcpurg, tcpwin, icmp6id, icmp6seq;
+uint32_t			tcpseq, tcpack;
+uint8_t			tcpflags=0, ip6hoplimit;
 struct ip6_hdr		*rhipv6;
 struct udp_hdr		*rhudp;
 struct tcp_hdr		*rhtcp;
@@ -94,7 +94,7 @@ struct in6_addr			router_ipv6, rs_ipv6;
 
 /* Data structures for packets read from the wire */
 struct pcap_pkthdr		*pkthdr;
-const u_char			*pktdata;
+const unsigned char			*pktdata;
 unsigned char			*pkt_end;
 struct ether_header		*pkt_ether;
 struct ip6_hdr			*pkt_ipv6;
@@ -125,8 +125,8 @@ unsigned int			i, j, startrand;
 unsigned int			skip;
 unsigned int			ntargets, sources, nsources, targets, nsleep;
 
-u_int16_t				mask;
-u_int8_t				hoplimit;
+uint16_t				mask;
+uint8_t				hoplimit;
 
 char 					plinkaddr[ETHER_ADDR_PLEN];
 char 					psrcaddr[INET6_ADDRSTRLEN], pdstaddr[INET6_ADDRSTRLEN], pv6addr[INET6_ADDRSTRLEN];
@@ -1143,7 +1143,7 @@ int main(int argc, char **argv){
 			tcpseq= random();
 
 		if(!tcpwin_f)
-			tcpwin= ((u_int16_t) random() + 1500) & (u_int16_t)0x7f00;
+			tcpwin= ((uint16_t) random() + 1500) & (uint16_t)0x7f00;
 
 		if(!peerport_f)
 			peerport= random();
@@ -1484,7 +1484,7 @@ void init_packet_data(struct iface_data *idata){
  * Initialize the remaining fields of the Neighbor Advertisement Message, and
  * send the attack packet(s).
  */
-void send_packet(struct iface_data *idata, const u_char *pktdata, struct pcap_pkthdr *pkthdr){
+void send_packet(struct iface_data *idata, const unsigned char *pktdata, struct pcap_pkthdr *pkthdr){
 	if(pktdata != NULL){   /* Sending a Redirect in response to a received packet */
 		pkt_ether = (struct ether_header *) pktdata;
 		pkt_ipv6 = (struct ip6_hdr *)((char *) pkt_ether + idata->linkhsize);
@@ -1765,9 +1765,9 @@ void send_packet(struct iface_data *idata, const u_char *pktdata, struct pcap_pk
 								rhbytes -= MIN_IPV6_HLEN+MIN_TCP_HLEN;
 
 								while(rhbytes>=4){
-									*(u_int32_t *)ptr = random();
-									ptr += sizeof(u_int32_t);
-									rhbytes -= sizeof(u_int32_t);
+									*(uint32_t *)ptr = random();
+									ptr += sizeof(uint32_t);
+									rhbytes -= sizeof(uint32_t);
 								}
 							}
 						}
@@ -1789,9 +1789,9 @@ void send_packet(struct iface_data *idata, const u_char *pktdata, struct pcap_pk
 								ptr += MIN_IPV6_HLEN+MIN_UDP_HLEN;
 								rhbytes -= MIN_IPV6_HLEN+MIN_UDP_HLEN;
 								while(rhbytes>=4){
-									*(u_int32_t *)ptr = random();
-									ptr += sizeof(u_int32_t);
-									rhbytes -= sizeof(u_int32_t);
+									*(uint32_t *)ptr = random();
+									ptr += sizeof(uint32_t);
+									rhbytes -= sizeof(uint32_t);
 								}
 							}
 						}
@@ -1813,9 +1813,9 @@ void send_packet(struct iface_data *idata, const u_char *pktdata, struct pcap_pk
 								ptr += MIN_IPV6_HLEN+MIN_ICMP6_HLEN;
 								rhbytes -= MIN_IPV6_HLEN+MIN_ICMP6_HLEN;
 								while(rhbytes>=4){
-									*(u_int32_t *)ptr = random();
-									ptr += sizeof(u_int32_t);
-									rhbytes -= sizeof(u_int32_t);
+									*(uint32_t *)ptr = random();
+									ptr += sizeof(uint32_t);
+									rhbytes -= sizeof(uint32_t);
 								}
 							}
 						}

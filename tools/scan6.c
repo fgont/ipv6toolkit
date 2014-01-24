@@ -80,11 +80,11 @@ int 				validate_host_entries(pcap_t *, struct iface_data *, struct host_list *,
 int					probe_node_nd(const char *, struct ether_addr *, struct in6_addr *, struct in6_addr *,\
 									struct ether_addr *);
 int					process_icmp6_response(struct iface_data *, struct host_list *, unsigned char , \
-											struct pcap_pkthdr *, const u_char *, unsigned char *);
+											struct pcap_pkthdr *, const unsigned char *, unsigned char *);
 int					valid_icmp6_response(struct iface_data *, unsigned char, struct pcap_pkthdr *,\
-									const u_char *, unsigned char *);
+									const unsigned char *, unsigned char *);
 int					valid_icmp6_response_remote(struct iface_data *, struct scan_list *, unsigned char, \
-									struct pcap_pkthdr *, const u_char *, unsigned char *);
+									struct pcap_pkthdr *, const unsigned char *, unsigned char *);
 int					print_scan_entries(struct scan_list *);
 int					load_ipv4mapped32_entries(struct scan_list *, struct scan_entry *, struct prefix4_entry *);
 int					load_ipv4mapped64_entries(struct scan_list *, struct scan_entry *, struct prefix4_entry *);
@@ -124,7 +124,7 @@ unsigned char				randpreflen;
 
 /* Data structures for packets read from the wire */
 struct pcap_pkthdr			*pkthdr;
-const u_char				*pktdata;
+const unsigned char				*pktdata;
 unsigned char				*pkt_end;
 struct ether_header			*pkt_ether;
 struct ip6_hdr				*pkt_ipv6;
@@ -161,8 +161,8 @@ unsigned int			i, j, startrand;
 unsigned int			skip;
 unsigned char			dstpreflen;
 
-u_int16_t				mask;
-u_int8_t				hoplimit;
+uint16_t				mask;
+uint8_t				hoplimit;
 
 char 					plinkaddr[ETHER_ADDR_PLEN], pv4addr[INET_ADDRSTRLEN];
 char 					psrcaddr[INET6_ADDRSTRLEN], pdstaddr[INET6_ADDRSTRLEN], pv6addr[INET6_ADDRSTRLEN];
@@ -205,8 +205,8 @@ unsigned char			vm_vbox_f=FALSE, vm_vmware_f=FALSE, vm_vmwarem_f=FALSE, v4hostad
 unsigned char			v4hostprefix_f=FALSE, sort_ouis_f=FALSE, rnd_probes_f=FALSE, inc_f=FALSE, end_f=FALSE, donesending_f=FALSE;
 unsigned char			onlink_f=FALSE, pps_f=FALSE, bps_f=FALSE, tcpflags_f=FALSE, rhbytes_f=FALSE, srcport_f=FALSE, dstport_f=FALSE, probetype;
 unsigned char			loop_f=FALSE, sleep_f=FALSE;
-u_int16_t				srcport, dstport;
-u_int8_t				tcpflags=0;
+uint16_t				srcport, dstport;
+uint8_t				tcpflags=0;
 unsigned long			pktinterval, rate;
 unsigned int			packetsize, rhbytes;
 struct prefix4_entry	v4host;
@@ -225,9 +225,9 @@ int						sel;
 fd_set					sset, rset, wset, eset;
 struct timeval			curtime, pcurtime, lastprobe;
 struct tm				pcurtimetm;
-u_int16_t				service_ports_hex[]={0x21, 0x22, 0x23, 0x25, 0x49, 0x53, 0x80, 0x110, 0x123, 0x179, 0x220, 0x389, \
+uint16_t				service_ports_hex[]={0x21, 0x22, 0x23, 0x25, 0x49, 0x53, 0x80, 0x110, 0x123, 0x179, 0x220, 0x389, \
 						                 0x443, 0x547, 0x993, 0x995, 0x1194, 0x3306, 0x5060, 0x5061, 0x5432, 0x6446, 0x8080};
-u_int16_t				service_ports_dec[]={21, 22, 23, 25, 49, 53, 80, 110, 123, 179, 220, 389, \
+uint16_t				service_ports_dec[]={21, 22, 23, 25, 49, 53, 80, 110, 123, 179, 220, 389, \
 						                 443, 547, 993, 995, 1194, 3306, 5060, 5061, 5432, 6446, 8080};
 
 
@@ -1882,7 +1882,7 @@ int get_next_target(struct scan_list *scan_list){
 				if( ((unsigned int) ntohs((scan_list->target[cind])->cur.s6_addr16[7]) + scan_list->inc) > \
 							ntohs((scan_list->target[scan_list->ctarget])->end.s6_addr16[7]) ){
 
-						(scan_list->target[cind])->cur.s6_addr16[i]= htons((u_int16_t)((unsigned int)
+						(scan_list->target[cind])->cur.s6_addr16[i]= htons((uint16_t)((unsigned int)
 																ntohs((scan_list->target[cind])->start.s6_addr16[i]) + \
 																( (unsigned int) ntohs((scan_list->target[cind])->cur.s6_addr16[i]) + \
 																 scan_list->inc - ntohs((scan_list->target[cind])->start.s6_addr16[i])) % \
@@ -1952,7 +1952,7 @@ int print_scan_entries(struct scan_list *scan){
 
 int load_ipv4mapped32_entries(struct scan_list *scan, struct scan_entry *dst, struct prefix4_entry *v4host){
 	unsigned int i;
-	u_int32_t	mask32;
+	uint32_t	mask32;
 
 	if(scan->ntarget >= scan->maxtarget){
 		return(0);
@@ -1966,8 +1966,8 @@ int load_ipv4mapped32_entries(struct scan_list *scan, struct scan_entry *dst, st
 	for(i=4; i<=5; i++)
 		(scan->target[scan->ntarget])->start.s6_addr16[i]= htons(0);
 
-	(scan->target[scan->ntarget])->start.s6_addr16[6]= htons( (u_int16_t) (ntohl(v4host->ip.s_addr) >> 16));
-	(scan->target[scan->ntarget])->start.s6_addr16[7]= htons( (u_int16_t) (ntohl(v4host->ip.s_addr) & 0x0000ffff));
+	(scan->target[scan->ntarget])->start.s6_addr16[6]= htons( (uint16_t) (ntohl(v4host->ip.s_addr) >> 16));
+	(scan->target[scan->ntarget])->start.s6_addr16[7]= htons( (uint16_t) (ntohl(v4host->ip.s_addr) & 0x0000ffff));
 	(scan->target[scan->ntarget])->cur= (scan->target[scan->ntarget])->start;
 
 	(scan->target[scan->ntarget])->end= dst->end;
@@ -1983,8 +1983,8 @@ int load_ipv4mapped32_entries(struct scan_list *scan, struct scan_entry *dst, st
 	for(i=0; i< v4host->len; i++)
 		mask32=mask32>>1;
 
-	(scan->target[scan->ntarget])->end.s6_addr16[6]= (scan->target[scan->ntarget])->end.s6_addr16[6] | htons( (u_int16_t)(mask32>>16));
-	(scan->target[scan->ntarget])->end.s6_addr16[7]= (scan->target[scan->ntarget])->end.s6_addr16[7] | htons((u_int16_t)(mask32 & 0x0000ffff));
+	(scan->target[scan->ntarget])->end.s6_addr16[6]= (scan->target[scan->ntarget])->end.s6_addr16[6] | htons( (uint16_t)(mask32>>16));
+	(scan->target[scan->ntarget])->end.s6_addr16[7]= (scan->target[scan->ntarget])->end.s6_addr16[7] | htons((uint16_t)(mask32 & 0x0000ffff));
 
 	scan->ntarget++;
 
@@ -2000,7 +2000,7 @@ int load_ipv4mapped32_entries(struct scan_list *scan, struct scan_entry *dst, st
 
 int load_ipv4mapped64_entries(struct scan_list *scan, struct scan_entry *dst, struct prefix4_entry *v4host){
 	unsigned int i;
-	u_int32_t	mask32;
+	uint32_t	mask32;
 
 	if(scan->ntarget >= scan->maxtarget){
 		return(0);
@@ -2011,10 +2011,10 @@ int load_ipv4mapped64_entries(struct scan_list *scan, struct scan_entry *dst, st
 
 	(scan->target[scan->ntarget])->start= dst->start;
 
-	(scan->target[scan->ntarget])->start.s6_addr16[4]= htons( (u_int16_t) (ntohl(v4host->ip.s_addr) >> 24));
-	(scan->target[scan->ntarget])->start.s6_addr16[5]= htons( ((u_int16_t) (ntohl(v4host->ip.s_addr) >> 16)) & 0x00ff);
-	(scan->target[scan->ntarget])->start.s6_addr16[6]= htons( (u_int16_t) ((ntohl(v4host->ip.s_addr) >> 8) & 0x000000ff));
-	(scan->target[scan->ntarget])->start.s6_addr16[7]= htons( (u_int16_t) (ntohl(v4host->ip.s_addr) & 0x000000ff));
+	(scan->target[scan->ntarget])->start.s6_addr16[4]= htons( (uint16_t) (ntohl(v4host->ip.s_addr) >> 24));
+	(scan->target[scan->ntarget])->start.s6_addr16[5]= htons( ((uint16_t) (ntohl(v4host->ip.s_addr) >> 16)) & 0x00ff);
+	(scan->target[scan->ntarget])->start.s6_addr16[6]= htons( (uint16_t) ((ntohl(v4host->ip.s_addr) >> 8) & 0x000000ff));
+	(scan->target[scan->ntarget])->start.s6_addr16[7]= htons( (uint16_t) (ntohl(v4host->ip.s_addr) & 0x000000ff));
 	(scan->target[scan->ntarget])->cur= (scan->target[scan->ntarget])->start;
 
 	(scan->target[scan->ntarget])->end= dst->end;
@@ -2030,10 +2030,10 @@ int load_ipv4mapped64_entries(struct scan_list *scan, struct scan_entry *dst, st
 	for(i=0; i< v4host->len; i++)
 		mask32=mask32>>1;
 
-	(scan->target[scan->ntarget])->end.s6_addr16[4]= (scan->target[scan->ntarget])->end.s6_addr16[4] | htons( (u_int16_t)(mask32>>24));
-	(scan->target[scan->ntarget])->end.s6_addr16[5]= (scan->target[scan->ntarget])->end.s6_addr16[5] | htons( (u_int16_t)(mask32>>16 & 0x000000ff));
-	(scan->target[scan->ntarget])->end.s6_addr16[6]= (scan->target[scan->ntarget])->end.s6_addr16[6] | htons( (u_int16_t)(mask32>>8 & 0x000000ff));
-	(scan->target[scan->ntarget])->end.s6_addr16[7]= (scan->target[scan->ntarget])->end.s6_addr16[7] | htons((u_int16_t)(mask32 & 0x000000ff));
+	(scan->target[scan->ntarget])->end.s6_addr16[4]= (scan->target[scan->ntarget])->end.s6_addr16[4] | htons( (uint16_t)(mask32>>24));
+	(scan->target[scan->ntarget])->end.s6_addr16[5]= (scan->target[scan->ntarget])->end.s6_addr16[5] | htons( (uint16_t)(mask32>>16 & 0x000000ff));
+	(scan->target[scan->ntarget])->end.s6_addr16[6]= (scan->target[scan->ntarget])->end.s6_addr16[6] | htons( (uint16_t)(mask32>>8 & 0x000000ff));
+	(scan->target[scan->ntarget])->end.s6_addr16[7]= (scan->target[scan->ntarget])->end.s6_addr16[7] | htons((uint16_t)(mask32 & 0x000000ff));
 
 	for(i=4; i<=7; i++){
 		(scan->target[scan->ntarget])->start.s6_addr16[i]= htons( dec_to_hex(ntohs((scan->target[scan->ntarget])->start.s6_addr16[i])));
@@ -2369,7 +2369,7 @@ int load_knowniidfile_entries(struct scan_list *scan, struct scan_list *prefix, 
 int load_embeddedport_entries(struct scan_list *scan, struct scan_entry *dst){
 	unsigned int	i;
 
-	for(i=0; i < (sizeof(service_ports_hex)/sizeof(u_int16_t)); i++){
+	for(i=0; i < (sizeof(service_ports_hex)/sizeof(uint16_t)); i++){
 		if(scan->ntarget >= scan->maxtarget){
 			return(0);
 		}
@@ -2413,7 +2413,7 @@ int load_embeddedport_entries(struct scan_list *scan, struct scan_entry *dst){
 		scan->ntarget++;
 	}
 
-	for(i=0; i < (sizeof(service_ports_dec)/sizeof(u_int16_t)); i++){
+	for(i=0; i < (sizeof(service_ports_dec)/sizeof(uint16_t)); i++){
 		if(scan->ntarget >= scan->maxtarget){
 			return(0);
 		}
@@ -2543,7 +2543,7 @@ int load_oui_entries(struct scan_list *scan, struct scan_entry *dst, struct ethe
 
 int load_vm_entries(struct scan_list *scan, struct scan_entry *dst, struct prefix4_entry *v4host){
 	unsigned int 		i;
-	u_int32_t			mask32;
+	uint32_t			mask32;
 	struct ether_addr 	ether;
 
 	/* VirtualBOX */
@@ -2899,8 +2899,8 @@ int load_bruteforce_entries(struct scan_list *scan, struct scan_entry *dst){
  */
 
 void prefix_to_scan(struct prefix_entry *pref, struct scan_entry *scan){
-	u_int16_t mask;
-	u_int8_t words;	
+	uint16_t mask;
+	uint8_t words;	
 	unsigned int i;
 
 	sanitize_ipv6_prefix(&(pref->ip6), pref->len);
@@ -3016,7 +3016,7 @@ int send_probe_remote(struct iface_data *idata, struct scan_list *scan, struct i
 	struct tcp_hdr				*tcp;
 	struct ip6_dest				*destopth;
 	struct ip6_option			*opt;
-	u_int32_t					*uint32;
+	uint32_t					*uint32;
 
 	/* max_packet_size holds is equal to the link MTU, since the tool doesn't support packets larger than the link MTU */
 	max_packet_size = idata->mtu;
@@ -3073,8 +3073,8 @@ int send_probe_remote(struct iface_data *idata, struct scan_list *scan, struct i
 			ptr = ptr+ sizeof(struct icmp6_hdr);
 
 			for(i=0; i<(ICMPV6_ECHO_PAYLOAD_SIZE>>2); i++){
-				*(u_int32_t *)ptr = random();
-				ptr += sizeof(u_int32_t);
+				*(uint32_t *)ptr = random();
+				ptr += sizeof(uint32_t);
 			}
 
 			ipv6->ip6_plen = htons((ptr - v6buffer) - MIN_IPV6_HLEN);
@@ -3102,7 +3102,7 @@ int send_probe_remote(struct iface_data *idata, struct scan_list *scan, struct i
 			opt->ip6o_len= 4;
 
 			ptr= ptr + 2;
-			uint32 = (u_int32_t *) ptr;
+			uint32 = (uint32_t *) ptr;
 			*uint32 = random();
 
 			ptr= ptr +4;
@@ -3115,8 +3115,8 @@ int send_probe_remote(struct iface_data *idata, struct scan_list *scan, struct i
 			ptr = ptr+ sizeof(struct icmp6_hdr);
 
 			for(i=0; i<(ICMPV6_ECHO_PAYLOAD_SIZE>>2); i++){
-				*(u_int32_t *)ptr = random();
-				ptr += sizeof(u_int32_t);
+				*(uint32_t *)ptr = random();
+				ptr += sizeof(uint32_t);
 			}
 
 			ipv6->ip6_plen = htons((ptr - v6buffer) - MIN_IPV6_HLEN);
@@ -3169,13 +3169,13 @@ int send_probe_remote(struct iface_data *idata, struct scan_list *scan, struct i
 			}
 
 			while(rhbytes>=4){
-				*(u_int32_t *)ptr = random();
-				ptr += sizeof(u_int32_t);
-				rhbytes -= sizeof(u_int32_t);
+				*(uint32_t *)ptr = random();
+				ptr += sizeof(uint32_t);
+				rhbytes -= sizeof(uint32_t);
 			}
 
 			while(rhbytes>0){
-				*(u_int8_t *) ptr= (u_int8_t) random();
+				*(uint8_t *) ptr= (uint8_t) random();
 				ptr++;
 				rhbytes--;
 			}
@@ -3216,7 +3216,7 @@ int multi_scan_local(pcap_t *pfd, struct iface_data *idata, struct in6_addr *src
 
 	struct bpf_program			pcap_filter;
 	struct pcap_pkthdr			*pkthdr;
-	const u_char				*pktdata;
+	const unsigned char				*pktdata;
 	struct ip6_hdr				*pkt_ipv6;
 	struct icmp6_hdr			*pkt_icmp6;
 	struct nd_neighbor_solicit	*pkt_ns;
@@ -3233,7 +3233,7 @@ int multi_scan_local(pcap_t *pfd, struct iface_data *idata, struct in6_addr *src
 	struct sigaction			new_sig, old_sig;
 	struct ip6_dest				*destopth;
 	struct ip6_option			*opt;
-	u_int32_t					*uint32;
+	uint32_t					*uint32;
 	unsigned char				error_f=FALSE, llocalsrc_f=FALSE;
 	int 						result;
 
@@ -3324,8 +3324,8 @@ int multi_scan_local(pcap_t *pfd, struct iface_data *idata, struct in6_addr *src
 			ptr = ptr+ sizeof(struct icmp6_hdr);
 
 			for(i=0; i<(ICMPV6_ECHO_PAYLOAD_SIZE>>2); i++){
-				*(u_int32_t *)ptr = random();
-				ptr += sizeof(u_int32_t);
+				*(uint32_t *)ptr = random();
+				ptr += sizeof(uint32_t);
 			}
 			break;
 
@@ -3349,7 +3349,7 @@ int multi_scan_local(pcap_t *pfd, struct iface_data *idata, struct in6_addr *src
 			opt->ip6o_len= 4;
 
 			ptr= ptr + 2;
-			uint32 = (u_int32_t *) ptr;
+			uint32 = (uint32_t *) ptr;
 			*uint32 = random();
 
 			ptr= ptr +4;
@@ -3363,8 +3363,8 @@ int multi_scan_local(pcap_t *pfd, struct iface_data *idata, struct in6_addr *src
 			ptr = ptr+ sizeof(struct icmp6_hdr);
 
 			for(i=0; i<(ICMPV6_ECHO_PAYLOAD_SIZE>>2); i++){
-				*(u_int32_t *)ptr = random();
-				ptr += sizeof(u_int32_t);
+				*(uint32_t *)ptr = random();
+				ptr += sizeof(uint32_t);
 			}
 			break;
 	}
@@ -3536,7 +3536,7 @@ int find_local_globals(pcap_t *pfd, struct iface_data *idata, unsigned char type
 int host_scan_local(pcap_t *pfd, struct iface_data *idata, struct in6_addr *srcaddr, unsigned char type, struct host_entry *host){
 	struct bpf_program		pcap_filter;
 	struct pcap_pkthdr		*pkthdr;
-	const u_char			*pktdata;
+	const unsigned char			*pktdata;
 	struct ip6_hdr			*pkt_ipv6;
 	struct icmp6_hdr		*pkt_icmp6;
 	struct nd_neighbor_solicit	*pkt_ns;
@@ -3553,7 +3553,7 @@ int host_scan_local(pcap_t *pfd, struct iface_data *idata, struct in6_addr *srca
 	struct sigaction		new_sig, old_sig;
 	struct ip6_dest			*destopth;
 	struct ip6_option		*opt;
-	u_int32_t				*uint32;
+	uint32_t				*uint32;
 	unsigned char			foundaddr_f=FALSE, error_f=FALSE;
 	int				result;
 
@@ -3641,8 +3641,8 @@ int host_scan_local(pcap_t *pfd, struct iface_data *idata, struct in6_addr *srca
 			ptr = ptr+ sizeof(struct icmp6_hdr);
 
 			for(i=0; i<(ICMPV6_ECHO_PAYLOAD_SIZE>>2); i++){
-				*(u_int32_t *)ptr = random();
-				ptr += sizeof(u_int32_t);
+				*(uint32_t *)ptr = random();
+				ptr += sizeof(uint32_t);
 			}
 			break;
 
@@ -3667,7 +3667,7 @@ int host_scan_local(pcap_t *pfd, struct iface_data *idata, struct in6_addr *srca
 			opt->ip6o_len= 4;
 
 			ptr= ptr + 2;
-			uint32 = (u_int32_t *) ptr;
+			uint32 = (uint32_t *) ptr;
 			*uint32 = random();
 
 			ptr= ptr +4;
@@ -3681,8 +3681,8 @@ int host_scan_local(pcap_t *pfd, struct iface_data *idata, struct in6_addr *srca
 			ptr = ptr+ sizeof(struct icmp6_hdr);
 
 			for(i=0; i<(ICMPV6_ECHO_PAYLOAD_SIZE>>2); i++){
-				*(u_int32_t *)ptr = random();
-				ptr += sizeof(u_int32_t);
+				*(uint32_t *)ptr = random();
+				ptr += sizeof(uint32_t);
 			}
 			break;
 	}
@@ -4006,7 +4006,7 @@ int validate_host_entries(pcap_t *pfd, struct iface_data *idata, struct host_lis
  */
 
 int valid_icmp6_response(struct iface_data *idata, unsigned char type, struct pcap_pkthdr *pkthdr,\
-			const u_char *pktdata, unsigned char *pktsent){
+			const unsigned char *pktdata, unsigned char *pktsent){
 
 	struct ether_header	*pkt_ether;
 	struct ip6_hdr		*pkt_ipv6, *ipv6;
@@ -4114,7 +4114,7 @@ int valid_icmp6_response(struct iface_data *idata, unsigned char type, struct pc
  */
 
 int valid_icmp6_response_remote(struct iface_data *idata, struct scan_list *scan, unsigned char type, struct pcap_pkthdr *pkthdr,\
-			const u_char *pktdata, unsigned char *pktsent){
+			const unsigned char *pktdata, unsigned char *pktsent){
 
 	struct ether_header	*pkt_ether;
 	struct ip6_hdr		*pkt_ipv6, *ipv6;

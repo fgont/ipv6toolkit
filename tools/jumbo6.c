@@ -62,13 +62,13 @@
 
 /* Function prototypes */
 void				init_packet_data(struct iface_data *);
-int					send_packet(struct iface_data *, struct pcap_pkthdr *, const u_char *);
-void 				print_icmp6_echo(struct iface_data *, struct pcap_pkthdr *, const u_char *);
-void 				print_icmp6_error(struct iface_data *, struct pcap_pkthdr *, const u_char *);
+int					send_packet(struct iface_data *, struct pcap_pkthdr *, const unsigned char *);
+void 				print_icmp6_echo(struct iface_data *, struct pcap_pkthdr *, const unsigned char *);
+void 				print_icmp6_error(struct iface_data *, struct pcap_pkthdr *, const unsigned char *);
 void				print_attack_info(struct iface_data *);
 void				usage(void);
 void				print_help(void);
-int 				valid_icmp6_response(struct iface_data *, struct pcap_pkthdr *, const u_char *);
+int 				valid_icmp6_response(struct iface_data *, struct pcap_pkthdr *, const unsigned char *);
 
 /* Used for router discovery */
 struct prefix_entry	*prefix_ols[MAX_PREFIXES_ONLINK], *prefix_acs[MAX_PREFIXES_AUTO];
@@ -78,7 +78,7 @@ unsigned char		randpreflen;
 
 /* Data structures for packets read from the wire */
 struct pcap_pkthdr	*pkthdr;
-const u_char		*pktdata;
+const unsigned char		*pktdata;
 unsigned char		*pkt_end;
 struct ether_header	*pkt_ether;
 struct ip6_hdr		*pkt_ipv6;
@@ -114,9 +114,9 @@ unsigned int		i, j, startrand;
 unsigned int		skip;
 unsigned int		sources, nsources, ports, nports, nsleep;
 
-u_int16_t			mask, ip6length;
-u_int32_t			jplength, *jplengthptr, *fjplengthptr, icmp6psize;
-u_int8_t			hoplimit;
+uint16_t			mask, ip6length;
+uint32_t			jplength, *jplengthptr, *fjplengthptr, icmp6psize;
+uint8_t			hoplimit;
 
 char 				plinkaddr[ETHER_ADDR_PLEN];
 char 				psrcaddr[INET6_ADDRSTRLEN], pdstaddr[INET6_ADDRSTRLEN], pv6addr[INET6_ADDRSTRLEN];
@@ -675,7 +675,7 @@ int main(int argc, char **argv){
  *
  * Print information about a received ICMPv6 Echo Response packet
  */
-void print_icmp6_echo(struct iface_data *idata, struct pcap_pkthdr *pkthdr, const u_char *pktdata){
+void print_icmp6_echo(struct iface_data *idata, struct pcap_pkthdr *pkthdr, const unsigned char *pktdata){
 	struct ip6_hdr		*pkt_ipv6;
 
 	pkt_ipv6 = (struct ip6_hdr *) (pktdata + idata->linkhsize);
@@ -694,7 +694,7 @@ void print_icmp6_echo(struct iface_data *idata, struct pcap_pkthdr *pkthdr, cons
  *
  * Print information about a received ICMPv6 error message
  */
-void print_icmp6_error(struct iface_data *idata, struct pcap_pkthdr *pkthdr, const u_char *pktdata){
+void print_icmp6_error(struct iface_data *idata, struct pcap_pkthdr *pkthdr, const unsigned char *pktdata){
 	struct ip6_hdr		*pkt_ipv6;
 	struct icmp6_hdr	*pkt_icmp6;
 
@@ -772,7 +772,7 @@ void init_packet_data(struct iface_data *idata){
 	ptr++;
 	*ptr= 4; /* Option length */
 	ptr++;
-	jplengthptr= (u_int32_t *) ptr;
+	jplengthptr= (uint32_t *) ptr;
 	ptr+=4;
 
 
@@ -861,8 +861,8 @@ void init_packet_data(struct iface_data *idata){
 	ptr+= sizeof(struct icmp6_hdr);
 
 	for(i=0; i< (icmp6psize/4); i++){
-		*(u_int32_t *)ptr = random();
-		ptr += sizeof(u_int32_t);
+		*(uint32_t *)ptr = random();
+		ptr += sizeof(uint32_t);
 	}
 
 	icmp6->icmp6_cksum = in_chksum(v6buffer, icmp6, ptr-((unsigned char *)icmp6), IPPROTO_ICMPV6);
@@ -878,7 +878,7 @@ void init_packet_data(struct iface_data *idata){
  * Initialize the remaining fields of the Neighbor Advertisement Message, and
  * send the attack packet(s).
  */
-int send_packet(struct iface_data *idata, struct pcap_pkthdr *pkthdr, const u_char *pktdata){
+int send_packet(struct iface_data *idata, struct pcap_pkthdr *pkthdr, const unsigned char *pktdata){
 	ptr= startofprefixes;
 
 	if(!fragh_f){
@@ -909,7 +909,7 @@ int send_packet(struct iface_data *idata, struct pcap_pkthdr *pkthdr, const u_ch
 		fptr = fragbuffer;
 		fipv6 = (struct ip6_hdr *) (fragbuffer + ETHER_HDR_LEN);
 		fptrend = fptr + ETHER_HDR_LEN+MIN_IPV6_HLEN+MAX_IPV6_PAYLOAD;
-		fjplengthptr= (u_int32_t *) (fptr + sizeof(struct ether_header) + sizeof(struct ip6_hdr) + 3);
+		fjplengthptr= (uint32_t *) (fptr + sizeof(struct ether_header) + sizeof(struct ip6_hdr) + 3);
 		/* We copy everything from the Ethernet header till the end of the Unfragmentable part */
 		memcpy(fptr, buffer, fragpart-buffer);
 		fptr = fptr + (fragpart-buffer);
@@ -1123,7 +1123,7 @@ void print_attack_info(struct iface_data *idata){
  * Checks whether the response to an ICMPv6 probe is valid
  */
 
-int valid_icmp6_response(struct iface_data *idata, struct pcap_pkthdr *pkthdr, const u_char *pktdata){
+int valid_icmp6_response(struct iface_data *idata, struct pcap_pkthdr *pkthdr, const unsigned char *pktdata){
 
 	struct ether_header	*pkt_ether;
 	struct ip6_hdr		*pkt_ipv6;

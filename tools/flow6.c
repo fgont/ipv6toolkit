@@ -66,7 +66,7 @@ void				print_attack_info(void);
 void				usage(void);
 void				print_help(void);
 int					send_fid_probe(void);
-int					predict_flow_id(u_int32_t *, unsigned int, u_int32_t *, unsigned int);
+int					predict_flow_id(uint32_t *, unsigned int, uint32_t *, unsigned int);
 
 
 /* Used for router discovery */
@@ -76,7 +76,7 @@ unsigned char		randpreflen;
 
 /* Data structures for packets read from the wire */
 struct pcap_pkthdr	*pkthdr;
-const u_char		*pktdata;
+const unsigned char		*pktdata;
 unsigned char		*pkt_end, *pkt_ptr;
 struct ether_header	*pkt_ether;
 struct ip6_hdr		*pkt_ipv6;
@@ -115,8 +115,8 @@ unsigned int		skip;
 unsigned int		frags, nfrags, nsleep;
 unsigned char		srcpreflen;
 
-u_int16_t			mask, ip6length;
-u_int8_t			hoplimit;
+uint16_t			mask, ip6length;
+uint8_t			hoplimit;
 
 char 				plinkaddr[ETHER_ADDR_PLEN];
 char 				psrcaddr[INET6_ADDRSTRLEN], pdstaddr[INET6_ADDRSTRLEN], pv6addr[INET6_ADDRSTRLEN];
@@ -142,9 +142,9 @@ unsigned char		*prev_nh, *startoffragment;
 
 
 /* For the sampling of Flow Label values */
-u_int16_t			baseport, lastport, dstport, tcpwin, addr_sig, addr_key;
-u_int32_t			tcpseq;
-u_int8_t			protocol;
+uint16_t			baseport, lastport, dstport, tcpwin, addr_sig, addr_key;
+uint32_t			tcpseq;
+uint8_t			protocol;
 
 
 int main(int argc, char **argv){
@@ -155,7 +155,7 @@ int main(int argc, char **argv){
 	time_t				curtime, start, lastfrag1=0;
 
 	/* Arrays for storing the Flow ID samples */
-	u_int32_t		test1[NSAMPLES], test2[NSAMPLES];
+	uint32_t		test1[NSAMPLES], test2[NSAMPLES];
 	unsigned int	ntest1=0, ntest2=0;
 	unsigned char	testtype;
 
@@ -365,7 +365,7 @@ int main(int argc, char **argv){
 		puts("Identifying the 'Flow ID' generation policy of the target node....");
 
 		if(protocol == IPPROTO_TCP){
-			tcpwin= ((u_int16_t) random() + 1500) & (u_int16_t)0x7f00;
+			tcpwin= ((uint16_t) random() + 1500) & (uint16_t)0x7f00;
 			tcpseq= random();
 			baseport= 50000+ random()%10000;
 			lastport= baseport;
@@ -816,8 +816,8 @@ void print_attack_info(void){
  *
  * Identifies and prints the Flow Label generation policy
 */
-int predict_flow_id(u_int32_t *s1, unsigned int n1, u_int32_t *s2, unsigned int n2){
-	u_int32_t		diff1_avg, diff2_avg;
+int predict_flow_id(uint32_t *s1, unsigned int n1, uint32_t *s2, unsigned int n2){
+	uint32_t		diff1_avg, diff2_avg;
 	double			diff1_sdev, diff2_sdev;
 
 	if(inc_sdev(s1, n1, &diff1_avg, &diff1_sdev) == -1){

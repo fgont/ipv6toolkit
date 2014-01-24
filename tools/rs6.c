@@ -56,7 +56,7 @@ void					print_help(void);
 
 pcap_t					*pfd;
 struct pcap_pkthdr		*pkthdr;
-const u_char			*pktdata;
+const unsigned char			*pktdata;
 struct in6_addr			*pkt_ipv6addr;    
 bpf_u_int32				my_netmask;
 bpf_u_int32				my_ip;
@@ -78,8 +78,8 @@ unsigned long			ul_res, ul_val;
     
 unsigned int			i, j, sources, nsources, startrand;
     
-u_int16_t				mask;
-u_int8_t				hoplimit;
+uint16_t				mask;
+uint8_t				hoplimit;
 
 struct ether_addr		linkaddr[MAX_SLLA_OPTION];
 unsigned int			nlinkaddr=0, linkaddrs;

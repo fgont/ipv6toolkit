@@ -60,9 +60,9 @@ struct filters{
 	struct in6_addr		*blockdst;
 	struct in6_addr		*blocktarget;
 
-	u_int8_t		*blocksrclen;
-	u_int8_t		*blockdstlen;
-	u_int8_t		*blocktargetlen;
+	uint8_t		*blocksrclen;
+	uint8_t		*blockdstlen;
+	uint8_t		*blocktargetlen;
 
 	struct ether_addr	*blocklinksrc;
 	struct ether_addr	*blocklinkdst;
@@ -78,9 +78,9 @@ struct filters{
 	struct in6_addr		*acceptdst;
 	struct in6_addr		*accepttarget;
 
-	u_int8_t		*acceptsrclen;
-	u_int8_t		*acceptdstlen;
-	u_int8_t		*accepttargetlen;
+	uint8_t		*acceptsrclen;
+	uint8_t		*acceptdstlen;
+	uint8_t		*accepttargetlen;
 	unsigned char	acceptfilters_f;
 
 	struct ether_addr	*acceptlinksrc;
@@ -168,13 +168,13 @@ struct filters{
 
 
 struct ether_addr{
-  u_int8_t a[ETHER_ADDR_LEN];
+  uint8_t a[ETHER_ADDR_LEN];
 } __attribute__ ((__packed__));
 
 /* For DLT_NULL encapsulation */
 struct dlt_null
 {
-  u_int32_t	family;	/* Protocol Family	*/
+  uint32_t	family;	/* Protocol Family	*/
 } __attribute__ ((__packed__));
 
 
@@ -191,31 +191,31 @@ struct ip6_option{
 } __attribute__ ((__packed__));
 
 struct	nd_opt_slla{
-    u_int8_t	type;
-    u_int8_t	length;
-    u_int8_t	address[6];
+    uint8_t	type;
+    uint8_t	length;
+    uint8_t	address[6];
 } __attribute__ ((__packed__));
 
 struct	nd_opt_tlla{
-    u_int8_t	type;
-    u_int8_t	length;
-    u_int8_t	address[6];
+    uint8_t	type;
+    uint8_t	length;
+    uint8_t	address[6];
 } __attribute__ ((__packed__));
 
 struct nd_opt_route_info_l{
-    u_int8_t	nd_opt_ri_type;
-    u_int8_t	nd_opt_ri_len;
-    u_int8_t	nd_opt_ri_prefix_len;
-    u_int8_t	nd_opt_ri_rsvd_pref_rsvd;
-    u_int32_t	nd_opt_ri_lifetime;
+    uint8_t	nd_opt_ri_type;
+    uint8_t	nd_opt_ri_len;
+    uint8_t	nd_opt_ri_prefix_len;
+    uint8_t	nd_opt_ri_rsvd_pref_rsvd;
+    uint32_t	nd_opt_ri_lifetime;
     struct in6_addr	nd_opt_ri_prefix;
 } __attribute__ ((__packed__));
     
 struct nd_opt_rdnss_l{
-    u_int8_t	nd_opt_rdnss_type;
-    u_int8_t	nd_opt_rdnss_len;
-    u_int16_t	nd_opt_rdnss_rsvd;
-    u_int32_t	nd_opt_rdnss_lifetime;
+    uint8_t	nd_opt_rdnss_type;
+    uint8_t	nd_opt_rdnss_len;
+    uint16_t	nd_opt_rdnss_rsvd;
+    uint32_t	nd_opt_rdnss_lifetime;
     struct in6_addr	nd_opt_rdnss_addr[];
 } __attribute__ ((__packed__));
 
@@ -223,9 +223,9 @@ struct nd_opt_rdnss_l{
 struct ipv6pseudohdr{
     struct in6_addr srcaddr;
     struct in6_addr dstaddr;
-    u_int32_t	len;
-    u_int8_t zero[3];
-    u_int8_t	nh;
+    uint32_t	len;
+    uint8_t zero[3];
+    uint8_t	nh;
 } __attribute__ ((__packed__));
 
 /* 10Mb/s ethernet header */
@@ -233,18 +233,18 @@ struct ether_header
 {
   struct ether_addr dst;	/* destination eth addr	*/
   struct ether_addr src;	/* source ether addr	*/
-  u_int16_t ether_type;		/* packet type ID field	*/
+  uint16_t ether_type;		/* packet type ID field	*/
 } __attribute__ ((__packed__));
 
 
-typedef	u_int32_t tcp_seq;
+typedef	uint32_t tcp_seq;
 
 
 struct tcp_hdr{
-	u_int16_t th_sport;              /* source port */
-	u_int16_t th_dport;              /* destination port */
-	tcp_seq th_seq;                  /* sequence number */
-	tcp_seq th_ack;                  /* acknowledgement number */
+	uint16_t th_sport;              /* source port */
+	uint16_t th_dport;              /* destination port */
+	tcp_seq th_seq;                 /* sequence number */
+	tcp_seq th_ack;                 /* acknowledgement number */
 #if (defined(__BYTE_ORDER) && defined(__LITTLE_ENDIAN) && __BYTE_ORDER == __LITTLE_ENDIAN) || \
   (defined(__BYTE_ORDER__) && defined(__ORDER_LITTLE_ENDIAN__) && __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__) || \
   (defined(_BYTE_ORDER) && defined(_LITTLE_ENDIAN) && _BYTE_ORDER == _LITTLE_ENDIAN)
@@ -256,25 +256,25 @@ struct tcp_hdr{
 	unsigned int th_off:4;           /* data offset */
 	unsigned int th_x2:4;            /* (unused) */
 #endif
-	u_int8_t th_flags;
-#define TH_FIN    0x01
-#define TH_SYN    0x02
-#define TH_RST    0x04
-#define TH_PUSH   0x08
-#define TH_ACK    0x10
-#define TH_URG    0x20
-#define TH_ECE    0x40
-#define TH_CWR    0x80
-	u_int16_t th_win;                /* window */
-	u_int16_t th_sum;                /* checksum */
-	u_int16_t th_urp;                /* urgent pointer */
+	uint8_t th_flags;
+#define TH_FIN	  0x01
+#define TH_SYN	  0x02
+#define TH_RST	  0x04
+#define TH_PUSH	  0x08
+#define TH_ACK	  0x10
+#define TH_URG	  0x20
+#define	TH_ECE	  0x40
+#define	TH_CWR	  0x80
+	uint16_t th_win;                 /* window */
+	uint16_t th_sum;                 /* checksum */
+	uint16_t th_urp;                 /* urgent pointer */
 } __attribute__ ((__packed__));
 
 struct udp_hdr{
-  u_int16_t uh_sport;		/* source port */
-  u_int16_t uh_dport;		/* destination port */
-  u_int16_t uh_ulen;		/* udp length */
-  u_int16_t uh_sum;		/* udp checksum */
+  uint16_t uh_sport;		/* source port */
+  uint16_t uh_dport;		/* destination port */
+  uint16_t uh_ulen;		/* udp length */
+  uint16_t uh_sum;		/* udp checksum */
 } __attribute__ ((__packed__));
 
 
@@ -380,11 +380,11 @@ struct iface_list{
 
 	struct icmp6_namelookup {
 		struct icmp6_hdr 	icmp6_nl_hdr;
-		u_int8_t	icmp6_nl_nonce[8];
+		uint8_t	icmp6_nl_nonce[8];
 		int32_t		icmp6_nl_ttl;
 	#if 0
-		u_int8_t	icmp6_nl_len;
-		u_int8_t	icmp6_nl_name[3];
+		uint8_t	icmp6_nl_len;
+		uint8_t	icmp6_nl_name[3];
 	#endif
 		/* could be followed by options */
 	} __attribute__ ((__packed__));
@@ -394,7 +394,7 @@ struct iface_list{
 	 */
 	struct icmp6_nodeinfo {
 		struct icmp6_hdr icmp6_ni_hdr;
-		u_int8_t icmp6_ni_nonce[8];
+		uint8_t icmp6_ni_nonce[8];
 		/* could be followed by reply data */
 	} __attribute__ ((__packed__));
 
@@ -438,27 +438,27 @@ struct iface_list{
 	#endif
 
 	struct ni_reply_fqdn {
-		u_int32_t ni_fqdn_ttl;	/* TTL */
-		u_int8_t ni_fqdn_namelen; /* length in octets of the FQDN */
-		u_int8_t ni_fqdn_name[3]; /* XXX: alignment */
+		uint32_t ni_fqdn_ttl;	/* TTL */
+		uint8_t ni_fqdn_namelen; /* length in octets of the FQDN */
+		uint8_t ni_fqdn_name[3]; /* XXX: alignment */
 	} __attribute__ ((__packed__));
 
 #endif
 
 
 struct ni_reply_ip6 {
-	u_int32_t ni_ip6_ttl;	/* TTL */
+	uint32_t ni_ip6_ttl;	/* TTL */
 	struct in6_addr ip6; /* IPv6 address */
 } __attribute__ ((__packed__));
 
 
 struct ni_reply_ip {
-	u_int32_t ni_ip_ttl;	/* TTL */
+	uint32_t ni_ip_ttl;	/* TTL */
 	struct in_addr ip; /* IPv6 address */
 } __attribute__ ((__packed__));
 
 struct ni_reply_name {
-	u_int32_t ni_name_ttl;	/* TTL */
+	uint32_t ni_name_ttl;	/* TTL */
 	unsigned char	ni_name_name; /* IPv6 address */
 } __attribute__ ((__packed__));
 
@@ -582,8 +582,8 @@ struct next_hop{
 #endif
 
 int					address_contains_ranges(char *);
-void				change_endianness(u_int32_t *, unsigned int);
-u_int16_t			dec_to_hex(u_int16_t);
+void				change_endianness(uint32_t *, unsigned int);
+uint16_t			dec_to_hex(uint16_t);
 int					dns_decode(unsigned char *, unsigned int, unsigned char *, char *, unsigned int, unsigned char **);
 int					dns_str2wire(char *, unsigned int, char *, unsigned int);
 struct ether_addr	ether_multicast(const struct in6_addr *);
@@ -598,10 +598,10 @@ struct iface_entry  *find_matching_address(struct iface_data *, struct iface_lis
 void				generate_slaac_address(struct in6_addr *, struct ether_addr *, struct in6_addr *);
 int					get_if_addrs(struct iface_data *);
 int					get_local_addrs(struct iface_data *);
-int					inc_sdev(u_int32_t *, unsigned int, u_int32_t *, double *);
+int					inc_sdev(uint32_t *, unsigned int, uint32_t *, double *);
 int					init_iface_data(struct iface_data *);
 int					init_filters(struct filters *);
-u_int16_t			in_chksum(void *, void *, size_t, u_int8_t);
+uint16_t			in_chksum(void *, void *, size_t, uint8_t);
 int					insert_pad_opt(unsigned char *ptrhdr, const unsigned char *, unsigned int);
 int					ipv6_to_ether(pcap_t *, struct iface_data *, struct in6_addr *, struct ether_addr *);
 unsigned int		ip6_longest_match(struct in6_addr *, struct in6_addr *);
@@ -614,19 +614,19 @@ int					is_time_elapsed(struct timeval *, struct timeval *, unsigned long);
 int					keyval(char *, unsigned int, char **, char **);
 int					load_dst_and_pcap(struct iface_data *, unsigned int);
 unsigned int		match_ether(struct ether_addr *, unsigned int, struct ether_addr *);
-unsigned int		match_ipv6(struct in6_addr *, u_int8_t *, unsigned int, struct in6_addr *);
+unsigned int		match_ipv6(struct in6_addr *, uint8_t *, unsigned int, struct in6_addr *);
 int 				match_ipv6_to_prefixes(struct in6_addr *, struct prefix_list *);
 void				print_filters(struct iface_data *, struct filters *);
-void				print_filter_result(struct iface_data *, const u_char *, unsigned char);
+void				print_filter_result(struct iface_data *, const unsigned char *, unsigned char);
 int					print_local_addrs(struct iface_data *);
 void				randomize_ether_addr(struct ether_addr *);
-void				randomize_ipv6_addr(struct in6_addr *, struct in6_addr *, u_int8_t);
+void				randomize_ipv6_addr(struct in6_addr *, struct in6_addr *, uint8_t);
 int					read_ipv6_address(char *, unsigned int, struct in6_addr *);
 int					read_prefix(char *, unsigned int, char **);
 void				release_privileges(void);
 void				sanitize_ipv4_prefix(struct prefix4_entry *);
-void				sanitize_ipv6_prefix(struct in6_addr *, u_int8_t);
-int 				send_neighbor_advert(struct iface_data *, pcap_t *,  const u_char *);
+void				sanitize_ipv6_prefix(struct in6_addr *, uint8_t);
+int 				send_neighbor_advert(struct iface_data *, pcap_t *,  const unsigned char *);
 int					send_neighbor_solicit(struct iface_data *, struct in6_addr *);
 int					sel_src_addr(struct iface_data *);
 struct in6_addr *	sel_src_addr_ra(struct iface_data *, struct in6_addr *);

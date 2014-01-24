@@ -51,13 +51,13 @@
 
 /* Function prototypes */
 void			init_packet_data(struct iface_data *);
-int				send_packet(struct iface_data *, struct pcap_pkthdr *, const u_char *);
+int				send_packet(struct iface_data *, struct pcap_pkthdr *, const unsigned char *);
 void			print_attack_info(struct iface_data *);
 void			usage(void);
 void			print_help(void);
 
 struct pcap_pkthdr	*pkthdr;
-const u_char		*pktdata;
+const unsigned char		*pktdata;
 struct in6_addr		*pkt_ipv6addr;    
 bpf_u_int32			my_netmask;
 bpf_u_int32			my_ip;
@@ -88,8 +88,8 @@ unsigned int		skip;
 unsigned int		ntargets, sources, nsources, targets, nsleep;
 unsigned char		targetpreflen;
 
-u_int16_t			mask;
-u_int8_t			hoplimit;
+uint16_t			mask;
+uint8_t			hoplimit;
 
 char				plinkaddr[ETHER_ADDR_PLEN];
 char 				psrcaddr[INET6_ADDRSTRLEN], pdstaddr[INET6_ADDRSTRLEN], pv6addr[INET6_ADDRSTRLEN];
@@ -97,7 +97,7 @@ unsigned char 		floodt_f=0, targetaddr_f=0;
 unsigned char 		listen_f = 0, multicastdst_f=0, accepted_f=0, loop_f=0, sleep_f=0;
 unsigned char		tllaopt_f=0, tllaopta_f=0, targetprefix_f=0, hoplimit_f=0;
 unsigned char		newdata_f=0, floods_f=0;
-u_int32_t			router_f=0, solicited_f=0, override_f=0;
+uint32_t			router_f=0, solicited_f=0, override_f=0;
 
 /* Support for Extension Headers */
 unsigned int		dstopthdrs, dstoptuhdrs, hbhopthdrs;
@@ -1144,7 +1144,7 @@ void init_packet_data(struct iface_data *idata){
  * Initialize the remaining fields of the Neighbor Advertisement Message, and
  * send the attack packet(s).
  */
-int send_packet(struct iface_data *idata, struct pcap_pkthdr *pkthdr, const u_char *pktdata){
+int send_packet(struct iface_data *idata, struct pcap_pkthdr *pkthdr, const unsigned char *pktdata){
 	if(pktdata == NULL){
 		sources=0;
 	}
