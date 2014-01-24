@@ -32,7 +32,7 @@
 #include <signal.h>
 #include <string.h>
 #include <math.h>
-#include <pcap.h>
+#include "pcap_with_bsdtypes.h"
 #include <setjmp.h>
 #include <pwd.h>
 

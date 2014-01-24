@@ -45,7 +45,7 @@
 #include <getopt.h>
 #include <unistd.h>
 #include <string.h>
-#include <pcap.h>
+#include "pcap_with_bsdtypes.h"
 
 #include "rd6.h"
 #include "libipv6.h"

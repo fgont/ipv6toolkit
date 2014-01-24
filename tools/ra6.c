@@ -38,7 +38,7 @@
 #include <arpa/inet.h>
 #include <netinet/ip6.h>
 #include <netinet/icmp6.h>
-#include <pcap.h>
+#include "pcap_with_bsdtypes.h"
 
 #include <errno.h>
 #include <stdio.h>

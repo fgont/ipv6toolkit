@@ -41,7 +41,7 @@
 #include <signal.h>
 #include <string.h>
 #include <ifaddrs.h>
-#include <pcap.h>
+#include "pcap_with_bsdtypes.h"
 
 #include <netinet/in.h>
 #include <arpa/inet.h>

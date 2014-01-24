@@ -36,7 +36,7 @@
 #include <time.h>
 #include <unistd.h>
 #include <string.h>
-#include <pcap.h>
+#include "pcap_with_bsdtypes.h"
 
 #include <netinet/in.h>
 #include <arpa/inet.h>

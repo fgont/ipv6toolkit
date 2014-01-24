@@ -43,7 +43,7 @@
 #include <setjmp.h>
 #include <unistd.h>
 
-#include <pcap.h>
+#include "pcap_with_bsdtypes.h"
 #include <arpa/inet.h>
 #include <netinet/in.h>
 #include <netinet/ip6.h>

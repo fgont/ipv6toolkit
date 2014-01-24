@@ -52,7 +52,7 @@
 #include <unistd.h>
 #include <signal.h>
 #include <string.h>
-#include <pcap.h>
+#include "pcap_with_bsdtypes.h"
 
 #include "icmp6.h"
 #include "ipv6toolkit.h"

@@ -34,7 +34,7 @@
 #include <unistd.h>
 #include <signal.h>
 #include <string.h>
-#include <pcap.h>
+#include "pcap_with_bsdtypes.h"
 #include <sys/types.h>
 #include <sys/param.h>
 #include <setjmp.h>
