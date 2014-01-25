@@ -45,8 +45,9 @@ SBINTOOLS= flow6 frag6 icmp6 jumbo6 na6 ni6 ns6 ra6 rd6 rs6 scan6 tcp6
 BINTOOLS= addr6
 TOOLS= $(BINTOOLS) $(SBINTOOLS)
 LIBS= libipv6.o
+TESTS= $(SRCPATH)/libipv6.ts
 
-all: $(TOOLS) data/ipv6toolkit.conf
+all: $(TESTS) $(TOOLS) data/ipv6toolkit.conf
 
 addr6: $(SRCPATH)/addr6.c $(SRCPATH)/addr6.h $(SRCPATH)/ipv6toolkit.h $(LIBS) $(SRCPATH)/libipv6.h $(SRCPATH)/gnu-fixer.h
 	$(CC) $(CPPFLAGS) $(CFLAGS) -o addr6 $(SRCPATH)/addr6.c $(LIBS) $(LDFLAGS)
@@ -90,6 +91,13 @@ tcp6: $(SRCPATH)/tcp6.c $(SRCPATH)/tcp6.h $(SRCPATH)/ipv6toolkit.h $(LIBS) $(SRC
 libipv6.o: $(SRCPATH)/libipv6.c $(SRCPATH)/libipv6.h $(SRCPATH)/gnu-fixer.h $(SRCPATH)/ether_addr.h
 	$(CC) $(CPPFLAGS) $(CFLAGS) -c -o libipv6.o $(SRCPATH)/libipv6.c
 
+$(SRCPATH)/libipv6.ts: $(SRCPATH)/libipv6.t
+	$(SRCPATH)/libipv6.t
+	touch $(SRCPATH)/libipv6.ts
+
+$(SRCPATH)/libipv6.t: $(SRCPATH)/libipv6.t.c libipv6.o
+	$(CC) $(CPPFLAGS) $(CFLAGS) -o $(SRCPATH)/libipv6.t $(SRCPATH)/libipv6.t.c libipv6.o -lpcap -lm
+
 data/ipv6toolkit.conf:
 	echo "# SI6 Networks' IPv6 Toolkit Configuration File" > \
            data/ipv6toolkit.conf
@@ -98,6 +106,7 @@ data/ipv6toolkit.conf:
 
 clean: 
 	rm -f $(TOOLS) $(LIBS)
+	rm -f $(SRCPATH)/*.o $(SRCPATH)/*.ts $(SRCPATH)/*.t
 	rm -f data/ipv6toolkit.conf
 
 install: all
