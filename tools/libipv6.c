@@ -39,6 +39,7 @@
 #include "libipv6.h"
 #include "ipv6toolkit.h"
 
+#include "gnu-fixer.h"
 
 /* IPv6 Address Resolution */
 sigjmp_buf			env;

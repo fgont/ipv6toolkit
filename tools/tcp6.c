@@ -56,6 +56,7 @@
 #include "tcp6.h"
 #include "libipv6.h"
 
+#include "gnu-fixer.h"
 
 /* Function prototypes */
 void				init_packet_data(struct iface_data *);

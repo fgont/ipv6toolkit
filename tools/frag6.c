@@ -60,6 +60,7 @@
 #include "libipv6.h"
 #include <netinet/tcp.h>
 
+#include "gnu-fixer.h"
 
 /* Function prototypes */
 int					predict_frag_id(uint32_t *, unsigned int, uint32_t *, unsigned int);

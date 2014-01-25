@@ -49,6 +49,8 @@
 #include "libipv6.h"
 #include "ipv6toolkit.h"
 
+#include "gnu-fixer.h"
+
 /* Function prototypes */
 void			init_packet_data(struct iface_data *);
 int				send_packet(struct iface_data *, struct pcap_pkthdr *, const unsigned char *);

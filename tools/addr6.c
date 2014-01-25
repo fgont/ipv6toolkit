@@ -40,6 +40,8 @@
 #include <pwd.h>
 #include "addr6.h"
 #include "ipv6toolkit.h"
+#include "gnu-fixer.h"
+
 
 void					usage(void);
 void					print_help(void);

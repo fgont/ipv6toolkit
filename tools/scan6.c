@@ -60,6 +60,8 @@
 #include "ipv6toolkit.h"
 #include "libipv6.h"
 
+#include "gnu-fixer.h"
+
 
 /* Function prototypes */
 int					create_candidate_globals(struct iface_data *, struct host_list *, struct host_list *, \

@@ -60,6 +60,7 @@
 #include "ipv6toolkit.h"
 #include "libipv6.h"
 
+#include "gnu-fixer.h"
 
 /* Function prototypes */
 void				print_attack_info(void);
