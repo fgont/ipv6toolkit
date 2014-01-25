@@ -1199,7 +1199,7 @@ int send_packet(struct iface_data *idata, struct pcap_pkthdr *pkthdr, const unsi
 		   option), and the Ethernet is set to that specified by the "-S" option (or randomized).
 		 */
 		if(IN6_IS_ADDR_MULTICAST(pkt_ipv6addr)){
-			if( !idata->srcaddr_f && ((pkt_ns->nd_ns_target.s6_addr16[0] & htons(0xffc0)) == htons(0xfe80)) )
+			if( !idata->srcaddr_f && IN6_IS_ADDR_LINKLOCAL(&pkt_ns->nd_ns_target))
 				ipv6->ip6_src = pkt_ns->nd_ns_target;
 			else
 				ipv6->ip6_src = idata->srcaddr;

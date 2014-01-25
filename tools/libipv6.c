@@ -451,7 +451,7 @@ int find_ipv6_router_full(pcap_t *pfd, struct iface_data *idata){
 			   Check that the IPv6 Source Address of the Router Advertisement is an IPv6 link-local
 			   address.
 			 */
-			if( (pkt_ipv6->ip6_src.s6_addr16[0] & htons(0xffc0)) != htons(0xfe80))
+			if( !IN6_IS_ADDR_LINKLOCAL(&pkt_ipv6->ip6_src))
 				continue;
 
 			/* 
@@ -653,19 +653,16 @@ void ether_to_ipv6_linklocal(struct ether_addr *etheraddr, struct in6_addr *ipv6
 unsigned int match_ipv6(struct in6_addr *prefixlist, uint8_t *prefixlen, unsigned int nprefix, 
 								struct in6_addr *ipv6addr){
 
-	unsigned int 	i, j;
+	unsigned int i;
 	struct in6_addr	dummyipv6;
     
 	for(i=0; i<nprefix; i++){
 		dummyipv6 = *ipv6addr;
 		sanitize_ipv6_prefix(&dummyipv6, prefixlen[i]);
-	
-		for(j=0; j<4; j++)
-			if(dummyipv6.s6_addr32[j] != prefixlist[i].s6_addr32[j])
-				break;
 
-		if(j==4)
+		if(IN6_ARE_ADDR_EQUAL(&dummyipv6, &prefixlist[i]))
 			return 1;
+
 	}
 
 	return 0;
@@ -1039,15 +1036,13 @@ struct in6_addr solicited_node(const struct in6_addr *ipv6addr){
 /*
  * Function: is_eq_in6_addr()
  *
- * Compares two IPv6 addresses. Returns 0 if they are equal.
+ * Compares two IPv6 addresses. Returns 1 if they are equal.
  */
 
 int is_eq_in6_addr(struct in6_addr *ip1, struct in6_addr *ip2){
-	unsigned int i;
 
-	for(i=0; i<8; i++)
-		if(ip1->s6_addr16[i] != ip2->s6_addr16[i])
-			return 0;
+	if (!(IN6_ARE_ADDR_EQUAL(ip1, ip2)))
+		return 0;
 
 	return 1;
 }
@@ -1127,8 +1122,7 @@ int get_if_addrs(struct iface_data *idata){
 		else if((ptr->ifa_addr)->sa_family == AF_INET6){
 			sockin6ptr= (struct sockaddr_in6 *) (ptr->ifa_addr);
 
-			if( !(idata->ip6_local_flag) &&  (((sockin6ptr->sin6_addr).s6_addr16[0] & htons(0xffc0)) \
-															== htons(0xfe80))){
+			if( !(idata->ip6_local_flag) && IN6_IS_ADDR_LINKLOCAL(&sockin6ptr->sin6_addr)){
 				if(strncmp(idata->iface, ptr->ifa_name, IFACE_LENGTH-1) == 0){
 					idata->ip6_local = sockin6ptr->sin6_addr;
 #if defined (__FreeBSD__) || defined(__NetBSD__) || defined (__OpenBSD__) || defined(__APPLE__) || defined(__FreeBSD_kernel__)
@@ -1140,7 +1134,7 @@ int get_if_addrs(struct iface_data *idata){
 					idata->ip6_local_flag= 1;
 				}
 			}
-			else if( ((sockin6ptr->sin6_addr).s6_addr16[0] & htons(0xffc0)) != htons(0xfe80)){
+			else if( !IN6_IS_ADDR_LINKLOCAL(&sockin6ptr->sin6_addr)){
 				if(strncmp(idata->iface, ptr->ifa_name, IFACE_LENGTH-1) == 0){
 					if(IN6_IS_ADDR_LOOPBACK(&(sockin6ptr->sin6_addr)))
 						idata->flags= IFACE_LOOPBACK;
@@ -1179,15 +1173,10 @@ int get_if_addrs(struct iface_data *idata){
  */
 
 int is_ip6_in_address_list(struct prefix_list *plist, struct in6_addr *target){
-	unsigned int i, j;
+	unsigned int i;
 
 	for(i=0; i < plist->nprefix; i++){
-		for(j=0; j < 8; j++){
-			if(target->s6_addr16[j] != (plist->prefix[i])->ip6.s6_addr16[j])
-				break;
-		}
-
-		if(j == 8)
+		if (IN6_ARE_ADDR_EQUAL(&target, &plist->prefix[i]))
 			return 1;
 	}
 
@@ -1628,7 +1617,7 @@ struct in6_addr *sel_src_addr_ra(struct iface_data *idata, struct in6_addr *dst)
 	   address.
 	*/   
 
-	if( (dst->s6_addr16[0] & htons(0xffc0)) == htons(0xfe80)){
+	if( IN6_IS_ADDR_LINKLOCAL(&dst)){
 		return( &(idata->ip6_local));
 	}
 	else if(IN6_IS_ADDR_MC_LINKLOCAL(dst) || IN6_IS_ADDR_LINKLOCAL(dst)){
@@ -3610,7 +3599,7 @@ int find_ipv6_router(pcap_t *pfd, struct ether_addr *hsrcaddr, struct in6_addr *
 			   Check that the IPv6 Source Address of the Router Advertisement is an IPv6 link-local
 			   address.
 			 */
-			if( (pkt_ipv6->ip6_src.s6_addr16[0] & htons(0xffc0)) != htons(0xfe80))
+			if( !IN6_IS_ADDR_LINKLOCAL(&pkt_ipv6->ip6_src))
 				continue;
 
 			/* 

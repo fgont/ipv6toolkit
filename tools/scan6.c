@@ -1231,7 +1231,7 @@ int main(int argc, char **argv){
 	   in our iface_data structure.
 	 */
 	if(idata.srcaddr_f && !idata.srcprefix_f){
-		if( (idata.srcaddr.s6_addr16[0] & htons(0xffc0)) == htons(0xfe80)){
+		if( IN6_IS_ADDR_LINKLOCAL(&idata.srcaddr)){
 			idata.ip6_local=idata.srcaddr;
 			idata.ip6_local_flag=TRUE;
 		}
@@ -3925,7 +3925,7 @@ int create_candidate_globals(struct iface_data *idata, struct host_list *local, 
 	for(i=0; (i < local->nhosts) && (candidate->nhosts < candidate->maxhosts); i++){
 
 		/* Global Address present in "local" list -- shouldn't happen, though */
-		if((local->host[i])->ip6.s6_addr16[0] == htons(0xfe80)){
+		if(IN6_IS_ADDR_LINKLOCAL(&local->host[i]->ip6)){
 			/* We create one candidate address with the Interface-ID of the link-local address,
 			   for each of the autoconf prefixes
 			 */
