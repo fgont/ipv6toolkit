@@ -1017,16 +1017,13 @@ int ipv6_to_ether(pcap_t *pfd, struct iface_data *idata, struct in6_addr *target
  */
 
 struct in6_addr solicited_node(const struct in6_addr *ipv6addr){
-	struct in6_addr solicited;
+	struct in6_addr solicited = {
+		.s6_addr = { 0xff, 0x02, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0xff, 0, 0, 0 }
+	};
 
-	solicited.s6_addr16[0]= htons(0xff02);
-	solicited.s6_addr16[1]= 0x0000;
-	solicited.s6_addr16[2]= 0x0000;
-	solicited.s6_addr16[3]= 0x0000;
-	solicited.s6_addr16[4]= 0x0000;
-	solicited.s6_addr16[5]= htons(0x0001);
-	solicited.s6_addr16[6]= htons(0xff00) | ipv6addr->s6_addr16[6];
-	solicited.s6_addr16[7]= ipv6addr->s6_addr16[7];
+	solicited.s6_addr[13] = ipv6addr->s6_addr[13];
+	solicited.s6_addr[14] = ipv6addr->s6_addr[14];
+	solicited.s6_addr[15] = ipv6addr->s6_addr[15];
 
 	return solicited;
 }
@@ -1193,28 +1190,24 @@ int is_ip6_in_address_list(struct prefix_list *plist, struct in6_addr *target){
  */
 
 int is_ip6_in_prefix_list(struct in6_addr *target, struct prefix_list *plist){
-	unsigned int i, j, full16, rest16;
-	uint16_t	mask16;
+	unsigned int i, full8, rest8;
+	uint16_t mask8;
 
 	for(i=0; i < plist->nprefix; i++){
-		full16=(plist->prefix[i])->len / 16;
-		rest16=(plist->prefix[i])->len % 16;
-		mask16 = 0xffff;
+		full8=(plist->prefix[i])->len / 8;
+		rest8=(plist->prefix[i])->len % 8;
+		mask8 = 0xff;
 
-		for(j=0; j < full16; j++)
-			if(target->s6_addr16[j] != (plist->prefix[i])->ip6.s6_addr16[j])
-				break;
+		if (memcmp(target, plist->prefix[i], full8) != 0)
+			continue;
 
-		if(j == full16){
-			if(rest16 == 0)
-				return 1;
-			else{
-				mask16 = mask16 << (16 - rest16);
+		if(rest8 == 0)
+			return 1;
 
-				if( (target->s6_addr16[full16] & mask16) == ((plist->prefix[i])->ip6.s6_addr16[full16] & mask16))
-					return 1;
-			}
-		}
+		mask8 = mask8 << (8 - rest8);
+
+		if( (target->s6_addr[full8] & mask8) == ((plist->prefix[i])->ip6.s6_addr[full8] & mask8))
+			return 1;
 	}
 
 	return 0;
@@ -1255,7 +1248,9 @@ int match_ipv6_to_prefixes(struct in6_addr *ipv6addr, struct prefix_list *pf){
 	for(i=0; i < pf->nprefix; i++){
 		full16= (pf->prefix[i])->len/16;
 		for(j=0; j<full16; j++){
-			if(ipv6addr->s6_addr16[j] != (pf->prefix[i])->ip6.s6_addr16[j])
+			if(ipv6addr->s6_addr[2*j] != (pf->prefix[i])->ip6.s6_addr[2*j])
+				break;
+			if(ipv6addr->s6_addr[2*j+1] != (pf->prefix[i])->ip6.s6_addr[2*j+1])
 				break;
 		}
 
@@ -1265,7 +1260,8 @@ int match_ipv6_to_prefixes(struct in6_addr *ipv6addr, struct prefix_list *pf){
 			else{
 				mask= 0xffff;
 				mask= mask<<rbits;
-				if((pf->prefix[i])->ip6.s6_addr16[full16] == (ipv6addr->s6_addr16[full16] & htons(mask)))
+				if((pf->prefix[i])->ip6.s6_addr[2*full16] == (ipv6addr->s6_addr[2*full16] & htons(mask)) &&
+				  (pf->prefix[i])->ip6.s6_addr[2*full16+1] == (ipv6addr->s6_addr[2*full16+1] & htons(mask)))
 					return 1;
 			}
 		}
@@ -1486,28 +1482,23 @@ void randomize_ether_addr(struct ether_addr *ethaddr){
 
 void randomize_ipv6_addr(struct in6_addr *ipv6addr, struct in6_addr *prefix, uint8_t preflen){
 	uint16_t mask;
-	uint8_t startrand;	
+	uint8_t startrand;
 	unsigned int i;
 
-	startrand= preflen/16;
 
-	for(i=0; i<startrand; i++)
-		ipv6addr->s6_addr16[i]= 0;
 
-	for(i=startrand; i<8; i++)
-		ipv6addr->s6_addr16[i]=random();
+	startrand = preflen/8;
 
-	if(preflen%16){
-		mask=0xffff;
+	/* First take care of octets to be directly copied from the prefix */
+	memcpy(ipv6addr, prefix, startrand);
 
-		for(i=0; i<(preflen%16); i++)
-			mask= mask>>1;
+	/* Then take care of the octet that is partially prefix and partially random */
+	mask = htons(0xff << (8 - (preflen % 8)));
+	ipv6addr->s6_addr[startrand] = (prefix->s6_addr[startrand] & mask) | (random() & ~mask);
 
-		ipv6addr->s6_addr16[startrand]= ipv6addr->s6_addr16[startrand] & htons(mask);
-	}
-
-	for(i=0; i<=(preflen/16); i++)
-		ipv6addr->s6_addr16[i]= ipv6addr->s6_addr16[i] | prefix->s6_addr16[i];
+	/* Then take care of the rest of the bytes */
+	for(i=startrand+1; i<16; i++)
+		ipv6addr->s6_addr[i]=random() & 0xff;
 
 }
 
@@ -1570,18 +1561,15 @@ void sanitize_ipv6_prefix(struct in6_addr *ipv6addr, uint8_t prefixlen){
 	unsigned int	skip, i;
 	uint16_t	mask;
 
-	skip= (prefixlen+15)/16;
+	skip = prefixlen/8;
 
-	if(prefixlen%16){
-		mask=0;
-		for(i=0; i<(prefixlen%16); i++)
-			mask= (mask>>1) | 0x8000;
-	    
-		ipv6addr->s6_addr16[skip-1]= ipv6addr->s6_addr16[skip-1] & htons(mask);
-	}
-			
-	for(i=skip;i<8;i++)
-		ipv6addr->s6_addr16[i]=0;
+	/* Then take care of the octet that is partially a prefix */
+	mask = htons(0xff << (8 - (prefixlen % 8)));
+	ipv6addr->s6_addr[skip] &= mask;
+
+	/* Then take care of the rest of the bytes */
+	for(i=skip+1; i<16; i++)
+		ipv6addr->s6_addr[i] = 0;
 }
 
 
@@ -1629,14 +1617,18 @@ struct in6_addr *sel_src_addr_ra(struct iface_data *idata, struct in6_addr *dst)
 				rest16=(idata->ip6_global.prefix[i])->len % 16;
 				mask16 = 0xffff;
 
-				for(j=0; j < full16; j++)
-					if( dst->s6_addr16[j] != (idata->ip6_global.prefix[i])->ip6.s6_addr16[j])
+				for(j=0; j < full16; j++) {
+					if( dst->s6_addr[2*j] != (idata->ip6_global.prefix[i])->ip6.s6_addr[2*j+1])
 						break;
+					if( dst->s6_addr[2*j+1] != (idata->ip6_global.prefix[i])->ip6.s6_addr[2*j+1])
+						break;
+				}
 
 				if( (j == full16) && rest16){
 					mask16 = mask16 << (16 - rest16);
 
-					if( (dst->s6_addr16[full16] & mask16) == ((idata->ip6_global.prefix[i])->ip6.s6_addr16[full16] & mask16))
+					if( ((dst->s6_addr[2*full16] & mask16) == ((idata->ip6_global.prefix[i])->ip6.s6_addr[2*full16] & mask16)) &&
+					  ((dst->s6_addr[2*full16+1] & mask16) == ((idata->ip6_global.prefix[i])->ip6.s6_addr[2*full16+1] & mask16)))
 						return( &((idata->ip6_global.prefix[i])->ip6));
 				}
 		}
