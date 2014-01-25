@@ -18,7 +18,7 @@
 # typically employed by package developers.
 
 
-CC= gcc -std=c99 -pedantic -D_GNU_SOURCE -Wall -Wextra -Wno-sign-compare -Wno-unused-parameter
+CC= gcc -std=c99 -pedantic -D_POSIX_C_SOURCE -D_XOPEN_SOURCE=700 -Wall -Wextra -Wno-sign-compare -Wno-unused-parameter
 CFLAGS+= 
 LDFLAGS+= -lpcap -lm
 
