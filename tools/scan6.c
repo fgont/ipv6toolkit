@@ -57,6 +57,7 @@
 	#include <net/if_dl.h>
 #endif
 #include "scan6.h"
+#include "in6_addr_helpers.h"
 #include "ipv6toolkit.h"
 #include "libipv6.h"
 
@@ -425,14 +426,12 @@ int main(int argc, char **argv){
 						scan_list.target[scan_list.ntarget]->cur= scan_list.target[scan_list.ntarget]->start;
 
 						/* Check whether the start address is smaller than the end address */
-						for(i=0;i<7; i++)
-							if( ntohs(scan_list.target[scan_list.ntarget]->start.s6_addr16[i]) > 
-								ntohs(scan_list.target[scan_list.ntarget]->end.s6_addr16[i])){
-								if(idata.verbose_f)
-									puts("Error in Destination Address range: Start address larger than end address!");
+						if (in6_addr_cmp(&scan_list.target[scan_list.ntarget]->start, &scan_list.target[scan_list.ntarget]->end) > 0){
+							if(idata.verbose_f)
+								puts("Error in Destination Address range: Start address larger than end address!");
 
-								exit(EXIT_FAILURE);
-							}
+							exit(EXIT_FAILURE);
+						}
 
 						if(IN6_IS_ADDR_MULTICAST(&(scan_list.target[scan_list.ntarget]->start))){
 							if(idata.verbose_f)
@@ -1820,17 +1819,15 @@ void reset_scan_list(struct scan_list *scan){
  */
 
 int is_target_in_range(struct scan_entry *scan_entry){
-	unsigned int i;
 
 	if(scan_list.ctarget >=scan_list.ntarget || scan_list.ctarget >= scan_list.maxtarget){
 		return(0);
 	}
 
-	for(i=0; i<=7; i++){
-		if( ntohs((scan_entry->cur).s6_addr16[i]) < ntohs((scan_entry->start).s6_addr16[i]) || \
-			( ntohs((scan_entry->cur).s6_addr16[i]) > ntohs((scan_entry->end).s6_addr16[i])) )
-				return(0);
-	}
+	if (in6_addr_cmp(&(scan_entry->cur), &(scan_entry->start)) < 0)
+		return 0;
+	if (in6_addr_cmp(&(scan_entry->cur), &(scan_entry->end)) > 0)
+		return 0;
 
 	return(1);
 }
@@ -2055,7 +2052,6 @@ int load_ipv4mapped64_entries(struct scan_list *scan, struct scan_entry *dst, st
  */
 
 int load_knownprefix_entries(struct scan_list *scan_list, struct scan_list *prefix_list, FILE *fp){
-	unsigned int i;
 	int	r;
 	char line[MAX_LINE_SIZE], *ptr, *charptr, *charstart, *charend, *lastcolon;
 	char rangestart[MAX_RANGE_STR_LEN+1], rangeend[MAX_RANGE_STR_LEN+1];
@@ -2124,14 +2120,12 @@ int load_knownprefix_entries(struct scan_list *scan_list, struct scan_list *pref
 					(scan_list->target[scan_list->ntarget])->cur= (scan_list->target[scan_list->ntarget])->start;
 
 					/* Check whether the start address is smaller than the end address */
-					for(i=0;i<7; i++)
-						if( ntohs((scan_list->target[scan_list->ntarget])->start.s6_addr16[i]) > 
-							ntohs((scan_list->target[scan_list->ntarget])->end.s6_addr16[i])){
-							if(verbose_f > 1)
-								puts("Error in Destination Address range: Start address larger than end address!");
+					if (in6_addr_cmp(&scan_list->target[scan_list->ntarget]->start, &scan_list->target[scan_list->ntarget]->end) > 0) {
+						if(verbose_f > 1)
+							puts("Error in Destination Address range: Start address larger than end address!");
 
-							return(0);
-						}
+						return(0);
+					}
 
 					if(IN6_IS_ADDR_MULTICAST(&((scan_list->target[scan_list->ntarget])->start))){
 						if(verbose_f > 1)
@@ -4274,18 +4268,15 @@ int process_config_file(const char *path){
  * Check whether an IPv6 address belongs to one of our scan ranges
  */
 int	is_ip6_in_scan_list(struct scan_list *scan, struct in6_addr *ip6){
-	unsigned int i, j;
+	unsigned int i;
 
 	for(i=0; i< scan->ntarget; i++){
-		for(j=0; j<8; j++){
-			if( (ntohs(ip6->s6_addr16[j]) < ntohs((scan->target[i])->start.s6_addr16[j])) || \
-					(ntohs(ip6->s6_addr16[j]) > ntohs((scan->target[i])->end.s6_addr16[j]))){
-				break;
-			}
-		}
+		if (in6_addr_cmp(ip6, &(scan->target[i])->start) < 0)
+			continue;
+		if (in6_addr_cmp(ip6, &(scan->target[i])->end) > 0)
+			continue;
 
-		if(j == 8)
-			return(1);
+		return(1);
 	}
 
 	return(0);
