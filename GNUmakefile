@@ -87,7 +87,7 @@ scan6: $(SRCPATH)/scan6.c $(SRCPATH)/scan6.h $(SRCPATH)/ipv6toolkit.h $(LIBS) $(
 tcp6: $(SRCPATH)/tcp6.c $(SRCPATH)/tcp6.h $(SRCPATH)/ipv6toolkit.h $(LIBS) $(SRCPATH)/libipv6.h $(SRCPATH)/gnu-fixer.h
 	$(CC) $(CPPFLAGS) $(CFLAGS) -o tcp6 $(SRCPATH)/tcp6.c $(LIBS) $(LDFLAGS)
 
-libipv6.o: $(SRCPATH)/libipv6.c $(SRCPATH)/libipv6.h $(SRCPATH)/gnu-fixer.h
+libipv6.o: $(SRCPATH)/libipv6.c $(SRCPATH)/libipv6.h $(SRCPATH)/gnu-fixer.h $(SRCPATH)/ether_addr.h
 	$(CC) $(CPPFLAGS) $(CFLAGS) -c -o libipv6.o $(SRCPATH)/libipv6.c
 
 data/ipv6toolkit.conf:

@@ -2,6 +2,8 @@
 
 #include "pcap_with_bsdtypes.h"
 
+#include "ether_addr.h"
+
 /* General constants */
 #define SUCCESS	1
 #define FAILURE 0
@@ -15,17 +17,6 @@
 #define LINE_BUFFER_SIZE	80
 #define MAX_STRING_SIZE			10 /* For limiting strncmp */
 #define MAX_RANGE_STR_LEN		79 /* For function that check for address ranges in string */
-#define ETH_ALEN	6		/* Octets in one ethernet addr	 */
-#define ETH_HLEN	14		/* Total octets in header.	 */
-#define ETH_DATA_LEN	1500		/* Max. octets in payload	 */
-#define	ETHERTYPE_IPV6	0x86dd		/* IP protocol version 6 */
-#define	ETHER_ADDR_LEN	ETH_ALEN	/* size of ethernet addr */
-#define	ETHER_HDR_LEN	ETH_HLEN	/* total octets in header */
-
-#define ETHER_ADDR_PLEN	18		/* Includes termination byte */
-
-#define ETHER_ALLNODES_LINK_ADDR	"33:33:00:00:00:01"
-#define ETHER_ALLROUTERS_LINK_ADDR	"33:33:00:00:00:02"
 
 #define	MIN_IPV6_HLEN			40
 #define MIN_IPV6_MTU			1280
@@ -170,10 +161,6 @@ struct filters{
 #define FIXED_ORIGIN			1
 #define MULTI_ORIGIN			2
 
-
-struct ether_addr{
-  uint8_t a[ETHER_ADDR_LEN];
-} __attribute__ ((__packed__));
 
 /* For DLT_NULL encapsulation */
 struct dlt_null
