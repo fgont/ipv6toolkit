@@ -131,32 +131,6 @@ struct stats6{
 		(((uint32_t *) (a))[0] == htonl (0x3ffe831f))
 #endif
 
-#if defined (__FreeBSD__) || defined(__NetBSD__) || defined (__OpenBSD__) || defined(__APPLE__)
-    #ifndef s6_addr16
-	    #define s6_addr16	__u6_addr.__u6_addr16
-    #endif
-
-    #ifndef s6_addr
-	    #define s6_addr		__u6_addr.__u6_addr8
-    #endif
-
-    #ifndef s6_addr8
-	    #define s6_addr8	__u6_addr.__u6_addr8
-    #endif
-
-    #ifndef s6_addr32
-	    #define s6_addr32	__u6_addr.__u6_addr32
-    #endif
-#elif defined __linux__ || ( !defined(__FreeBSD__) && defined(__FreeBSD_kernel__))
-    #ifndef s6_addr16
-	    #define s6_addr16	__in6_u.__u6_addr16
-    #endif
-
-	#ifndef s6_addr32
-		#define s6_addr32	__in6_u.__u6_addr32
-	#endif
-#endif
-
 
 /* This causes Linux to use the BSD definition of the TCP and UDP header fields */
 #ifndef __FAVOR_BSD
