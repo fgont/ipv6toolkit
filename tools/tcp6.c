@@ -52,6 +52,8 @@
 	#include <net/if_dl.h>
 #endif
 #include <sys/select.h>
+
+#include "in6_addr_helpers.h"
 #include "ipv6toolkit.h"
 #include "tcp6.h"
 #include "libipv6.h"
@@ -1501,13 +1503,11 @@ int main(int argc, char **argv){
 							}
 
 							if(useaddrkey_f){
-								if(pkt_ipv6->ip6_src.s6_addr16[5] ==  (pkt_ipv6->ip6_src.s6_addr16[4] ^ addr_key) && \
-									pkt_ipv6->ip6_src.s6_addr16[7] ==  (pkt_ipv6->ip6_src.s6_addr16[6] ^ addr_key)){
+								if(in6_addr_check_double_key(&pkt_ipv6->ip6_src, addr_key)){
 									continue;
 								}
 
-								if(pkt_ipv6->ip6_dst.s6_addr16[5] !=  (pkt_ipv6->ip6_dst.s6_addr16[4] ^ addr_key) || \
-									pkt_ipv6->ip6_dst.s6_addr16[7] !=  (pkt_ipv6->ip6_dst.s6_addr16[6] ^ addr_key)){
+								if(in6_addr_check_double_key(&pkt_ipv6->ip6_dst, addr_key)){
 									continue;
 								}
 							}
@@ -1539,8 +1539,7 @@ int main(int argc, char **argv){
 					if(idata.type == DLT_EN10MB && idata.flags != IFACE_LOOPBACK){
 						if(floods_f){
 							if(useaddrkey_f){
-								if(pkt_ns->nd_ns_target.s6_addr16[5] !=  (pkt_ns->nd_ns_target.s6_addr16[4] ^ addr_key) || \
-									pkt_ns->nd_ns_target.s6_addr16[7] !=  (pkt_ns->nd_ns_target.s6_addr16[6] ^ addr_key)){
+								if(in6_addr_check_double_key(&pkt_ns->nd_ns_target, addr_key)){
 									continue;
 								}
 							}
