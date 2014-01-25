@@ -722,33 +722,33 @@ void decode_ipv6_address(struct decode6 *addr, struct stats6 *stats){
 		addr->iidtype= IID_UNSPECIFIED;
 		addr->iidsubtype= IID_UNSPECIFIED;
 
-		if((addr->ip6.s6_addr16[0] & htons(0xff00)) == htons(0xff00)){
-			if((addr->ip6.s6_addr16[0] & htons(0xfff0)) == htons(0xff00)){
+		if(addr->ip6.s6_addr[0] == 0xff){
+			if((addr->ip6.s6_addr[1] & 0xf0) == 0x00){
 				addr->subtype= MCAST_PERMANENT;
 			}
-			else if((addr->ip6.s6_addr16[0] & htons(0xfff0)) == htons(0xff10)){
+			if((addr->ip6.s6_addr[1] & 0xf0) == 0x10){
 				addr->subtype= MCAST_NONPERMANENT;
 			}
-			else if((addr->ip6.s6_addr16[0] & htons(0xfff0)) == htons(0xff20)){
+			if((addr->ip6.s6_addr[1] & 0xf0) == 0x20){
 				addr->subtype= MCAST_INVALID;
 			}
-			else if((addr->ip6.s6_addr16[0] & htons(0xfff0)) == htons(0xff30)){
+			if((addr->ip6.s6_addr[1] & 0xf0) == 0x30){
 				addr->subtype= MCAST_UNICASTBASED;
 			}
-			else if((addr->ip6.s6_addr16[0] & htons(0xfff0)) == htons(0xff40)){
+			if((addr->ip6.s6_addr[1] & 0xf0) == 0x40){
 				addr->subtype= MCAST_INVALID;
 			}
-			else if((addr->ip6.s6_addr16[0] & htons(0xfff0)) == htons(0xff50)){
+			if((addr->ip6.s6_addr[1] & 0xf0) == 0x50){
 				addr->subtype= MCAST_INVALID;
 			}
-			else if((addr->ip6.s6_addr16[0] & htons(0xfff0)) == htons(0xff60)){
+			if((addr->ip6.s6_addr[1] & 0xf0) == 0x60){
 				addr->subtype= MCAST_INVALID;
 			}
-			else if((addr->ip6.s6_addr16[0] & htons(0xfff0)) == htons(0xff70)){
+			if((addr->ip6.s6_addr[1] & 0xf0) == 0x70){
 				addr->subtype= MCAST_EMBEDRP;
 			}
 
-			scope= htons(addr->ip6.s6_addr16[0]) & 0x000f;
+			scope= addr->ip6.s6_addr[1] & 0x0f;
 
 			switch(scope){
 				case 0:
@@ -830,10 +830,10 @@ void decode_ipv6_address(struct decode6 *addr, struct stats6 *stats){
 			addr->scope= SCOPE_GLOBAL;
 
 			/* If the U or G bytes are set, the IID type is unknown */
-			if(ntohs(addr->ip6.s6_addr16[4]) & 0x0300){
+			if(ntohs(addr->ip6.s6_addr[8]) & 0x03){
 				addr->iidtype= IID_TEREDO_UNKNOWN;
 			}
-			else if(ntohs(addr->ip6.s6_addr16[4]) & 0x3cff){
+			else if((addr->ip6.s6_addr[8] & 0x3c) && (addr->ip6.s6_addr[9] & 0xff)){
 				addr->iidtype= IID_TEREDO_RFC5991;
 			}
 			else{
@@ -849,8 +849,8 @@ void decode_ipv6_address(struct decode6 *addr, struct stats6 *stats){
 			addr->subtype==UCAST_LINKLOCAL || addr->subtype==UCAST_SITELOCAL || addr->subtype==UCAST_UNIQUELOCAL ||\
 			addr->subtype == UCAST_6TO4){
 
-			if( (addr->ip6.s6_addr32[2] & htonl(0x020000ff)) == htonl(0x020000ff) && 
-				(addr->ip6.s6_addr32[3] & htonl(0xff000000)) == htonl(0xfe000000)){
+			if( ((addr->ip6.s6_addr[8] & 0x02) == 0x02) && (addr->ip6.s6_addr[11] == 0xff) &&
+				(addr->ip6.s6_addr[12] == 0xfe)){
 				addr->iidtype= IID_MACDERIVED;
 				addr->iidsubtype= (ntohl(addr->ip6.s6_addr32[2]) >> 8) & 0xfffdffff;
 			}
