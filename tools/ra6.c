@@ -49,6 +49,7 @@
 #include <string.h>
 
 #include "ra6.h"
+#include "in6_addr_helpers.h"
 #include "ipv6toolkit.h"
 #include "libipv6.h"
 
@@ -1061,10 +1062,9 @@ int main(int argc, char **argv){
 	    select the random Source Addresses from the link-local unicast prefix (fe80::/64).
 	 */
 	if(floods_f && !idata.srcprefix_f){
-		idata.srcaddr.s6_addr16[0]= htons(0xfe80); /* Link-local unicast prefix */
+		in6_addr_clear_set_linklocal_prefix(&idata.srcaddr);
 
-		for(i=1;i<8;i++)
-			idata.srcaddr.s6_addr16[i]=0x0000;
+		in6_addr_clear64(&idata.srcaddr, 1);
 	
 		idata.srcpreflen=64;
 	}
