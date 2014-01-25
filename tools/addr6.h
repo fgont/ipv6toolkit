@@ -65,21 +65,6 @@ struct	decode6{
 };
 
 
-struct host_entry{
-	struct in6_addr		ip6;
-	struct host_entry	*next;
-	struct host_entry	*prev;
-};
-
-struct host_list{
-	struct host_entry	**host;			/* Double-linked list of host entries */
-	unsigned int		nhosts;			/* Current number of host entries */
-	unsigned int		maxhosts;		/* Maximum number of host entries */
-	uint16_t			key_l;			/* Low-order word of the hash key */
-	uint16_t			key_h;			/* High-order word of the hash key */
-};
-
-
 struct stats6{
 	unsigned int	total;
 	unsigned int	ipv6unspecified;

@@ -1,3 +1,7 @@
+#include <netinet/icmp6.h>
+
+#include "pcap_with_bsdtypes.h"
+
 /* General constants */
 #define SUCCESS	1
 #define FAILURE 0
@@ -299,12 +303,15 @@ struct host_entry{
 	struct ether_addr	ether;
 	unsigned char		flag;
 	struct host_entry	*next;
+	struct host_entry	*prev;
 };
 
 struct host_list{
 	struct host_entry	**host;
 	unsigned int		nhosts;
 	unsigned int		maxhosts;
+	uint16_t		key_l;     /* Low-order word of the hash key */
+	uint16_t		key_h;     /* High-order word of the hash key */
 };
 
 struct address_list{
@@ -379,7 +386,7 @@ struct iface_list{
 	 */
 
 	struct icmp6_namelookup {
-		struct icmp6_hdr 	icmp6_nl_hdr;
+		struct icmp6_hdr icmp6_nl_hdr;
 		uint8_t	icmp6_nl_nonce[8];
 		int32_t		icmp6_nl_ttl;
 	#if 0

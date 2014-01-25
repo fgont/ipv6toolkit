@@ -40,13 +40,13 @@
 #include <pwd.h>
 #include "addr6.h"
 #include "ipv6toolkit.h"
+#include "libipv6.h"
+
 #include "gnu-fixer.h"
 
 
 void					usage(void);
 void					print_help(void);
-int						read_prefix(char *, unsigned int, char **);
-size_t					Strnlen(const char *, size_t);
 unsigned int			is_service_port(uint16_t);
 unsigned int			zero_byte_iid(struct in6_addr *);
 void					decode_ipv6_address(struct decode6 *, struct stats6 *);
@@ -55,10 +55,7 @@ void					print_dec_address_script(struct decode6 *);
 int						init_host_list(struct host_list *);
 uint16_t				key(struct host_list *, struct in6_addr *);
 struct host_entry *		add_host_entry(struct host_list *, struct in6_addr *);
-unsigned int			is_ip6_in_list(struct host_list *, struct in6_addr *);
 int 					is_eq_in6_addr(struct in6_addr *, struct in6_addr *);
-unsigned int			match_ipv6(struct in6_addr *, uint8_t *, unsigned int, struct in6_addr *);
-void					sanitize_ipv6_prefix(struct in6_addr *, uint8_t);
 void					print_stats(struct stats6 *);
 
 unsigned char			stdin_f=0, addr_f=0, verbose_f=0, decode_f=0, print_unique_f=0, stats_f=0, filter_f=0;
@@ -617,7 +614,7 @@ int main(int argc, char **argv){
 					continue;
 
 				if(print_unique_f){
-					if(is_ip6_in_list(&hlist, &(addr.ip6))){
+					if(is_ip6_in_list(&addr.ip6, &hlist)){
 						continue;
 					}
 					else{
@@ -658,37 +655,6 @@ int main(int argc, char **argv){
 	}
 
 	exit(EXIT_SUCCESS);
-}
-
-
-/*
- * Function: read_prefix()
- *
- * Obtain a pointer to the beginning of non-blank text, and zero-terminate that text upon space or comment.
- */
-
-int read_prefix(char *line, unsigned int len, char **start){
-	char *end;
-
-	*start=line;
-
-	while( (*start < (line + len)) && (**start==' ' || **start=='\t' || **start=='\r' || **start=='\n')){
-		(*start)++;
-	}
-
-	if( *start == (line + len))
-		return(0);
-
-	if( **start == '#')
-		return(0);
-
-	end= *start;
-
-	while( (end < (line + len)) && !(*end==' ' || *end=='\t' || *end=='#' || *end=='\r' || *end=='\n'))
-		end++;
-
-	*end=0;
-	return(1);
 }
 
 
@@ -1398,25 +1364,6 @@ void print_help(void){
 
 
 /*
- * Function: Strnlen()
- *
- * Our own version of strnlen(), since some OSes do not support it.
- */
-
-size_t Strnlen(const char *s, size_t maxlen){
-	size_t i=0;
-
-	while(s[i] != 0 && i < maxlen)
-		i++;
-
-	if(i < maxlen)
-		return(i);
-	else
-		return(maxlen);
-}
-
-
-/*
  * Function: init_host_list()
  *
  * Initilizes a host_list structure
@@ -1495,44 +1442,6 @@ struct host_entry *add_host_entry(struct host_list *hlist, struct in6_addr *ipv6
 
 	return(hentry);
 }
-
-
-/*
- * Function: is_ip6_in_list()
- *
- * Checks whether an IPv6 address is present in a host list.
- */
-
-unsigned int is_ip6_in_list(struct host_list *hlist, struct in6_addr *target){
-	uint16_t			ckey;
-	struct host_entry	*chentry;
-
-	ckey= key(hlist, target);
-
-	for(chentry= hlist->host[ckey]; chentry != NULL; chentry=chentry->next)
-		if( is_eq_in6_addr(target, &(chentry->ip6)) )
-			return 1;
-
-	return 0; 
-}
-
-
-/*
- * Function: is_eq_in6_addr()
- *
- * Compares two IPv6 addresses. Returns 1 if they are equal.
- */
-
-int is_eq_in6_addr(struct in6_addr *ip1, struct in6_addr *ip2){
-	unsigned int i;
-
-	for(i=0; i<8; i++)
-		if(ip1->s6_addr16[i] != ip2->s6_addr16[i])
-			return 0;
-
-	return 1;
-}
-
 
 
 /*
@@ -1631,59 +1540,3 @@ void print_stats(struct stats6 *stats){
 		printf("Randomized: %7u (%.2f%%)\n\n", stats->iidrandom, ((float)(stats->iidrandom)/totaliids) * 100);
 	}
 }
-
-
-
-/*
- * Function match_ipv6()
- *
- * Finds if an IPv6 address matches a prefix in a list of prefixes.
- */
-
-unsigned int match_ipv6(struct in6_addr *prefixlist, uint8_t *prefixlen, unsigned int nprefix, 
-								struct in6_addr *ipv6addr){
-
-    unsigned int 	i, j;
-    struct in6_addr	dummyipv6;
-    
-    for(i=0; i<nprefix; i++){
-	dummyipv6 = *ipv6addr;
-	sanitize_ipv6_prefix(&dummyipv6, prefixlen[i]);
-	
-	for(j=0; j<4; j++)
-	    if(dummyipv6.s6_addr32[j] != prefixlist[i].s6_addr32[j])
-		break;
-    
-	if(j==4)
-	    return 1;
-    }
-
-    return 0;
-}
-
-
-/*
- * sanitize_ipv6_prefix()
- *
- * Clears those bits in an IPv6 address that are not within a prefix length.
- */
-
-void sanitize_ipv6_prefix(struct in6_addr *ipv6addr, uint8_t prefixlen){
-    unsigned int skip, i;
-    uint16_t	mask;
-    
-    skip= (prefixlen+15)/16;
-
-    if(prefixlen%16){
-		mask=0;
-
-		for(i=0; i<(prefixlen%16); i++)
-	    	mask= (mask>>1) | 0x8000;
-
-		ipv6addr->s6_addr16[skip-1]= ipv6addr->s6_addr16[skip-1] & htons(mask);
-    }
-			
-    for(i=skip; i<8; i++)
-		ipv6addr->s6_addr16[i]=0;
-}
-
