@@ -59,6 +59,7 @@
 #include "flow6.h"
 #include "ipv6toolkit.h"
 #include "libipv6.h"
+#include "in6_addr_helpers.h"
 
 #include "gnu-fixer.h"
 
@@ -444,8 +445,7 @@ int main(int argc, char **argv){
 						 * to Neighbor Solicitations that target those addresses, and accept ICMPv6 Echo Replies
 						 * only if they are destined to those addresses
 						 */
-						idata.srcaddr.s6_addr16[5]= addr_sig;
-						idata.srcaddr.s6_addr16[7] =  idata.srcaddr.s6_addr16[6] ^ addr_key;
+						in6_addr_set_sig_and_key(&idata.srcaddr, addr_sig, addr_key);
 
 						if(send_neighbor_solicit(&idata, &(idata.dstaddr)) == -1){
 							puts("Error while sending Neighbor Solicitation");
@@ -519,8 +519,7 @@ int main(int argc, char **argv){
 					}
 				}
 				else{
-					if(pkt_ns->nd_ns_target.s6_addr16[5] != addr_sig || \
-						pkt_ns->nd_ns_target.s6_addr16[7] !=  (pkt_ns->nd_ns_target.s6_addr16[6] ^ addr_key))
+					if(!in6_addr_check_sig_and_key(&pkt_ns->nd_ns_target, addr_sig, addr_key))
 						continue;
 
 					if(send_neighbor_advert(&idata, idata.pfd, pktdata) == -1){
@@ -598,8 +597,7 @@ int main(int argc, char **argv){
 					ntest1++;
 				}
 				else{
-					if(pkt_ipv6->ip6_dst.s6_addr16[5] != addr_sig || \
-						pkt_ipv6->ip6_dst.s6_addr16[7] !=  (pkt_ipv6->ip6_dst.s6_addr16[6] ^ addr_key)){
+					if(!in6_addr_check_sig_and_key(&pkt_ipv6->ip6_dst, addr_sig, addr_key)){
 						continue;
 					}
 

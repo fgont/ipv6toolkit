@@ -36,6 +36,7 @@
 #include <setjmp.h>
 #include <pwd.h>
 
+#include "in6_addr_helpers.h"
 #include "libipv6.h"
 #include "ipv6toolkit.h"
 
@@ -629,16 +630,13 @@ int ether_ntop(const struct ether_addr *ether, char *ascii, size_t s){
  */
 
 void ether_to_ipv6_linklocal(struct ether_addr *etheraddr, struct in6_addr *ipv6addr){
-	unsigned int i;
-	ipv6addr->s6_addr16[0]= htons(0xfe80); /* Link-local unicast prefix */
+	struct in6_addr ret = {
+		.s6_addr = {0xfe, 0x80, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }
+	};
 
-	for(i=1;i<4;i++)
-		ipv6addr->s6_addr16[i]=0x0000;
+	in6_addr_cpy64(ipv6addr, &ret, 0);
 
-	ipv6addr->s6_addr16[4]=  htons(((uint16_t)etheraddr->a[0] << 8) | etheraddr->a[1]);
-	ipv6addr->s6_addr16[5]=  htons( ((uint16_t)etheraddr->a[2] << 8) | 0xff);
-	ipv6addr->s6_addr16[6]=  htons((uint16_t) 0xfe00 | etheraddr->a[3]);
-	ipv6addr->s6_addr16[7]=  htons(((uint16_t)etheraddr->a[4] << 8) | etheraddr->a[5]);
+	in6_addr_paste_ether(ipv6addr, etheraddr);
 }
 
 
@@ -1055,15 +1053,15 @@ int is_eq_in6_addr(struct in6_addr *ip1, struct in6_addr *ip2){
 
 void generate_slaac_address(struct in6_addr *prefix, struct ether_addr *etheraddr, struct in6_addr *ipv6addr){
 	unsigned int	i;
-	ipv6addr->s6_addr16[0]= htons(0xfe80); /* Link-local unicast prefix */
 
-	for(i=0;i<4;i++)
-		ipv6addr->s6_addr16[i]= prefix->s6_addr16[i];
+	in6_addr_set_linklocal_prefix(ipv6addr);
 
-	ipv6addr->s6_addr16[4]=  htons(((uint16_t) (etheraddr->a[0] | 0x02) << 8) | etheraddr->a[1]);
-	ipv6addr->s6_addr16[5]=  htons( ((uint16_t)etheraddr->a[2] << 8) | 0xff);
-	ipv6addr->s6_addr16[6]=  htons((uint16_t) 0xfe00 | etheraddr->a[3]);
-	ipv6addr->s6_addr16[7]=  htons(((uint16_t)etheraddr->a[4] << 8) | etheraddr->a[5]);
+	for(i=2;i<8;i++)
+		ipv6addr->s6_addr[i]= prefix->s6_addr[i];
+
+	in6_addr_paste_ether(ipv6addr, etheraddr);
+
+	ipv6addr->s6_addr[8] |= 0x02;
 }
 
 

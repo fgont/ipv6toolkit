@@ -44,7 +44,7 @@ SRCPATH= tools
 SBINTOOLS= flow6 frag6 icmp6 jumbo6 na6 ni6 ns6 ra6 rd6 rs6 scan6 tcp6
 BINTOOLS= addr6
 TOOLS= $(BINTOOLS) $(SBINTOOLS)
-LIBS= libipv6.o
+LIBS= $(SRCPATH)/in6_addr_helpers.o libipv6.o
 TESTS= $(SRCPATH)/in6_addr_helpers.ts $(SRCPATH)/libipv6.ts
 
 all: $(TESTS) $(TOOLS) data/ipv6toolkit.conf
@@ -96,7 +96,7 @@ $(SRCPATH)/libipv6.ts: $(SRCPATH)/libipv6.t
 	touch $(SRCPATH)/libipv6.ts
 
 $(SRCPATH)/libipv6.t: $(SRCPATH)/libipv6.t.c libipv6.o
-	$(CC) $(CPPFLAGS) $(CFLAGS) -o $(SRCPATH)/libipv6.t $(SRCPATH)/libipv6.t.c libipv6.o -lpcap -lm
+	$(CC) $(CPPFLAGS) $(CFLAGS) -o $(SRCPATH)/libipv6.t $(SRCPATH)/libipv6.t.c libipv6.o $(SRCPATH)/in6_addr_helpers.o -lpcap -lm
 
 $(SRCPATH)/in6_addr_helpers.o: $(SRCPATH)/in6_addr_helpers.c $(SRCPATH)/in6_addr_helpers.h
 	$(CC) $(CPPFLAGS) $(CFLAGS) -c -o $(SRCPATH)/in6_addr_helpers.o $(SRCPATH)/in6_addr_helpers.c
