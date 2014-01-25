@@ -1225,26 +1225,7 @@ int send_packet(struct iface_data *idata, struct pcap_pkthdr *pkthdr, const unsi
 			   Randomizing the IPv6 Source address based on the prefix specified by 
 			   "srcaddr" and prefix length.
 			 */  
-			startrand= idata->srcpreflen/16;
-
-			for(i=0; i<startrand; i++)
-				ipv6->ip6_src.s6_addr16[i]= 0;
-
-			for(i=startrand; i<8; i++)
-				ipv6->ip6_src.s6_addr16[i]=random();
-
-			if(idata->srcpreflen%16){
-				mask=0xffff;
-	    
-				for(i=0; i<(idata->srcpreflen%16); i++)
-					mask= mask>>1;
-
-				ipv6->ip6_src.s6_addr16[startrand]= ipv6->ip6_src.s6_addr16[startrand] \
-											& htons(mask);
-			}
-
-			for(i=0; i<=(idata->srcpreflen/16); i++)
-				ipv6->ip6_src.s6_addr16[i]= ipv6->ip6_src.s6_addr16[i] | idata->srcaddr.s6_addr16[i];
+			randomize_ipv6_addr(&ipv6->ip6_src, &idata->srcaddr, idata->srcpreflen);
 
 			if(!idata->hsrcaddr_f){
 				for(i=0; i<6; i++)
@@ -1264,28 +1245,7 @@ int send_packet(struct iface_data *idata, struct pcap_pkthdr *pkthdr, const unsi
 				   Randomizing the ND Target Address based on the prefix specified by "targetaddr" 
 				   and targetpreflen.
 				 */  
-				startrand= targetpreflen/16;
-
-				for(i=0; i<startrand; i++)
-					na->nd_na_target.s6_addr16[i]= 0;
-
-				for(i=startrand; i<8; i++)
-					na->nd_na_target.s6_addr16[i]=random();
-
-				if(targetpreflen%16){
-					mask=0xffff;
-
-					for(i=0; i<(targetpreflen%16); i++)
-						mask= mask>>1;
-
-					na->nd_na_target.s6_addr16[startrand]= na->nd_na_target.s6_addr16[startrand] \
-													& htons(mask);
-				}
-
-				for(i=0; i<=(targetpreflen/16); i++)
-					na->nd_na_target.s6_addr16[i]= na->nd_na_target.s6_addr16[i] | \
-										targetaddr.s6_addr16[i];
-
+				randomize_ipv6_addr(&na->nd_na_target, &na->nd_na_target, targetpreflen);
 			}
 
 			/*

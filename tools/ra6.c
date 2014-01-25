@@ -1502,27 +1502,7 @@ void send_packet(struct iface_data *idata, const unsigned char *pktdata){
 	        Randomize the IPv6 Source address based on the specified prefix and prefix length
 	        (defaults to fe80::/64).
 	     */  
-	    startrand= idata->srcpreflen/16;
-
-	    for(i=0; i<startrand; i++)
-		ipv6->ip6_src.s6_addr16[i]= 0;
-
-	    for(i=startrand; i<8; i++)
-		ipv6->ip6_src.s6_addr16[i]=random();
-
-
-	    if(idata->srcpreflen%16){
-		mask=0xffff;
-	    
-		for(i=0; i<(idata->srcpreflen%16); i++)
-		    mask= mask>>1;
-
-		ipv6->ip6_src.s6_addr16[startrand]= ipv6->ip6_src.s6_addr16[startrand] & htons(mask);
-		    
-	    }
-
-	    for(i=0; i<=(idata->srcpreflen/16); i++)
-		ipv6->ip6_src.s6_addr16[i]= ipv6->ip6_src.s6_addr16[i] | idata->srcaddr.s6_addr16[i];
+	    randomize_ipv6_addr(&ipv6->ip6_src, &idata->srcaddr, idata->srcpreflen);
 
 	    if(!idata->hsrcaddr_f){
 		for(i=0; i<6; i++)
