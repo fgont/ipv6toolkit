@@ -1048,13 +1048,8 @@ int main(int argc, char **argv){
 		   The KAME implementation discards addresses in which the second high-order 16 bits
 		   (srcaddr.s6_addr16[1] in our case) are not zero.
 		 */  
-		idata.srcaddr.s6_addr16[0]= htons(0xfe80); /* Link-local unicast prefix */
-	
-		for(i=1;i<4;i++)
-			idata.srcaddr.s6_addr16[i]=0x0000;	
+		in6_addr_set_random_linklocal(&idata.srcaddr);
 	    
-		for(i=4; i<8; i++)
-			idata.srcaddr.s6_addr16[i]=random();
 	}
 
 	/*
