@@ -1971,8 +1971,7 @@ int load_ipv4mapped32_entries(struct scan_list *scan, struct scan_entry *dst, st
 
 	(scan->target[scan->ntarget])->end= dst->end;
 
-	for(i=4; i<=7; i++)
-		(scan->target[scan->ntarget])->end.s6_addr16[i]= (scan->target[scan->ntarget])->start.s6_addr16[i];
+	in6_addr_cpy64(&(scan->target[scan->ntarget]->end), &(scan->target[scan->ntarget]->start), 1);
 
 	mask32= 0xffffffff;
 
@@ -2018,8 +2017,7 @@ int load_ipv4mapped64_entries(struct scan_list *scan, struct scan_entry *dst, st
 
 	(scan->target[scan->ntarget])->end= dst->end;
 
-	for(i=4; i<=7; i++)
-		(scan->target[scan->ntarget])->end.s6_addr16[i]= (scan->target[scan->ntarget])->start.s6_addr16[i];
+	in6_addr_cpy64(&(scan->target[scan->ntarget])->end, &(scan->target[scan->ntarget])->start, 1);
 
 	mask32= 0xffffffff;
 
@@ -2269,7 +2267,7 @@ int load_knownprefix_entries(struct scan_list *scan_list, struct scan_list *pref
  */
 
 int load_knowniid_entries(struct scan_list *scan, struct scan_list *prefix, struct prefix_list *iid){
-	unsigned int i, j, k;
+	unsigned int i, j;
 
 	for(i=0; i< iid->nprefix; i++){
 		for(j=0; j < prefix->ntarget; j++){
@@ -2282,15 +2280,13 @@ int load_knowniid_entries(struct scan_list *scan, struct scan_list *prefix, stru
 
 			(scan->target[scan->ntarget])->start= (prefix->target[j])->start;
 
-			for(k=4; k<=7; k++)
-				(scan->target[scan->ntarget])->start.s6_addr16[k]= (iid->prefix[i])->ip6.s6_addr16[k];
+			in6_addr_cpy64(&(scan->target[scan->ntarget])->start, &(iid->prefix[i])->ip6, 1);
 
 			(scan->target[scan->ntarget])->cur= (scan->target[scan->ntarget])->start;
 
 			(scan->target[scan->ntarget])->end= (prefix->target[j])->end;
 
-			for(k=4; k<=7; k++)
-				(scan->target[scan->ntarget])->end.s6_addr16[k]= (iid->prefix[i])->ip6.s6_addr16[k];
+			in6_addr_cpy64(&(scan->target[scan->ntarget])->end, &(iid->prefix[i])->ip6, 1);
 
 			scan->ntarget++;
 		}
@@ -2327,15 +2323,13 @@ int load_knowniidfile_entries(struct scan_list *scan, struct scan_list *prefix, 
 
 				(scan->target[scan->ntarget])->start= (prefix->target[i])->start;
 
-				for(j=4; j<=7; j++)
-					(scan->target[scan->ntarget])->start.s6_addr16[j]= iid.s6_addr16[j];
+				in6_addr_cpy64(&(scan->target[scan->ntarget])->start, &iid, 1);
 
 				(scan->target[scan->ntarget])->cur= (scan->target[scan->ntarget])->start;
 
 				(scan->target[scan->ntarget])->end= (prefix->target[i])->end;
 
-				for(j=4; j<=7; j++)
-					(scan->target[scan->ntarget])->end.s6_addr16[j]= iid.s6_addr16[j];
+				in6_addr_cpy64(&(scan->target[scan->ntarget])->end, &iid, 1);
 
 				scan->ntarget++;
 			}
@@ -2500,7 +2494,6 @@ int load_lowbyte_entries(struct scan_list *scan, struct scan_entry *dst){
  */
 
 int load_oui_entries(struct scan_list *scan, struct scan_entry *dst, struct ether_addr *oui){
-	unsigned int i;
 
 	if(scan->ntarget >= scan->maxtarget)
 		return(0);
@@ -2514,11 +2507,8 @@ int load_oui_entries(struct scan_list *scan, struct scan_entry *dst, struct ethe
 	generate_slaac_address(&(dst->start), oui, &((scan->target[scan->ntarget])->start));
 	(scan->target[scan->ntarget])->cur= (scan->target[scan->ntarget])->start;
 
-	for(i=0; i<4; i++)
-		(scan->target[scan->ntarget])->end.s6_addr16[i]= dst->end.s6_addr16[i];
-
-	for(i=4; i<=7; i++)
-		(scan->target[scan->ntarget])->end.s6_addr16[i]= (scan->target[scan->ntarget])->start.s6_addr16[i];
+	in6_addr_cpy64(&(scan->target[scan->ntarget])->end, &dst->end, 0);
+	in6_addr_cpy64(&(scan->target[scan->ntarget])->end, &(scan->target[scan->ntarget])->start, 1);
 
 	/*
 	   The three low-order bytes must vary from 0x000000 to 0xffffff
@@ -2565,8 +2555,7 @@ int load_vm_entries(struct scan_list *scan, struct scan_entry *dst, struct prefi
 		(scan->target[scan->ntarget])->cur= (scan->target[scan->ntarget])->start;
 		(scan->target[scan->ntarget])->end= dst->end;
 
-		for(i=4; i<=7; i++)
-			(scan->target[scan->ntarget])->end.s6_addr16[i]= (scan->target[scan->ntarget])->start.s6_addr16[i];
+		in6_addr_cpy64(&(scan->target[scan->ntarget])->end, &(scan->target[scan->ntarget])->start, 1);
 
 		/*
 		   The three low-order bytes must vary from 0x000000 to 0xffffff
@@ -2598,8 +2587,7 @@ int load_vm_entries(struct scan_list *scan, struct scan_entry *dst, struct prefi
 		(scan->target[scan->ntarget])->cur= (scan->target[scan->ntarget])->start;
 		(scan->target[scan->ntarget])->end= dst->end;
 
-		for(i=4; i<=7; i++)
-			(scan->target[scan->ntarget])->end.s6_addr16[i]= (scan->target[scan->ntarget])->start.s6_addr16[i];
+		in6_addr_cpy64(&(scan->target[scan->ntarget])->end, &(scan->target[scan->ntarget])->start, 1);
 
 
 		/*
@@ -2659,8 +2647,7 @@ int load_vm_entries(struct scan_list *scan, struct scan_entry *dst, struct prefi
 		(scan->target[scan->ntarget])->cur= (scan->target[scan->ntarget])->start;
 		(scan->target[scan->ntarget])->end= dst->end;
 
-		for(i=4; i<=7; i++)
-			(scan->target[scan->ntarget])->end.s6_addr16[i]= (scan->target[scan->ntarget])->start.s6_addr16[i];
+		in6_addr_cpy64(&(scan->target[scan->ntarget])->end, &(scan->target[scan->ntarget])->start, 1);
 
 		/*
 		   The three low-order bytes must vary from 0x000000 to 0x3fffff
@@ -3913,7 +3900,7 @@ void free_host_entries(struct host_list *hlist){
 
 int create_candidate_globals(struct iface_data *idata, struct host_list *local, struct host_list *global, \
 				struct host_list *candidate){
-	unsigned int	i, j, k;
+	unsigned int	i, j;
 	struct in6_addr	caddr;
 
 	for(i=0; (i < local->nhosts) && (candidate->nhosts < candidate->maxhosts); i++){
@@ -3924,11 +3911,8 @@ int create_candidate_globals(struct iface_data *idata, struct host_list *local, 
 			   for each of the autoconf prefixes
 			 */
 			for(j=0; (j < idata->prefix_ac.nprefix) && (candidate->nhosts < candidate->maxhosts); j++){
-				for(k=0; k<4; k++)
-					caddr.s6_addr16[k] = (idata->prefix_ac.prefix[j])->ip6.s6_addr16[k];
-
-				for(k=4; k<8; k++)
-					caddr.s6_addr16[k] = local->host[i]->ip6.s6_addr16[k];
+				in6_addr_cpy64(&caddr, &(idata->prefix_ac.prefix[j])->ip6, 0);
+				in6_addr_cpy64(&caddr, &local->host[i]->ip6, 1);
 
 				/* We discard the candidate address if it is already present in the "global" list */
 				if(is_ip6_in_list(&caddr, global))
