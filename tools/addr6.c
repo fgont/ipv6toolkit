@@ -38,7 +38,9 @@
 #include <sys/resource.h>
 #include <sys/socket.h>
 #include <pwd.h>
+
 #include "addr6.h"
+#include "in6_addr_helpers.h"
 #include "ipv6toolkit.h"
 #include "libipv6.h"
 
@@ -852,28 +854,28 @@ void decode_ipv6_address(struct decode6 *addr, struct stats6 *stats){
 			if( ((addr->ip6.s6_addr[8] & 0x02) == 0x02) && (addr->ip6.s6_addr[11] == 0xff) &&
 				(addr->ip6.s6_addr[12] == 0xfe)){
 				addr->iidtype= IID_MACDERIVED;
-				addr->iidsubtype= (ntohl(addr->ip6.s6_addr32[2]) >> 8) & 0xfffdffff;
+				addr->iidsubtype= in6_addr_get_macvendor_bytes(&addr->ip6) & 0x00fdffff;
 			}
-			else if((addr->ip6.s6_addr32[2] & htonl(0xfdffffff)) == htonl(0x00005efe)){
+			else if((in6_addr_get32(&addr->ip6, 2) & 0xfdffffff) == 0x00005efe){
 				/* We assume the u bit can be o o 1, but the i/g bit must be 0 */
 				addr->iidtype= IID_ISATAP;
 			}
-			else if(addr->ip6.s6_addr32[2] == 0 && (addr->ip6.s6_addr16[6] & htons(0xff00)) != 0 && addr->ip6.s6_addr16[7] != 0){
+			else if((in6_addr_get32(&addr->ip6, 2) == 0) && ((in6_addr_get16(&addr->ip6, 6) & 0xff00) != 0) && (in6_addr_get16(&addr->ip6, 7) != 0)){
 				addr->iidtype= IID_EMBEDDEDIPV4;
 			}
-			else if(addr->ip6.s6_addr32[2] == 0 && \
-			          ((addr->ip6.s6_addr16[6] & htons(0xff00)) == 0 && is_service_port(ntohs(addr->ip6.s6_addr16[7])))){
+			else if(in6_addr_get32(&addr->ip6, 2) == 0 && \
+			          ((in6_addr_get16(&addr->ip6, 6) & 0xff00) == 0 && is_service_port(in6_addr_get16(&addr->ip6, 7)))){
 				addr->iidtype= IID_EMBEDDEDPORT;
 			}
-			else if(addr->ip6.s6_addr32[2] == 0 && \
-			        	         ((addr->ip6.s6_addr16[7] & htons(0xff00)) == 0 && is_service_port(ntohs(addr->ip6.s6_addr16[6])))){
+			else if(in6_addr_get32(&addr->ip6, 2) == 0 && \
+			          ((in6_addr_get16(&addr->ip6, 7) & 0xff00) == 0 && is_service_port(in6_addr_get16(&addr->ip6, 6)))){
 				addr->iidtype= IID_EMBEDDEDPORTREV;
 			}
-			else if(addr->ip6.s6_addr32[2] == 0 && (addr->ip6.s6_addr16[6] & htons(0xff00)) == 0 && addr->ip6.s6_addr16[7] != 0){
+			else if(in6_addr_get32(&addr->ip6, 2) == 0 && (in6_addr_get16(&addr->ip6, 6) & 0xff00) == 0 && in6_addr_get16(&addr->ip6, 7) != 0){
 				addr->iidtype= IID_LOWBYTE;
 			}
-			else if( ntohs(addr->ip6.s6_addr16[4]) <= 0x255 && ntohs(addr->ip6.s6_addr16[5]) <= 0x255 && \
-					ntohs(addr->ip6.s6_addr16[6]) <= 0x255 && ntohs(addr->ip6.s6_addr16[7]) <= 0x255){
+			else if( in6_addr_get16(&addr->ip6, 4) <= 255 && in6_addr_get16(&addr->ip6, 5) <= 255 && \
+					in6_addr_get16(&addr->ip6, 6) <= 255 && in6_addr_get16(&addr->ip6, 7) <= 255){
 				addr->iidtype= IID_EMBEDDEDIPV4_64;
 			}
 			else if( zero_byte_iid(&(addr->ip6)) > 2 ){
@@ -1396,8 +1398,8 @@ int init_host_list(struct host_list *hlist){
  */
 
 uint16_t key(struct host_list *hlist, struct in6_addr *ipv6){
-		return( ((hlist->key_l ^ ipv6->s6_addr16[0] ^ ipv6->s6_addr16[7]) \
-				^ (hlist->key_h ^ ipv6->s6_addr16[1] ^ ipv6->s6_addr16[6])) % MAX_LIST_ENTRIES);
+		return( ((hlist->key_l ^ in6_addr_get16(ipv6, 0) ^ in6_addr_get16(ipv6, 7)) \
+				^ (hlist->key_h ^ in6_addr_get16(ipv6, 1) ^ in6_addr_get16(ipv6, 6))) % MAX_LIST_ENTRIES);
 }
 
 

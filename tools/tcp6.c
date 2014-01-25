@@ -2142,10 +2142,10 @@ void send_packet(struct iface_data *idata, const unsigned char *pktdata, struct 
 			   detect which IPv6 addresses we have used.
 			 */
 			if(listen_f && useaddrkey_f){
-				ipv6->ip6_src.s6_addr16[4]= random();
-				ipv6->ip6_src.s6_addr16[5]= ipv6->ip6_src.s6_addr16[4] ^ addr_key;
-				ipv6->ip6_src.s6_addr16[6]= random();
-				ipv6->ip6_src.s6_addr16[7]= ipv6->ip6_src.s6_addr16[6] ^ addr_key;
+				in6_addr_set16(&ipv6->ip6_src, 4, random());
+				in6_addr_set16(&ipv6->ip6_src, 5, in6_addr_get16(&ipv6->ip6_src, 4) ^ addr_key);
+				in6_addr_set16(&ipv6->ip6_src, 6, random());
+				in6_addr_set16(&ipv6->ip6_src, 7, in6_addr_get16(&ipv6->ip6_src, 6) ^ addr_key);
 			}
 
 			if(idata->type == DLT_EN10MB && idata->flags != IFACE_LOOPBACK && !(idata->hsrcaddr_f)){

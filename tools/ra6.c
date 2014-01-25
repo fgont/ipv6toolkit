@@ -1576,19 +1576,19 @@ void send_packet(struct iface_data *idata, const unsigned char *pktdata){
 		    endrand= (prefixlen[0]+15)/16;
 
 		    for(i=0; i<endrand; i++)
-			prefixopt->nd_opt_pi_prefix.s6_addr16[i]=random();
+			in6_addr_set16(&prefixopt->nd_opt_pi_prefix, i, random());
 
 		    if(prefixlen[0]%16){
 			mask=0;
 			for(i=0; i<(prefixlen[0]%16); i++)
 			    mask= (mask>>1) | 0x8000;
 		    
-			prefixopt->nd_opt_pi_prefix.s6_addr16[endrand-1]= \
-				prefixopt->nd_opt_pi_prefix.s6_addr16[endrand-1] & htons(mask);
+			in6_addr_set16(&prefixopt->nd_opt_pi_prefix, \
+			  endrand-1, in6_addr_get16(&prefixopt->nd_opt_pi_prefix, endrand-1) & mask);
 		    }
 			
 		    for(i=endrand;i<8;i++)
-			prefixopt->nd_opt_pi_prefix.s6_addr16[i]=0;
+			in6_addr_set16(&prefixopt->nd_opt_pi_prefix, i, 0);
 			    
 		}
 		
@@ -1619,19 +1619,21 @@ void send_packet(struct iface_data *idata, const unsigned char *pktdata){
 		    endrand= (routelen[0]+15)/16;
 
 		    for(i=0; i<endrand; i++)
-			routeopt->nd_opt_ri_prefix.s6_addr16[i]=random();
+			in6_addr_set16(&routeopt->nd_opt_ri_prefix, i, random());
 
 		    if(routelen[0]%16){
 			mask=0;
 			for(i=0; i<(routelen[0]%16); i++)
 			    mask= (mask>>1) | 0x8000;
 		    
-			routeopt->nd_opt_ri_prefix.s6_addr16[endrand-1]= \
-				routeopt->nd_opt_ri_prefix.s6_addr16[endrand-1] & htons(mask);
+			in6_addr_set16(&routeopt->nd_opt_ri_prefix,
+			  endrand-1,
+			  in6_addr_get16(&routeopt->nd_opt_ri_prefix,
+			    endrand-1) & mask);
 		    }
 			
 		    for(i=endrand;i<8;i++)
-			routeopt->nd_opt_ri_prefix.s6_addr16[i]=0;	    
+			in6_addr_set16(&routeopt->nd_opt_ri_prefix, i, 0);
 		}
 		
 		ptr += sizeof(struct nd_opt_route_info_l);
@@ -1670,7 +1672,8 @@ void send_packet(struct iface_data *idata, const unsigned char *pktdata){
 
 			for(i=0; i<smaxaddrs && i<nflooddoa && dnsopts<nrdnss; i++, dnsopts++)
 			    for(j=0; j<8; j++)
-				dnsopt->nd_opt_rdnss_addr[i].s6_addr16[j]=random();
+				in6_addr_set16(&dnsopt->nd_opt_rdnss_addr[i], \
+				  j, random());
 		
 			dnsopt->nd_opt_rdnss_len= (sizeof(struct nd_opt_rdnss_l) + \
 							i * sizeof(struct in6_addr))/8;
