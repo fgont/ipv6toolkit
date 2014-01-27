@@ -167,6 +167,26 @@ struct filters{
 #define MULTI_ORIGIN			2
 
 
+/*
+ * Definitions required for OSX 10.6.8 with Xcode 3.2.6
+ */
+#ifndef __BYTE_ORDER__
+	#ifdef __LITTLE_ENDIAN__
+		#define __BYTE_ORDER__	__LITTLE_ENDIAN__
+	#elif defined(__BIG_ENDIAN__)
+		#define __BYTE_ORDER__ __BIG_ENDIAN__
+	#endif
+#endif
+
+#ifndef __ORDER_LITTLE_ENDIAN__
+	#define __ORDER_LITTLE_ENDIAN__	__LITTLE_ENDIAN__
+#endif
+#ifndef __ORDER_BIG_ENDIAN__
+	#define __ORDER_BIG_ENDIAN__	__BIG_ENDIAN__
+#endif
+
+
+
 struct ether_addr{
   u_int8_t a[ETHER_ADDR_LEN];
 } __attribute__ ((__packed__));
