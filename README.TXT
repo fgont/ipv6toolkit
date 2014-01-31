@@ -1,5 +1,5 @@
 *******************************************************************************
-*                      SI6 Networks IPv6 Toolkit v1.5.2                       *
+*                      SI6 Networks IPv6 Toolkit v1.5.3                       *
 *******************************************************************************
 
 Description of each of the files and directories:
