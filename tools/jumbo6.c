@@ -63,18 +63,13 @@
 /* Function prototypes */
 void				init_packet_data(struct iface_data *);
 int					send_packet(struct iface_data *, struct pcap_pkthdr *, const u_char *);
-void 				print_icmp6_echo(struct iface_data *, struct pcap_pkthdr *, const u_char *);
-void 				print_icmp6_error(struct iface_data *, struct pcap_pkthdr *, const u_char *);
+void				print_icmp6_echo(struct iface_data *, struct pcap_pkthdr *, const u_char *);
+void				print_icmp6_error(struct iface_data *, struct pcap_pkthdr *, const u_char *);
 void				print_attack_info(struct iface_data *);
 void				usage(void);
 void				print_help(void);
-int 				valid_icmp6_response(struct iface_data *, struct pcap_pkthdr *, const u_char *);
+int					valid_icmp6_response(struct iface_data *, struct pcap_pkthdr *, const u_char *);
 
-/* Used for router discovery */
-struct prefix_entry	*prefix_ols[MAX_PREFIXES_ONLINK], *prefix_acs[MAX_PREFIXES_AUTO];
-struct prefix_entry	*prefix_local[MAX_LOCAL_ADDRESSES];
-struct in6_addr		randprefix;
-unsigned char		randpreflen;
 
 /* Data structures for packets read from the wire */
 struct pcap_pkthdr	*pkthdr;
@@ -139,7 +134,7 @@ unsigned char		fragh_f=0;
 unsigned char		fragbuffer[ETHER_HDR_LEN+MIN_IPV6_HLEN+MAX_IPV6_PAYLOAD];
 unsigned char		*fragpart, *fptr, *fptrend, *ptrend, *ptrhdr, *ptrhdrend;
 unsigned int		hdrlen, ndstopthdr=0, nhbhopthdr=0, ndstoptuhdr=0;
-unsigned int		nfrags, fragsize, max_packet_size, linkhsize;
+unsigned int		nfrags, fragsize;
 unsigned char		*prev_nh, *startoffragment;
 
 struct iface_data	idata;
@@ -526,11 +521,6 @@ int main(int argc, char **argv){
 		exit(EXIT_FAILURE);
 	}
     
-	if(fragh_f)
-		max_packet_size = MAX_IPV6_PAYLOAD + MIN_IPV6_HLEN;
-	else
-		max_packet_size = ETH_DATA_LEN;
-
 	if(idata.verbose_f){
 		print_attack_info(&idata);
 	}
@@ -735,7 +725,7 @@ void init_packet_data(struct iface_data *idata){
 	struct dlt_null *dlt_null;
 	ethernet= (struct ether_header *) buffer;
 	dlt_null= (struct dlt_null *) buffer;
-	v6buffer = buffer + linkhsize;
+	v6buffer = buffer + idata->linkhsize;
 	ipv6 = (struct ip6_hdr *) v6buffer;
 
 	if(idata->type == DLT_EN10MB && idata->flags != IFACE_LOOPBACK){
@@ -780,7 +770,7 @@ void init_packet_data(struct iface_data *idata){
 		hbhopthdrs=0;
 	
 		while(hbhopthdrs < nhbhopthdr){
-			if((ptr+ hbhopthdrlen[hbhopthdrs]) > (v6buffer+ ETH_DATA_LEN)){
+			if((ptr+ hbhopthdrlen[hbhopthdrs]) > (v6buffer+ idata->mtu)){
 				puts("Packet too large while processing HBH Opt. Header");
 				exit(EXIT_FAILURE);
 			}
@@ -797,7 +787,7 @@ void init_packet_data(struct iface_data *idata){
 		dstoptuhdrs=0;
 	
 		while(dstoptuhdrs < ndstoptuhdr){
-			if((ptr+ dstoptuhdrlen[dstoptuhdrs]) > (v6buffer+ ETH_DATA_LEN)){
+			if((ptr+ dstoptuhdrlen[dstoptuhdrs]) > (v6buffer+ idata->mtu)){
 				puts("Packet too large while processing Dest. Opt. Header (Unfrag. Part)");
 				exit(EXIT_FAILURE);
 			}
@@ -817,7 +807,7 @@ void init_packet_data(struct iface_data *idata){
 		/* Check that we are able to send the Unfragmentable Part, together with a 
 		   Fragment Header and a chunk data over our link layer
 		 */
-		if( (fragpart+sizeof(fraghdr)+nfrags) > (v6buffer+ETH_DATA_LEN)){
+		if( (fragpart+sizeof(fraghdr)+nfrags) > (v6buffer+idata->mtu)){
 			puts("Unfragmentable part too large for current MTU (1500 bytes)");
 			exit(EXIT_FAILURE);
 		}
@@ -835,7 +825,7 @@ void init_packet_data(struct iface_data *idata){
 		dstopthdrs=0;
 	
 		while(dstopthdrs < ndstopthdr){
-			if((ptr+ dstopthdrlen[dstopthdrs]) > (v6buffer+max_packet_size)){
+			if((ptr+ dstopthdrlen[dstopthdrs]) > (v6buffer+idata->max_packet_size)){
 			puts("Packet too large while processing Dest. Opt. Header (should be using the Frag. option?)");
 			exit(EXIT_FAILURE);
 			}

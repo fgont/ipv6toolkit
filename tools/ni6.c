@@ -139,7 +139,6 @@ unsigned int		hbhopthdrlen[MAX_HBH_OPT_HDR], m, pad;
 
 struct ip6_frag		fraghdr, *fh;
 struct ip6_hdr		*fipv6;
-unsigned char		fragh_f=0;
 unsigned char		fragbuffer[ETHER_HDR_LEN+MIN_IPV6_HLEN+MAX_IPV6_PAYLOAD];
 unsigned char		*fragpart, *fptr, *fptrend, *ptrend, *ptrhdr, *ptrhdrend;
 unsigned int		hdrlen, ndstopthdr=0, nhbhopthdr=0, ndstoptuhdr=0;
@@ -444,7 +443,7 @@ int main(int argc, char **argv){
 				}
 		
 				nfrags = (nfrags +7) & 0xfff8;
-				fragh_f= 1;
+				idata.fragh_f= 1;
 				break;
 
 			case 'S':	/* Source Ethernet address */
@@ -947,16 +946,11 @@ int main(int argc, char **argv){
 		}
 	}
 
-	if( !fragh_f && dstoptuhdr_f){
+	if( !idata.fragh_f && dstoptuhdr_f){
 		puts("Dst. Options Header (Unfragmentable Part) set, but Fragmentation not specified");
 		exit(EXIT_FAILURE);
 	}
     
-	if(fragh_f)
-		idata.max_packet_size = MAX_IPV6_PAYLOAD + MIN_IPV6_HLEN;
-	else
-		idata.max_packet_size = ETH_DATA_LEN;
-
 	if(sloopattack_f){
 		if(code_f && code != 1){
 			puts("Error: NI code must be '1' for performing name-loop attacks");
@@ -1677,7 +1671,7 @@ void init_packet_data(struct iface_data *idata){
 		hbhopthdrs=0;
 	
 		while(hbhopthdrs < nhbhopthdr){
-			if((ptr+ hbhopthdrlen[hbhopthdrs]) > (v6buffer+ ETH_DATA_LEN)){
+			if((ptr+ hbhopthdrlen[hbhopthdrs]) > (v6buffer+ idata->mtu)){
 				puts("Packet too large while processing HBH Opt. Header");
 				exit(EXIT_FAILURE);
 			}
@@ -1694,7 +1688,7 @@ void init_packet_data(struct iface_data *idata){
 		dstoptuhdrs=0;
 	
 		while(dstoptuhdrs < ndstoptuhdr){
-			if((ptr+ dstoptuhdrlen[dstoptuhdrs]) > (v6buffer+ ETH_DATA_LEN)){
+			if((ptr+ dstoptuhdrlen[dstoptuhdrs]) > (v6buffer+ idata->mtu)){
 				puts("Packet too large while processing Dest. Opt. Header (Unfrag. Part)");
 				exit(EXIT_FAILURE);
 			}
@@ -1710,11 +1704,11 @@ void init_packet_data(struct iface_data *idata){
 	/* Everything that follows is the Fragmentable Part of the packet */
 	fragpart = ptr;
 
-	if(fragh_f){
+	if(idata->fragh_f){
 		/* Check that we are able to send the Unfragmentable Part, together with a 
 		   Fragment Header and a chunk data over our link layer
 		 */
-		if( (fragpart+sizeof(fraghdr)+nfrags) > (v6buffer+ETH_DATA_LEN)){
+		if( (fragpart+sizeof(fraghdr)+nfrags) > (v6buffer+idata->mtu)){
 			puts("Unfragmentable part too large for current MTU (1500 bytes)");
 			exit(EXIT_FAILURE);
 		}
@@ -2175,7 +2169,7 @@ int send_packet(struct iface_data *idata, const u_char *pktdata, struct pcap_pkt
 	ni->ni_cksum = 0;
 	ni->ni_cksum = in_chksum(v6buffer, ni, ptr-(unsigned char *)ni, IPPROTO_ICMPV6);
 
-	if(!fragh_f){
+	if(!idata->fragh_f){
 		ipv6->ip6_plen = htons((ptr - v6buffer) - MIN_IPV6_HLEN);
 
 		if((nw=pcap_inject(idata->pfd, buffer, ptr - buffer)) == -1){
@@ -2404,7 +2398,7 @@ void print_attack_info(struct iface_data *idata){
 	for(i=0; i<ndstopthdr; i++)
 		printf("Destination Options Header: %u bytes\n", dstopthdrlen[i]);
 
-	if(fragh_f)
+	if(idata->fragh_f)
 		printf("Sending each packet in fragments of %u bytes (plus the Unfragmentable part)\n", nfrags);
 
 	if(type==ICMP6_NI_QUERY){

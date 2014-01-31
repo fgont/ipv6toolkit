@@ -150,7 +150,7 @@ struct ip6_hdr		*fipv6;
 
 unsigned char		*fragpart, *ptrend, *ptrhdr, *ptrhdrend;
 unsigned int		hdrlen, ndstopthdr=0, nhbhopthdr=0, ndstoptuhdr=0;
-unsigned int		nfrags, fragsize, max_packet_size;
+unsigned int		nfrags, fragsize;
 unsigned char		*prev_nh, *startoffragment;
 
 
@@ -577,7 +577,7 @@ int main(int argc, char **argv){
 	if(!sleep_f)
 		nsleep=QUERY_TIMEOUT;
 
-	max_packet_size = MAX_IPV6_PAYLOAD + MIN_IPV6_HLEN;
+	idata.max_packet_size = MAX_IPV6_PAYLOAD + MIN_IPV6_HLEN;
 
 	if(idata.verbose_f){
 		print_attack_info(&idata);
@@ -1760,7 +1760,7 @@ int send_fragment2(struct iface_data *idata, u_int16_t ip6len, unsigned int id, 
 
 
 	if(order == FIRST_FRAGMENT || order==ATOMIC_FRAGMENT){
-		if((ptr+ sizeof(struct icmp6_hdr)) > (v6buffer+max_packet_size)){
+		if((ptr+ sizeof(struct icmp6_hdr)) > (v6buffer+idata->max_packet_size)){
 			puts("Packet too large while inserting ICMPv6 header");
 			return(-1);
 		}
@@ -1796,7 +1796,7 @@ int send_fragment2(struct iface_data *idata, u_int16_t ip6len, unsigned int id, 
 		ipv6->ip6_plen= htons(ptr-(v6buffer + MIN_IPV6_HLEN));
 	}
 	else{
-		if((ptr+ fsize) > (v6buffer+max_packet_size)){
+		if((ptr+ fsize) > (v6buffer+idata->max_packet_size)){
 			puts("Packet too large while inserting timestamp");
 			return(-1);
 		}
@@ -1928,7 +1928,7 @@ int send_fragment(struct iface_data *idata, unsigned int id, unsigned int offset
 		dstopthdrs=0;
 	
 		while(dstopthdrs < ndstopthdr){
-			if((ptr+ dstopthdrlen[dstopthdrs]) > (v6buffer+max_packet_size)){
+			if((ptr+ dstopthdrlen[dstopthdrs]) > (v6buffer+idata->max_packet_size)){
 				puts("Packet too large while processing Dest. Opt. Header (should be using the Frag. option?)");
 				return(-1);
 			}
@@ -1944,7 +1944,7 @@ int send_fragment(struct iface_data *idata, unsigned int id, unsigned int offset
 	*prev_nh = IPPROTO_ICMPV6;
 
 	if(forder == FIRST_FRAGMENT || forder == ATOMIC_FRAGMENT){
-		if((ptr+ fsize) > (v6buffer+max_packet_size)){
+		if((ptr+ fsize) > (v6buffer+idata->max_packet_size)){
 			puts("Packet too large while inserting ICMPv6 header");
 			return(-1);
 		}
@@ -1971,7 +1971,7 @@ int send_fragment(struct iface_data *idata, unsigned int id, unsigned int offset
 		fsize-= sizeof(struct icmp6_hdr);
 
 		if(tstamp_f && fsize >= (sizeof(time_t)+sizeof(u_int32_t))){
-			if((ptr+ (sizeof(time_t) + sizeof(u_int32_t))) > (v6buffer+max_packet_size)){
+			if((ptr+ (sizeof(time_t) + sizeof(u_int32_t))) > (v6buffer+idata->max_packet_size)){
 				puts("Packet too large while inserting timestamp");
 				return(-1);
 			}
@@ -2002,7 +2002,7 @@ int send_fragment(struct iface_data *idata, unsigned int id, unsigned int offset
 	}
 	else{
 		if(tstamp_f){
-			if((ptr+ (sizeof(time_t) + sizeof(u_int32_t))) > (v6buffer+max_packet_size)){
+			if((ptr+ (sizeof(time_t) + sizeof(u_int32_t))) > (v6buffer+idata->max_packet_size)){
 				puts("Packet too large while inserting timestamp");
 				return(-1);
 			}
@@ -2027,7 +2027,7 @@ int send_fragment(struct iface_data *idata, unsigned int id, unsigned int offset
 			fsize= (fsize>>3) << 3;
 		}
 
-		if((ptr+ (sizeof(time_t) + sizeof(u_int32_t))) > (v6buffer+max_packet_size)){
+		if((ptr+ (sizeof(time_t) + sizeof(u_int32_t))) > (v6buffer+idata->max_packet_size)){
 			puts("Packet too large while inserting timestamp");
 			return(-1);
 		}

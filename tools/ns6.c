@@ -99,11 +99,10 @@ unsigned int		hbhopthdrlen[MAX_HBH_OPT_HDR], m, pad;
 
 struct ip6_frag		fraghdr, *fh;
 struct ip6_hdr		*fipv6;
-unsigned char		fragh_f=0;
 unsigned char		fragbuffer[ETHER_HDR_LEN+MIN_IPV6_HLEN+MAX_IPV6_PAYLOAD];
 unsigned char		*fragpart, *fptr, *fptrend, *ptrend, *ptrhdr, *ptrhdrend;
 unsigned int		hdrlen, ndstopthdr=0, nhbhopthdr=0, ndstoptuhdr=0;
-unsigned int		nfrags, fragsize, max_packet_size;
+unsigned int		nfrags, fragsize;
 unsigned char		*prev_nh, *startoffragment;
 struct iface_data	idata;
 
@@ -208,7 +207,7 @@ int main(int argc, char **argv){
 				}
 		
 				nfrags = (nfrags +7) & 0xfff8;
-				fragh_f= 1;
+				idata.fragh_f= 1;
 				break;
 
 	    case 'u':	/* Destinations Options Header */
@@ -573,15 +572,10 @@ int main(int argc, char **argv){
 	if(!sleep_f)
 		nsleep=1;
 
-	if( !fragh_f && dstoptuhdr_f){
+	if( !idata.fragh_f && dstoptuhdr_f){
 		puts("Dst. Options Header (Unfragmentable Part) set, but Fragmentation not specified");
 		exit(EXIT_FAILURE);
 	}
-    
-	if(fragh_f)
-		max_packet_size = MAX_IPV6_PAYLOAD + MIN_IPV6_HLEN;
-	else
-		max_packet_size = ETH_DATA_LEN;
 
 	if(idata.verbose_f){
 		print_attack_info(&idata);
@@ -639,7 +633,7 @@ void init_packet_data(struct iface_data *idata){
 	hbhopthdrs=0;
 	
 	while(hbhopthdrs < nhbhopthdr){
-	    if((ptr+ hbhopthdrlen[hbhopthdrs]) > (v6buffer+ ETH_DATA_LEN)){
+	    if((ptr+ hbhopthdrlen[hbhopthdrs]) > (v6buffer+ idata->mtu)){
 		puts("Packet too large while processing HBH Opt. Header");
 		exit(EXIT_FAILURE);
 	    }
@@ -656,7 +650,7 @@ void init_packet_data(struct iface_data *idata){
 	dstoptuhdrs=0;
 	
 	while(dstoptuhdrs < ndstoptuhdr){
-	    if((ptr+ dstoptuhdrlen[dstoptuhdrs]) > (v6buffer+ ETH_DATA_LEN)){
+	    if((ptr+ dstoptuhdrlen[dstoptuhdrs]) > (v6buffer+ idata->mtu)){
 		puts("Packet too large while processing Dest. Opt. Header (Unfrag. Part)");
 		exit(EXIT_FAILURE);
 	    }
@@ -672,11 +666,11 @@ void init_packet_data(struct iface_data *idata){
     /* Everything that follows is the Fragmentable Part of the packet */
     fragpart = ptr;
 
-    if(fragh_f){
+    if(idata->fragh_f){
     	/* Check that we are able to send the Unfragmentable Part, together with a 
     	   Fragment Header and a chunk data over our link layer
     	 */
-    	if( (fragpart+sizeof(fraghdr)+nfrags) > (v6buffer+ETH_DATA_LEN)){
+    	if( (fragpart+sizeof(fraghdr)+nfrags) > (v6buffer+idata->mtu)){
     		puts("Unfragmentable part too large for current MTU (1500 bytes)");
     		exit(EXIT_FAILURE);
     	}
@@ -694,7 +688,7 @@ void init_packet_data(struct iface_data *idata){
 	dstopthdrs=0;
 	
 	while(dstopthdrs < ndstopthdr){
-	    if((ptr+ dstopthdrlen[dstopthdrs]) > (v6buffer+max_packet_size)){
+	    if((ptr+ dstopthdrlen[dstopthdrs]) > (v6buffer+idata->max_packet_size)){
 		puts("Packet too large while processing Dest. Opt. Header (U. part) (should be using the Frag. option?)");
 		exit(EXIT_FAILURE);
 	    }
@@ -709,7 +703,7 @@ void init_packet_data(struct iface_data *idata){
 
     *prev_nh = IPPROTO_ICMPV6;
 
-    if( (ptr+sizeof(struct nd_neighbor_solicit)) > (v6buffer+max_packet_size)){
+    if( (ptr+sizeof(struct nd_neighbor_solicit)) > (v6buffer+idata->max_packet_size)){
     	puts("Packet too large while inserting Neighbor Solicitation header (should be using Frag. option?)");
     	exit(EXIT_FAILURE);
     }
@@ -726,7 +720,7 @@ void init_packet_data(struct iface_data *idata){
 
     /* If a single source link-layer address is specified, it is included in all packets */
     if(sllopt_f && nlinkaddr==1){
-    	if( (ptr+sizeof(struct nd_opt_slla)) <= (v6buffer+max_packet_size)){
+    	if( (ptr+sizeof(struct nd_opt_slla)) <= (v6buffer+idata->max_packet_size)){
         	sllaopt->type= ND_OPT_SOURCE_LINKADDR;
         	sllaopt->length= SLLA_OPT_LEN;
         	memcpy(sllaopt->address, linkaddr[0].a, ETH_ALEN);
@@ -835,7 +829,7 @@ void send_packet(struct iface_data *idata){
 				newdata_f=0;
 				ptr = startofprefixes;
 
-				while(linkaddrs<nlinkaddr && (ptr+sizeof(struct nd_opt_slla)-v6buffer)<=max_packet_size){
+				while(linkaddrs<nlinkaddr && (ptr+sizeof(struct nd_opt_slla)-v6buffer)<=idata->max_packet_size){
 					sllaopt = (struct nd_opt_slla *) ptr;
 					sllaopt->type= ND_OPT_SOURCE_LINKADDR;
 					sllaopt->length= SLLA_OPT_LEN;
@@ -848,7 +842,7 @@ void send_packet(struct iface_data *idata){
 				ns->nd_ns_cksum = 0;
 				ns->nd_ns_cksum = in_chksum(v6buffer, ns, ptr-((unsigned char *)ns), IPPROTO_ICMPV6);
 
-				if(!fragh_f){
+				if(!idata->fragh_f){
 					ipv6->ip6_plen = htons((ptr - v6buffer) - MIN_IPV6_HLEN);
 
 					if((nw=pcap_inject(idata->pfd, buffer, ptr - buffer)) == -1){
@@ -1056,7 +1050,7 @@ void print_attack_info(struct iface_data *idata){
     for(i=0; i<ndstopthdr; i++)
 	printf("Destination Options Header: %u bytes\n", dstopthdrlen[i]);
 
-    if(fragh_f)
+    if(idata->fragh_f)
 	printf("Sending each packet in fragments of %u bytes (plus the Unfragmentable part)\n", nfrags);
 		
     if(!floodt_f){

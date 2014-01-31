@@ -330,11 +330,6 @@ int main(int argc, char **argv){
 		exit(EXIT_FAILURE);
 	}
     
-	if(fragh_f)
-		idata.max_packet_size = MAX_IPV6_PAYLOAD + MIN_IPV6_HLEN;
-	else
-		idata.max_packet_size = ETH_DATA_LEN;
-
 	if(idata.verbose_f){
 		print_attack_info();
 	}

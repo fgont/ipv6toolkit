@@ -3118,6 +3118,11 @@ int load_dst_and_pcap(struct iface_data *idata, unsigned int mode){
 		return(FAILURE);
 	}
 
+	if(idata->fragh_f)
+		idata->max_packet_size = MAX_IPV6_PAYLOAD + MIN_IPV6_HLEN;
+	else
+		idata->max_packet_size = idata->mtu;
+
 	if(mode == LOAD_PCAP_ONLY)
 		return(SUCCESS);
 

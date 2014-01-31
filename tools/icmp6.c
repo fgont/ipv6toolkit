@@ -100,8 +100,6 @@ unsigned char		rhbuff[100]; /* This one must be able to hold the IPv6 header and
 
 /* Variables used for learning the default router */
 struct iface_data	idata;
-struct prefix_entry	*prefix_ols[MAX_PREFIXES_ONLINK], *prefix_acs[MAX_PREFIXES_AUTO];
-struct prefix_entry	*prefix_local[MAX_LOCAL_ADDRESSES];
 struct ether_addr	router_ether, rs_ether;
 struct in6_addr		router_ipv6, rs_ipv6;
 struct in6_addr		randprefix;
@@ -163,7 +161,7 @@ unsigned char		fragh_f=0;
 unsigned char		fragbuffer[ETHER_HDR_LEN+MIN_IPV6_HLEN+MAX_IPV6_PAYLOAD];
 unsigned char		*fragpart, *fptr, *fptrend, *ptrend, *ptrhdr, *ptrhdrend;
 unsigned int		hdrlen, ndstopthdr=0, nhbhopthdr=0, ndstoptuhdr=0;
-unsigned int		nfrags, fragsize, max_packet_size, linkhsize;
+unsigned int		nfrags, fragsize;
 unsigned char		*prev_nh, *startoffragment;
 
 struct filters		filters;
@@ -1030,11 +1028,6 @@ int main(int argc, char **argv){
 		puts("Dst. Options Header (Unfragmentable Part) set, but Fragmentation not specified");
 		exit(EXIT_FAILURE);
 	}
-    
-	if(fragh_f)
-		max_packet_size = MAX_IPV6_PAYLOAD + MIN_IPV6_HLEN;
-	else
-		max_packet_size = ETH_DATA_LEN;
 
 	if(!nopayload_f && !(rhtcp_f || rhudp_f || rhicmp6_f))
 		rhdefault_f=1;
@@ -1231,7 +1224,7 @@ int main(int argc, char **argv){
 			}
 
 			pkt_ether = (struct ether_header *) pktdata;
-			pkt_ipv6 = (struct ip6_hdr *)((char *) pkt_ether + linkhsize);
+			pkt_ipv6 = (struct ip6_hdr *)((char *) pkt_ether + idata.linkhsize);
 
 			accepted_f=0;
 
@@ -1333,7 +1326,7 @@ int main(int argc, char **argv){
 void init_packet_data(struct iface_data *idata){
 	ethernet= (struct ether_header *) buffer;
 	dlt_null= (struct dlt_null *) buffer;
-	v6buffer = buffer + linkhsize;
+	v6buffer = buffer + idata->linkhsize;
 	ipv6 = (struct ip6_hdr *) v6buffer;
 
 	if(idata->type == DLT_EN10MB && idata->type != IFACE_LOOPBACK){
@@ -1359,7 +1352,7 @@ void init_packet_data(struct iface_data *idata){
 		hbhopthdrs=0;
 	
 		while(hbhopthdrs < nhbhopthdr){
-			if((ptr+ hbhopthdrlen[hbhopthdrs]) > (v6buffer+ ETH_DATA_LEN)){
+			if((ptr+ hbhopthdrlen[hbhopthdrs]) > (v6buffer+ idata->mtu)){
 				puts("Packet too large while processing HBH Opt. Header");
 				exit(EXIT_FAILURE);
 			}
@@ -1376,7 +1369,7 @@ void init_packet_data(struct iface_data *idata){
 		dstoptuhdrs=0;
 	
 		while(dstoptuhdrs < ndstoptuhdr){
-			if((ptr+ dstoptuhdrlen[dstoptuhdrs]) > (v6buffer+ ETH_DATA_LEN)){
+			if((ptr+ dstoptuhdrlen[dstoptuhdrs]) > (v6buffer+ idata->mtu)){
 				puts("Packet too large while processing Dest. Opt. Header (Unfrag. Part)");
 				exit(EXIT_FAILURE);
 			}
@@ -1414,7 +1407,7 @@ void init_packet_data(struct iface_data *idata){
 		dstopthdrs=0;
 	
 		while(dstopthdrs < ndstopthdr){
-			if((ptr+ dstopthdrlen[dstopthdrs]) > (v6buffer+max_packet_size)){
+			if((ptr+ dstopthdrlen[dstopthdrs]) > (v6buffer+idata->max_packet_size)){
 			puts("Packet too large while processing Dest. Opt. Header (should be using the Frag. option?)");
 			exit(EXIT_FAILURE);
 			}
@@ -1545,7 +1538,7 @@ void send_packet(struct iface_data *idata, const u_char *pktdata, struct pcap_pk
 
 					rhbytes= (rhbytes>>3) << 3;
 
-					if( (ptr+rhbytes) > (v6buffer+max_packet_size)){
+					if( (ptr+rhbytes) > (v6buffer+idata->max_packet_size)){
 						puts("Packet Too Large while inserting ICMPv6 payload");
 						exit(EXIT_FAILURE);
 					}
@@ -1569,7 +1562,7 @@ void send_packet(struct iface_data *idata, const u_char *pktdata, struct pcap_pk
 
 					rhbytes= (rhbytes>>3) << 3;
 
-					if( (ptr+rhbytes) > (v6buffer+max_packet_size)){
+					if( (ptr+rhbytes) > (v6buffer+idata->max_packet_size)){
 						puts("Packet Too Large while inserting Redirected Header Option");
 						exit(EXIT_FAILURE);
 					}
@@ -1684,8 +1677,8 @@ void send_packet(struct iface_data *idata, const u_char *pktdata, struct pcap_pk
 				ptrend= ptr;
 				ptr= fragpart;
 				fptr = fragbuffer;
-				fipv6 = (struct ip6_hdr *) (fragbuffer + linkhsize);
-				fptrend = fptr + linkhsize+MIN_IPV6_HLEN+MAX_IPV6_PAYLOAD;
+				fipv6 = (struct ip6_hdr *) (fragbuffer + idata->linkhsize);
+				fptrend = fptr + idata->linkhsize+MIN_IPV6_HLEN+MAX_IPV6_PAYLOAD;
 				memcpy(fptr, buffer, fragpart-buffer);
 				fptr = fptr + (fragpart-buffer);
 
@@ -1723,7 +1716,7 @@ void send_packet(struct iface_data *idata, const u_char *pktdata, struct pcap_pk
 					ptr+=fragsize;
 					fptr+=fragsize;
 
-					fipv6->ip6_plen = htons((fptr - fragbuffer) - MIN_IPV6_HLEN - linkhsize);
+					fipv6->ip6_plen = htons((fptr - fragbuffer) - MIN_IPV6_HLEN - idata->linkhsize);
 		
 					if((nw=pcap_inject(idata->pfd, fragbuffer, fptr - fragbuffer)) == -1){
 						printf("pcap_inject(): %s\n", pcap_geterr(idata->pfd));

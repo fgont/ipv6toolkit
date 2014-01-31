@@ -611,7 +611,8 @@ struct iface_data{
 	unsigned int		dstaddr_f;
 	unsigned int		verbose_f;
 	unsigned char		listen_f;
-	char				loopback_f;
+	char			loopback_f;
+	unsigned char		fragh_f;
 
 	/* XXX
 	   The next four variables are kind of a duplicate of router_ip6 and router_ether above.

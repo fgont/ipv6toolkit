@@ -183,11 +183,11 @@ unsigned int			hbhopthdrlen[MAX_HBH_OPT_HDR], m, pad;
 
 struct ip6_frag			fraghdr, *fh;
 struct ip6_hdr			*fipv6;
-unsigned char			fragh_f=FALSE;
+
 unsigned char			fragbuffer[ETHER_HDR_LEN+MIN_IPV6_HLEN+MAX_IPV6_PAYLOAD];
 unsigned char			*fragpart, *fptr, *fptrend, *ptrend, *ptrhdr, *ptrhdrend;
 unsigned int			hdrlen, ndstopthdr=0, nhbhopthdr=0, ndstoptuhdr=0;
-unsigned int			nfrags, fragsize, max_packet_size;
+unsigned int			nfrags, fragsize;
 unsigned char			*prev_nh, *startoffragment;
 
 /* Remote scans */
@@ -690,7 +690,12 @@ int main(int argc, char **argv){
 				}
 		
 				nfrags = (nfrags +7) & 0xfff8;
-				fragh_f=TRUE;
+				idata.fragh_f=TRUE;
+
+				/* XXX: To be removed when fragmentation support is added */
+				puts("Error: scan6 does not currently support fragmentation");
+				exit(EXIT_FAILURE);
+
 				break;
 
 			case 'S':	/* Source Ethernet address */
@@ -3018,8 +3023,6 @@ int send_probe_remote(struct iface_data *idata, struct scan_list *scan, struct i
 	struct ip6_option			*opt;
 	u_int32_t					*uint32;
 
-	/* max_packet_size holds is equal to the link MTU, since the tool doesn't support packets larger than the link MTU */
-	max_packet_size = idata->mtu;
 	ether = (struct ether_header *) buffer;
 	dlt_null= (struct dlt_null *) buffer;
 	v6buffer = buffer + idata->linkhsize;
@@ -3127,7 +3130,7 @@ int send_probe_remote(struct iface_data *idata, struct scan_list *scan, struct i
 		case PROBE_TCP:
 			*prev_nh = IPPROTO_TCP;
 
-			if( (ptr+sizeof(struct tcp_hdr)) > (v6buffer + max_packet_size)){
+			if( (ptr+sizeof(struct tcp_hdr)) > (v6buffer + idata->max_packet_size)){
 				if(idata->verbose_f)
 					puts("Packet Too Large while inserting TCP header");
 
@@ -3163,7 +3166,7 @@ int send_probe_remote(struct iface_data *idata, struct scan_list *scan, struct i
 			tcp->th_off= sizeof(struct tcp_hdr) >> 2;
 			ptr+= tcp->th_off << 2;
 
-			if( (ptr + rhbytes) > v6buffer+max_packet_size){
+			if( (ptr + rhbytes) > v6buffer+idata->max_packet_size){
 				puts("Packet Too Large while inserting TCP segment");
 				exit(EXIT_FAILURE);
 			}

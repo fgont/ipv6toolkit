@@ -167,7 +167,7 @@ unsigned int		hbhopthdrlen[MAX_HBH_OPT_HDR], m, pad;
 
 struct ip6_frag		fraghdr, *fh;
 struct ip6_hdr		*fipv6;
-unsigned char		fragh_f=0;
+
 unsigned char		fragbuffer[ETHER_HDR_LEN+MIN_IPV6_HLEN+MAX_IPV6_PAYLOAD];
 unsigned char		*fragpart, *fptr, *fptrend, *ptrend, *ptrhdr, *ptrhdrend;
 unsigned int		hdrlen, ndstopthdr=0, nhbhopthdr=0, ndstoptuhdr=0;
@@ -527,7 +527,7 @@ int main(int argc, char **argv){
 				}
 		
 				nfrags = (nfrags +7) & 0xfff8;
-				fragh_f= 1;
+				idata.fragh_f= 1;
 				break;
 
 			case 'S':	/* Source Ethernet address */
@@ -1084,7 +1084,7 @@ int main(int argc, char **argv){
 		for(i=0; i < nhbhopthdr; i++)
 			packetsize+= hbhopthdrlen[i];
 
-		if(fragh_f)
+		if(idata.fragh_f)
 			packetsize+= sizeof(struct ip6_frag);			
 
 		if(rate == 0 || ((packetsize * 8)/rate) <= 0)
@@ -1097,16 +1097,11 @@ int main(int argc, char **argv){
 	if(!pps_f && !bps_f)
 		pktinterval= 1000;
 
-	if( !fragh_f && dstoptuhdr_f){
+	if( !idata.fragh_f && dstoptuhdr_f){
 		puts("Dst. Options Header (Unfragmentable Part) set, but Fragmentation not specified");
 		exit(EXIT_FAILURE);
 	}
     
-	if(fragh_f)
-		idata.max_packet_size = MAX_IPV6_PAYLOAD + MIN_IPV6_HLEN;
-	else
-		idata.max_packet_size = idata.mtu;
-
 	/*
 	 *  If we are going to send packets to a specified target, we must set some default values
 	 */
@@ -1645,7 +1640,7 @@ void init_packet_data(struct iface_data *idata){
 	/* Everything that follows is the Fragmentable Part of the packet */
 	fragpart = ptr;
 
-	if(fragh_f){
+	if(idata->fragh_f){
 		/* Check that we are able to send the Unfragmentable Part, together with a 
 		   Fragment Header and a chunk data over our link layer
 		 */
@@ -2177,7 +2172,7 @@ void send_packet(struct iface_data *idata, const u_char *pktdata, struct pcap_pk
  * Send an IPv6 datagram, and fragment if selected
  */
 void frag_and_send(struct iface_data *idata){
-	if(!fragh_f){
+	if(!idata->fragh_f){
 		ipv6->ip6_plen = htons((ptr - v6buffer) - MIN_IPV6_HLEN);
 
 		if((nw=pcap_inject(idata->pfd, buffer, ptr - buffer)) == -1){
@@ -2406,7 +2401,7 @@ void print_attack_info(struct iface_data *idata){
 	for(i=0; i<ndstopthdr; i++)
 		printf("Destination Options Header: %u bytes\n", dstopthdrlen[i]);
 
-	if(fragh_f)
+	if(idata->fragh_f)
 		printf("Sending each packet in fragments of %u bytes (plus the Unfragmentable part)\n", nfrags);
 
 	if(idata->dstaddr_f){
