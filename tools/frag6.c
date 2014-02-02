@@ -641,6 +641,15 @@ int main(int argc, char **argv){
 		FD_ZERO(&sset);
 		FD_SET(idata.fd, &sset);
 		start= time(NULL);
+
+		/*
+		   This "schedules" the sending of probes for different types of packets. At most two probes
+		   will be sent for each packet type. Probe #1 will be sent now, and resent after QUERY_TIMEOUT/2
+		   seconds. Probe #2 will be sent in 1 second, and resent after QUERY_TIMEOUT/2 seconds... etc.
+		   This means that starting now, we send one probe for each packet type, one per second (to avoid
+		   congesting the network). And we resend the probes in after QUERY_TIMEOUT/2 seconds (hence we
+		   have QUERY_TIMEOUT/2 to wait for the responses of such probes).
+		 */
 		lastfrag1= start - QUERY_TIMEOUT/2;
 		lastfrag2= start - QUERY_TIMEOUT/2 + 1;
 		lastfrag3= start - QUERY_TIMEOUT/2 + 2;
@@ -651,6 +660,10 @@ int main(int argc, char **argv){
 		while(1){
 			curtime=time(NULL);
 
+			/*
+			   If we have already the timeout value, or already have results for each of the five tests,
+			   exit the loop
+			 */
 			if((curtime - start) >= QUERY_TIMEOUT || responses >= 5){
 				break;
 			}
@@ -914,6 +927,11 @@ int main(int argc, char **argv){
 		while(1){
 			curtime=time(NULL);
 
+			/*
+			    If we were doing tests from a single origin, and we have reached the assessment timeout
+			    or already have enough samples, we must now sample from multiple origins.
+
+			 */
 			if( testtype==FIXED_ORIGIN && ((curtime - start) >= FID_ASSESS_TIMEOUT || ntest1 >= NSAMPLES)){
 				testtype= MULTI_ORIGIN;
 				addr_sig= random();
@@ -925,6 +943,10 @@ int main(int argc, char **argv){
 				break;
 			}
 
+			/*
+			    lastfrag1 contains the timestamp (in seconds) of the last time we sent probe packets.
+			    Hence we will be sending "batches" of probe packets every second.
+			 */
 			if((curtime - lastfrag1) >= 1){
 				if(testtype == FIXED_ORIGIN){
 					for(i=0; i< (NSAMPLES/NBATCHES); i++){
