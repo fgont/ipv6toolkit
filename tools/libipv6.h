@@ -104,6 +104,20 @@ struct filters{
 
 
 /* Constants used with the libcap functions */
+#define PCAP_SNAP_LEN			65535
+#define	PCAP_PROMISC			1
+#define	PCAP_OPT				1
+#ifndef PCAP_NETMASK_UNKNOWN
+	#define PCAP_NETMASK_UNKNOWN	0xffffffff
+#endif
+
+#if defined (__FreeBSD__) || defined(__NetBSD__) || defined (__OpenBSD__) || defined(__APPLE__) || defined(__FreeBSD_kernel__)
+	#define	PCAP_TIMEOUT			1
+#else
+	#define	PCAP_TIMEOUT			0
+#endif
+
+
 #define PCAP_IPV6_FILTER		"ip6"
 #define PCAP_TCPV6_FILTER		"ip6 and tcp"
 #define PCAP_UDPV6_FILTER		"ip6 and udp"
@@ -657,6 +671,9 @@ struct next_hop{
 #define LOAD_PCAP_ONLY		0x01
 #define	LOAD_SRC_NXT_HOP	0x02
 
+/* Constants to signal special interface types */
+#define	IFACE_LOOPBACK			1
+#define IFACE_TUNNEL			2
 
 #ifndef SA_SIZE
 #define SA_SIZE(sa)                                            \
