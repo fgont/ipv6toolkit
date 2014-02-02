@@ -45,12 +45,7 @@
 #include <pwd.h>
 #include <sys/socket.h>
 #include <net/if.h>
-#include <ifaddrs.h>
-#ifdef __linux__
-	#include <netpacket/packet.h>
-#elif defined (__FreeBSD__) || defined(__NetBSD__) || defined (__OpenBSD__) || defined(__APPLE__) || ( !defined(__FreeBSD__) && defined(__FreeBSD_kernel__))
-	#include <net/if_dl.h>
-#endif
+
 #include "ni6.h"
 #include "ipv6toolkit.h"
 #include "libipv6.h"
