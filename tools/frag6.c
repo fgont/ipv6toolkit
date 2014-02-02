@@ -1896,7 +1896,7 @@ int send_fragment(struct iface_data *idata, unsigned int id, unsigned int offset
 	   Fragment Header and a chunk data over our link layer
 	 */
 	if( (ptr+sizeof(struct ip6_frag)+fsize) > (v6buffer+idata->mtu)){
-		puts("Unfragmentable part too large for current MTU (1500 bytes)");
+		printf("Unfragmentable part too large for current MTU (%u bytes)\n", idata->mtu);
 		return(-1);
 	}
 

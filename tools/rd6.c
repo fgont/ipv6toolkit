@@ -1406,7 +1406,7 @@ void init_packet_data(struct iface_data *idata){
 		   Fragment Header and a chunk data over our link layer
 		 */
 		if( (fragpart+sizeof(fraghdr)+nfrags) > (v6buffer+idata->mtu)){
-			puts("Unfragmentable part too large for current MTU (1500 bytes)");
+			printf("Unfragmentable part too large for current MTU (%u bytes)\n", idata->mtu);
 			exit(EXIT_FAILURE);
 		}
 
