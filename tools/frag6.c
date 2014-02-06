@@ -73,8 +73,6 @@ int					valid_icmp6_response2(struct iface_data *, struct pcap_pkthdr *, const u
 
 /* Used for router discovery */
 struct iface_data	idata;
-struct prefix_entry	*prefix_ols[MAX_PREFIXES_ONLINK], *prefix_acs[MAX_PREFIXES_AUTO];
-struct prefix_entry	*prefix_local[MAX_LOCAL_ADDRESSES];
 struct in6_addr		randprefix;
 unsigned char		randpreflen;
 
