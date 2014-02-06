@@ -1214,11 +1214,6 @@ int main(int argc, char **argv){
 			puts("Listening to incoming IPv6 messages...");
 		}
 
-		if( (idata.fd= pcap_fileno(idata.pfd)) == -1){
-			puts("Error obtaining descriptor number for pcap_t");
-			exit(EXIT_FAILURE);
-		}
-
 		FD_ZERO(&sset);
 		FD_SET(idata.fd, &sset);
 

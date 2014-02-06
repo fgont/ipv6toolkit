@@ -538,13 +538,8 @@ int main(int argc, char **argv){
 	/* Set initial contents of the attack packet */
 	init_packet_data(&idata);
     
-	/* Fire a TCP segment if an IPv6 Destination Address was specified */
+	/* Fire a packet if a IPv6 Destination Address was specified */
 	if(idata.dstaddr_f){
-		if( (idata.fd= pcap_fileno(idata.pfd)) == -1){
-			puts("Error obtaining descriptor number for pcap_t");
-			exit(EXIT_FAILURE);
-		}
-
 		FD_ZERO(&sset);
 		FD_SET(idata.fd, &sset);
 		start= time(NULL); 

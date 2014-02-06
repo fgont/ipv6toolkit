@@ -153,7 +153,7 @@ struct filters		filters;
 
 int main(int argc, char **argv){
 	extern char		*optarg;	
-	int				r, sel, fd;
+	int				r, sel;
 	fd_set			sset, rset;
 
 	static struct option longopts[] = {
@@ -1169,18 +1169,13 @@ int main(int argc, char **argv){
 		if(idata.verbose_f)
 			puts("Listening to incoming ICMPv6 Router Solicitation messages...");
 
-		if( (fd= pcap_fileno(idata.pfd)) == -1){
-			puts("Error obtaining descriptor number for pcap_t");
-			exit(EXIT_FAILURE);
-		}
-
 		FD_ZERO(&sset);
-		FD_SET(fd, &sset);
+		FD_SET(idata.fd, &sset);
 
 		while(listen_f){
 			rset= sset;
 
-			if((sel=select(fd+1, &rset, NULL, NULL, NULL)) == -1){
+			if((sel=select(idata.fd+1, &rset, NULL, NULL, NULL)) == -1){
 				if(errno == EINTR){
 					continue;
 				}
