@@ -41,7 +41,7 @@ SBINPATH= $(DESTDIR)$(PREFIX)/sbin
 SRCPATH= tools
 
 
-SBINTOOLS= flow6 frag6 icmp6 jumbo6 na6 ni6 ns6 ra6 rd6 rs6 scan6 tcp6
+SBINTOOLS= flow6 frag6 icmp6 jumbo6 na6 ni6 ns6 path6 ra6 rd6 rs6 scan6 tcp6
 BINTOOLS= addr6
 TOOLS= $(BINTOOLS) $(SBINTOOLS)
 LIBS= libipv6.o
@@ -71,6 +71,9 @@ ni6: $(SRCPATH)/ni6.c $(SRCPATH)/ni6.h $(SRCPATH)/ipv6toolkit.h $(LIBS) $(SRCPAT
 
 ns6: $(SRCPATH)/ns6.c $(SRCPATH)/ns6.h $(SRCPATH)/ipv6toolkit.h $(LIBS) $(SRCPATH)/libipv6.h
 	$(CC) $(CPPFLAGS) $(CFLAGS) -o ns6 $(SRCPATH)/ns6.c $(LIBS) $(LDFLAGS)
+
+path6: $(SRCPATH)/path6.c $(SRCPATH)/path6.h $(SRCPATH)/ipv6toolkit.h $(LIBS) $(SRCPATH)/libipv6.h
+	$(CC) $(CPPFLAGS) $(CFLAGS) -o path6 $(SRCPATH)/path6.c $(LIBS) $(LDFLAGS)
 
 ra6: $(SRCPATH)/ra6.c $(SRCPATH)/ra6.h $(SRCPATH)/ipv6toolkit.h $(LIBS) $(SRCPATH)/libipv6.h
 	$(CC) $(CPPFLAGS) $(CFLAGS) -o ra6 $(SRCPATH)/ra6.c $(LIBS) $(LDFLAGS)
