@@ -1164,6 +1164,12 @@ int get_if_addrs(struct iface_data *idata){
 				}
 			}
 		}
+		else if((ptr->ifa_addr)->sa_family == AF_INET){
+			if(strncmp(idata->iface, ptr->ifa_name, IFACE_LENGTH-1) == 0){
+					idata->ip6_local = sockin6ptr->sin6_addr;
+
+			}
+		}
 	}
 
 	freeifaddrs(ifptr);
@@ -3666,4 +3672,5 @@ int find_ipv6_router(pcap_t *pfd, struct ether_addr *hsrcaddr, struct in6_addr *
 	else
 		return -1;
 }
+
 

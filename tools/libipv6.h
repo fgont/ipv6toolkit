@@ -29,6 +29,7 @@
 #define MIN_UDP_HLEN			20
 #define MIN_ICMP6_HLEN			8
 #define MIN_HBH_LEN				8
+#define	MIN_EXT_HLEN			8
 #define	SLLA_OPT_LEN			1
 #define	TLLA_OPT_LEN			1
 #define MIN_DST_OPT_HDR_SIZE	8
@@ -263,13 +264,18 @@ struct ipv6pseudohdr{
 } __attribute__ ((__packed__));
 
 /* 10Mb/s ethernet header */
-struct ether_header
-{
+struct ether_header{
   struct ether_addr dst;	/* destination eth addr	*/
   struct ether_addr src;	/* source ether addr	*/
   u_int16_t ether_type;		/* packet type ID field	*/
 } __attribute__ ((__packed__));
 
+
+/* Generic extension header.  */
+struct ip6_eh{
+    uint8_t  eh_nxt;		/* next header.  */
+    uint8_t  eh_len;		/* length in units of 8 octets.  */
+} __attribute__ ((__packed__));
 
 typedef	u_int32_t tcp_seq;
 
@@ -378,6 +384,24 @@ struct udp_hdr{
   u_int16_t uh_sum;		/* udp checksum */
 } __attribute__ ((__packed__));
 
+
+#define	ARP_REQUEST		1
+#define ARP_REPLY		2
+#define RARP_REQUEST	3
+#define RARP_REPLY		4
+
+struct arp_hdr{
+	struct ether_header		ether;	
+	u_int16_t				hard_type;		/* packet type ID field	*/
+	u_int16_t				prot_type;		/* packet type ID field	*/
+	u_int8_t				hard_size;
+	u_int8_t				prot_size;
+	u_int8_t				op;
+	struct ether_addr		src_ether;
+	struct in_addr			src_ip;
+	struct ether_addr		tgt_ether;
+	struct in_addr			tgt_ip;
+} __attribute__ ((__packed__));
 
 struct prefix_entry{
 	struct in6_addr		ip6;
@@ -741,5 +765,5 @@ void				sig_alarm(int);
 struct in6_addr		solicited_node(const struct in6_addr *);
 int					string_escapes(char *, unsigned int *, unsigned int);
 size_t				Strnlen(const char *, size_t);
-
+struct timeval		timeval_sub(struct timeval *, struct timeval *);
 
