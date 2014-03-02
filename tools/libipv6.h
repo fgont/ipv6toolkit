@@ -766,4 +766,5 @@ struct in6_addr		solicited_node(const struct in6_addr *);
 int					string_escapes(char *, unsigned int *, unsigned int);
 size_t				Strnlen(const char *, size_t);
 struct timeval		timeval_sub(struct timeval *, struct timeval *);
+float				time_diff_ms(struct timeval *, struct timeval *);
 

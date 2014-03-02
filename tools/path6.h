@@ -19,6 +19,8 @@
 #define PROBE_UDP				4
 
 #define PROBE_PORT_OFFSET		0x00c4
+#define PROBE_TIMEOUT			2
+
 
 struct probe{
 	unsigned char	sent;
@@ -26,5 +28,4 @@ struct probe{
 	struct timeval	rtstamp;
 	struct timeval	ststamp;
 	struct in6_addr	srcaddr;
-
-}
+};

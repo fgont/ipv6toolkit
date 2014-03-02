@@ -3674,3 +3674,29 @@ int find_ipv6_router(pcap_t *pfd, struct ether_addr *hsrcaddr, struct in6_addr *
 }
 
 
+
+
+struct timeval timeval_sub(struct timeval *t2, struct timeval *t1){
+	/* XXX: Need to review!! */
+	struct timeval result;
+
+	if(t1->tv_usec > t2->tv_usec){
+		t1->tv_usec = t1->tv_sec + ( ( (t1->tv_usec - t2->tv_usec) / 10000000) + 1  ) * 1000000;
+		t1->tv_sec= t1->tv_sec - ( ( (t1->tv_usec - t2->tv_usec) / 10000000) + 1  );
+	}
+
+	result.tv_sec= t2->tv_sec - t1->tv_sec;
+	result.tv_usec= t2->tv_usec - t1->tv_usec;
+	return(result);
+}
+
+
+float time_diff_ms(struct timeval *t2, struct timeval *t1){
+	/* XXX: Need to review!! */
+	
+	float result;
+
+	result= (t2->tv_sec - t1->tv_sec) * 1000 + (t2->tv_usec - t1->tv_usec) / 1000;
+
+	return(result);
+}
