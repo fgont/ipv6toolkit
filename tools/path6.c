@@ -114,7 +114,7 @@ char 				plinkaddr[ETHER_ADDR_PLEN];
 char 				psrcaddr[INET6_ADDRSTRLEN], pdstaddr[INET6_ADDRSTRLEN], pv6addr[INET6_ADDRSTRLEN];
 unsigned char 		verbose_f=0;
 unsigned char 		loop_f=0, sleep_f=0, localaddr_f=0, probe_f=0;
-unsigned char		srcprefix_f=0, hoplimit_f=0, ip6length_f=0, icmp6psize_f=0, send_f=0, end_f=0;
+unsigned char		srcprefix_f=0, hoplimit_f=0, ip6length_f=0, icmp6psize_f=0, send_f=0, end_f=0, delayp_f=0;
 
 
 /* Support for Extension Headers */
@@ -139,6 +139,7 @@ unsigned char		srcport_f=0, dstport_f=0, tcpflags_f=0, pps_f=0, bps_f=0, endhost
 u_int16_t			srcport, dstport;
 u_int8_t			tcpflags=0, cprobe, pprobe, nprobe, maxprobes, chop, phop, nhop, maxhops, ulthop;
 struct in6_addr		nsrc;
+u_int32_t			tcpseq;
 
 #define MAXHOPS		30
 #define MAXPROBES	3
@@ -557,6 +558,19 @@ int main(int argc, char **argv){
 	if(!probe_f)
 		probetype= PROBE_ICMP6_ECHO;
 
+
+	if(probetype == PROBE_TCP){
+		if(!dstport_f)
+			dstport= 80;
+
+		tcpseq=random();
+	}
+	else if(probetype == PROBE_UDP){
+		if(dstport_f)
+			dstport= 60000 + random() % 5000;
+	}
+
+
 	if(pps_f){
 		if(rate < 1)
 			rate=1;
@@ -672,10 +686,24 @@ int main(int argc, char **argv){
 					exit(EXIT_FAILURE);
 				}
 
-				if(pprobe == 0)
-					printf(" %2d ND (%25s)", phop+1, psrcaddr);
 
-				printf("  %f ms", time_diff_ms(&(test[phop][pprobe].rtstamp), &(test[phop][pprobe].ststamp)));
+				if(delayp_f){
+						printf(" %2d (%s)", phop+1, psrcaddr);
+
+						for(i=0; i<pprobe; i++)
+							printf("  *");
+
+							printf("  %f ms", time_diff_ms(&(test[phop][pprobe].rtstamp), &(test[phop][pprobe].ststamp)));
+
+					delayp_f=0;
+				}
+				else{
+				
+					if(pprobe == 0)
+						printf(" %2d (%s)", phop+1, psrcaddr);
+
+					printf("  %f ms", time_diff_ms(&(test[phop][pprobe].rtstamp), &(test[phop][pprobe].ststamp)));
+				}
 
 				pprobe++;
 
@@ -692,30 +720,52 @@ int main(int argc, char **argv){
 				/* XXX: If a response was received, we allow further probes to be sent */
 				send_f=1;
 			}
+
 			else if(is_time_elapsed(&curtime, &test[phop][pprobe].ststamp, PROBE_TIMEOUT * 1000000)){
 				/*
 				   If more than probe_timeout seconds have elapsed, consider the probe lost. 
 				   Print an asterisk, and wait for the next probe.
 				 */
 
-				if(pprobe == 0)
-					printf(" %2d ND (*)", phop+1);
+				if(pprobe == 0 || delayp_f){
+					pprobe++;
 
-				printf(" *");
-				pprobe++;
-
-				if(pprobe >= maxprobes){
-					puts("");
-					pprobe=0;
+					if(pprobe >= maxprobes){
+						printf(" %2d ()   *  *  *\n", phop+1);
+						pprobe=0;
 				
-					phop++;
+						phop++;
 
-					if(phop >= ulthop)
-						end_f=1;
+						delayp_f=0;
+
+						if(phop >= ulthop)
+							end_f=1;
+						else
+							send_f=1;
+
+						continue;
+					}
+
+					send_f=1;
+					delayp_f=1;
 				}
+				else{
+					printf(" *");
+					pprobe++;
 
-				/* If there was a probe timeout, we are always allowed to send another probe */
-				send_f=1;
+					if(pprobe >= maxprobes){
+						puts("");
+						pprobe=0;
+				
+						phop++;
+
+						if(phop >= ulthop)
+							end_f=1;
+					}
+
+					/* If there was a probe timeout, we are always allowed to send another probe */
+					send_f=1;
+				}
 			}
 		}
 
@@ -814,7 +864,63 @@ int main(int argc, char **argv){
 		   XXX: We employ the ts member (struct timeval) in struct pcap_pkthdr. That way we wouldn't need to
 		   hurry up to process the received packets, and could e.g. do DNS resolutions without screwing up the tests.
          */
-		if(ulhtype == IPPROTO_ICMPV6){
+
+		if(ulhtype == IPPROTO_ICMPV6 && probetype == PROBE_UDP && pkt_icmp6->icmp6_type == 1 && pkt_icmp6->icmp6_code == 4){
+			nsrc= pkt_ipv6->ip6_src;
+
+			pkt_ipv6=  (struct ip6_hdr *) ((char *) pkt_icmp6 + sizeof(struct icmp6_hdr));
+
+			if( ((unsigned char *)pkt_ipv6 + sizeof(struct ip6_hdr)) > pkt_end)
+				continue;
+
+			if(pkt_ipv6->ip6_nxt != IPPROTO_ICMPV6 && pkt_ipv6->ip6_nxt != IPPROTO_TCP && pkt_ipv6->ip6_nxt != IPPROTO_UDP){
+				pkt_eh=  (struct ip6_eh *) ((char *) pkt_ipv6 + sizeof(struct ip6_hdr));
+
+				while( ( (unsigned char *)pkt_eh+ MIN_EXT_HLEN) <= pkt_end && pkt_eh->eh_nxt != IPPROTO_ICMPV6 && pkt_eh->eh_nxt != IPPROTO_TCP && pkt_eh->eh_nxt != IPPROTO_UDP){
+					pkt_eh= (struct ip6_eh *) ( (char *) pkt_eh + (pkt_eh->eh_len + 1) * 8);
+				}
+
+				if( (unsigned char *)pkt_eh >= pkt_end){
+					continue;
+				}
+				else{
+					ulhtype= pkt_eh->eh_nxt;
+					pkt_icmp6= (struct icmp6_hdr *) ( (char *) pkt_eh + (pkt_eh->eh_len + 1) * 8);
+					pkt_udp= (struct udp_hdr *) ( (char *) pkt_eh + (pkt_eh->eh_len + 1) * 8);
+					pkt_icmp6 = (struct icmp6_hdr *) ( (char *) pkt_eh + (pkt_eh->eh_len + 1) * 8);
+				}
+			}
+			else{
+				ulhtype= pkt_ipv6->ip6_nxt;
+				pkt_icmp6 = (struct icmp6_hdr *) ((char *) pkt_ipv6 + sizeof(struct ip6_hdr));
+				pkt_tcp= (struct tcp_hdr *) pkt_icmp6;
+				pkt_udp= (struct udp_hdr *) pkt_icmp6;
+			}
+
+
+			if(probetype == PROBE_UDP && ulhtype == IPPROTO_UDP){
+/* puts("EJecute UDP");  */
+				/* Must still verify the UDP checksum */
+				if( (pkt_end - (unsigned char *) pkt_udp) < sizeof(struct udp_hdr))
+					continue;
+
+				if(ntohs(pkt_udp->uh_ulen) < sizeof(struct udp_hdr))
+					continue;
+
+				if(ntohs(pkt_udp->uh_dport) != dstport)
+					continue;
+
+				nhop= (ntohs(pkt_udp->uh_sport) >> 8) - PROBE_PORT_OFFSET;
+				nprobe= ntohs(pkt_udp->uh_sport) & 0xff;
+				endhost_f=1;
+			}
+			else{
+				continue;
+			}
+/* puts("port unreachable"); */
+
+		}
+		else if(ulhtype == IPPROTO_ICMPV6){
 			if(idata.type == DLT_EN10MB && idata.flags != IFACE_LOOPBACK && pkt_icmp6->icmp6_type == ND_NEIGHBOR_SOLICIT){
 				if( (pkt_end - (unsigned char *) pkt_ns) < sizeof(struct nd_neighbor_solicit))
 					continue;
@@ -848,8 +954,7 @@ int main(int argc, char **argv){
 					continue;
 /* puts("REcibi el paquete final"); */
 				nsrc= pkt_ipv6->ip6_src;
-				if(nprobe == 0)
-					endhost_f=1;
+				endhost_f=1;
 			}
 			else if(pkt_icmp6->icmp6_type == ICMP6_TIME_EXCEEDED && pkt_icmp6->icmp6_code == ICMP6_TIME_EXCEED_TRANSIT){
 /*puts("REcibi un time exceeded"); */
@@ -860,9 +965,7 @@ int main(int argc, char **argv){
 					puts("inet_ntop(): Error converting IPv6 Source Address to presentation format");
 					exit(EXIT_FAILURE);
 				}
-/*
-			printf("La ip: %s\n", psrcaddr);
-*/
+
 				pkt_ipv6=  (struct ip6_hdr *) ((char *) pkt_icmp6 + sizeof(struct icmp6_hdr));
 
 				if( ((unsigned char *)pkt_ipv6 + sizeof(struct ip6_hdr)) > pkt_end)
@@ -904,25 +1007,35 @@ int main(int argc, char **argv){
 					nprobe= ntohs(pkt_icmp6->icmp6_data16[1]) & 0xff;
 				}
 				else if(probetype == PROBE_TCP && ulhtype == IPPROTO_TCP){
-/* puts("Ejecute TCP"); */
+/*puts("Ejecute TCP");  */
 					/* Must still verify the TCP checksum */
 
 					if( (pkt_end - (unsigned char *) pkt_tcp) < sizeof(struct tcp_hdr))
 						continue;
 
-					nprobe= (ntohs(pkt_tcp->th_dport) >> 8) - PROBE_PORT_OFFSET;
-					nhop= ntohs(pkt_tcp->th_dport) & 0xff;
+					nhop= (ntohs(pkt_tcp->th_sport) >> 8) - PROBE_PORT_OFFSET;
+					nprobe= ntohs(pkt_tcp->th_sport) & 0xff;
+/*printf("srcport, %d, dstport: %d, nhop: %d, nprobe: %d\n", ntohs(pkt_tcp->th_sport), ntohs(pkt_tcp->th_dport), nhop, nprobe); */
 				}
 				else if(probetype == PROBE_UDP && ulhtype == IPPROTO_UDP){
-/* puts("EJecute UDP"); */
+/* puts("EJecute UDP");  */
 					/* Must still verify the UDP checksum */
 					if( (pkt_end - (unsigned char *) pkt_udp) < sizeof(struct udp_hdr))
 						continue;
 
-					nprobe= (ntohs(pkt_udp->uh_dport) >> 8) - PROBE_PORT_OFFSET;
-					nhop= ntohs(pkt_udp->uh_dport) & 0x00ff;
+					if(ntohs(pkt_udp->uh_ulen) < sizeof(struct udp_hdr))
+						continue;
+
+					nhop= (ntohs(pkt_udp->uh_sport) >> 8) - PROBE_PORT_OFFSET;
+					nprobe= ntohs(pkt_udp->uh_sport) & 0xff;
+/*
+printf("actHOp: %d, probe: %d\n", nhop, nprobe);
+*/
+
 				}
 			}
+
+
 			else{
 				continue;
 			}
@@ -934,16 +1047,29 @@ int main(int argc, char **argv){
 			if( (pkt_end - (unsigned char *) pkt_tcp) < sizeof(struct tcp_hdr))
 				continue;
 
-			nprobe= (ntohs(pkt_tcp->th_dport) >> 8) - PROBE_PORT_OFFSET;
-			nhop= ntohs(pkt_tcp->th_dport) & 0x00ff;
+			if(!is_eq_in6_addr(&(pkt_ipv6->ip6_src), &(idata.dstaddr))){
+	/*			puts("NO es la dire"); */
+				continue;
+			}
 
+			if(ntohs(pkt_tcp->th_sport) != dstport){
+puts("Fallo");
+continue;
+			}
+
+					nhop= (ntohs(pkt_tcp->th_dport) >> 8) - PROBE_PORT_OFFSET;
+					nprobe= ntohs(pkt_tcp->th_dport) & 0xff;
+/*
+			nprobe= (ntohs(pkt_tcp->th_sport) >> 8) - PROBE_PORT_OFFSET;
+			nhop= ntohs(pkt_tcp->th_sport) & 0x00ff;
+*/
 			/* Discard the packet if it was supposedly sent with a Hop Limit of 0 */
 			if(!nhop)
 				continue;
 
 			nsrc= pkt_ipv6->ip6_src;
-				if(nprobe == 0)
-					endhost_f=1;
+
+			endhost_f=1;
 		}
 		else if(probetype == PROBE_UDP && ulhtype == IPPROTO_UDP){
 /* puts("Ejecute UDP"); */
@@ -957,8 +1083,7 @@ int main(int argc, char **argv){
 				continue;
 
 			nsrc= pkt_ipv6->ip6_src;
-				if(nprobe == 0)
-					endhost_f=1;
+			endhost_f=1;
 		}
 		else{
 			continue;
@@ -1105,10 +1230,10 @@ void init_packet_data(struct iface_data *idata){
 	dlt_null= (struct dlt_null *) buffer;
 	v6buffer = buffer + idata->linkhsize;
 	ipv6 = (struct ip6_hdr *) v6buffer;
-puts("Ejecute init data");
+/* puts("Ejecute init data"); */
 
 	if(idata->flags != IFACE_TUNNEL && idata->flags != IFACE_LOOPBACK){
-puts("Puse info de link layer");
+/*puts("Puse info de link layer"); */
 		ethernet->src = idata->hsrcaddr;
 		ethernet->dst = idata->hdstaddr;
 		ethernet->ether_type = htons(ETHERTYPE_IPV6);
@@ -1260,9 +1385,9 @@ int send_probe(struct iface_data *idata, unsigned int probetype, unsigned char c
 		   number, such that the resulting Source Port falls into what is typically known as the
 		   dynamic ports range (say, ports larger than 50000).
 		 */
-		tcp->th_sport= htons( (((u_int16_t) cprobe + PROBE_PORT_OFFSET) << 8) + chop);
-		tcp->th_dport= dstport;
-		tcp->th_seq = htonl(random());
+		tcp->th_sport= htons( (((u_int16_t) chop + PROBE_PORT_OFFSET) << 8) + cprobe);
+		tcp->th_dport= htons(dstport);
+		tcp->th_seq = htonl(tcpseq);
 
 		/*
 		   If no flags were specified, we set the ACK bit, since all TCP segments other than SYNs
@@ -1277,6 +1402,7 @@ int send_probe(struct iface_data *idata, unsigned int probetype, unsigned char c
 		tcp->th_sum = in_chksum(v6buffer, tcp, ptr-((unsigned char *)tcp), IPPROTO_TCP);
 	}
 	else if(probetype == PROBE_UDP){
+/* puts("Hago UDP"); */
 		*prev_nh = IPPROTO_UDP;
 
 		if( (ptr+sizeof(struct udp_hdr)) > (v6buffer+ idata->max_packet_size)){
@@ -1296,8 +1422,17 @@ int send_probe(struct iface_data *idata, unsigned int probetype, unsigned char c
 		   number, such that the resulting Source Port falls into what is typically known as the
 		   dynamic ports range (say, ports larger than 50000).
 		 */
-		udp->uh_sport= htons(  (((u_int16_t) nprobe + PROBE_PORT_OFFSET) << 8) + nhop);
-		udp->uh_dport= 60000 + random() % 5000;
+
+		udp->uh_sport= htons(  (((u_int16_t) chop + PROBE_PORT_OFFSET) << 8) + cprobe);
+
+		if(dstport_f){
+			udp->uh_dport= htons(dstport);
+		}
+		else{
+			udp->uh_dport= htons(dstport);
+		}
+
+		udp->uh_ulen= htons(sizeof(struct udp_hdr));
 		udp->uh_sum=0;
 		udp->uh_sum = in_chksum(v6buffer, udp, ptr-((unsigned char *)udp), IPPROTO_UDP);
 	}
