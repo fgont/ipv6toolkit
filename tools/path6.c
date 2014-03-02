@@ -566,7 +566,7 @@ int main(int argc, char **argv){
 		tcpseq=random();
 	}
 	else if(probetype == PROBE_UDP){
-		if(dstport_f)
+		if(!dstport_f)
 			dstport= 60000 + random() % 5000;
 	}
 
