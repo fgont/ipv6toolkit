@@ -166,7 +166,7 @@ unsigned char 			rand_src_f=FALSE, rand_link_src_f=FALSE;
 unsigned char 			accepted_f=FALSE, configfile_f=FALSE, dstaddr_f=FALSE, hdstaddr_f=FALSE, dstprefix_f=FALSE;
 unsigned char			print_f=FALSE, print_local_f=FALSE, print_global_f=FALSE, probe_echo_f=FALSE, probe_unrec_f=FALSE, probe_f=FALSE;
 unsigned char			print_type=NOT_PRINT_ETHER_ADDR, scan_local_f=FALSE, print_unique_f=FALSE, localaddr_f=FALSE;
-unsigned char			tunnel_f=FALSE, loopback_f=FALSE, timestamps_f=FALSE;
+unsigned char			timestamps_f=FALSE;
 
 /* Support for Extension Headers */
 unsigned int			dstopthdrs, dstoptuhdrs, hbhopthdrs;
@@ -1206,7 +1206,7 @@ int main(int argc, char **argv){
 		exit(EXIT_FAILURE);
 	}
 
-	if(scan_local_f && (idata.type != DLT_EN10MB || loopback_f)){
+	if(scan_local_f && (idata.type != DLT_EN10MB || idata.flags == IFACE_TUNNEL || idata.flags == IFACE_LOOPBACK)){
 		puts("Error cannot apply local scan on a loopback or tunnel interface");
 		exit(EXIT_FAILURE);
 	}
@@ -1617,7 +1617,7 @@ int main(int argc, char **argv){
 						continue;
 
 					if(pkt_ipv6->ip6_nxt == IPPROTO_ICMPV6){
-						if( idata.type == DLT_EN10MB && !loopback_f && pkt_icmp6->icmp6_type == ND_NEIGHBOR_SOLICIT){
+						if( idata.type == DLT_EN10MB && idata.flags != IFACE_LOOPBACK && pkt_icmp6->icmp6_type == ND_NEIGHBOR_SOLICIT){
 							if( (pkt_end - (unsigned char *) pkt_ns) < sizeof(struct nd_neighbor_solicit))
 								continue;
 
@@ -3023,7 +3023,7 @@ int send_probe_remote(struct iface_data *idata, struct scan_list *scan, struct i
 	v6buffer = buffer + idata->linkhsize;
 	ipv6 = (struct ip6_hdr *) v6buffer;
 
-	if(idata->type == DLT_EN10MB && !loopback_f){
+	if(idata->type == DLT_EN10MB && idata->flags != IFACE_LOOPBACK){
 		ether->src = idata->ether;
 
 		if(!onlink_f){

@@ -1293,14 +1293,19 @@ int main(int argc, char **argv){
  * that are expected to remain constant for the specified attack.
  */
 void init_packet_data(struct iface_data *idata){
+	struct dlt_null *dlt_null;
 	ethernet= (struct ether_header *) buffer;
+	dlt_null= (struct dlt_null *) buffer;
 	v6buffer = buffer + idata->linkhsize;
 	ipv6 = (struct ip6_hdr *) v6buffer;
 
-	if(idata->flags != IFACE_TUNNEL && idata->flags != IFACE_LOOPBACK){
+	if(idata->type == DLT_EN10MB && idata->type != IFACE_LOOPBACK){
 		ethernet->src = idata->hsrcaddr;
 		ethernet->dst = idata->hdstaddr;
 		ethernet->ether_type = htons(ETHERTYPE_IPV6);
+	}
+	else if(idata->type == DLT_NULL){
+		dlt_null->family= PF_INET6;
 	}
 
 	ipv6->ip6_flow=0;

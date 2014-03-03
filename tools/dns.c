@@ -1644,7 +1644,7 @@ void init_packet_data(struct iface_data *idata){
 	v6buffer = buffer + idata->linkhsize;
 	ipv6 = (struct ip6_hdr *) v6buffer;
 
-	if(idata->type == DLT_EN10MB && idata->type != IFACE_LOOPBACK){
+	if(idata->type == DLT_EN10MB && idata->flags != IFACE_LOOPBACK){
 		ethernet->src = idata->hsrcaddr;
 		ethernet->dst = idata->hdstaddr;
 		ethernet->ether_type = htons(ETHERTYPE_IPV6);

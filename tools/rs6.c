@@ -556,127 +556,131 @@ int main(int argc, char **argv){
  * that are expected to remain constant for the specified attack.
  */
 void init_packet_data(struct iface_data *idata){
-    ethernet= (struct ether_header *) buffer;
-    v6buffer = buffer + idata->linkhsize;
-    ipv6 = (struct ip6_hdr *) v6buffer;
+	struct dlt_null *dlt_null;
+	ethernet= (struct ether_header *) buffer;
+	dlt_null= (struct dlt_null *) buffer;
+	v6buffer = buffer + idata->linkhsize;
+	ipv6 = (struct ip6_hdr *) v6buffer;
 
-	if(idata->flags != IFACE_TUNNEL && idata->flags != IFACE_LOOPBACK){
+	if(idata->type == DLT_EN10MB && idata->flags != IFACE_LOOPBACK){
 		ethernet->src = idata->hsrcaddr;
 		ethernet->dst = idata->hdstaddr;
 		ethernet->ether_type = htons(ETHERTYPE_IPV6);
 	}
+	else if(idata->type == DLT_NULL){
+		dlt_null->family= PF_INET6;
+	}
 
-    ipv6->ip6_flow=0;
-    ipv6->ip6_vfc= 0x60;
-    ipv6->ip6_hlim= hoplimit;
-    ipv6->ip6_src= idata->srcaddr;
-    ipv6->ip6_dst= idata->dstaddr;
-    prev_nh = (unsigned char *) &(ipv6->ip6_nxt);
+	ipv6->ip6_flow=0;
+	ipv6->ip6_vfc= 0x60;
+	ipv6->ip6_hlim= hoplimit;
+	ipv6->ip6_src= idata->srcaddr;
+	ipv6->ip6_dst= idata->dstaddr;
+	prev_nh = (unsigned char *) &(ipv6->ip6_nxt);
 
-    ptr = (unsigned char *) v6buffer + MIN_IPV6_HLEN;
+	ptr = (unsigned char *) v6buffer + MIN_IPV6_HLEN;
     
-    if(hbhopthdr_f){
-	hbhopthdrs=0;
+	if(hbhopthdr_f){
+		hbhopthdrs=0;
 	
-	while(hbhopthdrs < nhbhopthdr){
-	    if((ptr+ hbhopthdrlen[hbhopthdrs]) > (v6buffer+ idata->mtu)){
-		puts("Packet too large while processing HBH Opt. Header");
-		exit(EXIT_FAILURE);
-	    }
+		while(hbhopthdrs < nhbhopthdr){
+			if((ptr+ hbhopthdrlen[hbhopthdrs]) > (v6buffer+ idata->mtu)){
+				puts("Packet too large while processing HBH Opt. Header");
+				exit(EXIT_FAILURE);
+			}
 	    
-	    *prev_nh = IPPROTO_HOPOPTS;
-	    prev_nh = ptr;
-	    memcpy(ptr, hbhopthdr[hbhopthdrs], hbhopthdrlen[hbhopthdrs]);
-	    ptr = ptr + hbhopthdrlen[hbhopthdrs];
-	    hbhopthdrs++;
+			*prev_nh = IPPROTO_HOPOPTS;
+			prev_nh = ptr;
+			memcpy(ptr, hbhopthdr[hbhopthdrs], hbhopthdrlen[hbhopthdrs]);
+			ptr = ptr + hbhopthdrlen[hbhopthdrs];
+			hbhopthdrs++;
+		}
 	}
-    }
 
-    if(dstoptuhdr_f){
-	dstoptuhdrs=0;
+	if(dstoptuhdr_f){
+		dstoptuhdrs=0;
 	
-	while(dstoptuhdrs < ndstoptuhdr){
-	    if((ptr+ dstoptuhdrlen[dstoptuhdrs]) > (v6buffer+ idata->mtu)){
-		puts("Packet too large while processing Dest. Opt. Header (Unfrag. Part)");
-		exit(EXIT_FAILURE);
-	    }
-
-	    *prev_nh = IPPROTO_DSTOPTS;
-	    prev_nh = ptr;
-	    memcpy(ptr, dstoptuhdr[dstoptuhdrs], dstoptuhdrlen[dstoptuhdrs]);
-	    ptr = ptr + dstoptuhdrlen[dstoptuhdrs];
-	    dstoptuhdrs++;
+		while(dstoptuhdrs < ndstoptuhdr){
+			if((ptr+ dstoptuhdrlen[dstoptuhdrs]) > (v6buffer+ idata->mtu)){
+				puts("Packet too large while processing Dest. Opt. Header (Unfrag. Part)");
+				exit(EXIT_FAILURE);
+			}
+	
+			*prev_nh = IPPROTO_DSTOPTS;
+			prev_nh = ptr;
+			memcpy(ptr, dstoptuhdr[dstoptuhdrs], dstoptuhdrlen[dstoptuhdrs]);
+			ptr = ptr + dstoptuhdrlen[dstoptuhdrs];
+			dstoptuhdrs++;
+		}
 	}
-    }
 
-    /* Everything that follows is the Fragmentable Part of the packet */
-    fragpart = ptr;
+	/* Everything that follows is the Fragmentable Part of the packet */
+	 fragpart = ptr;
 
-    if(idata->fragh_f){
-    	/* Check that we are able to send the Unfragmentable Part, together with a 
-    	   Fragment Header and a chunk data over our link layer
-    	 */
-    	if( (fragpart+sizeof(fraghdr)+nfrags) > (v6buffer+idata->mtu)){
+	if(idata->fragh_f){
+		/* Check that we are able to send the Unfragmentable Part, together with a 
+		   Fragment Header and a chunk data over our link layer
+		 */
+		if( (fragpart+sizeof(fraghdr)+nfrags) > (v6buffer+idata->mtu)){
 			printf("Unfragmentable part too large for current MTU (%u bytes)\n", idata->mtu);
-    		exit(EXIT_FAILURE);
-    	}
+			exit(EXIT_FAILURE);
+		}
 
-    	/* We prepare a separete Fragment Header, but we do not include it in the packet to be sent.
-    	   This Fragment Header will be used (an assembled with the rest of the packet by the 
-    	   send_packet() function.
-    	*/
-    	memset(&fraghdr, 0, FRAG_HDR_SIZE);
-    	*prev_nh = IPPROTO_FRAGMENT;
-    	prev_nh = (unsigned char *) &fraghdr;
-    }
-
-    if(dstopthdr_f){
-	dstopthdrs=0;
-	
-	while(dstopthdrs < ndstopthdr){
-	    if((ptr+ dstopthdrlen[dstopthdrs]) > (v6buffer+idata->max_packet_size)){
-		puts("Packet too large while processing Dest. Opt. Header (U. part) (should be using the Frag. option?)");
-		exit(EXIT_FAILURE);
-	    }
-	    
-	    *prev_nh = IPPROTO_DSTOPTS;
-	    prev_nh = ptr;
-	    memcpy(ptr, dstopthdr[dstopthdrs], dstopthdrlen[dstopthdrs]);
-	    ptr = ptr + dstopthdrlen[dstopthdrs];
-	    dstopthdrs++;
+		/* We prepare a separete Fragment Header, but we do not include it in the packet to be sent.
+		   This Fragment Header will be used (an assembled with the rest of the packet by the 
+		   send_packet() function.
+		*/
+		memset(&fraghdr, 0, FRAG_HDR_SIZE);
+		*prev_nh = IPPROTO_FRAGMENT;
+		prev_nh = (unsigned char *) &fraghdr;
 	}
-    }
 
-    *prev_nh = IPPROTO_ICMPV6;
+	if(dstopthdr_f){
+		dstopthdrs=0;
+	
+		while(dstopthdrs < ndstopthdr){
+			if((ptr+ dstopthdrlen[dstopthdrs]) > (v6buffer+idata->max_packet_size)){
+				puts("Packet too large while processing Dest. Opt. Header (U. part) (should be using the Frag. option?)");
+				exit(EXIT_FAILURE);
+			}
+	    
+			*prev_nh = IPPROTO_DSTOPTS;
+			prev_nh = ptr;
+			memcpy(ptr, dstopthdr[dstopthdrs], dstopthdrlen[dstopthdrs]);
+			ptr = ptr + dstopthdrlen[dstopthdrs];
+			dstopthdrs++;
+		}
+	}
 
-    if( (ptr+sizeof(struct nd_router_solicit)) > (v6buffer+idata->max_packet_size)){
-    	puts("Packet too large while inserting Router Solicitation header (should be using Frag. option?)");
-    	exit(EXIT_FAILURE);
-    }
+	*prev_nh = IPPROTO_ICMPV6;
 
-    rs= (struct nd_router_solicit *) (ptr);
-    rs->nd_rs_type = ND_ROUTER_SOLICIT;
-    rs->nd_rs_code = 0;
+	if( (ptr+sizeof(struct nd_router_solicit)) > (v6buffer+idata->max_packet_size)){
+		puts("Packet too large while inserting Router Solicitation header (should be using Frag. option?)");
+		exit(EXIT_FAILURE);
+	}
+
+	rs= (struct nd_router_solicit *) (ptr);
+	rs->nd_rs_type = ND_ROUTER_SOLICIT;
+	rs->nd_rs_code = 0;
     
-    ptr += sizeof(struct nd_router_solicit);
+	ptr += sizeof(struct nd_router_solicit);
     
-    /* If a single source link-layer address is specified, it is included in all packets */
-    if(sllopt_f && nlinkaddr==1){
-        if( (ptr+sizeof(struct nd_opt_slla)) <= (v6buffer+idata->max_packet_size)){
-        	sllaopt = (struct nd_opt_slla *) ptr;
-        	sllaopt->type= ND_OPT_SOURCE_LINKADDR;
-        	sllaopt->length= SLLA_OPT_LEN;
-        	memcpy(sllaopt->address, linkaddr[0].a, ETH_ALEN);
-        	ptr += sizeof(struct nd_opt_slla);
-        }
-        else{
-        	puts("Packet too large while processing source link-layer addresss opt. (should be using Frag. option?)");
-        	exit(EXIT_FAILURE);
-        }
-    }
+	/* If a single source link-layer address is specified, it is included in all packets */
+	if(sllopt_f && nlinkaddr==1){
+		if( (ptr+sizeof(struct nd_opt_slla)) <= (v6buffer+idata->max_packet_size)){
+			sllaopt = (struct nd_opt_slla *) ptr;
+			sllaopt->type= ND_OPT_SOURCE_LINKADDR;
+			sllaopt->length= SLLA_OPT_LEN;
+			memcpy(sllaopt->address, linkaddr[0].a, ETH_ALEN);
+			ptr += sizeof(struct nd_opt_slla);
+		}
+		else{
+			puts("Packet too large while processing source link-layer addresss opt. (should be using Frag. option?)");
+			exit(EXIT_FAILURE);
+		}
+	}
     
-    startofprefixes = ptr;    
-
+	startofprefixes = ptr;    
 }
 
 
