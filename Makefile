@@ -111,6 +111,7 @@ install: all
 	install -m0755 $(SBINTOOLS) $(SBINPATH)
 
 	# Install the configuration file
+	install -m0755 -d $(ETCPATH)
 	install -m0644 data/ipv6toolkit.conf $(ETCPATH)
 
 	# Install the IEEE OUI database
