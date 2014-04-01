@@ -15,11 +15,13 @@ The current version of the toolkit includes the following tools:
   * na6
   * ni6
   * ns6
+  * path6
   * ra6
   * rd6
   * rs6
   * scan6
   * tcp6
+  * udp6
 
 .B addr6
 is an IPv6 address analysis and manipulation tool. Given a list of IPv6 addresses, it can filter such list based on different criteria, such as IPv6 address type, IPv6 address scope, IPv6 prefix, etc. Additionally, given a list of IPv6 addresses
@@ -51,6 +53,9 @@ is a security assessment tool for attacks vectors and reconnaissance techniques 
 .B ns6
 is a security assessment tool for attack vectors based on Neighbor Solicitation messages (including Neighbor Cache poisoning attacks, Neighbor Cahe exhaustion attacks, etc.).
 
+.B path6
+is a versatile IPv6-based traceroute tool (which supports extension headers, IPv6 fragmentation, and other features not present in existing traceroute implementations).
+
 .B ra6
 is a security assessment tool for attack vectors based on Router Advertisement messages (including various types of fooding attacks, man-in-the-middle attacks, and Denial of Service attacks, etc.).
 
@@ -66,6 +71,8 @@ is a full-fledged IPv6 address scanning tool, which can leverage specific IPv6 a
 .B tcp6
 is a security assessment tool for attack vectors based on TCP/IPv6 packets. It can be easily employed to launch classic TCP\-based attacks such as SYN-floods, but can also be employed to launch other more complex attacks such as TCP connection floods, etc.
 
+.B tcp6
+is a tool for sending arbitrary IPv6-based UDP datagrams.
 
 .SH SEE ALSO
 .BR ipv6toolkit.conf (5),
@@ -77,11 +84,13 @@ is a security assessment tool for attack vectors based on TCP/IPv6 packets. It c
 .BR na6 (1),
 .BR ni6 (1),
 .BR ns6 (1),
+.BR path6 (1),
 .BR ra6 (1),
 .BR rd6 (1),
 .BR rs6 (1),
 .BR scan6 (1),
-.BR tcp6 (1)
+.BR tcp6 (1),
+.BR udp6 (1)
 
 .SH AUTHOR
 The SI6 Networks' IPv6 Toolkit and the corresponding manual pages were produced by Fernando Gont 
