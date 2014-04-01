@@ -64,7 +64,7 @@ scan6 \- An IPv6 host scanner
 
 .SH DESCRIPTION
 .B scan6
-is an IPv6 address scanning tool that implements a number of advanced IPv6 address scanning techniques. It is part of the SI6 Networks' IPv6 Toolkit v1.3.4: a security assessment suite for the IPv6 protocols.
+is an IPv6 address scanning tool that implements a number of advanced IPv6 address scanning techniques. It is part of the SI6 Networks' IPv6 Toolkit: a security assessment suite for the IPv6 protocols.
 
 \fBHOST SCANNING TECHNIQUES\fR
 
@@ -100,7 +100,7 @@ operates (roughly) as follows:
 \  ICMPv6 Echo Request messages.
 
 \+ Each time a new "alive" address is discovered, the corresponding
-\  Interface-ID is combined with all the local prefixes, and the 
+\  Interface\-ID is combined with all the local prefixes, and the 
 \  resulting addresses are probed (with unicasted packets). This 
 \  can help to discover all the SLAAC\-derived and the "private 
 \  addresses", since some responses might contain e.g. Modified 
@@ -112,11 +112,11 @@ operates (roughly) as follows:
 .fi
 .RE
 
-The aforementioned scheme can fail to discover some addresses for some implementation. For example, MacOS X employs IPv6 addresses embedding IEEE-identifiers when responding to packets destined to a link\-local multicast address (and hence the temporary addresses could not be learned).
+The aforementioned scheme can fail to discover some addresses for some implementation. For example, Mac OS X employs IPv6 addresses embedding IEEE-identifiers when responding to packets destined to a link\-local multicast address (and hence the temporary addresses could not be learned).
 
 \fBRemote scans\fR
 
-scan6 employs a number of bran-new techniques for performing address scans of remote networks. Namely, it tries to mitigate a number of patterns in IPv6 addresses, such that the (theoretical) search space of 2**64 addresses is dramatically reduced. scan6 can leverage the following address patterns:
+scan6 employs a number of bran\-new techniques for performing address scans of remote networks. Namely, it tries to mitigate a number of patterns in IPv6 addresses, such that the (theoretical) search space of 2**64 addresses is dramatically reduced. scan6 can leverage the following address patterns:
 .sp
 .RS 4
 .nf
@@ -130,6 +130,10 @@ scan6 employs a number of bran-new techniques for performing address scans of re
 \+ "low-byte" addresses: in which only the lowest order (or the two
 \  lowest order) word of the IID contains a small integer (with the
 \  rest of the words being set to zero)
+
+\+ "port\-based" addresses: in which one of the two low order 16 bit
+\  16\-bit words of the IID encodes de service port number of the
+\  main service being hosted on the targer node.
 
 \+ IPv4\-based addresses: in which the IID encodes the IPv4\-address 
 \  of the network interface (as in 2001:db8::192.168.1.1 or 
@@ -148,7 +152,7 @@ For host-tracking purposes, the target networks can be specified with the '\-d' 
 
 Since for tracking purposes one will continually track the user across networks, the '\-l' option will typically be set. Additionally, the '\-z' option may be used to specify the number of seconds to sleep between iterations (i.e. each round of probes send to the specified targets). The value specified by the '\-z' option represents a trade-off between time-liness of the tracking and bandwidth-consumption.
 
-IPv6 host-tracking is discussed in detail in Appendix A of <http://tools.ietf.org/html/draft-ietf-6man-stable-privacy-addresses>.
+IPv6 host-tracking is discussed in detail in Appendix A of <http://tools.ietf.org/html/draft\-ietf\-6man\-stable\-privacy\-addresses>.
 
 .SH OPTIONS
 .B scan6
