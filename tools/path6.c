@@ -135,7 +135,7 @@ unsigned int		nfrags, fragsize;
 unsigned char		*prev_nh, *startoffragment;
 
 /* Parameters for the probe packets */
-unsigned char		srcport_f=0, dstport_f=0, tcpflags_f=0, pps_f=0, bps_f=0, endhost_f=0, rhbytes_f=0;
+unsigned char		srcport_f=0, dstport_f=0, tcpflags_f=0, pps_f=0, bps_f=0, endhost_f=0, rhbytes_f=0, droppacket_f=FALSE;
 u_int16_t			srcport, dstport;
 u_int8_t			tcpflags=0, cprobe, pprobe, nprobe, maxprobes, chop, phop, nhop, maxhops, ulthop;
 struct in6_addr		nsrc;
@@ -584,6 +584,7 @@ int main(int argc, char **argv){
 		pktinterval= 1000000/rate;
 	}
 
+
 	if(bps_f){
 		switch(probetype){
 			case PROBE_ICMP6_ECHO:
@@ -969,25 +970,48 @@ int main(int argc, char **argv){
 					continue;
 
 				ulhtype= pkt_ipv6->ip6_nxt;
-				pkt_icmp6 = (struct icmp6_hdr *) ((char *) pkt_ipv6 + sizeof(struct ip6_hdr));
-				pkt_tcp= (struct tcp_hdr *) pkt_icmp6;
-				pkt_udp= (struct udp_hdr *) pkt_icmp6;
+				pkt_eh= (struct ip6_eh *)  ((char *) pkt_ipv6 + sizeof(struct ip6_hdr));
 
-				if(pkt_ipv6->ip6_nxt == IPPROTO_FRAGMENT){
-					fh= (struct ip6_frag *)	((char *) pkt_ipv6 + sizeof(struct ip6_hdr));
+				droppacket_f= FALSE;
 
-					if(fh->ip6f_offlg & IP6F_OFF_MASK)
-						continue;
+				while(ulhtype != IPPROTO_ICMPV6 && ulhtype != IPPROTO_TCP && ulhtype != IPPROTO_UDP && !droppacket_f){
+					if(ulhtype == IPPROTO_FRAGMENT){
+						if( ((unsigned char *)pkt_eh + sizeof(struct ip6_frag)) > pkt_end){
+							droppacket_f= TRUE;
+							break;
+						}
 
-					ulhtype= fh->ip6f_nxt;
-					pkt_icmp6 = (struct icmp6_hdr *) ((char *) fh + sizeof(struct ip6_frag));
-					pkt_tcp= (struct tcp_hdr *) pkt_icmp6;
-					pkt_udp= (struct udp_hdr *) pkt_icmp6;
+						fh= (struct ip6_frag *)	((char *) pkt_eh);
+
+						if(fh->ip6f_offlg & IP6F_OFF_MASK){
+							droppacket_f= TRUE;
+							break;
+						}
+
+						ulhtype= fh->ip6f_nxt;
+						pkt_eh = (struct ip6_eh *) ((char *) fh + sizeof(struct ip6_frag));
+					}
+					else{
+						if( ((unsigned char *)pkt_eh + sizeof(struct ip6_eh)) > pkt_end){
+							droppacket_f=TRUE;
+							break;
+						}
+
+						ulhtype= pkt_eh->eh_nxt;
+						pkt_eh= (struct ip6_eh *) ( (char *) pkt_eh + (pkt_eh->eh_len + 1) * 8);
+					}
 				}
 
+				if(droppacket_f){
+					continue;
+				}
+
+				pkt_icmp6 = (struct icmp6_hdr *) ((char *) pkt_eh);
+				pkt_tcp= (struct tcp_hdr *) ((char *) pkt_eh);
+				pkt_udp= (struct udp_hdr *) ((char *) pkt_eh);
 
 /*
-				if(pkt_ipv6->ip6_nxt != IPPROTO_ICMPV6 && pkt_ipv6->ip6_nxt != IPPROTO_TCP && pkt_ipv6->ip6_nxt != IPPROTO_UDP \
+				if(ulhtypekt_ipv6->ip6_nxt != IPPROTO_ICMPV6 && pkt_ipv6->ip6_nxt != IPPROTO_TCP && pkt_ipv6->ip6_nxt != IPPROTO_UDP \
 					 && pkt_ipv6->ip6_nxt != IPPROTO_FRAGMENT){
 					pkt_eh=  (struct ip6_eh *) ((char *) pkt_ipv6 + sizeof(struct ip6_hdr));
 
@@ -1012,8 +1036,9 @@ int main(int argc, char **argv){
 					pkt_tcp= (struct tcp_hdr *) pkt_icmp6;
 					pkt_udp= (struct udp_hdr *) pkt_icmp6;
 				}
-
 */
+
+
 				if(ulhtype == IPPROTO_ICMPV6 && pkt_icmp6->icmp6_type == ICMP6_ECHO_REQUEST){
 					if( (pkt_end - (unsigned char *) pkt_icmp6) < sizeof(struct icmp6_hdr))
 						continue;
@@ -1045,7 +1070,6 @@ int main(int argc, char **argv){
 					nprobe= ntohs(pkt_udp->uh_sport) & 0xff;
 				}
 			}
-
 
 			else{
 				continue;
