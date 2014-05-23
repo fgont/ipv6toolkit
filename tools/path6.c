@@ -119,7 +119,7 @@ unsigned char		srcprefix_f=0, hoplimit_f=0, ip6length_f=0, icmp6psize_f=0, send_
 
 /* Support for Extension Headers */
 unsigned int		dstopthdrs, dstoptuhdrs, hbhopthdrs;
-char				hbhopthdr_f=0, dstoptuhdr_f=0, dstopthdr_f=0, fragh_f=0;
+char				hbhopthdr_f=0, dstoptuhdr_f=0, dstopthdr_f=0;
 unsigned char		*dstopthdr[MAX_DST_OPT_HDR], *dstoptuhdr[MAX_DST_OPT_U_HDR];
 unsigned char		*hbhopthdr[MAX_HBH_OPT_HDR];
 unsigned int		dstopthdrlen[MAX_DST_OPT_HDR], dstoptuhdrlen[MAX_DST_OPT_U_HDR];
@@ -406,7 +406,7 @@ int main(int argc, char **argv){
 
 
 			case 'p':	/* Probe type */
-				if(strncmp(optarg, "echo", strlen("echo")) == 0){
+				if(strncmp(optarg, "echo", strlen("echo")) == 0 || strncmp(optarg, "icmp", strlen("icmp")) == 0){
 					probetype= PROBE_ICMP6_ECHO;
 					probe_f=TRUE;
 				}
@@ -968,7 +968,27 @@ int main(int argc, char **argv){
 				if( ((unsigned char *)pkt_ipv6 + sizeof(struct ip6_hdr)) > pkt_end)
 					continue;
 
-				if(pkt_ipv6->ip6_nxt != IPPROTO_ICMPV6 && pkt_ipv6->ip6_nxt != IPPROTO_TCP && pkt_ipv6->ip6_nxt != IPPROTO_UDP){
+				ulhtype= pkt_ipv6->ip6_nxt;
+				pkt_icmp6 = (struct icmp6_hdr *) ((char *) pkt_ipv6 + sizeof(struct ip6_hdr));
+				pkt_tcp= (struct tcp_hdr *) pkt_icmp6;
+				pkt_udp= (struct udp_hdr *) pkt_icmp6;
+
+				if(pkt_ipv6->ip6_nxt == IPPROTO_FRAGMENT){
+					fh= (struct ip6_frag *)	((char *) pkt_ipv6 + sizeof(struct ip6_hdr));
+
+					if(fh->ip6f_offlg & IP6F_OFF_MASK)
+						continue;
+
+					ulhtype= fh->ip6f_nxt;
+					pkt_icmp6 = (struct icmp6_hdr *) ((char *) fh + sizeof(struct ip6_frag));
+					pkt_tcp= (struct tcp_hdr *) pkt_icmp6;
+					pkt_udp= (struct udp_hdr *) pkt_icmp6;
+				}
+
+
+/*
+				if(pkt_ipv6->ip6_nxt != IPPROTO_ICMPV6 && pkt_ipv6->ip6_nxt != IPPROTO_TCP && pkt_ipv6->ip6_nxt != IPPROTO_UDP \
+					 && pkt_ipv6->ip6_nxt != IPPROTO_FRAGMENT){
 					pkt_eh=  (struct ip6_eh *) ((char *) pkt_ipv6 + sizeof(struct ip6_hdr));
 
 					while( ( (unsigned char *)pkt_eh+ MIN_EXT_HLEN) <= pkt_end && pkt_eh->eh_nxt != IPPROTO_ICMPV6 && \
@@ -993,6 +1013,7 @@ int main(int argc, char **argv){
 					pkt_udp= (struct udp_hdr *) pkt_icmp6;
 				}
 
+*/
 				if(ulhtype == IPPROTO_ICMPV6 && pkt_icmp6->icmp6_type == ICMP6_ECHO_REQUEST){
 					if( (pkt_end - (unsigned char *) pkt_icmp6) < sizeof(struct icmp6_hdr))
 						continue;
@@ -1269,7 +1290,7 @@ void init_packet_data(struct iface_data *idata){
 	/* Everything that follows is the Fragmentable Part of the packet */
 	fragpart = ptr;
 
-	if(fragh_f){
+	if(idata->fragh_f){
 		/* Check that we are able to send the Unfragmentable Part, together with a 
 		   Fragment Header and a chunk data over our link layer
 		 */
