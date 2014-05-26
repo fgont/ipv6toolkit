@@ -57,6 +57,7 @@ struct nlrequest{
 };
 #endif
 
+
 /*
  * Function: dns_decode()
  *
@@ -2394,22 +2395,25 @@ int sel_next_hop(struct iface_data *idata){
 			for(rtap = (struct rtattr *) RTM_RTA(rtp), rtl = RTM_PAYLOAD(nlp); RTA_OK(rtap, rtl); rtap = RTA_NEXT(rtap,rtl)) {
 				switch(rtap->rta_type){
 					case RTA_DST:
-						/* XXX
+						/*
 						   If Destination is different from Destination Address, this just means that we need to send
 						   our packets to a local router
-
-						if(!is_eq_in6_addr(&(idata->dstaddr), (struct in6_addr *) RTA_DATA(rtap)))
+						 */
+/*
+						if(!is_eq_in6_addr(&(idata->dstaddr), (struct in6_addr *) RTA_DATA(rtap))){
 							skip_f=1;
-						*/
-
+						}
+*/
 						break;
 
 					case RTA_OIF:
 						idata->nhifindex= *((int *) RTA_DATA(rtap));
+
 						if(if_indextoname(idata->nhifindex, idata->nhiface) == NULL){
 							if(idata->verbose_f)
 								puts("Error calling if_indextoname() from sel_next_hop()");
 						}
+
 						idata->nhifindex_f= 1;
 						break;
 
@@ -2566,8 +2570,9 @@ int get_local_addrs(struct iface_data *idata){
 	}
 
 	for(ptr=ifptr; ptr != NULL; ptr= ptr->ifa_next){
-		if(ptr->ifa_addr == NULL)
+		if(ptr->ifa_name == NULL){
 			continue;
+		}
 
 		if( (cif = find_iface_by_name( &(idata->iflist), ptr->ifa_name)) == NULL){
 			if(idata->iflist.nifaces >= MAX_IFACES)
@@ -2576,8 +2581,14 @@ int get_local_addrs(struct iface_data *idata){
 				cif= &(idata->iflist.ifaces[idata->iflist.nifaces]);
 				strncpy(cif->iface, ptr->ifa_name, IFACE_LENGTH-1);
 				cif->iface[IFACE_LENGTH-1]=0;
+				/* XXX: Cannot otherwise find the index for tun devices? */
+				cif->ifindex= if_nametoindex(cif->iface);
 				idata->iflist.nifaces++;
 			}
+		}
+
+		if(ptr->ifa_addr == NULL){
+			continue;
 		}
 
 #ifdef __linux__

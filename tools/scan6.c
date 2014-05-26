@@ -317,6 +317,7 @@ int main(int argc, char **argv){
 
 		switch(option) {
 			case 'i':  /* Interface */
+puts("Especifique interfaz");
 				strncpy(idata.iface, optarg, IFACE_LENGTH-1);
 				idata.iface[IFACE_LENGTH-1]=0;
 				idata.ifindex= if_nametoindex(idata.iface);
@@ -1115,6 +1116,8 @@ int main(int argc, char **argv){
 		exit(EXIT_FAILURE);
 	}
 
+printf("iface_f: %d\n", idata.iface_f);
+
 	if(!scan_local_f){
 		if(load_dst_and_pcap(&idata, LOAD_SRC_NXT_HOP) == FAILURE){
 			puts("Error while learning Souce Address and Next Hop");
@@ -1127,6 +1130,8 @@ int main(int argc, char **argv){
 			exit(EXIT_FAILURE);
 		}
 	}
+
+printf("iface_f: %d\n", idata.iface_f);
 
 	release_privileges();
 
@@ -1464,8 +1469,10 @@ int main(int argc, char **argv){
 		}
 
 		if(!scan_local_f && !idata.ip6_global_flag){
-			if(idata.verbose_f)
+			if(idata.verbose_f){
+puts("Estoy aca");
 				puts("Cannot obtain a global address to scan remote network");
+			}
 
 			exit(EXIT_FAILURE);
 		}
