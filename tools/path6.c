@@ -181,7 +181,7 @@ int main(int argc, char **argv){
 		{"help", no_argument, 0, 'h'}
 	};
 
-	char shortopts[]= "i:S:D:s:d:u:U:H:y:p:P:o:a:X:r:v:h:";
+	char shortopts[]= "i:S:D:s:d:u:U:H:y:p:P:o:a:X:r:v:h";
 
 	char option;
 
@@ -1000,6 +1000,11 @@ int main(int argc, char **argv){
 						ulhtype= pkt_eh->eh_nxt;
 						pkt_eh= (struct ip6_eh *) ( (char *) pkt_eh + (pkt_eh->eh_len + 1) * 8);
 					}
+
+					if( (unsigned char *)pkt_eh >= pkt_end){
+						droppacket_f= TRUE;
+						break;
+					}
 				}
 
 				if(droppacket_f){
@@ -1009,35 +1014,6 @@ int main(int argc, char **argv){
 				pkt_icmp6 = (struct icmp6_hdr *) ((char *) pkt_eh);
 				pkt_tcp= (struct tcp_hdr *) ((char *) pkt_eh);
 				pkt_udp= (struct udp_hdr *) ((char *) pkt_eh);
-
-/*
-				if(ulhtypekt_ipv6->ip6_nxt != IPPROTO_ICMPV6 && pkt_ipv6->ip6_nxt != IPPROTO_TCP && pkt_ipv6->ip6_nxt != IPPROTO_UDP \
-					 && pkt_ipv6->ip6_nxt != IPPROTO_FRAGMENT){
-					pkt_eh=  (struct ip6_eh *) ((char *) pkt_ipv6 + sizeof(struct ip6_hdr));
-
-					while( ( (unsigned char *)pkt_eh+ MIN_EXT_HLEN) <= pkt_end && pkt_eh->eh_nxt != IPPROTO_ICMPV6 && \
-								pkt_eh->eh_nxt != IPPROTO_TCP && pkt_eh->eh_nxt != IPPROTO_UDP){
-						pkt_eh= (struct ip6_eh *) ( (char *) pkt_eh + (pkt_eh->eh_len + 1) * 8);
-					}
-
-					if( (unsigned char *)pkt_eh >= pkt_end){
-						continue;
-					}
-					else{
-						ulhtype= pkt_eh->eh_nxt;
-						pkt_icmp6= (struct icmp6_hdr *) ( (char *) pkt_eh + (pkt_eh->eh_len + 1) * 8);
-						pkt_udp= (struct udp_hdr *) ( (char *) pkt_eh + (pkt_eh->eh_len + 1) * 8);
-						pkt_icmp6 = (struct icmp6_hdr *) ( (char *) pkt_eh + (pkt_eh->eh_len + 1) * 8);
-					}
-				}
-				else{
-					ulhtype= pkt_ipv6->ip6_nxt;
-					pkt_icmp6 = (struct icmp6_hdr *) ((char *) pkt_ipv6 + sizeof(struct ip6_hdr));
-					pkt_tcp= (struct tcp_hdr *) pkt_icmp6;
-					pkt_udp= (struct udp_hdr *) pkt_icmp6;
-				}
-*/
-
 
 				if(ulhtype == IPPROTO_ICMPV6 && pkt_icmp6->icmp6_type == ICMP6_ECHO_REQUEST){
 					if( (pkt_end - (unsigned char *) pkt_icmp6) < sizeof(struct icmp6_hdr))
@@ -1136,7 +1112,7 @@ int main(int argc, char **argv){
 			ulthop=nhop;
 
 		endhost_f=0;
-/*			maxhops= nhop; */
+/*		maxhops= nhop; */
 
 
 	}
@@ -1175,13 +1151,18 @@ void print_help(void){
 	     "  --link-dst-address, -D    Link-layer Source Address\n"
 	     "  --src-address, -s         IPv6 Source Address\n"
 	     "  --dst-address, -d         IPv6 Destination Address\n"
+	     "  --frag-hdr. -y            Fragment Header\n"
 	     "  --dst-opt-hdr, -u         Destination Options Header (Fragmentable Part)\n"
 	     "  --dst-opt-u-hdr, -U       Destination Options Header (Unfragmentable Part)\n"
 	     "  --hbh-opt-hdr, -H         Hop by Hop Options Header\n"
-	     "  --loop, -l                Send IPv6 fragments periodically\n"
-	     "  --sleep, -z               Pause between sending IPv6 fragments\n"
+	     "  --probe-type, -p          Probe type {icmp, tcp, udp}\n"
+	     "  --payload-size, -P        Payload Size\n"
+	     "  --src-port, -o            Transport-layer Source Port\n"
+	     "  --dst-port, -a            Transport-layer Destination Port\n"
+	     "  --tcp-flags, -X           TCP Flags\n"
+	     "  --rate-limit, -r          Rate limit the probe packets\n"
 	     "  --verbose, -v             Be verbose\n"
-	     "  --help, -h                Print help for the frag6 tool\n"
+	     "  --help, -h                Print help for the path6 tool\n"
 	     "\n"
 	     "Programmed by Fernando Gont for SI6 Networks (http://www.si6networks.com)\n"
 	     "Please send any bug reports to <fgont@si6networks.com>\n"
