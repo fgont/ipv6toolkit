@@ -59,13 +59,13 @@ This option request the tool to read IPv6 addresses from standard input (stdin),
 
 
 .TP
-.BI \-j\  PREFIX ,\ \-\-address\  PREFIX
+.BI \-j\  PREFIX ,\ \-\-accept\  PREFIX
 
 Accept IPv6 addresses belonging to the specified IPv6 prefix (PREFIX/LEN).
 
 
 .TP
-.BI \-b\  TYPE ,\ \-\-address\  TYPE
+.BI \-b\  TYPE ,\ \-\-accept\-type\  TYPE
 
 Accept IPv6 addresses belonging to the specified address type. Valid address types are:
 
@@ -75,7 +75,7 @@ Accept IPv6 addresses belonging to the specified address type. Valid address typ
 
 
 .TP
-.BI \-k\  SCOPE ,\ \-\-address\  SCOPE
+.BI \-k\  SCOPE ,\ \-\-accept\-scope\  SCOPE
 
 Accept IPv6 addresses belonging to the specified address scope. Valid address scopes are:
 
@@ -91,7 +91,7 @@ Accept IPv6 addresses belonging to the specified address scope. Valid address sc
   * unspecified
 
 .TP
-.BI \-w\  UNICAST_TYPE ,\ \-\-address\  UNICAST_TYPE
+.BI \-w\  UNICAST_TYPE ,\ \-\-accept\-utype\  UNICAST_TYPE
 
 Accept IPv6 addresses belonging to the specified unicast type. Valid unicast address types are:
 
@@ -107,7 +107,7 @@ Accept IPv6 addresses belonging to the specified unicast type. Valid unicast add
 
 
 .TP
-.BI \-g\  IID_TYPE ,\ \-\-address\  IID_TYPE
+.BI \-g\  IID_TYPE ,\ \-\-accept\-iid\  IID_TYPE
 
 Accept unicast IPv6 addresses with an Interface ID of the specified type. Valid Interface ID types are:
 
@@ -125,13 +125,13 @@ Accept unicast IPv6 addresses with an Interface ID of the specified type. Valid 
 
 
 .TP
-.BI \-J\  PREFIX ,\ \-\-address\  PREFIX
+.BI \-J\  PREFIX ,\ \-\-block\  PREFIX
 
 Block IPv6 addresses belonging to the specified IPv6 prefix (PREFIX/LEN).
 
 
 .TP
-.BI \-B\  TYPE ,\ \-\-address\  TYPE
+.BI \-B\  TYPE ,\ \-\-block\-type\  TYPE
 
 Block IPv6 addresses belonging to the specified address type. Valid address types are:
 
@@ -141,7 +141,7 @@ Block IPv6 addresses belonging to the specified address type. Valid address type
 
 
 .TP
-.BI \-K\  SCOPE ,\ \-\-address\  SCOPE
+.BI \-K\  SCOPE ,\ \-\-block\-scope\  SCOPE
 
 Block IPv6 addresses belonging to the specified address scope. Valid address scopes are:
 
@@ -158,7 +158,7 @@ Block IPv6 addresses belonging to the specified address scope. Valid address sco
 
 
 .TP
-.BI \-W\  UNICAST_TYPE ,\ \-\-address\  UNICAST_TYPE
+.BI \-W\  UNICAST_TYPE ,\ \-\-block\-utype\  UNICAST_TYPE
 
 Block IPv6 addresses belonging to the specified unicast type. Valid unicast address types are:
 
@@ -174,7 +174,7 @@ Block IPv6 addresses belonging to the specified unicast type. Valid unicast addr
 
 
 .TP
-.BI \-G\  IPV6_ADDRESS ,\ \-\-address\  IID_TYPE
+.BI \-G\  IPV6_ADDRESS ,\ \-\-block\-iid\  IID_TYPE
 
 Block unicast IPv6 addresses with an Interface ID of the specified type. Valid Interface ID types are:
 
