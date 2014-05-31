@@ -48,8 +48,8 @@ LIBS= libipv6.o
 
 all: $(TOOLS) ipv6toolkit.conf
 
-addr6: $(SRCPATH)/addr6.c $(SRCPATH)/addr6.h $(SRCPATH)/ipv6toolkit.h
-	$(CC) $(CPPFLAGS) $(CFLAGS) -o addr6 $(SRCPATH)/addr6.c $(LDFLAGS) 
+addr6: $(SRCPATH)/addr6.c $(SRCPATH)/addr6.h $(SRCPATH)/ipv6toolkit.h $(LIBS) $(SRCPATH)/libipv6.h
+	$(CC) $(CPPFLAGS) $(CFLAGS) -o addr6 $(SRCPATH)/addr6.c $(LIBS) $(LDFLAGS) 
 
 flow6: $(SRCPATH)/flow6.c $(SRCPATH)/flow6.h $(SRCPATH)/ipv6toolkit.h $(LIBS) $(SRCPATH)/libipv6.h
 	$(CC) $(CPPFLAGS) $(CFLAGS) -o flow6 $(SRCPATH)/flow6.c $(LIBS) $(LDFLAGS) 
