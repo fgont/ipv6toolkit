@@ -244,28 +244,28 @@ int main(int argc, char **argv){
 					accept_scope |= SCOPE_RESERVED;
 				}
 				else if(strncmp(optarg, "interface", MAX_TYPE_SIZE) == 0 || strncmp(optarg, "interface-local", MAX_TYPE_SIZE) == 0){
-					accept_type |= SCOPE_INTERFACE;
+					accept_scope |= SCOPE_INTERFACE;
 				}
 				else if(strncmp(optarg, "link", MAX_TYPE_SIZE) == 0 || strncmp(optarg, "link-local", MAX_TYPE_SIZE) == 0){
-					accept_type |= SCOPE_LINK;
+					accept_scope |= SCOPE_LINK;
 				}
 				else if(strncmp(optarg, "admin", MAX_TYPE_SIZE) == 0 || strncmp(optarg, "admin-local", MAX_TYPE_SIZE) == 0){
-					accept_type |= SCOPE_ADMIN;
+					accept_scope |= SCOPE_ADMIN;
 				}
 				else if(strncmp(optarg, "site", MAX_TYPE_SIZE) == 0 || strncmp(optarg, "site-local", MAX_TYPE_SIZE) == 0){
-					accept_type |= SCOPE_SITE;
+					accept_scope |= SCOPE_SITE;
 				}
 				else if(strncmp(optarg, "organization", MAX_TYPE_SIZE) == 0 || strncmp(optarg, "organization-local", MAX_TYPE_SIZE) == 0){
-					accept_type |= SCOPE_ORGANIZATION;
+					accept_scope |= SCOPE_ORGANIZATION;
 				}
 				else if(strncmp(optarg, "global", MAX_TYPE_SIZE) == 0){
-					accept_type |= SCOPE_GLOBAL;
+					accept_scope |= SCOPE_GLOBAL;
 				}
 				else if(strncmp(optarg, "unassigned", MAX_TYPE_SIZE) == 0){
-					accept_type |= SCOPE_UNASSIGNED;
+					accept_scope |= SCOPE_UNASSIGNED;
 				}
 				else if(strncmp(optarg, "unspecified", MAX_TYPE_SIZE) == 0){
-					accept_type |= SCOPE_UNSPECIFIED;
+					accept_scope |= SCOPE_UNSPECIFIED;
 				}
 				else{
 					printf("Unknown address scope '%s' in accept scope filter\n", optarg);
@@ -281,28 +281,28 @@ int main(int argc, char **argv){
 					block_scope |= SCOPE_RESERVED;
 				}
 				else if(strncmp(optarg, "interface", MAX_TYPE_SIZE) == 0 || strncmp(optarg, "interface-local", MAX_TYPE_SIZE) == 0){
-					block_type |= SCOPE_INTERFACE;
+					block_scope |= SCOPE_INTERFACE;
 				}
 				else if(strncmp(optarg, "link", MAX_TYPE_SIZE) == 0 || strncmp(optarg, "link-local", MAX_TYPE_SIZE) == 0){
-					block_type |= SCOPE_LINK;
+					block_scope |= SCOPE_LINK;
 				}
 				else if(strncmp(optarg, "admin", MAX_TYPE_SIZE) == 0 || strncmp(optarg, "admin-local", MAX_TYPE_SIZE) == 0){
-					block_type |= SCOPE_ADMIN;
+					block_scope |= SCOPE_ADMIN;
 				}
 				else if(strncmp(optarg, "site", MAX_TYPE_SIZE) == 0 || strncmp(optarg, "site-local", MAX_TYPE_SIZE) == 0){
-					block_type |= SCOPE_SITE;
+					block_scope |= SCOPE_SITE;
 				}
 				else if(strncmp(optarg, "organization", MAX_TYPE_SIZE) == 0 || strncmp(optarg, "organization-local", MAX_TYPE_SIZE) == 0){
-					block_type |= SCOPE_ORGANIZATION;
+					block_scope |= SCOPE_ORGANIZATION;
 				}
 				else if(strncmp(optarg, "global", MAX_TYPE_SIZE) == 0){
-					block_type |= SCOPE_GLOBAL;
+					block_scope |= SCOPE_GLOBAL;
 				}
 				else if(strncmp(optarg, "unassigned", MAX_TYPE_SIZE) == 0){
-					block_type |= SCOPE_UNASSIGNED;
+					block_scope |= SCOPE_UNASSIGNED;
 				}
 				else if(strncmp(optarg, "unspecified", MAX_TYPE_SIZE) == 0){
-					block_type |= SCOPE_UNSPECIFIED;
+					block_scope |= SCOPE_UNSPECIFIED;
 				}
 				else{
 					printf("Unknown address scope '%s' in block scope filter\n", optarg);
