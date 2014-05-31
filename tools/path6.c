@@ -152,14 +152,12 @@ char				line[LINE_BUFFER_SIZE];
 
 int main(int argc, char **argv){
 	extern char		*optarg;	
-/* 	char			*endptr; Used by strtoul() */
 	fd_set			sset, rset;
-/*	struct timeval	timeout; */
 
 	int				r, sel;
 	struct timeval	curtime, start, lastprobe, sched, timeout;
 	uint8_t			ulhtype;
-	unsigned char	probetype;
+	unsigned char	probetype=PROBE_ICMP6_ECHO;
 
 	static struct option longopts[] = {
 		{"interface", required_argument, 0, 'i'},
