@@ -1,3 +1,8 @@
+#ifndef lib_pcap_pcap_h
+#include <pcap.h>
+#endif
+
+
 /* General constants */
 #define SUCCESS	1
 #define FAILURE 0
@@ -496,6 +501,10 @@ struct iface_list{
 
 #if !(defined (__FreeBSD__) || defined(__NetBSD__) || defined (__OpenBSD__) || defined(__APPLE__))
 /* Definitions for Linux */
+
+	#ifndef _NETINET_ICMP6_H
+	#include <netinet/icmp6.h>
+	#endif
 
 	#define ICMP6_NI_QUERY			139	/* node information request */
 	#define ICMP6_NI_REPLY			140	/* node information reply */
