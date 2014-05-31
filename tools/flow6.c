@@ -164,7 +164,8 @@ int main(int argc, char **argv){
 		{"dst-port", no_argument, 0, 'p'},
 		{"flow-label-policy", no_argument, 0, 'W'},
 		{"verbose", no_argument, 0, 'v'},
-		{"help", no_argument, 0, 'h'}
+		{"help", no_argument, 0, 'h'},
+		{0, 0, 0,  0 }
 	};
 
 	char shortopts[]= "i:s:d:A:S:D:P:p:Wvh";

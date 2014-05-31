@@ -178,7 +178,8 @@ int main(int argc, char **argv){
 		{"tcp-flags", required_argument, 0, 'X'},
 		{"rate-limit", required_argument, 0, 'r'},
 		{"verbose", no_argument, 0, 'v'},
-		{"help", no_argument, 0, 'h'}
+		{"help", no_argument, 0, 'h'},
+		{0, 0, 0,  0 }
 	};
 
 	char shortopts[]= "i:S:D:s:d:u:U:H:y:p:P:o:a:X:r:v:h";

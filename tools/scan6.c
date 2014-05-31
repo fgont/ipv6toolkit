@@ -280,7 +280,8 @@ int main(int argc, char **argv){
 		{"sleep", required_argument, 0, 'z'},
 		{"config-file", required_argument, 0, 'c'},
 		{"verbose", no_argument, 0, 'v'},
-		{"help", no_argument, 0, 'h'}
+		{"help", no_argument, 0, 'h'},
+		{0, 0, 0,  0 }
 	};
 
 	char shortopts[]= "i:s:d:u:U:H:y:S:D:Lp:Z:o:a:X:P:qetx:O:fFV:bB:gk:K:w:W:m:Q:TNI:r:lz:c:vh";

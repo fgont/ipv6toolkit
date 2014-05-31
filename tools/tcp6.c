@@ -229,7 +229,8 @@ int main(int argc, char **argv){
 		{"probe-mode", required_argument, 0, 'p'},
 		{"retrans", required_argument, 0, 'x'},
 		{"verbose", no_argument, 0, 'v'},
-		{"help", no_argument, 0, 'h'}
+		{"help", no_argument, 0, 'h'},
+		{0, 0, 0,  0 }
 	};
 
 	char shortopts[]= "i:s:d:A:c:C:Z:u:U:H:y:S:D:P:o:a:X:q:Q:V:w:W:M:Nnj:k:J:K:b:g:B:G:F:T:fRlr:z:Lp:x:vyh";

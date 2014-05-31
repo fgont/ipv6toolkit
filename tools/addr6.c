@@ -29,50 +29,42 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <getopt.h>
-#include <unistd.h>
 #include <string.h>
 #include <sys/types.h>
 #include <sys/param.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
-#include <sys/resource.h>
 #include <sys/socket.h>
-#include <pwd.h>
 #include "addr6.h"
 #include "ipv6toolkit.h"
+#include "libipv6.h"
 
 void					usage(void);
 void					print_help(void);
-int						read_prefix(char *, unsigned int, char **);
-size_t					Strnlen(const char *, size_t);
 unsigned int			is_service_port(u_int16_t);
 unsigned int			zero_byte_iid(struct in6_addr *);
 void					decode_ipv6_address(struct decode6 *, struct stats6 *);
 void					stat_ipv6_address(struct decode6 *, struct stats6 *);
 void					print_dec_address_script(struct decode6 *);
-int						init_host_list(struct host_list *);
-u_int16_t				key(struct host_list *, struct in6_addr *);
-struct host_entry *		add_host_entry(struct host_list *, struct in6_addr *);
-unsigned int			is_ip6_in_list(struct host_list *, struct in6_addr *);
-int 					is_eq_in6_addr(struct in6_addr *, struct in6_addr *);
-unsigned int			match_ipv6(struct in6_addr *, u_int8_t *, unsigned int, struct in6_addr *);
-void					sanitize_ipv6_prefix(struct in6_addr *, u_int8_t);
+int						init_host_list(struct hashed_host_list *);
+u_int16_t				key(struct hashed_host_list *, struct in6_addr *);
+struct hashed_host_entry *		add_hashed_host_entry(struct hashed_host_list *, struct in6_addr *);
+unsigned int			is_ip6_in_hashed_list(struct hashed_host_list *, struct in6_addr *);
 void					print_stats(struct stats6 *);
 
 unsigned char			stdin_f=0, addr_f=0, verbose_f=0, decode_f=0, print_unique_f=0, stats_f=0, filter_f=0;
 char					line[MAX_LINE_SIZE];
 
+extern char			*optarg;
+extern int			optind, opterr, optopt;	
+
 int main(int argc, char **argv){
-	extern char			*optarg;	
 	struct decode6		addr;
 	struct stats6		stats;
-	struct host_list	hlist;
+	struct hashed_host_list	hlist;
 	int					r;
 	char				*ptr, *pref, *charptr, *lasts;
 	char				pv6addr[INET6_ADDRSTRLEN];
-	uid_t				ruid;
-	gid_t				rgid;
-	struct passwd		*pwdptr;
 	unsigned int		accept_type=0, block_type=0, accept_scope=0, block_scope=0, accept_itype=0, block_itype=0;
 	unsigned int		accept_utype=0, block_utype=0;
 
@@ -105,7 +97,8 @@ int main(int argc, char **argv){
 		{"block-utype", required_argument, 0, 'W'},
 		{"block-iid", required_argument, 0, 'G'},
 		{"verbose", no_argument, 0, 'v'},
-		{"help", no_argument, 0, 'h'}
+		{"help", no_argument, 0, 'h'},
+		{0, 0, 0,  0 },
 	};
 
 	char shortopts[]= "a:idsqj:b:k:w:g:J:B:K:W:G:vh";
@@ -117,44 +110,12 @@ int main(int argc, char **argv){
 		exit(EXIT_FAILURE);
 	}
 
-	/* 
-	   addr6 does not need superuser privileges. But since most of the other tools in the toolkit do,
-	   the user might unnecessarily run it as such. We release any unnecessary privileges before proceeding
-	   further.
+	release_privileges();
 
-	   If the real UID is not root, we setuid() and setgid() to that user and group, releasing superuser
-	   privileges. Otherwise, if the real UID is 0, we try to setuid() to "nobody", releasing superuser 
-	   privileges.
-	 */
-	if( (ruid=getuid()) && (rgid=getgid())){
-		if(setgid(rgid) == -1){
-			puts("Error while releasing superuser privileges (changing to real GID)");
-			exit(EXIT_FAILURE);
-		}
-
-		if(setuid(ruid) == -1){
-			puts("Error while releasing superuser privileges (changing to real UID)");
-			exit(EXIT_FAILURE);
-		}
-	}
-	else{
-		if((pwdptr=getpwnam("nobody"))){
-			if(pwdptr->pw_uid && (setgid(pwdptr->pw_gid) == -1)){
-				puts("Error while releasing superuser privileges (changing to nobody's group)");
-				exit(EXIT_FAILURE);
-			}
-
-			if(pwdptr->pw_uid && (setuid(pwdptr->pw_uid) == -1)){
-				puts("Error while releasing superuser privileges (changing to 'nobody')");
-				exit(EXIT_FAILURE);
-			}
-		}
-	}
-
-	while((r=getopt_long(argc, argv, shortopts, longopts, NULL)) != -1) {
+	while((r=getopt_long(argc, argv, shortopts, longopts, NULL)) != -1 && r != '?') {
 		option= r;
 
-		switch(option) {
+		switch(option){
 			case 'a':
 				if( inet_pton(AF_INET6, optarg, &(addr.ip6)) <= 0){
 					puts("inet_pton(): address not valid");
@@ -615,11 +576,11 @@ int main(int argc, char **argv){
 					continue;
 
 				if(print_unique_f){
-					if(is_ip6_in_list(&hlist, &(addr.ip6))){
+					if(is_ip6_in_hashed_list(&hlist, &(addr.ip6))){
 						continue;
 					}
 					else{
-						if(add_host_entry(&hlist, &(addr.ip6)) == NULL){
+						if(add_hashed_host_entry(&hlist, &(addr.ip6)) == NULL){
 							puts("Not enough memory (or hit internal artificial limit) when storing IPv6 address in memory");
 							exit(EXIT_FAILURE);
 						}
@@ -656,37 +617,6 @@ int main(int argc, char **argv){
 	}
 
 	exit(EXIT_SUCCESS);
-}
-
-
-/*
- * Function: read_prefix()
- *
- * Obtain a pointer to the beginning of non-blank text, and zero-terminate that text upon space or comment.
- */
-
-int read_prefix(char *line, unsigned int len, char **start){
-	char *end;
-
-	*start=line;
-
-	while( (*start < (line + len)) && (**start==' ' || **start=='\t' || **start=='\r' || **start=='\n')){
-		(*start)++;
-	}
-
-	if( *start == (line + len))
-		return(0);
-
-	if( **start == '#')
-		return(0);
-
-	end= *start;
-
-	while( (end < (line + len)) && !(*end==' ' || *end=='\t' || *end=='#' || *end=='\r' || *end=='\n'))
-		end++;
-
-	*end=0;
-	return(1);
 }
 
 
@@ -1395,24 +1325,6 @@ void print_help(void){
 }
 
 
-/*
- * Function: Strnlen()
- *
- * Our own version of strnlen(), since some OSes do not support it.
- */
-
-size_t Strnlen(const char *s, size_t maxlen){
-	size_t i=0;
-
-	while(s[i] != 0 && i < maxlen)
-		i++;
-
-	if(i < maxlen)
-		return(i);
-	else
-		return(maxlen);
-}
-
 
 /*
  * Function: init_host_list()
@@ -1420,12 +1332,12 @@ size_t Strnlen(const char *s, size_t maxlen){
  * Initilizes a host_list structure
  */
 
-int init_host_list(struct host_list *hlist){
+int init_host_list(struct hashed_host_list *hlist){
 	unsigned int i;
 
-	memset(hlist, 0, sizeof(struct host_list));
+	memset(hlist, 0, sizeof(struct hashed_host_list));
 
-	if( (hlist->host = malloc(MAX_LIST_ENTRIES * sizeof(struct host_entry *))) == NULL){
+	if( (hlist->host = malloc(MAX_LIST_ENTRIES * sizeof(struct hashed_host_entry *))) == NULL){
 		return(0);
 	}
 
@@ -1443,23 +1355,23 @@ int init_host_list(struct host_list *hlist){
 /*
  * Function: key()
  *
- * Compute a key for accessing the hash-table of a host_list structure
+ * Compute a key for accessing the hash-table of a hashed_host_list structure
  */
 
-u_int16_t key(struct host_list *hlist, struct in6_addr *ipv6){
+u_int16_t key(struct hashed_host_list *hlist, struct in6_addr *ipv6){
 		return( ((hlist->key_l ^ ipv6->s6_addr16[0] ^ ipv6->s6_addr16[7]) \
 				^ (hlist->key_h ^ ipv6->s6_addr16[1] ^ ipv6->s6_addr16[6])) % MAX_LIST_ENTRIES);
 }
 
 
 /*
- * Function: add_host_entry()
+ * Function: add_hashed_host_entry()
  *
- * Add a host_entry structure to the hash table
+ * Add a hashed_host_entry structure to the hash table
  */
 
-struct host_entry *add_host_entry(struct host_list *hlist, struct in6_addr *ipv6){
-	struct host_entry	*hentry, *ptr;
+struct hashed_host_entry *add_hashed_host_entry(struct hashed_host_list *hlist, struct in6_addr *ipv6){
+	struct hashed_host_entry	*hentry, *ptr;
 	u_int16_t			hkey;
 
 	hkey= key(hlist, ipv6);
@@ -1468,11 +1380,11 @@ struct host_entry *add_host_entry(struct host_list *hlist, struct in6_addr *ipv6
 		return(NULL);
 	}
 
-	if( (hentry= malloc(sizeof(struct host_entry))) == NULL){
+	if( (hentry= malloc(sizeof(struct hashed_host_entry))) == NULL){
 		return(NULL);
 	}
 
-	memset(hentry, 0, sizeof(struct host_entry));
+	memset(hentry, 0, sizeof(struct hashed_host_entry));
 	hentry->ip6 = *ipv6;
 	hentry->next= NULL;
 
@@ -1496,14 +1408,14 @@ struct host_entry *add_host_entry(struct host_list *hlist, struct in6_addr *ipv6
 
 
 /*
- * Function: is_ip6_in_list()
+ * Function: is_ip6_in_hashed_list()
  *
  * Checks whether an IPv6 address is present in a host list.
  */
 
-unsigned int is_ip6_in_list(struct host_list *hlist, struct in6_addr *target){
+unsigned int is_ip6_in_hashed_list(struct hashed_host_list *hlist, struct in6_addr *target){
 	u_int16_t			ckey;
-	struct host_entry	*chentry;
+	struct hashed_host_entry	*chentry;
 
 	ckey= key(hlist, target);
 
@@ -1512,23 +1424,6 @@ unsigned int is_ip6_in_list(struct host_list *hlist, struct in6_addr *target){
 			return 1;
 
 	return 0; 
-}
-
-
-/*
- * Function: is_eq_in6_addr()
- *
- * Compares two IPv6 addresses. Returns 1 if they are equal.
- */
-
-int is_eq_in6_addr(struct in6_addr *ip1, struct in6_addr *ip2){
-	unsigned int i;
-
-	for(i=0; i<8; i++)
-		if(ip1->s6_addr16[i] != ip2->s6_addr16[i])
-			return 0;
-
-	return 1;
 }
 
 
@@ -1628,60 +1523,5 @@ void print_stats(struct stats6 *stats){
 
 		printf("Randomized: %7u (%.2f%%)\n\n", stats->iidrandom, ((float)(stats->iidrandom)/totaliids) * 100);
 	}
-}
-
-
-
-/*
- * Function match_ipv6()
- *
- * Finds if an IPv6 address matches a prefix in a list of prefixes.
- */
-
-unsigned int match_ipv6(struct in6_addr *prefixlist, u_int8_t *prefixlen, unsigned int nprefix, 
-								struct in6_addr *ipv6addr){
-
-    unsigned int 	i, j;
-    struct in6_addr	dummyipv6;
-    
-    for(i=0; i<nprefix; i++){
-	dummyipv6 = *ipv6addr;
-	sanitize_ipv6_prefix(&dummyipv6, prefixlen[i]);
-	
-	for(j=0; j<4; j++)
-	    if(dummyipv6.s6_addr32[j] != prefixlist[i].s6_addr32[j])
-		break;
-    
-	if(j==4)
-	    return 1;
-    }
-
-    return 0;
-}
-
-
-/*
- * sanitize_ipv6_prefix()
- *
- * Clears those bits in an IPv6 address that are not within a prefix length.
- */
-
-void sanitize_ipv6_prefix(struct in6_addr *ipv6addr, u_int8_t prefixlen){
-    unsigned int skip, i;
-    u_int16_t	mask;
-    
-    skip= (prefixlen+15)/16;
-
-    if(prefixlen%16){
-		mask=0;
-
-		for(i=0; i<(prefixlen%16); i++)
-	    	mask= (mask>>1) | 0x8000;
-
-		ipv6addr->s6_addr16[skip-1]= ipv6addr->s6_addr16[skip-1] & htons(mask);
-    }
-			
-    for(i=skip; i<8; i++)
-		ipv6addr->s6_addr16[i]=0;
 }
 
