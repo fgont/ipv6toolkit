@@ -1117,8 +1117,6 @@ puts("Especifique interfaz");
 		exit(EXIT_FAILURE);
 	}
 
-printf("iface_f: %d\n", idata.iface_f);
-
 	if(!scan_local_f){
 		if(load_dst_and_pcap(&idata, LOAD_SRC_NXT_HOP) == FAILURE){
 			puts("Error while learning Souce Address and Next Hop");
@@ -1131,8 +1129,6 @@ printf("iface_f: %d\n", idata.iface_f);
 			exit(EXIT_FAILURE);
 		}
 	}
-
-printf("iface_f: %d\n", idata.iface_f);
 
 	release_privileges();
 
@@ -1471,7 +1467,6 @@ printf("iface_f: %d\n", idata.iface_f);
 
 		if(!scan_local_f && !idata.ip6_global_flag){
 			if(idata.verbose_f){
-puts("Estoy aca");
 				puts("Cannot obtain a global address to scan remote network");
 			}
 
