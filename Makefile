@@ -41,7 +41,7 @@ SBINPATH= $(DESTDIR)$(PREFIX)/sbin
 SRCPATH= tools
 
 
-SBINTOOLS= flow6 frag6 icmp6 jumbo6 na6 ni6 ns6 path6 ra6 rd6 rs6 scan6 tcp6
+SBINTOOLS= flow6 frag6 icmp6 jumbo6 na6 ni6 ns6 path6 ra6 rd6 rs6 scan6 si6-scripts tcp6
 BINTOOLS= addr6
 TOOLS= $(BINTOOLS) $(SBINTOOLS)
 LIBS= libipv6.o
@@ -86,6 +86,9 @@ rs6: $(SRCPATH)/rs6.c $(SRCPATH)/rs6.h $(SRCPATH)/ipv6toolkit.h $(LIBS) $(SRCPAT
 
 scan6: $(SRCPATH)/scan6.c $(SRCPATH)/scan6.h $(SRCPATH)/ipv6toolkit.h $(LIBS) $(SRCPATH)/libipv6.h
 	$(CC) $(CPPFLAGS) $(CFLAGS) -o scan6 $(SRCPATH)/scan6.c $(LIBS) $(LDFLAGS)
+
+script6: $(SRCPATH)/script6
+	cp $(SRCPATH)/script6 ./
 
 tcp6: $(SRCPATH)/tcp6.c $(SRCPATH)/tcp6.h $(SRCPATH)/ipv6toolkit.h $(LIBS) $(SRCPATH)/libipv6.h
 	$(CC) $(CPPFLAGS) $(CFLAGS) -o tcp6 $(SRCPATH)/tcp6.c $(LIBS) $(LDFLAGS)
@@ -139,6 +142,7 @@ uninstall:
 	rm -f $(SBINPATH)/rd6
 	rm -f $(SBINPATH)/rs6
 	rm -f $(SBINPATH)/scan6
+	rm -f $(SBINPATH)/script6
 	rm -f $(SBINPATH)/tcp6
 
 	# Remove the configuration file
