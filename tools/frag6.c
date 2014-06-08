@@ -1353,7 +1353,7 @@ int main(int argc, char **argv){
 
 
 /*
- * Function: print_icmp6_info()
+ * Function: print_icmp6_echo()
  *
  * Print information about a received ICMPv6 Echo Response packet
  */
@@ -1708,10 +1708,13 @@ int send_fragment2(struct iface_data *idata, u_int16_t ip6len, unsigned int id, 
 	ipv6 = (struct ip6_hdr *) v6buffer;
 	fsize= (fsize>>3) << 3;
 
-	if(idata->type == DLT_EN10MB && idata->flags != IFACE_LOOPBACK){
-		ethernet->src = idata->hsrcaddr;
-		ethernet->dst = idata->hdstaddr;
+	if(idata->type == DLT_EN10MB){
 		ethernet->ether_type = htons(ETHERTYPE_IPV6);
+
+		if(idata->flags != IFACE_LOOPBACK){
+			ethernet->src = idata->hsrcaddr;
+			ethernet->dst = idata->hdstaddr;
+		}
 	}
 	else if(idata->type == DLT_NULL){
 		dlt_null->family= PF_INET6;
@@ -1844,10 +1847,13 @@ int send_fragment(struct iface_data *idata, unsigned int id, unsigned int offset
 	v6buffer = buffer + idata->linkhsize;
 	ipv6 = (struct ip6_hdr *) v6buffer;
 
-	if(idata->type == DLT_EN10MB && idata->flags != IFACE_LOOPBACK){
-		ethernet->src = idata->hsrcaddr;
-		ethernet->dst = idata->hdstaddr;
+	if(idata->type == DLT_EN10MB){
 		ethernet->ether_type = htons(ETHERTYPE_IPV6);
+
+		if(idata->flags != IFACE_LOOPBACK){
+			ethernet->src = idata->hsrcaddr;
+			ethernet->dst = idata->hdstaddr;
+		}
 	}
 	else if(idata->type == DLT_NULL){
 		dlt_null->family= PF_INET6;
@@ -2077,10 +2083,13 @@ int send_fid_probe(struct iface_data *idata){
 	v6buffer = buffer + idata->linkhsize;
 	ipv6 = (struct ip6_hdr *) v6buffer;
 
-	if(idata->type == DLT_EN10MB && idata->flags != IFACE_LOOPBACK){
-		ethernet->src = idata->hsrcaddr;
-		ethernet->dst = idata->hdstaddr;
+	if(idata->type == DLT_EN10MB){
 		ethernet->ether_type = htons(ETHERTYPE_IPV6);
+
+		if(idata->flags != IFACE_LOOPBACK){
+			ethernet->src = idata->hsrcaddr;
+			ethernet->dst = idata->hdstaddr;
+		}
 	}
 	else if(idata->type == DLT_NULL){
 		dlt_null->family= PF_INET6;
@@ -2269,13 +2278,13 @@ void print_attack_info(struct iface_data *idata){
 		printf("Ethernet Destination Address: %s%s\n", plinkaddr, (!idata->hdstaddr_f)?" (automatically selected)":"");
 	}
 
-	if(inet_ntop(AF_INET6, &(idata->srcaddr), psrcaddr, sizeof(psrcaddr)) == NULL){
-		puts("inet_ntop(): Error converting IPv6 Source Address to presentation format");
-		exit(EXIT_FAILURE);
-	}
+	if(idata->srcaddr_f){
+		if(inet_ntop(AF_INET6, &(idata->srcaddr), psrcaddr, sizeof(psrcaddr)) == NULL){
+			puts("inet_ntop(): Error converting IPv6 Source Address to presentation format");
+			exit(EXIT_FAILURE);
+		}
 
-	if(idata->dstaddr_f){
-		printf("IPv6 Source Address: %s%s\n", psrcaddr, ((!idata->srcaddr_f)?" (automatically selected)":""));
+		printf("IPv6 Source Address: %s%s\n", psrcaddr, ((idata->srcaddr_f != TRUE)?" (automatically selected)":""));
 	}
 
 	if(inet_ntop(AF_INET6, &(idata->dstaddr), pdstaddr, sizeof(pdstaddr)) == NULL){

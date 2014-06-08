@@ -4,10 +4,13 @@
 
 
 /* General constants */
-#define SUCCESS	1
-#define FAILURE 0
-#define TRUE 1
-#define FALSE 0
+#define SUCCESS		1
+#define FAILURE		0
+#define TRUE		1
+#define FALSE		0
+
+#define ADDR_AUTO	2
+
 
 #define LUI		long unsigned int
 #define	CHAR_CR			0x0d
@@ -444,11 +447,12 @@ struct address_list{
 };
 
 
-#define MAX_IFACES 10
+#define MAX_IFACES		25
 struct iface_entry{
 	int					ifindex;
 	char				iface[IFACE_LENGTH];	
 	struct ether_addr	ether;
+	unsigned char		ether_f;
 	struct prefix_list	ip6_global;
 	struct prefix_list  ip6_local;
 	int					flags;	
@@ -651,6 +655,7 @@ struct iface_data{
 	struct ether_addr	hdstaddr;
 	unsigned int		hdstaddr_f;
 	struct in6_addr		srcaddr;
+	unsigned int		src_f;      /* XXX Set when a source address has been selected (even if automatically) */
 	unsigned int		srcaddr_f;
 	unsigned char		srcpreflen;
 	unsigned char		srcprefix_f;
@@ -721,9 +726,11 @@ struct next_hop{
 
 int					address_contains_ranges(char *);
 void				change_endianness(u_int32_t *, unsigned int);
+void				debug_print_ifaces_data(struct iface_list *);
 u_int16_t			dec_to_hex(u_int16_t);
 int					dns_decode(unsigned char *, unsigned int, unsigned char *, char *, unsigned int, unsigned char **);
 int					dns_str2wire(char *, unsigned int, char *, unsigned int);
+void				dump_hex(void *, size_t);
 struct ether_addr	ether_multicast(const struct in6_addr *);
 int					ether_ntop(const struct ether_addr *, char *, size_t);
 int					ether_pton(const char *, struct ether_addr *, unsigned int);
@@ -756,6 +763,7 @@ unsigned int		match_ipv6(struct in6_addr *, u_int8_t *, unsigned int, struct in6
 int 				match_ipv6_to_prefixes(struct in6_addr *, struct prefix_list *);
 void				print_filters(struct iface_data *, struct filters *);
 void				print_filter_result(struct iface_data *, const u_char *, unsigned char);
+unsigned int		print_ipv6_address(char *s, struct in6_addr *);
 int					print_local_addrs(struct iface_data *);
 void				randomize_ether_addr(struct ether_addr *);
 void				randomize_ipv6_addr(struct in6_addr *, struct in6_addr *, u_int8_t);

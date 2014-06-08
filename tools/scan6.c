@@ -263,9 +263,7 @@ int main(int argc, char **argv){
 		{"tgt-virtual-machines", required_argument, 0, 'V'},
 		{"tgt-low-byte", no_argument, 0, 'b'},
 		{"tgt-ipv4", required_argument, 0, 'B'},
-		{"tgt-ipv4-embedded", required_argument, 0, 'B'},
 		{"tgt-port", no_argument, 0, 'g'},
-		{"tgt-port-embedded", no_argument, 0, 'g'},
 		{"tgt-ieee-oui", required_argument, 0, 'k'},
 		{"tgt-vendor", required_argument, 0, 'K'},
 		{"tgt-iids-file", required_argument, 0, 'w'},
@@ -503,6 +501,7 @@ int main(int argc, char **argv){
 						prefix.len= 128;
 					}
 
+
 					if(prefix_list.ntarget <= prefix_list.maxtarget){
 						if( (prefix_list.target[prefix_list.ntarget] = malloc(sizeof(struct scan_entry))) == NULL){
 							if(idata.verbose_f)
@@ -542,6 +541,7 @@ int main(int argc, char **argv){
 				}
 
 				idata.dstaddr= prefix_list.target[0]->start;
+				idata.dstaddr_f= TRUE;
 				dst_f=TRUE;
 				break;
 	    
@@ -1518,7 +1518,7 @@ int main(int argc, char **argv){
 
 		lastprobe.tv_sec= 0;	
 		lastprobe.tv_usec=0;
-		idata.pending_write_f=TRUE;		
+		idata.pending_write_f=TRUE;	
 
 		while(!end_f){
 			rset= sset;
@@ -1828,8 +1828,9 @@ int is_target_in_range(struct scan_entry *scan_entry){
 
 	for(i=0; i<=7; i++){
 		if( ntohs((scan_entry->cur).s6_addr16[i]) < ntohs((scan_entry->start).s6_addr16[i]) || \
-			( ntohs((scan_entry->cur).s6_addr16[i]) > ntohs((scan_entry->end).s6_addr16[i])) )
+			( ntohs((scan_entry->cur).s6_addr16[i]) > ntohs((scan_entry->end).s6_addr16[i])) ){
 				return(0);
+			}
 	}
 
 	return(1);
@@ -2907,8 +2908,7 @@ void prefix_to_scan(struct prefix_entry *pref, struct scan_entry *scan){
 
 	sanitize_ipv6_prefix(&(pref->ip6), pref->len);
 	scan->start= pref->ip6;
-	scan->cur= scan->start;
-
+	scan->cur= pref->ip6;
 	words= pref->len/16;
 
 	for(i=0; i< words; i++)
@@ -2923,7 +2923,8 @@ void prefix_to_scan(struct prefix_entry *pref, struct scan_entry *scan){
 	for(i=0; i< (pref->len % 16); i++)
 		mask= mask>>1;
 
-	(scan->end).s6_addr16[words]= (scan->start).s6_addr16[words] | htons(mask);
+	if(pref->len % 16)
+		(scan->end).s6_addr16[words]= (scan->start).s6_addr16[words] | htons(mask);
 }
 
 
@@ -3025,18 +3026,20 @@ int send_probe_remote(struct iface_data *idata, struct scan_list *scan, struct i
 	v6buffer = buffer + idata->linkhsize;
 	ipv6 = (struct ip6_hdr *) v6buffer;
 
-	if(idata->type == DLT_EN10MB && idata->flags != IFACE_LOOPBACK){
-		ether->src = idata->ether;
+	if(idata->type == DLT_EN10MB){
+		ether->ether_type = htons(ETHERTYPE_IPV6);
 
-		if(!onlink_f){
-			ether->dst = idata->nhhaddr;
-		}else{
-			if(ipv6_to_ether(idata->pfd, idata, &(scan->target[scan->ctarget])->cur, &(idata->hdstaddr)) != 1){
-				return(1);
+		if(idata->flags != IFACE_LOOPBACK){
+			ether->src = idata->ether;
+
+			if(!onlink_f){
+				ether->dst = idata->nhhaddr;
+			}else{
+				if(ipv6_to_ether(idata->pfd, idata, &(scan->target[scan->ctarget])->cur, &(idata->hdstaddr)) != 1){
+					return(1);
+				}
 			}
 		}
-
-		ether->ether_type = htons(ETHERTYPE_IPV6);
 	}
 	else if(idata->type == DLT_NULL){
 		dlt_null->family= PF_INET6;
