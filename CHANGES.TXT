@@ -1,3 +1,44 @@
+(upcoming) SI6 Networks IPv6 Toolkit v2.0
+
+   * All: Fix bug in next hop determination
+     A bug caused, in some scenarios, the tools to fail with "cannot find
+     next hop".
+
+   * All: Fix support for loopback interface
+     The tools failed to set the "virtual" "Ether Proto" for packets sent
+     on the loopback interface, and hence they were discarded.
+
+   * All: Add support for domain names
+     All tools now support domain names in their "-d" options.
+
+   * addr6: Fix bug in address scope filtering
+     A bug caused address scope filters to behave incorrectly.
+
+   * addr6: Fix error in manual page
+     Some of the long-option names were incorrect.
+
+   * scan6: Fixes bug in address range computation
+     Prefixes that were not multiple of 16 resulted in bogus address ranges.
+
+   * path6: New tool
+     Added a fully-IPv6-capable traceroute tool, named path6.
+
+   * script6: New tool
+     Added a new tool which incorporates new functionality and also provides
+     a shortcut to other existing tools.
+
+
+SI6 Networks IPv6 Toolkit v1.5.3
+
+   * All: Fix packet size issues
+     Many tools were using a (sometimes non-initialized) max_packet_size
+     variable, instead of the corresponding member of the idata structure.
+
+   * All: Add support for some Mac OS version
+     The toolkit would not compile on Lion (10.7.5) or Snow Leopard (10.6.8),
+     as a result of inconsistencies of how BYTE_ORDER-related constants were
+     (not) set in those versions of Mac OS.
+
 SI6 Networks IPv6 Toolkit v1.5.2
 
    * All: Add support for GNU Debian/kfreebsd
@@ -15,14 +56,14 @@ SI6 Networks IPv6 Toolkit v1.5.1
 SI6 Networks IPv6 Toolkit v1.5
 
    * All: Improved the next-hop determination
-     Since the toolkit employs lipcap (as there is no portable way to forge
+     Since the toolkit employs libpcap (as there is no portable way to forge
      IPv6 addresses and do other tricks), it was relying on the user specifying
      a network interface ("-i" was mandatory for all tools) and that routers
      would send Router Advertisements on the local links. This not only was 
-     rather inconventient for users (specifying a network interace was not 
+     rather inconvenient for users (specifying a network interface was not 
      warranted), but also meant that in setups where RAs where not available
      (e.g., manual configuration), the tools would fail. The toolkit now
-     eploys routing sockets (in BSDs) or Netlink (in Linux), and only uses
+     employs routing sockets (in BSDs) or Netlink (in Linux), and only uses
      "sending RAs" as a fall-back in case of failure (IPv6 not configured on
      the local host).
 
@@ -31,7 +72,7 @@ SI6 Networks IPv6 Toolkit v1.5
 
    * All: More code moved to libipv6
      More and more code was moved to libipv6 and removed to the individual tool
-     source files. As wiht some of the above, this was painful and
+     source files. As with some of the above, this was painful and
      time-consuming, but was necessary -- and in the long run it will make
      code maintenance easier.
 
@@ -42,7 +83,7 @@ SI6 Networks IPv6 Toolkit v1.5
 SI6 Networks' IPv6 Toolkit v1.4.1
 
    * frag6: Fixed bug that prevented Ethernet header from being filled
-     A bug in the code caused Ethernet frames to go on te wire without any of
+     A bug in the code caused Ethernet frames to go on the wire without any of
      their header fields completed.
 
    * All: Use of library to avoid code replication
@@ -55,7 +96,7 @@ SI6 Networks' IPv6 Toolkit v1.4 release
 
    * frag6: Fixed the flooding option
      Fixed the fragment size used when employing the flooding option. It was 
-     prevously sending fragment sizes that where not a multiple of eight, and
+     previously sending fragment sizes that where not a multiple of eight, and
      hence these fragments were dropped.
 
    * scan6: Added support for 64-bit encoding of IPv4 addresses
@@ -63,7 +104,7 @@ SI6 Networks' IPv6 Toolkit v1.4 release
      and 64 bit) of embedded IPv4 addresses.
 
    * tcp6: Fixed response to Neighbor Solicitations
-     tcp6 was not responding to incomming Neighbor Solicitations. Hence, when
+     tcp6 was not responding to incoming Neighbor Solicitations. Hence, when
      packets were sent from spoofed addresses, tcp6 would never receive the
      response packets, because the NSs sent by the local router or target node
      would never be responded.
