@@ -2478,7 +2478,18 @@ int sel_next_hop(struct iface_data *idata){
 #ifdef DEBUG
 	print_ipv6_address("DEBUG: RTA_GATEWAY: ", (struct in6_addr *) RTA_DATA(rtap));
 #endif
-						idata->nhaddr_f= 1;
+
+						if(!IN6_IS_ADDR_UNSPECIFIED(&(idata->nhaddr))){
+							idata->nhaddr_f= 1;
+#ifdef DEBUG
+	puts("DEBUG: set the nhaddr_F flag");
+#endif
+						}
+						else{
+#ifdef DEBUG
+	puts("DEBUG: Did not set the nhaddr_F flag was ADR_UNSPECIFIED)");
+#endif
+						}
 						break;
 				}
 
@@ -2625,8 +2636,8 @@ int sel_next_hop(struct iface_data *idata){
 		if(rtm->rtm_addrs & RTA_GATEWAY){
 #ifdef DEBUG
 	puts("DEBUG: sel_next_hop() RTA_GATEWAY was set");
-	printf("DEBUG: Family: %d, size %d, realsize: %d\n", sa->sa_family, sa->sa_len, SA_SIZE(sa));
-	printf("DEBUG: sizeof(AF_LINK): %d, sizeof(AF_INET6): %d\n", sizeof(struct sockaddr_dl), sizeof(struct sockaddr_in6));
+	printf("DEBUG: Family: %d, size %d, realsize: %lu\n", sa->sa_family, sa->sa_len, SA_SIZE(sa));
+	printf("DEBUG: sizeof(AF_LINK): %lu, sizeof(AF_INET6): %lu\n", sizeof(struct sockaddr_dl), sizeof(struct sockaddr_in6));
 	dump_hex(sa, SA_SIZE(sa));
 #endif
 			if(sa->sa_family == AF_INET6){
@@ -2656,8 +2667,8 @@ int sel_next_hop(struct iface_data *idata){
 
 				do{
 #ifdef DEBUG
-	printf("DEBUG: Family: %d, size %d, realsize: %d\n", sa->sa_family, sa->sa_len, SA_SIZE(sa));
-	printf("DEBUG: sizeof(AF_LINK): %d, sizeof(AF_INET6): %d\n", sizeof(struct sockaddr_dl), sizeof(struct sockaddr_in6));
+	printf("DEBUG: Family: %d, size %d, realsize: %lu\n", sa->sa_family, sa->sa_len, SA_SIZE(sa));
+	printf("DEBUG: sizeof(AF_LINK): %lu, sizeof(AF_INET6): %lu\n", sizeof(struct sockaddr_dl), sizeof(struct sockaddr_in6));
 	dump_hex(sa, SA_SIZE(sa));
 #endif
 
@@ -3113,6 +3124,7 @@ int sel_src_addr(struct iface_data *idata){
 		if(!idata->iface_f){
 #ifdef DEBUG
 	puts("DEBUG: Interface not specified");
+	puts("DEBUG: END sel_src_addr() (FAILURE)");
 #endif
 			return(FAILURE);
 		}
@@ -3123,6 +3135,7 @@ int sel_src_addr(struct iface_data *idata){
 			if( (cif=find_iface_by_index( &(idata->iflist), idata->ifindex)) == NULL){
 #ifdef DEBUG
 	puts("DEBUG: Did not find interface in local data");
+	puts("DEBUG: END sel_src_addr() (FAILURE)");
 #endif
 				return(FAILURE);
 			}
@@ -3150,11 +3163,17 @@ int sel_src_addr(struct iface_data *idata){
 				if(idata->ip6_local_flag == TRUE){
 					idata->srcaddr= (cif->ip6_local.prefix[0])->ip6;
 					idata->srcaddr_f= ADDR_AUTO;
+#ifdef DEBUG
+	puts("DEBUG: END sel_src_addr() (SUCCESS)");
+#endif
 					return(SUCCESS);
 				}
 				else if(idata->ip6_global_flag == TRUE){
 					idata->srcaddr= (cif->ip6_local.prefix[0])->ip6;
 					idata->srcaddr_f= ADDR_AUTO;
+#ifdef DEBUG
+	puts("DEBUG: END sel_src_addr() (SUCCESS)");
+#endif
 					return(SUCCESS);
 				}
 			}
@@ -3180,6 +3199,7 @@ int sel_src_addr(struct iface_data *idata){
 			if( (cif=find_iface_by_index( &(idata->iflist), idata->ifindex)) == NULL){
 #ifdef DEBUG
 	puts("DEBUG: Did not find interface in local data");
+	puts("DEBUG: END sel_src_addr() (FAILURE)");
 #endif
 				return(FAILURE);
 			}
@@ -3288,6 +3308,7 @@ int sel_src_addr(struct iface_data *idata){
 						if( (cif= find_iface_by_index(&(idata->iflist), idata->nhifindex)) == NULL){
 #ifdef DEBUG
 	puts("DEBUG: END Did not find interface in local data");
+	puts("DEBUG: END sel_src_addr() (FAILURE)");
 #endif
 							return(FAILURE);
 						}
@@ -3516,6 +3537,29 @@ int load_dst_and_pcap(struct iface_data *idata, unsigned int mode){
 		}
 	}
 
+	if(idata->nhifindex_f){
+		idata->ifindex= idata->nhifindex;
+
+		if( (cif = find_iface_by_index( &(idata->iflist), idata->ifindex)) == NULL){
+			if(idata->verbose_f){
+				puts("Could not find selected interface in local data");
+			}
+
+			return(FAILURE);
+		}
+
+		idata->flags= cif->flags;
+
+		if(if_indextoname(idata->ifindex, idata->iface) == NULL){
+			if(idata->verbose_f)
+				puts("Error calling if_indextoname() from sel_next_hop()");
+
+#ifdef DEBUG
+	puts("DEBUG: if_indextoname() failed");
+#endif
+			return(FAILURE);
+		}
+	}
 
 #ifdef DEBUG
 	if(idata->nhaddr_f)
