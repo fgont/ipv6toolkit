@@ -6,6 +6,7 @@ addr6 \- An IPv6 address analysis and manipulation tool
 .RB [\| \-a
 .IR IPV6_ADDR\| \ \-i]
 .RB [\| \-d \|]
+.RB [\| \-d \|]
 .RB [\| \-q \|]
 .RB [\| \-s \|]
 .RB [\| \-j
@@ -197,6 +198,11 @@ Block unicast IPv6 addresses with an Interface ID of the specified type. Valid I
 This option causes the tool to eliminate duplicate addresses from the list of IPv6 addresses read from standard input (stdin). That is, when reading a list of addresses from stdin, only the first "copy" of each address will be processed by the tool (with later ones being simply ignored).
 
 .TP
+.BR \-c ,\  \-\-print\-canonic
+
+This option request the tool to print the IPv6 address specfied with the '\-a' option (or a list of addresses read froom stdin if the '\-i' option was set) in its canonic form. This is useful to before comparing textual representations of IPv6 addresses, since the same address can usually be written in multiple different ways.
+
+.TP
 .BR \-d ,\  \-\-print\-decode
 
 This option request the tool to decode the IPv6 address specfied with the '\-a' option (or a list of addresses read froom stdin if the '\-i' option was set). The current version of the tool supports only decode type, in which information is printed for each address with the following syntax:
@@ -272,7 +278,7 @@ addr6 will read IPv6 addresses from stdin ('\-i' option), and will only print th
 
 $ addr6 \-a fc00::1
 
-Decode the IPv6 address spcified with the '\-a' option. Note that while the '\-d' option was not set, this is the default behavior of the tool (unless overridden y another option).
+Decode the IPv6 address specified with the '\-a' option. Note that while the '\-d' option was not set, this is the default behavior of the tool (unless overridden y another option).
 
 
 \fBExample #3\fR

@@ -53,6 +53,7 @@ unsigned int			is_ip6_in_hashed_list(struct hashed_host_list *, struct in6_addr 
 void					print_stats(struct stats6 *);
 
 unsigned char			stdin_f=0, addr_f=0, verbose_f=0, decode_f=0, print_unique_f=0, stats_f=0, filter_f=0;
+unsigned char			canonic_f= FALSE;
 char					line[MAX_LINE_SIZE];
 
 extern char			*optarg;
@@ -83,6 +84,7 @@ int main(int argc, char **argv){
 	static struct option longopts[] = {
 		{"address", required_argument, 0, 'a'},
 		{"stdin", no_argument, 0, 'i'},
+		{"print-canonic", no_argument, 0, 'c'},
 		{"print-decode", no_argument, 0, 'd'},
 		{"print-stats", no_argument, 0, 's'},
 		{"print-unique", no_argument, 0, 'q'},
@@ -101,7 +103,7 @@ int main(int argc, char **argv){
 		{0, 0, 0,  0 },
 	};
 
-	char shortopts[]= "a:idsqj:b:k:w:g:J:B:K:W:G:vh";
+	char shortopts[]= "a:icdsqj:b:k:w:g:J:B:K:W:G:vh";
 
 	char option;
 
@@ -128,11 +130,14 @@ int main(int argc, char **argv){
 			case 'i':  /* Read from stdin */
 				stdin_f=1;
 				break;
-	    
+
+			case 'c':	/* Print addresses in canonic form */
+				canonic_f=1;
+				break;
+
 			case 'd':	/* Decode IPv6 addresses */
 				decode_f=1;
 				break;
-
 
 			case 'j':	/* IPv6 Address (accept) filter */
 				if(naccept > MAX_ACCEPT){
@@ -517,7 +522,7 @@ int main(int argc, char **argv){
 	}
 
 	/* By default, addr6 decodes IPv6 addresses */
-	if(!print_unique_f && !filter_f && !stats_f)
+	if(!print_unique_f && !filter_f && !stats_f && !canonic_f)
 		decode_f=1;
 
 	if(print_unique_f){
@@ -613,6 +618,9 @@ int main(int argc, char **argv){
 		if(decode_f){
 			decode_ipv6_address(&addr, &stats);
 			print_dec_address_script(&addr);
+		}
+		else if(canonic_f){
+			print_ipv6_address("", &(addr.ip6));
 		}
 	}
 
@@ -1303,6 +1311,7 @@ void print_help(void){
 	puts("\nOPTIONS:\n"
 	     "  --address, -a             IPv6 address to be decoded\n"
 	     "  --stdin, -i               Read IPv6 addresses from stdin (standard input)\n"
+	     "  --print-canonic, -c       Print IPv6 addresses in canonic form\n"
 	     "  --print-decode, -d        Decode IPv6 addresses\n"
 	     "  --print-stats, -s         Print statistics about IPv6 addresses\n"
 	     "  --print-unique, -q        Discard duplicate IPv6 addresses\n"
