@@ -41,7 +41,7 @@ SBINPATH= $(DESTDIR)$(PREFIX)/sbin
 SRCPATH= tools
 
 
-SBINTOOLS= flow6 frag6 icmp6 jumbo6 na6 ni6 ns6 path6 ra6 rd6 rs6 scan6 si6-scripts tcp6
+SBINTOOLS= flow6 frag6 icmp6 jumbo6 na6 ni6 ns6 path6 ra6 rd6 rs6 scan6 script6 tcp6
 BINTOOLS= addr6
 TOOLS= $(BINTOOLS) $(SBINTOOLS)
 LIBS= libipv6.o
