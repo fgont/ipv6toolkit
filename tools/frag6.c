@@ -2025,6 +2025,7 @@ int send_fragment(struct iface_data *idata, unsigned int id, unsigned int offset
 
 			/* We include a "checksum" such that we can tell the responses we elicit from other packets */
 			*(u_int32_t *)ptr= (u_int32_t)tstamp ^ 0xabcdabcd;
+			ptr+= sizeof(u_int32_t);
 			
 
 			if(fsize > (sizeof(time_t)+sizeof(u_int32_t)))
@@ -2043,7 +2044,7 @@ int send_fragment(struct iface_data *idata, unsigned int id, unsigned int offset
 			return(-1);
 		}
 
-		for(i=0; i<(fsize/4); i++){
+		for(i=0; i<(fsize/sizeof(u_int32_t)); i++){
 			*(u_int32_t *)ptr = random();
 			ptr += sizeof(u_int32_t);
 		}
