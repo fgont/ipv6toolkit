@@ -701,7 +701,7 @@ int main(int argc, char **argv){
 					if(pprobe == 0)
 						printf(" %2d (%s)", phop+1, psrcaddr);
 
-					printf("  %f ms", time_diff_ms(&(test[phop][pprobe].rtstamp), &(test[phop][pprobe].ststamp)));
+					printf("  %4.1f ms", time_diff_ms(&(test[phop][pprobe].rtstamp), &(test[phop][pprobe].ststamp)));
 				}
 
 				pprobe++;
