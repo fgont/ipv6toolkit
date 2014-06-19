@@ -1,7 +1,7 @@
 /*
  * scan6: An IPv6 Address Scanning Tool
  *
- * Copyright (C) 2011-2013 Fernando Gont <fgont@si6networks.com>
+ * Copyright (C) 2011-2014 Fernando Gont <fgont@si6networks.com>
  *
  * Programmed by Fernando Gont for SI6 Networks <http://www.si6networks.com>
  *
@@ -1207,7 +1207,7 @@ int main(int argc, char **argv){
 		exit(EXIT_FAILURE);
 	}
 
-	if(scan_local_f && (idata.type != DLT_EN10MB || idata.flags == IFACE_TUNNEL || idata.flags == IFACE_LOOPBACK)){
+	if(scan_local_f && (idata.type != DLT_EN10MB || (idata.flags & IFACE_TUNNEL))){
 		puts("Error cannot apply local scan on a loopback or tunnel interface");
 		exit(EXIT_FAILURE);
 	}
@@ -1619,7 +1619,7 @@ int main(int argc, char **argv){
 						continue;
 
 					if(pkt_ipv6->ip6_nxt == IPPROTO_ICMPV6){
-						if( idata.type == DLT_EN10MB && idata.flags != IFACE_LOOPBACK && pkt_icmp6->icmp6_type == ND_NEIGHBOR_SOLICIT){
+						if( idata.type == DLT_EN10MB && !(idata.flags & IFACE_LOOPBACK) && pkt_icmp6->icmp6_type == ND_NEIGHBOR_SOLICIT){
 							if( (pkt_end - (unsigned char *) pkt_ns) < sizeof(struct nd_neighbor_solicit))
 								continue;
 
@@ -3014,6 +3014,9 @@ int send_probe_remote(struct iface_data *idata, struct scan_list *scan, struct i
 	unsigned int 				i;
 	struct ether_header			*ether;
 	struct dlt_null				*dlt_null;
+#if defined(__linux__)
+	struct sll_linux		*sll_linux;
+#endif
 	unsigned char 				*v6buffer;
 	struct ip6_hdr				*ipv6;
 	struct tcp_hdr				*tcp;
@@ -3023,13 +3026,16 @@ int send_probe_remote(struct iface_data *idata, struct scan_list *scan, struct i
 
 	ether = (struct ether_header *) buffer;
 	dlt_null= (struct dlt_null *) buffer;
+#if defined(__linux__)
+	sll_linux= (struct sll_linux *) buffer;
+#endif
 	v6buffer = buffer + idata->linkhsize;
 	ipv6 = (struct ip6_hdr *) v6buffer;
 
 	if(idata->type == DLT_EN10MB){
 		ether->ether_type = htons(ETHERTYPE_IPV6);
 
-		if(idata->flags != IFACE_LOOPBACK){
+		if(!(idata->flags & IFACE_LOOPBACK)){
 			ether->src = idata->ether;
 
 			if(!onlink_f){
@@ -3044,6 +3050,18 @@ int send_probe_remote(struct iface_data *idata, struct scan_list *scan, struct i
 	else if(idata->type == DLT_NULL){
 		dlt_null->family= PF_INET6;
 	}
+#if defined (__OpenBSD__)
+	else if(idata->type == DLT_LOOP){
+		dlt_null->family= htonl(PF_INET6);
+	}
+#elif defined(__linux__)
+	else if(idata->type == DLT_LINUX_SLL){
+		sll_linux->sll_pkttype= htons(0x0004);
+		sll_linux->sll_hatype= htons(0xffff);
+		sll_linux->sll_halen= htons(0x0000);
+		sll_linux->sll_protocol= htons(ETHERTYPE_IPV6);
+	}
+#endif
 
 	ipv6->ip6_flow=0;
 	ipv6->ip6_vfc= 0x60;

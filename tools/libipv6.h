@@ -46,6 +46,7 @@
 #define IFACE_LENGTH			255
 #define ALL_NODES_MULTICAST_ADDR	"FF02::1"
 #define ALL_ROUTERS_MULTICAST_ADDR	"FF02::2"
+#define LOOPBACK_ADDR				"::1"
 #define SOLICITED_NODE_MULTICAST_PREFIX "FF02:0:0:0:0:1:FF00::"
 
 
@@ -625,8 +626,8 @@ struct iface_data{
 	int					ifindex;
 	unsigned char		ifindex_f;
 	struct iface_list	iflist;
-	int					type;
-	int					flags;
+	unsigned int		type;
+	unsigned int		flags;
 	int					fd;
 	unsigned int		pending_write_f;
 	void				*pending_write_data;
@@ -663,7 +664,6 @@ struct iface_data{
 	unsigned int		dstaddr_f;
 	unsigned int		verbose_f;
 	unsigned char		listen_f;
-	char			loopback_f;
 	unsigned char		fragh_f;
 
 	/* XXX
@@ -689,6 +689,18 @@ struct iface_data{
 #define MAX_RTPAYLOAD 1024
 #endif
 
+#if defined(__linux__)
+
+#define SLL_ADDRLEN 0
+
+struct sll_linux{
+        u_int16_t sll_pkttype;          /* packet type */
+        u_int16_t sll_hatype;           /* link-layer address type */
+        u_int16_t sll_halen;            /* link-layer address length */
+        u_int8_t sll_addr[SLL_ADDRLEN]; /* link-layer address */
+        u_int16_t sll_protocol;         /* protocol */
+} __attribute__ ((__packed__));
+#endif
 
 
 struct next_hop{
@@ -737,6 +749,7 @@ int					ether_pton(const char *, struct ether_addr *, unsigned int);
 void				ether_to_ipv6_linklocal(struct ether_addr *etheraddr, struct in6_addr *ipv6addr);
 void 				*find_iface_by_index(struct iface_list *, int);
 void				*find_iface_by_name(struct iface_list *, char *);
+void				*find_iface_by_addr(struct iface_list *, struct in6_addr *);
 int					find_ipv6_router(pcap_t *, struct ether_addr *, struct in6_addr *, struct ether_addr *, struct in6_addr *);
 int					find_ipv6_router_full(pcap_t *, struct iface_data *);
 struct iface_entry  *find_matching_address(struct iface_data *, struct iface_list *, struct in6_addr *, struct in6_addr *);

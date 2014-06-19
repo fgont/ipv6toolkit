@@ -1,7 +1,7 @@
 /*
  * path6: A versatile IPv6 traceroute
  *
- * Copyright (C) 2011-2013 Fernando Gont (fgont@si6networks.com)
+ * Copyright (C) 2011-2014 Fernando Gont (fgont@si6networks.com)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -97,6 +97,9 @@ struct icmp6_hdr	*icmp6;
 
 struct ether_header	*ethernet;
 struct dlt_null		*dlt_null;
+#if defined(__linux__)
+	struct sll_linux		*sll_linux;
+#endif
 struct nd_opt_tlla	*tllaopt;
 
 char				*lasts, *rpref;
@@ -919,7 +922,7 @@ int main(int argc, char **argv){
 			}
 		}
 		else if(ulhtype == IPPROTO_ICMPV6){
-			if(idata.type == DLT_EN10MB && idata.flags != IFACE_LOOPBACK && pkt_icmp6->icmp6_type == ND_NEIGHBOR_SOLICIT){
+			if(idata.type == DLT_EN10MB && !(idata.flags & IFACE_LOOPBACK) && pkt_icmp6->icmp6_type == ND_NEIGHBOR_SOLICIT){
 				if( (pkt_end - (unsigned char *) pkt_ns) < sizeof(struct nd_neighbor_solicit))
 					continue;
 				/* 
@@ -928,7 +931,7 @@ int main(int argc, char **argv){
 				    one of our addresses, and respond with a Neighbor Advertisement. Otherwise, the kernel
 				    will take care of that.
 				 */
-				if(idata.type == DLT_EN10MB && idata.flags != IFACE_LOOPBACK && !localaddr_f && \
+				if(idata.type == DLT_EN10MB && !(idata.flags & IFACE_LOOPBACK) && !localaddr_f && \
 								is_eq_in6_addr(&(pkt_ns->nd_ns_target), &idata.srcaddr)){
 						if(send_neighbor_advert(&idata, idata.pfd, pktdata) == -1){
 							puts("Error sending Neighbor Advertisement");
@@ -1098,7 +1101,8 @@ int main(int argc, char **argv){
 			continue;
 
 		test[nhop-1][nprobe].received= TRUE;
-		test[nhop-1][nprobe].rtstamp= pkthdr->ts;
+		test[nhop-1][nprobe].rtstamp.tv_sec= (pkthdr->ts).tv_sec;
+		test[nhop-1][nprobe].rtstamp.tv_usec= (pkthdr->ts).tv_usec;
 		test[nhop-1][nprobe].srcaddr= nsrc;
 
 		/*
@@ -1176,7 +1180,7 @@ void print_help(void){
  */
  
 void print_attack_info(struct iface_data *idata){
-	if(idata->type == DLT_EN10MB && idata->flags != IFACE_LOOPBACK){
+	if(idata->type == DLT_EN10MB && !(idata->flags & IFACE_LOOPBACK)){
 		if(ether_ntop(&(idata->hsrcaddr), plinkaddr, sizeof(plinkaddr)) == 0){
 			puts("ether_ntop(): Error converting address");
 			exit(EXIT_FAILURE);
@@ -1237,6 +1241,9 @@ void init_packet_data(struct iface_data *idata){
 	dlt_null= (struct dlt_null *) buffer;
 	v6buffer = buffer + idata->linkhsize;
 	ipv6 = (struct ip6_hdr *) v6buffer;
+#if defined(__linux__)
+	sll_linux= (struct sll_linux *) buffer;
+#endif
 
 	if(idata->type == DLT_EN10MB){
 		ethernet->ether_type = htons(ETHERTYPE_IPV6);
@@ -1249,6 +1256,19 @@ void init_packet_data(struct iface_data *idata){
 	else if(idata->type == DLT_NULL){
 		dlt_null->family= PF_INET6;
 	}
+#if defined (__OpenBSD__)
+	else if(idata->type == DLT_LOOP){
+		dlt_null->family= htonl(PF_INET6);
+	}
+#elif defined(__linux__)
+	else if(idata->type == DLT_LINUX_SLL){
+		sll_linux->sll_pkttype= htons(0x0004);
+		sll_linux->sll_hatype= htons(0xffff);
+		sll_linux->sll_halen= htons(0x0000);
+		sll_linux->sll_protocol= htons(ETHERTYPE_IPV6);
+	}
+#endif
+
 
 	ipv6->ip6_flow=0;
 	ipv6->ip6_vfc= 0x60;

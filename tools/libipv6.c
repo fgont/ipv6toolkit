@@ -1,3 +1,30 @@
+/*
+ * libipv6 : An IPv6 library for Linux, Mac OS, and BSD systems
+ *
+ * Copyright (C) 2011-2014 Fernando Gont <fgont@si6networks.com>
+ *
+ * Programmed by Fernando Gont for SI6 Networks <http://www.si6networks.com>
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * 
+ * Build with: make libipv6
+ * 
+ * It requires that the libpcap library be installed on your system.
+ *
+ * Please send any bug reports to Fernando Gont <fgont@si6networks.com>
+ */
+
 /* #define DEBUG */
 
 #include <sys/types.h>
@@ -1170,7 +1197,7 @@ int get_if_addrs(struct iface_data *idata){
 			else if( ((sockin6ptr->sin6_addr).s6_addr16[0] & htons(0xffc0)) != htons(0xfe80)){
 				if(strncmp(idata->iface, ptr->ifa_name, IFACE_LENGTH-1) == 0){
 					if(IN6_IS_ADDR_LOOPBACK(&(sockin6ptr->sin6_addr)))
-						idata->flags= IFACE_LOOPBACK;
+						idata->flags = IFACE_LOOPBACK;
 
 					if(!is_ip6_in_prefix_list( &(sockin6ptr->sin6_addr), &(idata->ip6_global))){
 						if(idata->ip6_global.nprefix < idata->ip6_global.maxprefix){
@@ -1373,7 +1400,7 @@ void print_filters(struct iface_data *idata, struct filters *filters){
 		printf("\n");
 	}
 
-	if(idata->type == DLT_EN10MB && idata->flags != IFACE_LOOPBACK){
+	if(idata->type == DLT_EN10MB && !(idata->flags & IFACE_LOOPBACK)){
 		if(filters->nblocklinksrc){
 			printf("Block filter for link-layer Source Address: ");
 	
@@ -1445,7 +1472,7 @@ void print_filters(struct iface_data *idata, struct filters *filters){
 		printf("\n");
 	}
 
-	if(idata->type == DLT_EN10MB && idata->flags != IFACE_LOOPBACK){
+	if(idata->type == DLT_EN10MB && !(idata->flags & IFACE_LOOPBACK)){
 		if(filters->nacceptlinksrc){
 			printf("Accept filter for link-layer Source Address: ");
 
@@ -2072,7 +2099,7 @@ int sel_next_hop_ra(struct iface_data *idata){
 	     next-hop determination
 	   + Otherwise we need to learn the local router or do ND as a last ressort
 	 */
-	if((idata->type == DLT_EN10MB && (idata->flags != IFACE_LOOPBACK && idata->flags != IFACE_TUNNEL)) && \
+	if((idata->type == DLT_EN10MB && (!(idata->flags & IFACE_LOOPBACK) && !(idata->flags & IFACE_TUNNEL))) && \
 													(!(idata->hdstaddr_f) && idata->dstaddr_f)){
 		if(IN6_IS_ADDR_LINKLOCAL(&(idata->dstaddr))){
 			/*
@@ -3011,6 +3038,24 @@ void *find_iface_by_index(struct iface_list *iflist, int ifindex){
 
 
 /*
+ * Function: find_iface_by_addr()
+ *
+ * Finds an Interface (by IPv6 address) in an Interface list
+ */
+
+void *find_iface_by_addr(struct iface_list *iflist, struct in6_addr *addr){
+	unsigned int i;
+
+	for(i=0; i < iflist->nifaces; i++){
+		if(is_ip6_in_prefix_list(addr, &((iflist->ifaces[i]).ip6_global)) || is_ip6_in_prefix_list(addr, &((iflist->ifaces[i]).ip6_local)))
+			return(&(iflist->ifaces[i]));
+	}
+
+	return(NULL);
+}
+
+
+/*
  * Function: is_in6addr_iniface_list()
  *
  * Finds an Interface (by name) in an Interface list
@@ -3106,7 +3151,7 @@ unsigned int ip6_longest_match(struct in6_addr *addr1, struct in6_addr *addr2){
  */
 int sel_src_addr(struct iface_data *idata){
 	struct in6_addr		match;
-	struct iface_entry	*cif;
+	struct iface_entry	*cif, *nhif;
 
 #ifdef DEBUG
 	puts("DEBUG: BEGIN sel_src_addr()");
@@ -3273,7 +3318,11 @@ int sel_src_addr(struct iface_data *idata){
 	puts("DEBUG: sel_next_hop() suceeded");
 #endif
 
-					if(is_ip6_in_iface_entry(&(idata->iflist), idata->nhifindex, &(idata->srcaddr)) == TRUE){
+					if( (nhif=find_iface_by_index( &(idata->iflist), idata->nhifindex)) == NULL){
+						return(FAILURE);
+					}
+
+					if( (nhif->flags & IFACE_LOOPBACK) || is_ip6_in_iface_entry(&(idata->iflist), idata->nhifindex, &(idata->srcaddr)) == TRUE){
 #ifdef DEBUG
 	puts("DEBUG: Selected address was in outgoing interface");
 #endif
@@ -3372,8 +3421,8 @@ int sel_src_addr(struct iface_data *idata){
  * Finds the Sorurce Address, Next-Hop, and outgoing interface for a given Destination Address
  */
 int load_dst_and_pcap(struct iface_data *idata, unsigned int mode){
-	struct iface_entry	*cif;
-	struct in6_addr		randprefix;
+	struct iface_entry	*cif, *rif;
+	struct in6_addr		randprefix, loopback;
 	unsigned char		randpreflen;
 	char				errbuf[PCAP_ERRBUF_SIZE];
 
@@ -3385,14 +3434,17 @@ int load_dst_and_pcap(struct iface_data *idata, unsigned int mode){
 			idata->srcaddr_f=1;
 		}
 
+		if(get_local_addrs(idata) == FAILURE){
+			if(idata->verbose_f)
+				puts("Error while obtaining local addresses");
+
+			return(FAILURE);
+		}
+
 		if(!idata->srcaddr_f){
 #ifdef DEBUG
 	puts("DEBUG: Has not specified source address");
 #endif
-			if(get_local_addrs(idata) == FAILURE){
-				puts("Error while obtaining local addresses");
-				return(FAILURE);
-			}
 
 			/*
 			   If no source address or prefix have been specified, then we need to automatically learn our IPv6
@@ -3480,11 +3532,6 @@ int load_dst_and_pcap(struct iface_data *idata, unsigned int mode){
 #ifdef DEBUG
 	puts("DEBUG: Has specified source address");
 #endif
-			if(get_local_addrs(idata) == FAILURE){
-				if(idata->verbose_f)
-					puts("Error while obtaining local addresses");
-				return(FAILURE);
-			}
 
 			if(sel_next_hop(idata) == SUCCESS){
 #ifdef DEBUG
@@ -3515,6 +3562,87 @@ int load_dst_and_pcap(struct iface_data *idata, unsigned int mode){
 				}
 			}
 		}
+
+		/*
+		   If a next hop was found, we employ whatever was found as the output interface, because we need to open
+		   a pcap_t for that interface
+		 */
+		if(idata->nhifindex_f){
+#ifdef DEBUG
+puts("sel_next eligio nh_index");
+#endif
+			idata->ifindex= idata->nhifindex;
+
+			if( (cif = find_iface_by_index( &(idata->iflist), idata->ifindex)) == NULL){
+				if(idata->verbose_f){
+					puts("Could not find selected interface in local data");
+				}
+#ifdef DEBUG
+puts("No la interfaz que buscaba");
+#endif
+				return(FAILURE);
+			}
+
+			idata->flags= cif->flags;
+
+			if(if_indextoname(idata->ifindex, idata->iface) == NULL){
+				if(idata->verbose_f)
+					puts("Error calling if_indextoname() from sel_next_hop()");
+
+#ifdef DEBUG
+		puts("DEBUG: if_indextoname() failed");
+#endif
+				return(FAILURE);
+			}
+		}
+
+#ifdef DEBUG
+puts("Voy a chequear si es loopback");
+#endif
+		if( !(idata->flags & IFACE_LOOPBACK)){
+#ifdef DEBUG
+puts("COmprobe que era distinta de loopback");
+#endif
+			if(is_ip6_in_prefix_list( &(idata->dstaddr), &(idata->ip6_global)) || \
+			   is_eq_in6_addr( &(idata->dstaddr), &(idata->ip6_local))){
+
+#ifdef DEBUG
+puts("ENcontre la dst en mi lista de direcciones");
+#endif
+				/*
+				   Since we're sending a packet on the same interface to which the destination address belongs,
+				   the packet should actually be sent to the loopback interface
+				 */
+				if ( inet_pton(AF_INET6, LOOPBACK_ADDR, &loopback) <= 0){
+					if(idata->verbose_f)
+						puts("inet_pton(): Error converting loopback address from presentation to network format");
+
+#ifdef DEBUG
+puts("inet_pton dio error");
+#endif
+					return(FAILURE);
+				}
+
+				if( (rif=find_iface_by_addr( &(idata->iflist), &loopback)) == NULL){
+#ifdef DEBUG
+puts("No encontre loopback");
+#endif
+					if(idata->verbose_f)
+						puts("Could not find loopback interface in local data");
+
+					return(FAILURE);
+				}
+				else{
+#ifdef DEBUG
+puts("Encontre loopback y voy a sobreeescribir la info de destino");
+#endif
+					idata->flags= rif->flags;
+					idata->ifindex= rif->ifindex;
+					strncpy(idata->iface, rif->iface, IFACE_LENGTH);
+				}
+			}
+		}
+
 	}
 	else{
 		if(!idata->iface_f){
@@ -3537,35 +3665,11 @@ int load_dst_and_pcap(struct iface_data *idata, unsigned int mode){
 		}
 	}
 
-	if(idata->nhifindex_f){
-		idata->ifindex= idata->nhifindex;
-
-		if( (cif = find_iface_by_index( &(idata->iflist), idata->ifindex)) == NULL){
-			if(idata->verbose_f){
-				puts("Could not find selected interface in local data");
-			}
-
-			return(FAILURE);
-		}
-
-		idata->flags= cif->flags;
-
-		if(if_indextoname(idata->ifindex, idata->iface) == NULL){
-			if(idata->verbose_f)
-				puts("Error calling if_indextoname() from sel_next_hop()");
-
-#ifdef DEBUG
-	puts("DEBUG: if_indextoname() failed");
-#endif
-			return(FAILURE);
-		}
-	}
-
 #ifdef DEBUG
 	if(idata->nhaddr_f)
-		print_ipv6_address("DEBUG: Nex Hop: ", &(idata->nhaddr));
+		print_ipv6_address("DEBUG: load_dst_(): Nex Hop: ", &(idata->nhaddr));
 	else
-		puts("DEBUG: Next Hop address not set");
+		puts("DEBUG: load_dst() Next Hop address not set");
 
 	printf("DEBUG: Output interface: %s (%d)\n", idata->iface, idata->ifindex);
 #endif
@@ -3600,15 +3704,31 @@ int load_dst_and_pcap(struct iface_data *idata, unsigned int mode){
 	else if( idata->type == DLT_RAW){
 		idata->linkhsize=0;
 		idata->mtu= MIN_IPV6_MTU;
-		idata->flags= IFACE_TUNNEL;
+		idata->flags|= IFACE_TUNNEL;
 	}
+#if defined (__OpenBSD__)
+	else if( idata->type == DLT_LOOP){
+		idata->linkhsize=4;
+		idata->mtu= MIN_IPV6_MTU;
+		idata->flags|= IFACE_TUNNEL;
+	}
+#elif defined(__linux__)
+	else if( idata->type == DLT_LINUX_SLL){
+		idata->linkhsize= sizeof(struct sll_linux);
+		idata->mtu= MIN_IPV6_MTU;
+		idata->flags|= IFACE_TUNNEL;
+	}
+#endif
 	else if(idata->type == DLT_NULL){
 		idata->linkhsize=4;
 		idata->mtu= MIN_IPV6_MTU;
-		idata->flags= IFACE_TUNNEL;
+		idata->flags|= IFACE_TUNNEL;
 	}
 	else{
-		printf("Error: Interface %s is not an Ethernet or tunnel interface", idata->iface);
+#ifdef DEBUG
+puts("Estoy en load_dst() y voy a imprimir error");
+#endif
+		printf("Error: Interface %s is not of any supported type (type= %u)\n", idata->iface, idata->type);
 		return(FAILURE);
 	}
 
@@ -3620,7 +3740,7 @@ int load_dst_and_pcap(struct iface_data *idata, unsigned int mode){
 	if(mode == LOAD_PCAP_ONLY)
 		return(SUCCESS);
 
-	if(idata->flags != IFACE_TUNNEL && idata->flags != IFACE_LOOPBACK){
+	if(!(idata->flags & IFACE_TUNNEL) && !(idata->flags & IFACE_LOOPBACK)){
 		if(ipv6_to_ether(idata->pfd, idata, &(idata->nhaddr), &(idata->nhhaddr)) != 1){
 			puts("Error while performing Neighbor Discovery for the Destination Address");
 			return(FAILURE);
