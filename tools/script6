@@ -861,7 +861,7 @@ elsif($ARGV[0] eq "trace-do8-tcp"){
 	undef @ipsfree;
 
 	if($#ARGV < 1){
-		print "Must specify an IPv6 address\n");
+		print "Must specify an IPv6 address\n";
 	}
 
 	$fline=$ARGV[1];
@@ -940,7 +940,7 @@ elsif($ARGV[0] eq "trace-do8-icmp"){
 	undef @ipsfree;
 
 	if($#ARGV < 1){
-		print "Must specify an IPv6 address\n");
+		print "Must specify an IPv6 address\n";
 	}
 
 	$fline= $ARGV[1];
@@ -1016,7 +1016,7 @@ elsif($ARGV[0] eq "trace-do256-tcp"){
 	undef @ipsfree;
 
 	if($#ARGV < 1){
-		print "Must specify an IPv6 address\n");
+		print "Must specify an IPv6 address\n";
 	}
 
 	$fline=$ARGV[1];
@@ -1095,7 +1095,7 @@ elsif($ARGV[0] eq "trace-do256-icmp"){
 	undef @ipsfree;
 
 	if($#ARGV < 1){
-		print "Must specify an IPv6 address\n");
+		print "Must specify an IPv6 address\n";
 	}
 
 	$fline= $ARGV[1];
@@ -1171,7 +1171,7 @@ elsif($ARGV[0] eq "trace-hbh-tcp"){
 	undef @ipsfree;
 
 	if($#ARGV < 1){
-		print "Must specify an IPv6 address\n");
+		print "Must specify an IPv6 address\n";
 	}
 
 	$fline=$ARGV[1];
@@ -1250,7 +1250,7 @@ elsif($ARGV[0] eq "trace-hbh8-icmp"){
 	undef @ipsfree;
 
 	if($#ARGV < 1){
-		print "Must specify an IPv6 address\n");
+		print "Must specify an IPv6 address\n";
 	}
 
 	$fline= $ARGV[1];
@@ -1326,7 +1326,7 @@ elsif($ARGV[0] eq "trace-hbh256-tcp"){
 	undef @ipsfree;
 
 	if($#ARGV < 1){
-		print "Must specify an IPv6 address\n");
+		print "Must specify an IPv6 address\n";
 	}
 
 	$fline=$ARGV[1];
@@ -1405,7 +1405,7 @@ elsif($ARGV[0] eq "trace-hbh256-icmp"){
 	undef @ipsfree;
 
 	if($#ARGV < 1){
-		print "Must specify an IPv6 address\n");
+		print "Must specify an IPv6 address\n";
 	}
 
 	$fline= $ARGV[1];
@@ -1481,7 +1481,7 @@ elsif($ARGV[0] eq "trace-fh256-tcp"){
 	undef @ipsfree;
 
 	if($#ARGV < 1){
-		print "Must specify an IPv6 address\n");
+		print "Must specify an IPv6 address\n";
 	}
 
 	$fline= $ARGV[1];
@@ -1556,7 +1556,7 @@ elsif($ARGV[0] eq "trace-fh256-icmp"){
 	undef @ipsfree;
 
 	if($#ARGV < 1){
-		print "Must specify an IPv6 address\n");
+		print "Must specify an IPv6 address\n";
 	}
 
 	$fline= $ARGV[1];
