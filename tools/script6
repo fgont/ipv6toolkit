@@ -804,7 +804,7 @@ elsif($ARGV[0] eq "trace-fh256-tcp-stdin"){
 
 		$maxhopsfree=0;
 		$maxhopsfreeip="";
-		@tcp=`path6 -p tcp -a 80 --X S -P 450 -d $fline --rate-limit 20pps`;
+		@tcp=`path6 -p tcp -a 80 --tcp-flags -P 450 -d $fline --rate-limit 20pps`;
 		foreach $line (@tcp){
 			# Discard lines that do not contain a "probe" line
 			if($line =~ m/\s+(\d+)\s+\((\S+)\)/){
@@ -820,7 +820,7 @@ elsif($ARGV[0] eq "trace-fh256-tcp-stdin"){
 
 		$maxhopstrouble=0;
 		$maxhopstroubleip="";
-		@tcp=`path6 -p tcp -a 80 --X S -P 450 -y 256 -d $fline --rate-limit 20pps`;
+		@tcp=`path6 -p tcp -a 80 --tcp-flags -P 450 -y 256 -d $fline --rate-limit 20pps`;
 		foreach $line (@tcp){
 			# Discard lines that do not contain a "probe" line
 			if($line =~ m/\s+(\d+)\s+\((\S+)\)/){
