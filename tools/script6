@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 #
-# si6-scripts: si6-scripts: A tool to make complex IPv6 tasks easy
+# script6: script6: A tool to make complex IPv6 tasks easy
 #
 
 if($ARGV[0] eq "get-aaaa"){
@@ -171,6 +171,157 @@ elsif($ARGV[0] eq "get-alexa-domains"){
 		}
 	}
 }
+elsif($ARGV[0] eq "trace-do8-tcp-stdin"){
+	$total=0;
+	$response=0;
+	$timeout=0;
+
+	while($fline=<STDIN>){
+		chomp($fline);
+
+		if($fline =~ m/([^\x0d]+)/){
+			$fline= $1;
+		}
+
+		# Check whether this line is just a comment -- if so, skip it
+		if($fline =~ m/^((\s)*#)/){
+			next;
+		}
+
+		# Skip blanck lines 
+		if($fline =~ m/^(\s)*$/){
+			next;
+		}
+
+		# Remove all items from the array of IP addresses
+		undef @ipsfree;
+
+		$maxhopsfree=0;
+		$maxhopsfreeip="";
+		@tcp=`path6 -p tcp -a 80 -d $fline --tcp-flags S --rate-limit 20pps`;
+		foreach $line (@tcp){
+			# Discard lines that do not contain a "probe" line
+			if($line =~ m/\s+(\d+)\s+\((\S+)\)/){
+				if($1 > $maxhopsfree){
+					$maxhopsfree=$1;
+					$maxhopsfreeip=$2;
+
+					# We store the IPv6 addresses of all hops
+					push(@ipsfree, $2);
+				}
+			}
+		}
+
+		$maxhopstrouble=0;
+		$maxhopstroubleip="";
+		@tcp=`path6 -p tcp -a 80 -u 8 -d $fline --tcp-flags S --rate-limit 20pps`;
+		foreach $line (@tcp){
+			# Discard lines that do not contain a "probe" line
+			if($line =~ m/\s+(\d+)\s+\((\S+)\)/){
+				if($1 > $maxhopstrouble){
+					$maxhopstrouble=$1;
+					$maxhopstroubleip= $2;
+				}
+			}
+		}
+
+
+		for($i=0; $i<= $#ipsfree; $i++){
+			if($ipsfree[$i] eq $maxhopstroubleip){
+				if($i == $#ipsfree){
+					$dropip= $ipsfree[$i];
+					last;
+				}
+				else{
+					$dropip= $ipsfree[$i+1];
+					last;
+				}
+			}
+		}
+
+#		if($i > $#ipsfree){
+#			next;
+#		}
+
+		print "$fline#$maxhopsfreeip#$maxhopsfree#$maxhopstroubleip#$maxhopstrouble#$dropip\n";
+	}
+}
+elsif($ARGV[0] eq "trace-do8-icmp-stdin"){
+	$total=0;
+	$response=0;
+	$timeout=0;
+
+	#print "Voy a empezar";
+
+	while($fline=<STDIN>){
+		chomp($fline);
+
+		if($fline =~ m/([^\x0d]+)/){
+			$fline= $1;
+		}
+
+		# Check whether this line is just a comment -- if so, skip it
+		if($fline =~ m/^((\s)*#)/){
+			next;
+		}
+
+		# Skip blanck lines 
+		if($fline =~ m/^(\s)*$/){
+			next;
+		}
+
+		# Remove all items from the array of IP addresses
+		undef @ipsfree;
+
+		$maxhopsfree=0;
+		$maxhopsfreeip="";
+		@tcp=`path6 -p icmp -d $fline --rate-limit 20pps`;
+		foreach $line (@tcp){
+			# Discard lines that do not contain a "probe" line
+			if($line =~ m/\s+(\d+)\s+\((\S+)\)/){
+				if($1 > $maxhopsfree){
+					$maxhopsfree=$1;
+					$maxhopsfreeip=$2;
+
+					# We store the IPv6 addresses of all hops
+					push(@ipsfree, $2);
+				}
+			}
+		}
+
+		$maxhopstrouble=0;
+		$maxhopstroubleip="";
+		@tcp=`path6 -p icmp -u 8 -d $fline --rate-limit 20pps`;
+		foreach $line (@tcp){
+			# Discard lines that do not contain a "probe" line
+			if($line =~ m/\s+(\d+)\s+\((\S+)\)/){
+				if($1 > $maxhopstrouble){
+					$maxhopstrouble=$1;
+					$maxhopstroubleip= $2;
+				}
+			}
+		}
+
+		for($i=0; $i<= $#ipsfree; $i++){
+			if($ipsfree[$i] eq $maxhopstroubleip){
+				if($i == $#ipsfree){
+					$dropip= $ipsfree[$i];
+					last;
+				}
+				else{
+					$dropip= $ipsfree[$i+1];
+					last;
+				}
+			}
+		}
+
+#		if($i > $#ipsfree){
+#			next;
+#		}
+
+		print "$fline#$maxhopsfreeip#$maxhopsfree#$maxhopstroubleip#$maxhopstrouble#$dropip\n";
+	}
+}
 elsif($ARGV[0] eq "trace-do256-tcp-stdin"){
 	$total=0;
 	$response=0;
@@ -208,19 +359,15 @@ elsif($ARGV[0] eq "trace-do256-tcp-stdin"){
 					$maxhopsfreeip=$2;
 
 					# We store the IPv6 addresses of all hops
-	print "Obtuve direccion: $2\n";
 					push(@ipsfree, $2);
 				}
 			}
 		}
 
-	#print "segundo";
-
 		$maxhopstrouble=0;
 		$maxhopstroubleip="";
-		@tcp=`path6 -p icmp -a 80 -u 256 -d $fline --tcp-flags S --rate-limit 20pps`;
+		@tcp=`path6 -p tcp -a 80 -u 256 -d $fline --tcp-flags S --rate-limit 20pps`;
 		foreach $line (@tcp){
-	#print $line;
 			# Discard lines that do not contain a "probe" line
 			if($line =~ m/\s+(\d+)\s+\((\S+)\)/){
 				if($1 > $maxhopstrouble){
@@ -282,7 +429,6 @@ elsif($ARGV[0] eq "trace-do256-icmp-stdin"){
 		$maxhopsfreeip="";
 		@tcp=`path6 -p icmp -d $fline --rate-limit 20pps`;
 		foreach $line (@tcp){
-	#		print "lei linea: $line\n";
 			# Discard lines that do not contain a "probe" line
 			if($line =~ m/\s+(\d+)\s+\((\S+)\)/){
 				if($1 > $maxhopsfree){
@@ -290,19 +436,15 @@ elsif($ARGV[0] eq "trace-do256-icmp-stdin"){
 					$maxhopsfreeip=$2;
 
 					# We store the IPv6 addresses of all hops
-	#print "Obtuve direccion: $2\n";
 					push(@ipsfree, $2);
 				}
 			}
 		}
 
-	#print "segundo";
-
 		$maxhopstrouble=0;
 		$maxhopstroubleip="";
 		@tcp=`path6 -p icmp -u 256 -d $fline --rate-limit 20pps`;
 		foreach $line (@tcp){
-	#print $line;
 			# Discard lines that do not contain a "probe" line
 			if($line =~ m/\s+(\d+)\s+\((\S+)\)/){
 				if($1 > $maxhopstrouble){
@@ -312,7 +454,308 @@ elsif($ARGV[0] eq "trace-do256-icmp-stdin"){
 			}
 		}
 
-	#print "Voy a buscar la ip";
+		for($i=0; $i<= $#ipsfree; $i++){
+			if($ipsfree[$i] eq $maxhopstroubleip){
+				if($i == $#ipsfree){
+					$dropip= $ipsfree[$i];
+					last;
+				}
+				else{
+					$dropip= $ipsfree[$i+1];
+					last;
+				}
+			}
+		}
+
+#		if($i > $#ipsfree){
+#			next;
+#		}
+
+		print "$fline#$maxhopsfreeip#$maxhopsfree#$maxhopstroubleip#$maxhopstrouble#$dropip\n";
+	}
+}
+elsif($ARGV[0] eq "trace-hbh8-tcp-stdin"){
+	$total=0;
+	$response=0;
+	$timeout=0;
+
+	while($fline=<STDIN>){
+		chomp($fline);
+
+		if($fline =~ m/([^\x0d]+)/){
+			$fline= $1;
+		}
+
+		# Check whether this line is just a comment -- if so, skip it
+		if($fline =~ m/^((\s)*#)/){
+			next;
+		}
+
+		# Skip blanck lines 
+		if($fline =~ m/^(\s)*$/){
+			next;
+		}
+
+		# Remove all items from the array of IP addresses
+		undef @ipsfree;
+
+		$maxhopsfree=0;
+		$maxhopsfreeip="";
+		@tcp=`path6 -p tcp -a 80 -d $fline --tcp-flags S --rate-limit 20pps`;
+		foreach $line (@tcp){
+			# Discard lines that do not contain a "probe" line
+			if($line =~ m/\s+(\d+)\s+\((\S+)\)/){
+				if($1 > $maxhopsfree){
+					$maxhopsfree=$1;
+					$maxhopsfreeip=$2;
+
+					# We store the IPv6 addresses of all hops
+					push(@ipsfree, $2);
+				}
+			}
+		}
+
+		$maxhopstrouble=0;
+		$maxhopstroubleip="";
+		@tcp=`path6 -p tcp -a 80 -H 8 -d $fline --tcp-flags S --rate-limit 20pps`;
+		foreach $line (@tcp){
+			# Discard lines that do not contain a "probe" line
+			if($line =~ m/\s+(\d+)\s+\((\S+)\)/){
+				if($1 > $maxhopstrouble){
+					$maxhopstrouble=$1;
+					$maxhopstroubleip= $2;
+				}
+			}
+		}
+
+
+		for($i=0; $i<= $#ipsfree; $i++){
+			if($ipsfree[$i] eq $maxhopstroubleip){
+				if($i == $#ipsfree){
+					$dropip= $ipsfree[$i];
+					last;
+				}
+				else{
+					$dropip= $ipsfree[$i+1];
+					last;
+				}
+			}
+		}
+
+#		if($i > $#ipsfree){
+#			next;
+#		}
+
+		print "$fline#$maxhopsfreeip#$maxhopsfree#$maxhopstroubleip#$maxhopstrouble#$dropip\n";
+	}
+}
+elsif($ARGV[0] eq "trace-hbh8-icmp-stdin"){
+	$total=0;
+	$response=0;
+	$timeout=0;
+
+	#print "Voy a empezar";
+
+	while($fline=<STDIN>){
+		chomp($fline);
+
+		if($fline =~ m/([^\x0d]+)/){
+			$fline= $1;
+		}
+
+		# Check whether this line is just a comment -- if so, skip it
+		if($fline =~ m/^((\s)*#)/){
+			next;
+		}
+
+		# Skip blanck lines 
+		if($fline =~ m/^(\s)*$/){
+			next;
+		}
+
+		# Remove all items from the array of IP addresses
+		undef @ipsfree;
+
+		$maxhopsfree=0;
+		$maxhopsfreeip="";
+		@tcp=`path6 -p icmp -d $fline --rate-limit 20pps`;
+		foreach $line (@tcp){
+			# Discard lines that do not contain a "probe" line
+			if($line =~ m/\s+(\d+)\s+\((\S+)\)/){
+				if($1 > $maxhopsfree){
+					$maxhopsfree=$1;
+					$maxhopsfreeip=$2;
+
+					# We store the IPv6 addresses of all hops
+					push(@ipsfree, $2);
+				}
+			}
+		}
+
+		$maxhopstrouble=0;
+		$maxhopstroubleip="";
+		@tcp=`path6 -p icmp -H 8 -d $fline --rate-limit 20pps`;
+		foreach $line (@tcp){
+			# Discard lines that do not contain a "probe" line
+			if($line =~ m/\s+(\d+)\s+\((\S+)\)/){
+				if($1 > $maxhopstrouble){
+					$maxhopstrouble=$1;
+					$maxhopstroubleip= $2;
+				}
+			}
+		}
+
+		for($i=0; $i<= $#ipsfree; $i++){
+			if($ipsfree[$i] eq $maxhopstroubleip){
+				if($i == $#ipsfree){
+					$dropip= $ipsfree[$i];
+					last;
+				}
+				else{
+					$dropip= $ipsfree[$i+1];
+					last;
+				}
+			}
+		}
+
+#		if($i > $#ipsfree){
+#			next;
+#		}
+
+		print "$fline#$maxhopsfreeip#$maxhopsfree#$maxhopstroubleip#$maxhopstrouble#$dropip\n";
+	}
+}
+elsif($ARGV[0] eq "trace-hbh256-tcp-stdin"){
+	$total=0;
+	$response=0;
+	$timeout=0;
+
+	while($fline=<STDIN>){
+		chomp($fline);
+
+		if($fline =~ m/([^\x0d]+)/){
+			$fline= $1;
+		}
+
+		# Check whether this line is just a comment -- if so, skip it
+		if($fline =~ m/^((\s)*#)/){
+			next;
+		}
+
+		# Skip blanck lines 
+		if($fline =~ m/^(\s)*$/){
+			next;
+		}
+
+		# Remove all items from the array of IP addresses
+		undef @ipsfree;
+
+		$maxhopsfree=0;
+		$maxhopsfreeip="";
+		@tcp=`path6 -p tcp -a 80 -d $fline --tcp-flags S --rate-limit 20pps`;
+		foreach $line (@tcp){
+	#		print "$line\n";
+			# Discard lines that do not contain a "probe" line
+			if($line =~ m/\s+(\d+)\s+\((\S+)\)/){
+				if($1 > $maxhopsfree){
+					$maxhopsfree=$1;
+					$maxhopsfreeip=$2;
+
+					# We store the IPv6 addresses of all hops
+					push(@ipsfree, $2);
+				}
+			}
+		}
+
+		$maxhopstrouble=0;
+		$maxhopstroubleip="";
+		@tcp=`path6 -p tcp -a 80 -H 256 -d $fline --tcp-flags S --rate-limit 20pps`;
+		foreach $line (@tcp){
+			# Discard lines that do not contain a "probe" line
+			if($line =~ m/\s+(\d+)\s+\((\S+)\)/){
+				if($1 > $maxhopstrouble){
+					$maxhopstrouble=$1;
+					$maxhopstroubleip= $2;
+				}
+			}
+		}
+
+
+		for($i=0; $i<= $#ipsfree; $i++){
+			if($ipsfree[$i] eq $maxhopstroubleip){
+				if($i == $#ipsfree){
+					$dropip= $ipsfree[$i];
+					last;
+				}
+				else{
+					$dropip= $ipsfree[$i+1];
+					last;
+				}
+			}
+		}
+
+#		if($i > $#ipsfree){
+#			next;
+#		}
+
+		print "$fline#$maxhopsfreeip#$maxhopsfree#$maxhopstroubleip#$maxhopstrouble#$dropip\n";
+	}
+}
+elsif($ARGV[0] eq "trace-hbh256-icmp-stdin"){
+	$total=0;
+	$response=0;
+	$timeout=0;
+
+	#print "Voy a empezar";
+
+	while($fline=<STDIN>){
+		chomp($fline);
+
+		if($fline =~ m/([^\x0d]+)/){
+			$fline= $1;
+		}
+
+		# Check whether this line is just a comment -- if so, skip it
+		if($fline =~ m/^((\s)*#)/){
+			next;
+		}
+
+		# Skip blanck lines 
+		if($fline =~ m/^(\s)*$/){
+			next;
+		}
+
+		# Remove all items from the array of IP addresses
+		undef @ipsfree;
+
+		$maxhopsfree=0;
+		$maxhopsfreeip="";
+		@tcp=`path6 -p icmp -d $fline --rate-limit 20pps`;
+		foreach $line (@tcp){
+			# Discard lines that do not contain a "probe" line
+			if($line =~ m/\s+(\d+)\s+\((\S+)\)/){
+				if($1 > $maxhopsfree){
+					$maxhopsfree=$1;
+					$maxhopsfreeip=$2;
+
+					# We store the IPv6 addresses of all hops
+					push(@ipsfree, $2);
+				}
+			}
+		}
+
+		$maxhopstrouble=0;
+		$maxhopstroubleip="";
+		@tcp=`path6 -p icmp -H 256 -d $fline --rate-limit 20pps`;
+		foreach $line (@tcp){
+			# Discard lines that do not contain a "probe" line
+			if($line =~ m/\s+(\d+)\s+\((\S+)\)/){
+				if($1 > $maxhopstrouble){
+					$maxhopstrouble=$1;
+					$maxhopstroubleip= $2;
+				}
+			}
+		}
 
 		for($i=0; $i<= $#ipsfree; $i++){
 			if($ipsfree[$i] eq $maxhopstroubleip){
@@ -361,7 +804,7 @@ elsif($ARGV[0] eq "trace-fh256-icmp-stdin"){
 
 		$maxhopsfree=0;
 		$maxhopsfreeip="";
-		@tcp=`path6 -p icmp -P 500 -y 256 -d $fline --rate-limit 20pps`;
+		@tcp=`path6 -p icmp -P 450 -d $fline --rate-limit 20pps`;
 		foreach $line (@tcp){
 			# Discard lines that do not contain a "probe" line
 			if($line =~ m/\s+(\d+)\s+\((\S+)\)/){
@@ -377,7 +820,7 @@ elsif($ARGV[0] eq "trace-fh256-icmp-stdin"){
 
 		$maxhopstrouble=0;
 		$maxhopstroubleip="";
-		@tcp=`path6 -p icmp -P 500 -y 256 -d $fline --rate-limit 20pps`;
+		@tcp=`path6 -p icmp -P 450 -y 256 -d $fline --rate-limit 20pps`;
 		foreach $line (@tcp){
 			# Discard lines that do not contain a "probe" line
 			if($line =~ m/\s+(\d+)\s+\((\S+)\)/){
@@ -417,6 +860,10 @@ elsif($ARGV[0] eq "trace-do8-tcp"){
 	# Remove all items from the array of IP addresses
 	undef @ipsfree;
 
+	if($#ARGV < 1){
+		print "Must specify an IPv6 address\n");
+	}
+
 	$fline=$ARGV[1];
 	$maxhopsfree=0;
 	$maxhopsfreeip="";
@@ -439,7 +886,7 @@ elsif($ARGV[0] eq "trace-do8-tcp"){
 	$maxhopstrouble=0;
 	$maxhopstroubleip="";
 
-	@tcp=`path6 -p tcp -u 8 -a 80 -d $fline --tcp-flags S --rate-limit 20pps`;
+	@tcp=`path6 -p tcp -a 80 -u 8 -d $fline --tcp-flags S --rate-limit 20pps`;
 	foreach $line (@tcp){
 		# Discard lines that do not contain a "probe" line
 		if($line =~ m/\s+(\d+)\s+\((\S+)\)/){
@@ -492,6 +939,10 @@ elsif($ARGV[0] eq "trace-do8-icmp"){
 	# Remove all items from the array of IP addresses
 	undef @ipsfree;
 
+	if($#ARGV < 1){
+		print "Must specify an IPv6 address\n");
+	}
+
 	$fline= $ARGV[1];
 	$maxhopsfree=0;
 	$maxhopsfreeip="";
@@ -542,7 +993,7 @@ elsif($ARGV[0] eq "trace-do8-icmp"){
 
 	print "Destination IPv6 address: $fline\n";
 	print "Last responding node (no EHs): $maxhopsfreeip ($maxhopsfree hop(s))\n";
-	print "Last responding node (DO 8): $maxhopstroubleip ($maxhopstrouble hop(s))\n";
+	print "Last responding node (8-byte DOH): $maxhopstroubleip ($maxhopstrouble hop(s))\n";
 
 	if($maxhopsfreeip == $fline){
 		if($maxhopstroubleip == $fline){
@@ -563,6 +1014,10 @@ elsif($ARGV[0] eq "trace-do256-tcp"){
 
 	# Remove all items from the array of IP addresses
 	undef @ipsfree;
+
+	if($#ARGV < 1){
+		print "Must specify an IPv6 address\n");
+	}
 
 	$fline=$ARGV[1];
 	$maxhopsfree=0;
@@ -586,7 +1041,7 @@ elsif($ARGV[0] eq "trace-do256-tcp"){
 	$maxhopstrouble=0;
 	$maxhopstroubleip="";
 
-	@tcp=`path6 -p tcp -u 256 -a 80 -d $fline --tcp-flags S --rate-limit 20pps`;
+	@tcp=`path6 -p tcp -a 80 -u 256 -d $fline --tcp-flags S --rate-limit 20pps`;
 	foreach $line (@tcp){
 		# Discard lines that do not contain a "probe" line
 		if($line =~ m/\s+(\d+)\s+\((\S+)\)/){
@@ -638,6 +1093,10 @@ elsif($ARGV[0] eq "trace-do256-icmp"){
 
 	# Remove all items from the array of IP addresses
 	undef @ipsfree;
+
+	if($#ARGV < 1){
+		print "Must specify an IPv6 address\n");
+	}
 
 	$fline= $ARGV[1];
 	$maxhopsfree=0;
@@ -703,7 +1162,7 @@ elsif($ARGV[0] eq "trace-do256-icmp"){
 		print "Dropping node: $dropip\n";
 	}
 }
-elsif($ARGV[0] eq "trace-fh256-icmp"){
+elsif($ARGV[0] eq "trace-hbh-tcp"){
 	$total=0;
 	$response=0;
 	$timeout=0;
@@ -711,10 +1170,93 @@ elsif($ARGV[0] eq "trace-fh256-icmp"){
 	# Remove all items from the array of IP addresses
 	undef @ipsfree;
 
+	if($#ARGV < 1){
+		print "Must specify an IPv6 address\n");
+	}
+
+	$fline=$ARGV[1];
+	$maxhopsfree=0;
+	$maxhopsfreeip="";
+
+	@tcp=`path6 -p tcp -a 80 -d $fline --tcp-flags S --rate-limit 20pps`;
+	foreach $line (@tcp){
+	# Discard lines that do not contain a "probe" line
+		if($line =~ m/\s+(\d+)\s+\((\S+)\)/){
+			if($1 > $maxhopsfree){
+				$maxhopsfree=$1;
+				$maxhopsfreeip=$2;
+
+				# We store the IPv6 addresses of all hops
+				push(@ipsfree, $2);
+			}
+		}
+	}
+
+
+	$maxhopstrouble=0;
+	$maxhopstroubleip="";
+
+	@tcp=`path6 -p tcp -a 80 -H 8 -d $fline --tcp-flags S --rate-limit 20pps`;
+	foreach $line (@tcp){
+		# Discard lines that do not contain a "probe" line
+		if($line =~ m/\s+(\d+)\s+\((\S+)\)/){
+			if($1 > $maxhopstrouble){
+				$maxhopstrouble=$1;
+				$maxhopstroubleip= $2;
+			}
+		}
+	}
+
+
+	for($i=0; $i<= $#ipsfree; $i++){
+		if($ipsfree[$i] eq $maxhopstroubleip){
+			if($i == $#ipsfree){
+				$dropip= $ipsfree[$i];
+				last;
+			}
+			else{
+				$dropip= $ipsfree[$i+1];
+				last;
+			}
+		}
+	}
+
+#	if($i > $#ipsfree){
+#		next;
+#	}
+
+	print "Destination IPv6 address: $fline\n";
+	print "Last responding node (no EHs): $maxhopsfreeip ($maxhopsfree hop(s))\n";
+	print "Last responding node (HBH 8): $maxhopstroubleip ($maxhopstrouble hop(s))\n";
+
+	if($maxhopsfreeip == $fline){
+		if($maxhopstroubleip == $fline){
+				print "Dropping node: No packet drops\n";
+		}
+		else{
+			print "Dropping node: $dropip\n";
+		}
+	}
+	else{
+		print "Dropping node: $dropip\n";
+	}
+}
+elsif($ARGV[0] eq "trace-hbh8-icmp"){
+	$total=0;
+	$response=0;
+	$timeout=0;
+
+	# Remove all items from the array of IP addresses
+	undef @ipsfree;
+
+	if($#ARGV < 1){
+		print "Must specify an IPv6 address\n");
+	}
+
 	$fline= $ARGV[1];
 	$maxhopsfree=0;
 	$maxhopsfreeip="";
-	@tcp=`path6 -p icmp -P 500 -d $fline --rate-limit 20pps`;
+	@tcp=`path6 -p icmp -d $fline --rate-limit 20pps`;
 	foreach $line (@tcp){
 		# Discard lines that do not contain a "probe" line
 		if($line =~ m/\s+(\d+)\s+\((\S+)\)/){
@@ -730,7 +1272,7 @@ elsif($ARGV[0] eq "trace-fh256-icmp"){
 
 	$maxhopstrouble=0;
 	$maxhopstroubleip="";
-	@tcp=`path6 -p icmp -P 500 -y 256 -d $fline --rate-limit 20pps`;
+	@tcp=`path6 -p icmp -H 8 -d $fline --rate-limit 20pps`;
 	foreach $line (@tcp){
 		# Discard lines that do not contain a "probe" line
 		if($line =~ m/\s+(\d+)\s+\((\S+)\)/){
@@ -761,7 +1303,313 @@ elsif($ARGV[0] eq "trace-fh256-icmp"){
 
 	print "Destination IPv6 address: $fline\n";
 	print "Last responding node (no EHs): $maxhopsfreeip ($maxhopsfree hop(s))\n";
-	print "Last responding node (DO 256): $maxhopstroubleip ($maxhopstrouble hop(s))\n";
+	print "Last responding node (8-byte HBH): $maxhopstroubleip ($maxhopstrouble hop(s))\n";
+
+	if($maxhopsfreeip == $fline){
+		if($maxhopstroubleip == $fline){
+				print "Dropping node: No packet drops\n";
+		}
+		else{
+			print "Dropping node: $dropip\n";
+		}
+	}
+	else{
+		print "Dropping node: $dropip\n";
+	}
+}
+elsif($ARGV[0] eq "trace-hbh256-tcp"){
+	$total=0;
+	$response=0;
+	$timeout=0;
+
+	# Remove all items from the array of IP addresses
+	undef @ipsfree;
+
+	if($#ARGV < 1){
+		print "Must specify an IPv6 address\n");
+	}
+
+	$fline=$ARGV[1];
+	$maxhopsfree=0;
+	$maxhopsfreeip="";
+
+	@tcp=`path6 -p tcp -a 80 -d $fline --tcp-flags S --rate-limit 20pps`;
+	foreach $line (@tcp){
+	# Discard lines that do not contain a "probe" line
+		if($line =~ m/\s+(\d+)\s+\((\S+)\)/){
+			if($1 > $maxhopsfree){
+				$maxhopsfree=$1;
+				$maxhopsfreeip=$2;
+
+				# We store the IPv6 addresses of all hops
+				push(@ipsfree, $2);
+			}
+		}
+	}
+
+
+	$maxhopstrouble=0;
+	$maxhopstroubleip="";
+
+	@tcp=`path6 -p tcp -a 80 -H 256 -d $fline --tcp-flags S --rate-limit 20pps`;
+	foreach $line (@tcp){
+		# Discard lines that do not contain a "probe" line
+		if($line =~ m/\s+(\d+)\s+\((\S+)\)/){
+			if($1 > $maxhopstrouble){
+				$maxhopstrouble=$1;
+				$maxhopstroubleip= $2;
+			}
+		}
+	}
+
+
+	for($i=0; $i<= $#ipsfree; $i++){
+		if($ipsfree[$i] eq $maxhopstroubleip){
+			if($i == $#ipsfree){
+				$dropip= $ipsfree[$i];
+				last;
+			}
+			else{
+				$dropip= $ipsfree[$i+1];
+				last;
+			}
+		}
+	}
+
+#	if($i > $#ipsfree){
+#		next;
+#	}
+
+	print "Destination IPv6 address: $fline\n";
+	print "Last responding node (no EHs): $maxhopsfreeip ($maxhopsfree hop(s))\n";
+	print "Last responding node (HBH 256): $maxhopstroubleip ($maxhopstrouble hop(s))\n";
+
+	if($maxhopsfreeip == $fline){
+		if($maxhopstroubleip == $fline){
+				print "Dropping node: No packet drops\n";
+		}
+		else{
+			print "Dropping node: $dropip\n";
+		}
+	}
+	else{
+		print "Dropping node: $dropip\n";
+	}
+}
+elsif($ARGV[0] eq "trace-hbh256-icmp"){
+	$total=0;
+	$response=0;
+	$timeout=0;
+
+	# Remove all items from the array of IP addresses
+	undef @ipsfree;
+
+	if($#ARGV < 1){
+		print "Must specify an IPv6 address\n");
+	}
+
+	$fline= $ARGV[1];
+	$maxhopsfree=0;
+	$maxhopsfreeip="";
+	@tcp=`path6 -p icmp -d $fline --rate-limit 20pps`;
+	foreach $line (@tcp){
+		# Discard lines that do not contain a "probe" line
+		if($line =~ m/\s+(\d+)\s+\((\S+)\)/){
+			if($1 > $maxhopsfree){
+				$maxhopsfree=$1;
+				$maxhopsfreeip=$2;
+
+				# We store the IPv6 addresses of all hops
+				push(@ipsfree, $2);
+			}
+		}
+	}
+
+	$maxhopstrouble=0;
+	$maxhopstroubleip="";
+	@tcp=`path6 -p icmp -H 256 -d $fline --rate-limit 20pps`;
+	foreach $line (@tcp){
+		# Discard lines that do not contain a "probe" line
+		if($line =~ m/\s+(\d+)\s+\((\S+)\)/){
+			if($1 > $maxhopstrouble){
+				$maxhopstrouble=$1;
+				$maxhopstroubleip= $2;
+			}
+		}
+	}
+
+	$dropip="";
+	for($i=0; $i<= $#ipsfree; $i++){
+		if($ipsfree[$i] eq $maxhopstroubleip){
+			if($i == $#ipsfree){
+				$dropip= $ipsfree[$i];
+				last;
+			}
+			else{
+				$dropip= $ipsfree[$i+1];
+				last;
+			}
+		}
+	}
+
+#	if($i > $#ipsfree){
+#		next;
+#	}
+
+	print "Destination IPv6 address: $fline\n";
+	print "Last responding node (no EHs): $maxhopsfreeip ($maxhopsfree hop(s))\n";
+	print "Last responding node (HBH 256): $maxhopstroubleip ($maxhopstrouble hop(s))\n";
+
+	if($maxhopsfreeip == $fline){
+		if($maxhopstroubleip == $fline){
+				print "Dropping node: No packet drops\n";
+		}
+		else{
+			print "Dropping node: $dropip\n";
+		}
+	}
+	else{
+		print "Dropping node: $dropip\n";
+	}
+}
+elsif($ARGV[0] eq "trace-fh256-tcp"){
+	$total=0;
+	$response=0;
+	$timeout=0;
+
+	# Remove all items from the array of IP addresses
+	undef @ipsfree;
+
+	if($#ARGV < 1){
+		print "Must specify an IPv6 address\n");
+	}
+
+	$fline= $ARGV[1];
+	$maxhopsfree=0;
+	$maxhopsfreeip="";
+	@tcp=`path6 -p tcp -a 80 -P 450 -d $fline --rate-limit 20pps`;
+	foreach $line (@tcp){
+		# Discard lines that do not contain a "probe" line
+		if($line =~ m/\s+(\d+)\s+\((\S+)\)/){
+			if($1 > $maxhopsfree){
+				$maxhopsfree=$1;
+				$maxhopsfreeip=$2;
+
+				# We store the IPv6 addresses of all hops
+				push(@ipsfree, $2);
+			}
+		}
+	}
+
+	$maxhopstrouble=0;
+	$maxhopstroubleip="";
+	@tcp=`path6 -p tcp -a 80 -P 450 -y 256 -d $fline --rate-limit 20pps`;
+	foreach $line (@tcp){
+		# Discard lines that do not contain a "probe" line
+		if($line =~ m/\s+(\d+)\s+\((\S+)\)/){
+			if($1 > $maxhopstrouble){
+				$maxhopstrouble=$1;
+				$maxhopstroubleip= $2;
+			}
+		}
+	}
+
+	$dropip="";
+	for($i=0; $i<= $#ipsfree; $i++){
+		if($ipsfree[$i] eq $maxhopstroubleip){
+			if($i == $#ipsfree){
+				$dropip= $ipsfree[$i];
+				last;
+			}
+			else{
+				$dropip= $ipsfree[$i+1];
+				last;
+			}
+		}
+	}
+
+#	if($i > $#ipsfree){
+#		next;
+#	}
+
+	print "Destination IPv6 address: $fline\n";
+	print "Last responding node (no EHs): $maxhopsfreeip ($maxhopsfree hop(s))\n";
+	print "Last responding node (256B TCP frags): $maxhopstroubleip ($maxhopstrouble hop(s))\n";
+	if($maxhopsfreeip == $fline){
+		if($maxhopstroubleip == $fline){
+				print "Dropping node: No packet drops\n";
+		}
+		else{
+			print "Dropping node: $dropip\n";
+		}
+	}
+	else{
+		print "Dropping node: $dropip\n";
+	}
+}
+elsif($ARGV[0] eq "trace-fh256-icmp"){
+	$total=0;
+	$response=0;
+	$timeout=0;
+
+	# Remove all items from the array of IP addresses
+	undef @ipsfree;
+
+	if($#ARGV < 1){
+		print "Must specify an IPv6 address\n");
+	}
+
+	$fline= $ARGV[1];
+	$maxhopsfree=0;
+	$maxhopsfreeip="";
+	@tcp=`path6 -p icmp -P 450 -d $fline --rate-limit 20pps`;
+	foreach $line (@tcp){
+		# Discard lines that do not contain a "probe" line
+		if($line =~ m/\s+(\d+)\s+\((\S+)\)/){
+			if($1 > $maxhopsfree){
+				$maxhopsfree=$1;
+				$maxhopsfreeip=$2;
+
+				# We store the IPv6 addresses of all hops
+				push(@ipsfree, $2);
+			}
+		}
+	}
+
+	$maxhopstrouble=0;
+	$maxhopstroubleip="";
+	@tcp=`path6 -p icmp -P 450 -y 256 -d $fline --rate-limit 20pps`;
+	foreach $line (@tcp){
+		# Discard lines that do not contain a "probe" line
+		if($line =~ m/\s+(\d+)\s+\((\S+)\)/){
+			if($1 > $maxhopstrouble){
+				$maxhopstrouble=$1;
+				$maxhopstroubleip= $2;
+			}
+		}
+	}
+
+	$dropip="";
+	for($i=0; $i<= $#ipsfree; $i++){
+		if($ipsfree[$i] eq $maxhopstroubleip){
+			if($i == $#ipsfree){
+				$dropip= $ipsfree[$i];
+				last;
+			}
+			else{
+				$dropip= $ipsfree[$i+1];
+				last;
+			}
+		}
+	}
+
+#	if($i > $#ipsfree){
+#		next;
+#	}
+
+	print "Destination IPv6 address: $fline\n";
+	print "Last responding node (no EHs): $maxhopsfreeip ($maxhopsfree hop(s))\n";
+	print "Last responding node (256B ICMPv6 frags): $maxhopstroubleip ($maxhopstrouble hop(s))\n";
 	if($maxhopsfreeip == $fline){
 		if($maxhopstroubleip == $fline){
 				print "Dropping node: No packet drops\n";
@@ -775,6 +1623,6 @@ elsif($ARGV[0] eq "trace-fh256-icmp"){
 	}
 }
 else{
-	print "SI6 Networks toolkit v2.0\n";
-	print "si6-scripts: A tool to make complex IPv6 tasks easy\n";
+	print "SI6 Networks IPv6 Toolkit v2.0\n";
+	print "script6: A tool to make complex IPv6 tasks easy\n";
 }
