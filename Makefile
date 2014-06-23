@@ -41,7 +41,7 @@ SBINPATH= $(DESTDIR)$(PREFIX)/sbin
 SRCPATH= tools
 
 
-SBINTOOLS= flow6 frag6 icmp6 jumbo6 na6 ni6 ns6 path6 ra6 rd6 rs6 scan6 script6 tcp6
+SBINTOOLS= blackhole6 flow6 frag6 icmp6 jumbo6 na6 ni6 ns6 path6 ra6 rd6 rs6 scan6 script6 tcp6
 BINTOOLS= addr6
 TOOLS= $(BINTOOLS) $(SBINTOOLS)
 LIBS= libipv6.o
@@ -50,6 +50,9 @@ all: $(TOOLS) ipv6toolkit.conf
 
 addr6: $(SRCPATH)/addr6.c $(SRCPATH)/addr6.h $(SRCPATH)/ipv6toolkit.h $(LIBS) $(SRCPATH)/libipv6.h
 	$(CC) $(CPPFLAGS) $(CFLAGS) -o addr6 $(SRCPATH)/addr6.c $(LIBS) $(LDFLAGS) 
+
+blackhole6: $(SRCPATH)/blackhole6
+	cp $(SRCPATH)/blackhole6 ./
 
 flow6: $(SRCPATH)/flow6.c $(SRCPATH)/flow6.h $(SRCPATH)/ipv6toolkit.h $(LIBS) $(SRCPATH)/libipv6.h
 	$(CC) $(CPPFLAGS) $(CFLAGS) -o flow6 $(SRCPATH)/flow6.c $(LIBS) $(LDFLAGS) 
@@ -131,6 +134,7 @@ install: all
 uninstall:
 	# Remove the binaries
 	rm -f $(BINPATH)/addr6
+	rm -f $(SBINPATH)/blackhole6
 	rm -f $(SBINPATH)/flow6
 	rm -f $(SBINPATH)/frag6
 	rm -f $(SBINPATH)/icmp6
@@ -138,6 +142,7 @@ uninstall:
 	rm -f $(SBINPATH)/na6
 	rm -f $(SBINPATH)/ni6
 	rm -f $(SBINPATH)/ns6
+	rm -f $(SBINPATH)/path6
 	rm -f $(SBINPATH)/ra6
 	rm -f $(SBINPATH)/rd6
 	rm -f $(SBINPATH)/rs6
@@ -153,6 +158,7 @@ uninstall:
 
 	# Remove the manual pages
 	rm -f $(MANPATH)/man1/addr6.1
+	rm -f $(MANPATH)/man1/blackhole.1
 	rm -f $(MANPATH)/man1/flow6.1
 	rm -f $(MANPATH)/man1/frag6.1
 	rm -f $(MANPATH)/man1/icmp6.1
@@ -160,10 +166,12 @@ uninstall:
 	rm -f $(MANPATH)/man1/na6.1
 	rm -f $(MANPATH)/man1/ni6.1
 	rm -f $(MANPATH)/man1/ns6.1
+	rm -f $(MANPATH)/man1/path6.1
 	rm -f $(MANPATH)/man1/ra6.1
 	rm -f $(MANPATH)/man1/rd6.1
 	rm -f $(MANPATH)/man1/rs6.1
 	rm -f $(MANPATH)/man1/scan6.1
+	rm -f $(MANPATH)/man1/script6.1
 	rm -f $(MANPATH)/man1/tcp6.1
 	rm -f $(MANPATH)/man5/ipv6toolkit.conf.5
 	rm -f $(MANPATH)/man7/ipv6toolkit.7
