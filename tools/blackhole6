@@ -139,6 +139,16 @@ for($i=0; $i<= $#ipsfree; $i++){
 	}
 }
 
+@revname=`addr6 -a $fline -r`;
+chomp($revname[0]);
+$queryname= $revname[0] . ".origin6.asn.cymru.com.";
+@reverse=`host -t TXT $queryname`;
+$reverse[0] =~ m/\"\s*((\d+)\s*)\s+|"/;
+$flineasn= $2;
+
+if($flineasn eq ""){
+	$flineasn= "Unknown";
+}
 
 @revname=`addr6 -a $maxhopsfreeip -r`;
 chomp($revname[0]);
@@ -163,7 +173,7 @@ if($maxhopstroubleasn eq ""){
 }
 
 $ehtype_uc= uc($ehtype);
-print "\nDestination IPv6 address: $fline\n";
+print "\nDestination IPv6 address: $fline (AS $flineasn)\n";
 print "Last responding node (no EHs): $maxhopsfreeip (AS $maxhopsfreeasn) ($maxhopsfree hop(s))\n";
 print "Last responding node ($ehtype_uc $ehsize): $maxhopstroubleip (AS $maxhopstroubleasn) ($maxhopstrouble hop(s))\n";
 
