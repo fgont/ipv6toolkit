@@ -162,9 +162,10 @@ if($maxhopstroubleasn eq ""){
 	$maxhopstroubleasn= "Unknown";
 }
 
+$ehtype_uc= uc($ehtype);
 print "\nDestination IPv6 address: $fline\n";
 print "Last responding node (no EHs): $maxhopsfreeip (AS $maxhopsfreeasn) ($maxhopsfree hop(s))\n";
-print "Last responding node ($ehtype $ehsize): $maxhopstroubleip (AS $maxhopstroubleasn) ($maxhopstrouble hop(s))\n";
+print "Last responding node ($ehtype_uc $ehsize): $maxhopstroubleip (AS $maxhopstroubleasn) ($maxhopstrouble hop(s))\n";
 
 if($maxhopsfreeip == $fline){
 	if($maxhopstroubleip == $fline){
