@@ -52,8 +52,8 @@ struct hashed_host_entry *		add_hashed_host_entry(struct hashed_host_list *, str
 unsigned int			is_ip6_in_hashed_list(struct hashed_host_list *, struct in6_addr *);
 void					print_stats(struct stats6 *);
 
-unsigned char			stdin_f=0, addr_f=0, verbose_f=0, decode_f=0, print_unique_f=0, stats_f=0, filter_f=0;
-unsigned char			canonic_f= FALSE;
+unsigned char			stdin_f=FALSE, addr_f=FALSE, verbose_f=FALSE, decode_f=FALSE, print_unique_f=FALSE;
+unsigned char			stats_f=FALSE, filter_f=FALSE, canonic_f=FALSE, reverse_f=FALSE;
 char					line[MAX_LINE_SIZE];
 
 extern char			*optarg;
@@ -86,6 +86,7 @@ int main(int argc, char **argv){
 		{"stdin", no_argument, 0, 'i'},
 		{"print-canonic", no_argument, 0, 'c'},
 		{"print-decode", no_argument, 0, 'd'},
+		{"print-reverse", no_argument, 0, 'r'},
 		{"print-stats", no_argument, 0, 's'},
 		{"print-unique", no_argument, 0, 'q'},
 		{"accept", required_argument, 0, 'j'},
@@ -103,7 +104,7 @@ int main(int argc, char **argv){
 		{0, 0, 0,  0 },
 	};
 
-	char shortopts[]= "a:icdsqj:b:k:w:g:J:B:K:W:G:vh";
+	char shortopts[]= "a:icrdsqj:b:k:w:g:J:B:K:W:G:vh";
 
 	char option;
 
@@ -137,6 +138,10 @@ int main(int argc, char **argv){
 
 			case 'd':	/* Decode IPv6 addresses */
 				decode_f=1;
+				break;
+
+			case 'r':	/* Print addresses in reversed form */
+				reverse_f=1;
 				break;
 
 			case 'j':	/* IPv6 Address (accept) filter */
@@ -522,7 +527,7 @@ int main(int argc, char **argv){
 	}
 
 	/* By default, addr6 decodes IPv6 addresses */
-	if(!print_unique_f && !filter_f && !stats_f && !canonic_f)
+	if(!print_unique_f && !filter_f && !stats_f && !canonic_f && !reverse_f)
 		decode_f=1;
 
 	if(print_unique_f){
@@ -598,6 +603,9 @@ int main(int argc, char **argv){
 				else if(decode_f){
 						print_dec_address_script(&addr);
 				}
+				else if(reverse_f){
+						print_ipv6_address_rev(&(addr.ip6));
+				}
 				else{
 					if(inet_ntop(AF_INET6, &(addr.ip6), pv6addr, sizeof(pv6addr)) == NULL){
 						puts("inet_ntop(): Error converting IPv6 address to presentation format");
@@ -621,6 +629,9 @@ int main(int argc, char **argv){
 		}
 		else if(canonic_f){
 			print_ipv6_address("", &(addr.ip6));
+		}
+		else if(reverse_f){
+			print_ipv6_address_rev(&(addr.ip6));
 		}
 	}
 
@@ -1289,11 +1300,11 @@ void print_dec_address_script(struct decode6 *addr){
 /*
  * Function: usage()
  *
- * Prints the syntax of the scan6 tool
+ * Prints the syntax of the addr6 tool
  */
 
 void usage(void){
-	puts("usage: addr6 (-i | -a) [-d | -s | -q] [-v] [-h]");
+	puts("usage: addr6 (-i | -a) [-c | -d | -r | -s | -q] [-v] [-h]");
 }
 
 
@@ -1305,13 +1316,14 @@ void usage(void){
 
 void print_help(void){
 	puts(SI6_TOOLKIT);
-	puts( "addr6: An IPv6 address analysis tool\n");
+	puts( "addr6: An IPv6 address analysis and conversion tool\n");
 	usage();
     
 	puts("\nOPTIONS:\n"
 	     "  --address, -a             IPv6 address to be decoded\n"
 	     "  --stdin, -i               Read IPv6 addresses from stdin (standard input)\n"
 	     "  --print-canonic, -c       Print IPv6 addresses in canonic form\n"
+	     "  --print-reverse, -r       Print reversed IPv6 address\n"
 	     "  --print-decode, -d        Decode IPv6 addresses\n"
 	     "  --print-stats, -s         Print statistics about IPv6 addresses\n"
 	     "  --print-unique, -q        Discard duplicate IPv6 addresses\n"
