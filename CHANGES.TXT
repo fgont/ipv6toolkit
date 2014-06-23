@@ -27,6 +27,9 @@
      Added a new tool which incorporates new functionality and also provides
      a shortcut to other existing tools.
 
+   * blackhole6: New tool
+     Added a new tool which helps find IPv6 blackholes.
+
 
 SI6 Networks IPv6 Toolkit v1.5.3
 

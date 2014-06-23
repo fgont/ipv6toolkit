@@ -52,7 +52,7 @@ These are the maintainers for each of the different packages:
 Spotting bugs in networking tool can be tricky, since at times they only show
 up in specific network scenarios.
 
-The following indviduals provided great help in identifying bugs in the the
+The following indviduals provided great help in identifying bugs in the
 toolkit (thus leading to fixes and improvements):
 
     Stephane Bortzmeyer <stephane@bortzmeyer.org>
@@ -60,4 +60,6 @@ toolkit (thus leading to fixes and improvements):
     Erik Muller <erikm@buh.org>
     Declan A Rieb <darieb@sandia.gov>
     Tim <tim-security@sentinelchicken.org>
+    Ray Hunter <Ray.Hunter@globis.net>
+
 
