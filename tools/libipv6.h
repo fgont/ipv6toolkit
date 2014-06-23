@@ -777,6 +777,7 @@ int 				match_ipv6_to_prefixes(struct in6_addr *, struct prefix_list *);
 void				print_filters(struct iface_data *, struct filters *);
 void				print_filter_result(struct iface_data *, const u_char *, unsigned char);
 unsigned int		print_ipv6_address(char *s, struct in6_addr *);
+unsigned int		print_ipv6_address_rev(struct in6_addr *);
 int					print_local_addrs(struct iface_data *);
 void				randomize_ether_addr(struct ether_addr *);
 void				randomize_ipv6_addr(struct in6_addr *, struct in6_addr *, u_int8_t);

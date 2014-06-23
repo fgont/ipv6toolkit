@@ -2785,9 +2785,9 @@ int sel_next_hop(struct iface_data *idata){
 
 
 /*
- * Function: print_addresss()
+ * Function: print_ipv6_addresss()
  *
- * Prints a network address with a legend
+ * Prints an IPv6 address with a legend
  */
 
 unsigned int print_ipv6_address(char *s, struct in6_addr *v6addr){
@@ -2799,6 +2799,26 @@ unsigned int print_ipv6_address(char *s, struct in6_addr *v6addr){
 	}
 
 	printf("%s%s\n", s, pv6addr);
+	return(EXIT_SUCCESS);
+}
+
+
+/*
+ * Function: print_ipv6_address_rev()
+ *
+ * Prints an IPv6 address in reversed form
+ */
+
+unsigned int print_ipv6_address_rev(struct in6_addr *v6addr){
+	int					i;
+
+	for(i=7; i>=0; i--){
+		printf("%01x.%01x.%01x.%01x%s", ntohs(v6addr->s6_addr16[i]) &0x000f, (ntohs(v6addr->s6_addr16[i])>>4) &0x000f,\
+		                                (ntohs(v6addr->s6_addr16[i])>>8) &0x000f, (ntohs(v6addr->s6_addr16[i])>>12) &0x000f,
+										i?".":"\n");
+
+	}
+
 	return(EXIT_SUCCESS);
 }
 
