@@ -340,7 +340,7 @@ int main(int argc, char **argv){
 
 				hdrlen= atoi(optarg);
 		
-				if(hdrlen <= 8){
+				if(hdrlen < 8){
 					puts("Bad length in Hop-by-Hop Options Header");
 					exit(EXIT_FAILURE);
 				}
@@ -530,7 +530,7 @@ int main(int argc, char **argv){
 	verbose_f= idata.verbose_f;
 
 	if(geteuid()) {
-		puts("frag6 needs root privileges to run.");
+		puts("path6 needs root privileges to run.");
 		exit(EXIT_FAILURE);
 	}
 

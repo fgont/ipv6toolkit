@@ -2,7 +2,7 @@
  * ni6: A security assessment tool that exploits potential flaws
  *      in the processing of ICMPv6 Node Information messages
  *
- * Copyright (C) 2011-2013 Fernando Gont <fgont@si6networks.com>
+ * Copyright (C) 2011-2014 Fernando Gont <fgont@si6networks.com>
  *
  * Programmed by Fernando Gont for SI6 Networks <http://www.si6networks.com>
  *
@@ -394,7 +394,7 @@ int main(int argc, char **argv){
 
 				hdrlen= atoi(optarg);
 		
-				if(hdrlen <= 8){
+				if(hdrlen < 8){
 					puts("Bad length in Hop-by-Hop Options Header");
 					exit(EXIT_FAILURE);
 				}
@@ -1643,7 +1643,7 @@ void init_packet_data(struct iface_data *idata){
 	if(idata->type == DLT_EN10MB){
 		ethernet->ether_type = htons(ETHERTYPE_IPV6);
 
-		if(idata->flags != IFACE_LOOPBACK){
+		if(!(idata->flags & IFACE_LOOPBACK)){
 			ethernet->src = idata->hsrcaddr;
 			ethernet->dst = idata->hdstaddr;
 		}
@@ -1651,6 +1651,11 @@ void init_packet_data(struct iface_data *idata){
 	else if(idata->type == DLT_NULL){
 		dlt_null->family= PF_INET6;
 	}
+#if defined (__OpenBSD__)
+	else if(idata->type == DLT_LOOP){
+		dlt_null->family= htonl(PF_INET6);
+	}
+#endif
 
 	ipv6->ip6_flow=0;
 	ipv6->ip6_vfc= 0x60;
@@ -2245,9 +2250,9 @@ int send_packet(struct iface_data *idata, const u_char *pktdata, struct pcap_pkt
  */
 void usage(void){
     puts("usage:\n"
-	     " ni6 -i INTERFACE [-S LINK_SRC_ADDR | -R] [-D LINK-DST-ADDR] \n"
+	     " ni6 [-i INTERFACE] [-S LINK_SRC_ADDR | -R] [-D LINK-DST-ADDR] \n"
 	     "     [-s SRC_ADDR[/LEN] | -r] [-d DST_ADDR] [-c HOP_LIMIT] [-y FRAG_SIZE]\n"
-         "     [-u DST_OPT_HDR_SIZE] [-U DST_OPT_U_HDR_SIZE] [-H HBH_OPT_HDR_SIZE] \n"
+	     "     [-u DST_OPT_HDR_SIZE] [-U DST_OPT_U_HDR_SIZE] [-H HBH_OPT_HDR_SIZE] \n"
 	     "     [-P SIZE | -6 IPV6_ADDR | -4 IPV4_ADDR | -n NAME | -N LEN | -x LEN -o TYPE]\n"
 	     "     [-Z SIZE] [-e] [-C ICMP6_CODE] [-q NI_QTYPE] [-X NI_FLAGS]\n"
 	     "     [-P SIZE | -w IPV6_ADDR | -W IPV4_ADDR | -a NAME | -A LEN | -Q LEN -O TYPE]\n"

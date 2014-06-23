@@ -649,7 +649,7 @@ int send_fid_probe(void){
 	if(idata.type == DLT_EN10MB){
 		ethernet->ether_type = htons(ETHERTYPE_IPV6);
 
-		if(idata.flags != IFACE_LOOPBACK){
+		if( !(idata.flags & IFACE_LOOPBACK)){
 			ethernet->src = idata.hsrcaddr;
 			ethernet->dst = idata.hdstaddr;
 		}
@@ -657,6 +657,11 @@ int send_fid_probe(void){
 	else if(idata.type == DLT_NULL){
 		dlt_null->family= PF_INET6;
 	}
+#if defined (__OpenBSD__)
+	else if(idata->type == DLT_LOOP){
+		dlt_null->family= htonl(PF_INET6);
+	}
+#endif
 
 	ipv6->ip6_flow=0;
 	ipv6->ip6_vfc= 0x60;
@@ -714,7 +719,7 @@ int send_fid_probe(void){
  * Prints the syntax of the flow6 tool
  */
 void usage(void){
-	puts("usage: flow6 -i INTERFACE -d DST_ADDR [-S LINK_SRC_ADDR] [-D LINK-DST-ADDR]\n"
+	puts("usage: flow6 -d DST_ADDR [-i INTERFACE] [-S LINK_SRC_ADDR] [-D LINK-DST-ADDR]\n"
 	     "       [-s SRC_ADDR[/LEN]] [-A HOP_LIMIT] [-P PROTOCOL] [-p PORT]\n"
 	     "       [-W] [-v] [-h]");
 }

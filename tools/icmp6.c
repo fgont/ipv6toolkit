@@ -395,7 +395,7 @@ int main(int argc, char **argv){
 
 				hdrlen= atoi(optarg);
 		
-				if(hdrlen <= 8){
+				if(hdrlen < 8){
 					puts("Bad length in Hop-by-Hop Options Header");
 					exit(EXIT_FAILURE);
 				}
@@ -1218,7 +1218,7 @@ int main(int argc, char **argv){
 
 			accepted_f=0;
 
-			if(idata.type == DLT_EN10MB && idata.flags != IFACE_LOOPBACK){
+			if(idata.type == DLT_EN10MB && !(idata.flags & IFACE_LOOPBACK)){
 				if(filters.nblocklinksrc){
 					if(match_ether(filters.blocklinksrc, filters.nblocklinksrc, &(pkt_ether->src))){
 						if(idata.verbose_f>1)
@@ -1256,7 +1256,7 @@ int main(int argc, char **argv){
 				}
 			}
 
-			if(idata.type == DLT_EN10MB && idata.flags != IFACE_LOOPBACK){	
+			if(idata.type == DLT_EN10MB && !(idata.flags & IFACE_LOOPBACK)){	
 				if(filters.nacceptlinksrc){
 					if(match_ether(filters.acceptlinksrc, filters.nacceptlinksrc, &(pkt_ether->src)))
 						accepted_f=1;
@@ -1322,7 +1322,7 @@ void init_packet_data(struct iface_data *idata){
 	if(idata->type == DLT_EN10MB){
 		ethernet->ether_type = htons(ETHERTYPE_IPV6);
 
-		if(idata->flags != IFACE_LOOPBACK){
+		if(!(idata->flags & IFACE_LOOPBACK)){
 			ethernet->src = idata->hsrcaddr;
 			ethernet->dst = idata->hdstaddr;
 		}
@@ -1330,6 +1330,11 @@ void init_packet_data(struct iface_data *idata){
 	else if(idata->type == DLT_NULL){
 		dlt_null->family= PF_INET6;
 	}
+#if defined (__OpenBSD__)
+	else if(idata->type == DLT_LOOP){
+		dlt_null->family= htonl(PF_INET6);
+	}
+#endif
 
 	ipv6->ip6_flow=0;
 	ipv6->ip6_vfc= 0x60;
@@ -1478,7 +1483,7 @@ void send_packet(struct iface_data *idata, const u_char *pktdata, struct pcap_pk
 		else{
 			ipv6->ip6_dst = pkt_ipv6->ip6_src;
 
-			if(idata->type == DLT_EN10MB && idata->type != IFACE_LOOPBACK)
+			if(idata->type == DLT_EN10MB && !(idata->type & IFACE_LOOPBACK))
 				ethernet->dst = pkt_ether->src;
 		}
 
@@ -1825,7 +1830,7 @@ void print_help(void){
 void print_attack_info(struct iface_data *idata){
 	puts( "icmp6: Security ssessment tool for attack vectors based on ICMPv6 error messages\n");
 
-	if(idata->type == DLT_EN10MB && idata->flags != IFACE_LOOPBACK){
+	if(idata->type == DLT_EN10MB && !(idata->flags & IFACE_LOOPBACK)){
 		if(ether_ntop(&(idata->hsrcaddr), plinkaddr, sizeof(plinkaddr)) == 0){
 			puts("ether_ntop(): Error converting address");
 			exit(EXIT_FAILURE);
@@ -1854,7 +1859,7 @@ void print_attack_info(struct iface_data *idata){
 			exit(EXIT_FAILURE);
 		}
 
-		/* XXX Should really differentate between 'automaticall selected' and 'randomized' */
+		/* XXX Should really differentate between 'automatically selected' and 'randomized' */
 		printf("IPv6 Source Address: %s%s\n", psrcaddr, ((idata->srcaddr_f != TRUE)?" (automatically selected)":""));
 	}
 

@@ -1,5 +1,5 @@
 /*
- * ni6: A security assessment tool that exploits potential flaws
+ * dns: A security assessment tool that exploits potential flaws
  *      in the processing of ICMPv6 Node Information messages
  *
  * Copyright (C) 2011-2013 Fernando Gont <fgont@si6networks.com>
@@ -394,7 +394,7 @@ int main(int argc, char **argv){
 
 				hdrlen= atoi(optarg);
 		
-				if(hdrlen <= 8){
+				if(hdrlen < 8){
 					puts("Bad length in Hop-by-Hop Options Header");
 					exit(EXIT_FAILURE);
 				}
@@ -1645,7 +1645,7 @@ void init_packet_data(struct iface_data *idata){
 	v6buffer = buffer + idata->linkhsize;
 	ipv6 = (struct ip6_hdr *) v6buffer;
 
-	if(idata->type == DLT_EN10MB && idata->flags != IFACE_LOOPBACK){
+	if(idata->type == DLT_EN10MB && !(idata->flags & IFACE_LOOPBACK)){
 		ethernet->src = idata->hsrcaddr;
 		ethernet->dst = idata->hdstaddr;
 		ethernet->ether_type = htons(ETHERTYPE_IPV6);
@@ -1653,6 +1653,11 @@ void init_packet_data(struct iface_data *idata){
 	else if(idata->type == DLT_NULL){
 		dlt_null->family= PF_INET6;
 	}
+#if defined (__OpenBSD__)
+	else if(idata->type == DLT_LOOP){
+		dlt_null->family= htonl(PF_INET6);
+	}
+#endif
 
 	ipv6->ip6_flow=0;
 	ipv6->ip6_vfc= 0x60;

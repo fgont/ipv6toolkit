@@ -2937,7 +2937,7 @@ void prefix_to_scan(struct prefix_entry *pref, struct scan_entry *scan){
  */
 
 void usage(void){
-	puts("usage: scan6 -i INTERFACE (-L | -d) [-s SRC_ADDR[/LEN] | -f] \n"
+	puts("usage: scan6 (-L | -d) [-i INTERFACE] [-s SRC_ADDR[/LEN] | -f] \n"
 	     "       [-S LINK_SRC_ADDR | -F] [-p PROBE_TYPE] [-Z PAYLOAD_SIZE] [-o SRC_PORT]\n"
 	     "       [-a DST_PORT] [-X TCP_FLAGS] [-P ADDRESS_TYPE] [-q] [-e] [-t]\n"
 	     "       [-x RETRANS] [-o TIMEOUT] [-V VM_TYPE] [-b] [-B ENCODING] [-g]\n"

@@ -18,7 +18,6 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
- *
  * 
  * Build with: make jumbo6
  * 
@@ -329,7 +328,7 @@ int main(int argc, char **argv){
 
 				hdrlen= atoi(optarg);
 		
-				if(hdrlen <= 8){
+				if(hdrlen < 8){
 					puts("Bad length in Hop-by-Hop Options Header");
 					exit(EXIT_FAILURE);
 				}
@@ -722,7 +721,7 @@ void init_packet_data(struct iface_data *idata){
 	if(idata->type == DLT_EN10MB){
 		ethernet->ether_type = htons(ETHERTYPE_IPV6);
 
-		if(idata->flags != IFACE_LOOPBACK){
+		if(!(idata->flags & IFACE_LOOPBACK)){
 			ethernet->src = idata->hsrcaddr;
 			ethernet->dst = idata->hdstaddr;
 		}
@@ -730,6 +729,11 @@ void init_packet_data(struct iface_data *idata){
 	else if(idata->type == DLT_NULL){
 		dlt_null->family= PF_INET6;
 	}
+#if defined (__OpenBSD__)
+	else if(idata->type == DLT_LOOP){
+		dlt_null->family= htonl(PF_INET6);
+	}
+#endif
 
 	ipv6->ip6_flow=0;
 	ipv6->ip6_vfc= 0x60;
@@ -971,8 +975,8 @@ int send_packet(struct iface_data *idata, struct pcap_pkthdr *pkthdr, const u_ch
  * Prints the syntax of the jumbo6 tool
  */
 void usage(void){
-	puts("usage: jumbo6 -i INTERFACE [-S LINK_SRC_ADDR] [-D LINK-DST-ADDR]\n"
-	     "       [-s SRC_ADDR[/LEN]] [-d DST_ADDR] [-A HOP_LIMIT] [-H HBH_OPT_HDR_SIZE] \n"
+	puts("usage: jumbo6 -d DST_ADDR [-i INTERFACE] [-S LINK_SRC_ADDR] [-D LINK-DST-ADDR]\n"
+	     "       [-s SRC_ADDR[/LEN]] [-A HOP_LIMIT] [-H HBH_OPT_HDR_SIZE] \n"
 	     "       [-U DST_OPT_U_HDR_SIZE] [-y FRAG_SIZE] [-u DST_OPT_HDR_SIZE]\n"
 	     "       [-q IPV6_LENGTH] [-Q JUMBO_LENGTH] [-P PAYLOAD_SIZE] [-j PREFIX[/LEN]]\n"
 	     "       [-k PREFIX[/LEN]] [-J LINK_ADDR] [-K LINK_ADDR] [-b PREFIX[/LEN]]\n"

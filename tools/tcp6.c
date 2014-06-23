@@ -2,7 +2,7 @@
  * tcp6 : A security assessment tool that exploits potential flaws in the
  *        processing of TCP/IPv6 packets
  *
- * Copyright (C) 2011-2013 Fernando Gont <fgont@si6networks.com>
+ * Copyright (C) 2011-2014 Fernando Gont <fgont@si6networks.com>
  *
  * Programmed by Fernando Gont for SI6 Networks <http://www.si6networks.com>
  *
@@ -478,7 +478,7 @@ int main(int argc, char **argv){
 
 				hdrlen= atoi(optarg);
 		
-				if(hdrlen <= 8){
+				if(hdrlen < 8){
 					puts("Bad length in Hop-by-Hop Options Header");
 					exit(EXIT_FAILURE);
 				}
@@ -1392,7 +1392,7 @@ int main(int argc, char **argv){
 
 				accepted_f=0;
 
-				if(idata.type == DLT_EN10MB && idata.flags != IFACE_LOOPBACK){
+				if(idata.type == DLT_EN10MB && !(idata.flags & IFACE_LOOPBACK)){
 					if(filters.nblocklinksrc){
 						if(match_ether(filters.blocklinksrc, filters.nblocklinksrc, &(pkt_ether->src))){
 							if(idata.verbose_f>1)
@@ -1430,7 +1430,7 @@ int main(int argc, char **argv){
 					}
 				}
 
-				if(idata.type == DLT_EN10MB && idata.flags != IFACE_LOOPBACK){	
+				if(idata.type == DLT_EN10MB && !(idata.flags & IFACE_LOOPBACK)){	
 					if(filters.nacceptlinksrc){
 						if(match_ether(filters.acceptlinksrc, filters.nacceptlinksrc, &(pkt_ether->src)))
 							accepted_f=1;
@@ -1521,7 +1521,7 @@ int main(int argc, char **argv){
 						continue;
 					}
 
-					if(idata.type == DLT_EN10MB && idata.flags != IFACE_LOOPBACK){
+					if(idata.type == DLT_EN10MB && !(idata.flags & IFACE_LOOPBACK)){
 						if(floods_f){
 							if(useaddrkey_f){
 								if(pkt_ns->nd_ns_target.s6_addr16[5] !=  (pkt_ns->nd_ns_target.s6_addr16[4] ^ addr_key) || \
@@ -1583,7 +1583,7 @@ void init_packet_data(struct iface_data *idata){
 	if(idata->type == DLT_EN10MB){
 		ethernet->ether_type = htons(ETHERTYPE_IPV6);
 
-		if(idata->flags != IFACE_LOOPBACK){
+		if(!(idata->flags & IFACE_LOOPBACK)){
 			ethernet->src = idata->hsrcaddr;
 			ethernet->dst = idata->hdstaddr;
 		}
@@ -1591,6 +1591,11 @@ void init_packet_data(struct iface_data *idata){
 	else if(idata->type == DLT_NULL){
 		dlt_null->family= PF_INET6;
 	}
+#if defined (__OpenBSD__)
+	else if(idata->type == DLT_LOOP){
+		dlt_null->family= htonl(PF_INET6);
+	}
+#endif
 
 	ipv6->ip6_flow=0;
 	ipv6->ip6_vfc= 0x60;
@@ -1719,7 +1724,7 @@ void send_packet(struct iface_data *idata, const u_char *pktdata, struct pcap_pk
 		else{
 			ipv6->ip6_dst = pkt_ipv6->ip6_src;
 
-			if(idata->type == DLT_EN10MB && idata->flags != IFACE_LOOPBACK)
+			if(idata->type == DLT_EN10MB && !(idata->flags & IFACE_LOOPBACK))
 				ethernet->dst = pkt_ether->src;
 		}
 
@@ -1735,7 +1740,7 @@ void send_packet(struct iface_data *idata, const u_char *pktdata, struct pcap_pk
 		else{
 			ipv6->ip6_src = pkt_ipv6->ip6_dst;
 
-			if(idata->type == DLT_EN10MB && idata->flags != IFACE_LOOPBACK)
+			if(idata->type == DLT_EN10MB && !(idata->flags & IFACE_LOOPBACK))
 				ethernet->src = pkt_ether->dst;
 		}
 
@@ -2142,7 +2147,7 @@ void send_packet(struct iface_data *idata, const u_char *pktdata, struct pcap_pk
 				ipv6->ip6_src.s6_addr16[7]= ipv6->ip6_src.s6_addr16[6] ^ addr_key;
 			}
 
-			if(idata->type == DLT_EN10MB && idata->flags != IFACE_LOOPBACK && !(idata->hsrcaddr_f)){
+			if(idata->type == DLT_EN10MB && !(idata->flags & IFACE_LOOPBACK) && !(idata->hsrcaddr_f)){
 				for(i=0; i<6; i++)
 					ethernet->src.a[i]= random();
 			}
@@ -2251,7 +2256,7 @@ void frag_and_send(struct iface_data *idata){
  * Prints the syntax of the tcp6 tool
  */
 void usage(void){
-	puts("usage: tcp6 -i INTERFACE [-S LINK_SRC_ADDR] [-D LINK-DST-ADDR] "
+	puts("usage: tcp6 [-i INTERFACE] [-S LINK_SRC_ADDR] [-D LINK-DST-ADDR] "
 	 "[-s SRC_ADDR[/LEN]] [-d DST_ADDR] [-A HOP_LIMIT] [-y FRAG_SIZE] [-u DST_OPT_HDR_SIZE] "
 	 "[-U DST_OPT_U_HDR_SIZE] [-H HBH_OPT_HDR_SIZE] [-P PAYLOAD_SIZE] [-o SRC_PORT] "
 	 "[-a DST_PORT] [-X TCP_FLAGS] [-q TCP_SEQ] [-Q TCP_ACK] [-V TCP_URP] [-w TCP_WIN] "
@@ -2329,7 +2334,7 @@ void print_attack_info(struct iface_data *idata){
 	if(floodp_f)
 		printf("Flooding the target from %u different TCP ports\n", nports);
 
-	if(idata->type == DLT_EN10MB && idata->flags != IFACE_LOOPBACK){
+	if(idata->type == DLT_EN10MB && !(idata->flags & IFACE_LOOPBACK)){
 		if(idata->hsrcaddr_f){
 				if(ether_ntop(&(idata->hsrcaddr), plinkaddr, sizeof(plinkaddr)) == 0){
 					puts("ether_ntop(): Error converting address");

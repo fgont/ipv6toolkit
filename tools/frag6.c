@@ -2,7 +2,7 @@
  * frag6: A security assessment tool that exploits potential flaws in the
  *        processing of IPv6 fragments
  *
- * Copyright (C) 2011-2013 Fernando Gont (fgont@si6networks.com)
+ * Copyright (C) 2011-2014 Fernando Gont (fgont@si6networks.com)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -54,6 +54,7 @@
 #include "libipv6.h"
 #include <netinet/tcp.h>
 
+#define DEBUG
 
 /* Function prototypes */
 int					predict_frag_id(u_int32_t *, unsigned int, u_int32_t *, unsigned int);
@@ -371,7 +372,7 @@ int main(int argc, char **argv){
 
 				hdrlen= atoi(optarg);
 		
-				if(hdrlen <= 8){
+				if(hdrlen < 8){
 					puts("Bad length in Hop-by-Hop Options Header");
 					exit(EXIT_FAILURE);
 				}
@@ -817,7 +818,7 @@ int main(int argc, char **argv){
 				continue;
 
 			if(pkt_ipv6->ip6_nxt == IPPROTO_ICMPV6){
-				if(idata.type == DLT_EN10MB && idata.flags != IFACE_LOOPBACK && pkt_icmp6->icmp6_type == ND_NEIGHBOR_SOLICIT){
+				if(idata.type == DLT_EN10MB && !(idata.flags & IFACE_LOOPBACK) && pkt_icmp6->icmp6_type == ND_NEIGHBOR_SOLICIT){
 					if( (pkt_end - (unsigned char *) pkt_ns) < sizeof(struct nd_neighbor_solicit))
 						continue;
 					/* 
@@ -826,7 +827,7 @@ int main(int argc, char **argv){
 					    one of our addresses, and respond with a Neighbor Advertisement. Otherwise, the kernel
 					    will take care of that.
 					 */
-					if(idata.type == DLT_EN10MB && idata.flags != IFACE_LOOPBACK && !localaddr_f && \
+					if(idata.type == DLT_EN10MB && !(idata.flags & IFACE_LOOPBACK) && !localaddr_f && \
 									is_eq_in6_addr(&(pkt_ns->nd_ns_target), &idata.srcaddr)){
 							if(send_neighbor_advert(&idata, idata.pfd, pktdata) == -1){
 								puts("Error sending Neighbor Advertisement");
@@ -1017,7 +1018,7 @@ int main(int argc, char **argv){
 			if( (pkt_end -  pktdata) < (idata.linkhsize + MIN_IPV6_HLEN))
 				continue;
 
-			if(idata.type == DLT_EN10MB && idata.flags != IFACE_LOOPBACK && \
+			if(idata.type == DLT_EN10MB && !(idata.flags & IFACE_LOOPBACK) && \
 							pkt_ipv6->ip6_nxt == IPPROTO_ICMPV6 && pkt_icmp6->icmp6_type == ND_NEIGHBOR_SOLICIT){
 				pkt_ns= (struct nd_neighbor_solicit *) pkt_icmp6;
 
@@ -1030,7 +1031,7 @@ int main(int argc, char **argv){
 				    will take care of that.
 				 */
 				if(testtype==FIXED_ORIGIN){
-					if(idata.type == DLT_EN10MB && idata.flags != IFACE_LOOPBACK && \
+					if(idata.type == DLT_EN10MB && !(idata.flags & IFACE_LOOPBACK) && \
 							 !localaddr_f && is_eq_in6_addr(&(pkt_ns->nd_ns_target), &(idata.srcaddr))){
 						if(send_neighbor_advert(&idata, idata.pfd, pktdata) == -1){
 							puts("Error sending Neighbor Advertisement");
@@ -1038,7 +1039,7 @@ int main(int argc, char **argv){
 						}
 					}
 				}
-				else if(idata.type == DLT_EN10MB && idata.flags != IFACE_LOOPBACK){
+				else if(idata.type == DLT_EN10MB && !(idata.flags & IFACE_LOOPBACK)){
 					if(pkt_ns->nd_ns_target.s6_addr16[5] != addr_sig || \
 						pkt_ns->nd_ns_target.s6_addr16[7] !=  (pkt_ns->nd_ns_target.s6_addr16[6] ^ addr_key))
 						continue;
@@ -1300,7 +1301,7 @@ int main(int argc, char **argv){
 				continue;
 
 			if(pkt_ipv6->ip6_nxt == IPPROTO_ICMPV6){
-				if(idata.type == DLT_EN10MB && idata.flags != IFACE_LOOPBACK && pkt_icmp6->icmp6_type == ND_NEIGHBOR_SOLICIT){
+				if(idata.type == DLT_EN10MB && !(idata.flags & IFACE_LOOPBACK) && pkt_icmp6->icmp6_type == ND_NEIGHBOR_SOLICIT){
 					if( (pkt_end - (unsigned char *) pkt_ns) < sizeof(struct nd_neighbor_solicit))
 						continue;
 					/* 
@@ -1309,7 +1310,7 @@ int main(int argc, char **argv){
 					    one of our addresses, and respond with a Neighbor Advertisement. Otherwise, the kernel
 					    will take care of that.
 					 */
-					if(idata.type == DLT_EN10MB && idata.flags != IFACE_LOOPBACK && !localaddr_f && \
+					if(idata.type == DLT_EN10MB && !(idata.flags & IFACE_LOOPBACK) && !localaddr_f && \
 									is_eq_in6_addr(&(pkt_ns->nd_ns_target), &(idata.srcaddr))){
 							if(send_neighbor_advert(&idata, idata.pfd, pktdata) == -1){
 								puts("Error sending Neighbor Advertisement");
@@ -1711,7 +1712,7 @@ int send_fragment2(struct iface_data *idata, u_int16_t ip6len, unsigned int id, 
 	if(idata->type == DLT_EN10MB){
 		ethernet->ether_type = htons(ETHERTYPE_IPV6);
 
-		if(idata->flags != IFACE_LOOPBACK){
+		if(!(idata->flags & IFACE_LOOPBACK)){
 			ethernet->src = idata->hsrcaddr;
 			ethernet->dst = idata->hdstaddr;
 		}
@@ -1719,6 +1720,11 @@ int send_fragment2(struct iface_data *idata, u_int16_t ip6len, unsigned int id, 
 	else if(idata->type == DLT_NULL){
 		dlt_null->family= PF_INET6;
 	}
+#if defined (__OpenBSD__)
+	else if(idata->type == DLT_LOOP){
+		dlt_null->family= htonl(PF_INET6);
+	}
+#endif
 
 	ipv6->ip6_flow=0;
 	ipv6->ip6_vfc= 0x60;
@@ -1848,16 +1854,30 @@ int send_fragment(struct iface_data *idata, unsigned int id, unsigned int offset
 	ipv6 = (struct ip6_hdr *) v6buffer;
 
 	if(idata->type == DLT_EN10MB){
+#ifdef DEBUG
+puts("es dlt_en10");
+#endif
 		ethernet->ether_type = htons(ETHERTYPE_IPV6);
 
-		if(idata->flags != IFACE_LOOPBACK){
+		if(!(idata->flags & IFACE_LOOPBACK)){
+#ifdef DEBUG
+puts("dist de loopback");
+#endif
 			ethernet->src = idata->hsrcaddr;
 			ethernet->dst = idata->hdstaddr;
 		}
 	}
 	else if(idata->type == DLT_NULL){
+#ifdef DEBUG
+puts("es dlt_null");
+#endif
 		dlt_null->family= PF_INET6;
 	}
+#if defined (__OpenBSD__)
+	else if(idata->type == DLT_LOOP){
+		dlt_null->family= htonl(PF_INET6);
+	}
+#endif
 
 	ipv6->ip6_flow=0;
 	ipv6->ip6_vfc= 0x60;
@@ -1901,6 +1921,10 @@ int send_fragment(struct iface_data *idata, unsigned int id, unsigned int offset
 			ptr = ptr + dstoptuhdrlen[dstoptuhdrs];
 			dstoptuhdrs++;
 		}
+	}
+
+	if(!fsize_f && (forder != LAST_FRAGMENT && forder != ATOMIC_FRAGMENT)){
+		fsize= (fsize>>3) << 3;
 	}
 
 	/* Check that we are able to send the Unfragmentable Part, together with a 
@@ -1960,13 +1984,9 @@ int send_fragment(struct iface_data *idata, unsigned int id, unsigned int offset
 			return(-1);
 		}
 
-		if(!fsize_f && (forder != LAST_FRAGMENT && forder != ATOMIC_FRAGMENT)){
-			fsize= (fsize>>3) << 3;
-		}
-
 		if(fsize < sizeof(struct icmp6_hdr)){
 			if(idata->verbose_f)
-				puts("Fragment size too large to hold an ICMPv6 header");
+				puts("Fragment size too small to hold an ICMPv6 header");
 
 			return(-1);
 		}
@@ -2003,6 +2023,8 @@ int send_fragment(struct iface_data *idata, unsigned int id, unsigned int offset
 				fsize=0;
 		}
 
+printf("Fsize: %d\n", fsize);
+
 		for(i=0; i< (fsize/4); i++){
 			*(u_int32_t *)ptr = random();
 			ptr += sizeof(u_int32_t);
@@ -2035,12 +2057,8 @@ int send_fragment(struct iface_data *idata, unsigned int id, unsigned int offset
 		}
 
 
-		if(!fsize_f && (forder != LAST_FRAGMENT && forder != ATOMIC_FRAGMENT)){
-			fsize= (fsize>>3) << 3;
-		}
-
-		if((ptr+ (sizeof(time_t) + sizeof(u_int32_t))) > (v6buffer+idata->max_packet_size)){
-			puts("Packet too large while inserting timestamp");
+		if((ptr+ fsize) > (v6buffer+idata->max_packet_size)){
+			puts("Packet too large while inserting payload");
 			return(-1);
 		}
 
@@ -2052,6 +2070,9 @@ int send_fragment(struct iface_data *idata, unsigned int id, unsigned int offset
 		ipv6->ip6_plen= htons(ptr-(v6buffer + MIN_IPV6_HLEN));
 	}
 
+#ifdef DEBUG
+dump_hex(buffer, ptr - buffer);
+#endif
 	if((nw=pcap_inject(idata->pfd, buffer, ptr - buffer)) == -1){
 		printf("pcap_inject(): %s\n", pcap_geterr(idata->pfd));
 		return(-1);
@@ -2087,7 +2108,7 @@ int send_fid_probe(struct iface_data *idata){
 	if(idata->type == DLT_EN10MB){
 		ethernet->ether_type = htons(ETHERTYPE_IPV6);
 
-		if(idata->flags != IFACE_LOOPBACK){
+		if(!(idata->flags & IFACE_LOOPBACK)){
 			ethernet->src = idata->hsrcaddr;
 			ethernet->dst = idata->hdstaddr;
 		}
@@ -2203,7 +2224,7 @@ int send_fid_probe(struct iface_data *idata){
  * Prints the syntax of the frag6 tool
  */
 void usage(void){
-	puts("usage: frag6 -i INTERFACE -d DST_ADDR [-S LINK_SRC_ADDR] [-D LINK-DST-ADDR]\n"
+	puts("usage: frag6 -d DST_ADDR [-i INTERFACE] [-S LINK_SRC_ADDR] [-D LINK-DST-ADDR]\n"
 	     "       [-s SRC_ADDR[/LEN]] [-A HOP_LIMIT] [-u DST_OPT_HDR_SIZE]\n"
 	     "       [-U DST_OPT_U_HDR_SIZE] [-H HBH_OPT_HDR_SIZE] [-P FRAG_SIZE]\n"
 	     "       [-O FRAG_TYPE] [-o FRAG_OFFSET] [-I FRAG_ID] [-T] [-n]\n"
@@ -2259,7 +2280,7 @@ void print_help(void){
  */
  
 void print_attack_info(struct iface_data *idata){
-	if(idata->type == DLT_EN10MB && idata->flags != IFACE_LOOPBACK){
+	if(idata->type == DLT_EN10MB && !(idata->flags & IFACE_LOOPBACK)){
 		if(ether_ntop(&(idata->hsrcaddr), plinkaddr, sizeof(plinkaddr)) == 0){
 			puts("ether_ntop(): Error converting address");
 			exit(EXIT_FAILURE);

@@ -2,7 +2,7 @@
  * ns6: A security assessment tool for attack vectors based on
  *      ICMPv6 Neighbor Solicitation messages
  *
- * Copyright (C) 2009-2013 Fernando Gont
+ * Copyright (C) 2009-2014 Fernando Gont
  *
  * Programmed by Fernando Gont for SI6 Networks <http://www.si6networks.com>
  *
@@ -308,7 +308,7 @@ int main(int argc, char **argv){
 
 		hdrlen= atoi(optarg);
 		
-		if(hdrlen <= 8){
+		if(hdrlen < 8){
 		    puts("Bad length in Hop-by-Hop Options Header");
 		    exit(EXIT_FAILURE);
 		}
@@ -620,7 +620,7 @@ void init_packet_data(struct iface_data *idata){
 	if(idata->type == DLT_EN10MB){
 		ethernet->ether_type = htons(ETHERTYPE_IPV6);
 
-		if(idata->flags != IFACE_LOOPBACK){
+		if(!(idata->flags & IFACE_LOOPBACK)){
 			ethernet->src = idata->hsrcaddr;
 			ethernet->dst = idata->hdstaddr;
 		}
@@ -628,6 +628,11 @@ void init_packet_data(struct iface_data *idata){
 	else if(idata->type == DLT_NULL){
 		dlt_null->family= PF_INET6;
 	}
+#if defined (__OpenBSD__)
+	else if(idata->type == DLT_LOOP){
+		dlt_null->family= htonl(PF_INET6);
+	}
+#endif
 
 	ipv6->ip6_flow=0;
 	ipv6->ip6_vfc= 0x60;

@@ -2,7 +2,7 @@
  * rd6: A security assessment tool that exploits potential flaws in the
  *      processing of ICMPv6 Redirect messages
  *
- * Copyright (C) 2011-2013 Fernando Gont
+ * Copyright (C) 2011-2014 Fernando Gont
  *
  * Programmed by Fernando Gont for SI6 Networks <http://www.si6networks.com>
  *
@@ -388,7 +388,7 @@ int main(int argc, char **argv){
 
 				hdrlen= atoi(optarg);
 		
-				if(hdrlen <= 8){
+				if(hdrlen < 8){
 					puts("Bad length in Hop-by-Hop Options Header");
 					exit(EXIT_FAILURE);
 				}
@@ -1245,7 +1245,7 @@ int main(int argc, char **argv){
 
 			accepted_f=0;
 
-			if(idata.type == DLT_EN10MB && idata.flags != IFACE_LOOPBACK){
+			if(idata.type == DLT_EN10MB && !(idata.flags & IFACE_LOOPBACK)){
 				if(filters.nblocklinksrc){
 					if(match_ether(filters.blocklinksrc, filters.nblocklinksrc, &(pkt_ether->src))){
 						if(idata.verbose_f>1)
@@ -1283,7 +1283,7 @@ int main(int argc, char **argv){
 				}
 			}
 
-			if(idata.type == DLT_EN10MB && idata.flags != IFACE_LOOPBACK){	
+			if(idata.type == DLT_EN10MB && !(idata.flags & IFACE_LOOPBACK)){	
 				if(filters.nacceptlinksrc){
 					if(match_ether(filters.acceptlinksrc, filters.nacceptlinksrc, &(pkt_ether->src)))
 						accepted_f=1;
@@ -1349,7 +1349,7 @@ void init_packet_data(struct iface_data *idata){
 	if(idata->type == DLT_EN10MB){
 		ethernet->ether_type = htons(ETHERTYPE_IPV6);
 
-		if(idata->flags != IFACE_LOOPBACK){
+		if(!(idata->flags & IFACE_LOOPBACK)){
 			ethernet->src = idata->hsrcaddr;
 			ethernet->dst = idata->hdstaddr;
 		}
@@ -1357,6 +1357,11 @@ void init_packet_data(struct iface_data *idata){
 	else if(idata->type == DLT_NULL){
 		dlt_null->family= PF_INET6;
 	}
+#if defined (__OpenBSD__)
+	else if(idata->type == DLT_LOOP){
+		dlt_null->family= htonl(PF_INET6);
+	}
+#endif
 
 	ipv6->ip6_flow=0;
 	ipv6->ip6_vfc= 0x60;
@@ -1915,7 +1920,7 @@ void send_packet(struct iface_data *idata, const u_char *pktdata, struct pcap_pk
  * Prints the syntax of the rd6 tool
  */
 void usage(void){
-    puts("usage: rd6 -i INTERFACE [-s SRC_ADDR[/LEN]] [-d DST_ADDR] [-S LINK_SRC_ADDR] "
+    puts("usage: rd6 [-i INTERFACE] [-s SRC_ADDR[/LEN]] [-d DST_ADDR] [-S LINK_SRC_ADDR] "
 	 "[-D LINK-DST-ADDR] [-A HOP_LIMIT] [-y FRAG_SIZE] [-u DST_OPT_HDR_SIZE] "
 	 "[-U DST_OPT_U_HDR_SIZE] [-H HBH_OPT_HDR_SIZE] [-r RD_DESTADDR/LEN] [-t RD_TARGETADDR/LEN] "
 	 "[-p PAYLOAD_TYPE] [-P PAYLOAD_SIZE] [-n] [-c HOP_LIMIT] [-x SRC_ADDR] [-a SRC_PORT] "
