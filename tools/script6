@@ -100,8 +100,6 @@ elsif($ARGV[0] eq "get-mx"){
 					if($line =~ m/^\s*$/){
 						# Empty line masrk end of ANSWER section
 						last;
-	#					$answer_f=0;
-	#					next;
 					}
 
 					elsif($line =~ m/(\S+)\s+\d+\s+IN\s+MX\s+\d+\s+(\S+)/){
@@ -163,6 +161,183 @@ elsif($ARGV[0] eq "get-ns"){
 			}
 		}
 	}
+}
+elsif($ARGV[0] eq "get-asn" || $ARGV[0] eq "get-asn6"){
+	@revname=`addr6 -a $ARGV[1] -r`;
+	chomp($revname[0]);
+	$queryname= $revname[0] . ".origin6.asn.cymru.com.";
+
+	@reverse=`host -t TXT $queryname`;
+	$reverse[0] =~ m/\"\s*((\d+)\s*)\s+|"/;
+	print "$1\n";
+}
+elsif($ARGV[0] eq "get-as" || $ARGV[0] eq "get-as6"){
+	@revname=`addr6 -a $ARGV[1] -r`;
+
+	chomp($revname[0]);
+	$queryname= $revname[0] . ".origin6.asn.cymru.com.";
+
+	@reverse=`host -t TXT $queryname`;
+
+	$reverse[0] =~ m/\"(.*)\"/;
+	print "$1\n";
+}
+elsif($ARGV[0] eq "get-trace-stats" || $ARGV[0] eq "get-trace6-stats"){
+	$valid=0;
+	$dropped=0;
+	$pass=0;
+	$total=0;
+	$sameas=0;
+	$difass=0;
+	$unknownas=0;
+	$unknownipdrop=0;
+	$unknownipfree=0;
+	$unknowniptrouble=0;
+	$ipfreedrop=0;
+	$hoperror=0;
+	$hopzero=0;
+	$unknownas=0;
+
+	while($fline=<STDIN>){
+		chomp($fline);
+
+		if($fline =~ m/([^\x0d]+)/){
+			$fline= $1;
+		}
+
+		# Check whether this line is just a comment -- if so, skip it
+		if($fline =~ m/^((\s)*#)/){
+			next;
+		}
+
+		# Skip blanck lines 
+		if($fline =~ m/^(\s)*$/){
+			next;
+		}
+
+		# Grab elements 
+		if($fline =~ m/(\S*)#(\S*)#(\d*)#(\S*)#(\d*)#(\S*)/){
+			$total++;
+
+			$iporig= $1;
+			$ipfree= $2;
+			$hopsfree= $3;
+			$iptrouble= $4;
+			$hopstrouble= $5;
+			$ipdrop=$6;
+
+			if($ipfree eq ""){
+				$unknownipfree++;
+				next;
+			}
+
+			if($iptrouble eq ""){
+				$unknowniptrouble++;
+				next;
+			}
+
+			if($ipfree ne $iporig){
+				$ipfreedrop++;
+				next;
+			}
+
+			if($hopsfree == 0){
+				$hopzero++;
+				next;
+			}
+
+			if($hopstrouble > $hopsfree){
+				$hoperror++;
+				next;
+			}
+
+			$delta= $hopsfree - $hopstrouble;
+
+
+			$valid= $valid+1;
+
+			if($ipfree eq $iptrouble){
+				#notdropped
+				$pass=$pass+1;
+			}
+			else{
+				$dropped= $dropped +1;
+				$hops[$delta]++;
+
+				if($ipdrop eq ""){
+					$unknownipdrop++;
+				}
+				else{
+					@revname=`addr6 -a $ipfree -r`;
+					chomp($revname[0]);
+					$queryname= $revname[0] . ".origin6.asn.cymru.com.";
+
+					@reverse=`host -t TXT $queryname`;
+					$reverse[0] =~ m/\"\s*((\d+)\s*)\s+|"/;
+
+					$asipfree=$1;
+
+					if($asipfree==0){
+						$unknownipfreeas++;
+					}
+
+					@revname=`addr6 -a $ipdrop -r`;
+					chomp($revname[0]);
+					$queryname= $revname[0] . ".origin6.asn.cymru.com.";
+
+					@reverse=`host -t TXT $queryname`;
+					$reverse[0] =~ m/\"\s*((\d+)\s*)\s+|"/;
+					$asiptrouble=$1;
+
+					if($asiptrouble==0){
+						$unknowniptroubleas++;
+					}
+
+					if($asipfree eq "" || $asiptrouble eq ""){
+						$unknownas++;
+					}
+
+					if($asipfree == $asiptrouble){
+						$sameas++;
+					}
+					else{
+						$difas++;
+					}
+				}
+			}
+
+	#		print "iporig: $1, ipfree: $2, hopsfree: $3, iptrouble: $4, hopstrouble: $5\n";
+		}
+
+	}
+
+	print "SI6 Networks IPv6 Toolkit v2.0\n";
+	print "script6: A tool to make complex IPv6 tasks easy\n\n";
+
+#	print "Total entries: $total\t Valid entries: $valid\n";
+
+	$passp= ($pass * 100)/$valid;
+	$droppedp= ($dropped * 100)/$valid;
+	$sameasp= ($sameas * 100)/$dropped;
+	$difasp= ($difas * 100)/$dropped;
+	$unknownasp= ($unknownas * 100)/$dropped;
+
+	print "Valid entries: $valid\tPass: $pass ($passp%)\t Dropped: $dropped ($droppedp%)\n";
+	print "******************************************************************************\n";
+	print "Packet Drops\n\n";
+	print "Same ASN: $sameas ($sameasp%)\t Different ASN: $difas ($difasp%)\t Unknown ASN:$unknownas\n\n";
+
+	print "Delta-Hops distribution\n\n";
+	for($i=0; $i<= $#hops; $i++){
+		if($hops[$i] != 0){
+			$dhop= ($hops[$i] * 100)/$dropped;
+			print"DHop $i: $hops[$i] ($dhop %)\n";
+		}
+	}
+
+	print "******************************************************************************\n";
+#	print "Validation of input data\n\n"
+#	print "Total entries: $total\tValid entries: $valid\n";
 }
 elsif($ARGV[0] eq "get-alexa-domains"){
 	while($line=<STDIN>){
