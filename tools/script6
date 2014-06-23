@@ -930,7 +930,7 @@ elsif($ARGV[0] eq "trace-do8-tcp"){
 		# Discard lines that do not contain a "probe" line
 		if($line =~ m/\s+(\d+)\s+\((\S*)\)/){
 			if($1 > $maxhopsfree){
-				if($2 neq ""){
+				if($2 ne ""){
 					$maxhopsfree=$1;
 					$maxhopsfreeip=$2;
 				}
@@ -949,7 +949,7 @@ elsif($ARGV[0] eq "trace-do8-tcp"){
 		# Discard lines that do not contain a "probe" line
 		if($line =~ m/\s+(\d+)\s+\((\S*)\)/){
 			if($1 > $maxhopstrouble){
-				if($2 neq ""){
+				if($2 ne ""){
 					$maxhopstrouble=$1;
 					$maxhopstroubleip= $2;
 				}
