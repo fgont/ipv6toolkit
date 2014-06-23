@@ -316,22 +316,31 @@ elsif($ARGV[0] eq "get-trace-stats" || $ARGV[0] eq "get-trace6-stats"){
 
 #	print "Total entries: $total\t Valid entries: $valid\n";
 
-	$passp= ($pass * 100)/$valid;
-	$droppedp= ($dropped * 100)/$valid;
-	$sameasp= ($sameas * 100)/$dropped;
-	$difasp= ($difas * 100)/$dropped;
-	$unknownasp= ($unknownas * 100)/$dropped;
+	if($valid >= 1){
+		$passp= ($pass * 100)/$valid;
+		$droppedp= ($dropped * 100)/$valid;
 
-	print "Valid entries: $valid\tPass: $pass ($passp%)\t Dropped: $dropped ($droppedp%)\n";
-	print "******************************************************************************\n";
-	print "Packet Drops\n\n";
-	print "Same ASN: $sameas ($sameasp%)\t Different ASN: $difas ($difasp%)\t Unknown ASN:$unknownas\n\n";
+		print "Valid entries: $valid\tPass: $pass ($passp%)\t Dropped: $dropped ($droppedp%)\n";
+		print "******************************************************************************\n";
+	}
+	elsif{
+		print "No valid entries were found\n";
+	}
 
-	print "Delta-Hops distribution\n\n";
-	for($i=0; $i<= $#hops; $i++){
-		if($hops[$i] != 0){
-			$dhop= ($hops[$i] * 100)/$dropped;
-			print"DHop $i: $hops[$i] ($dhop %)\n";
+	if($dropped >= 1){
+		$sameasp= ($sameas * 100)/$dropped;
+		$difasp= ($difas * 100)/$dropped;
+		$unknownasp= ($unknownas * 100)/$dropped;
+
+		print "Packet Drops\n\n";
+		print "Same ASN: $sameas ($sameasp%)\t Different ASN: $difas ($difasp%)\t Unknown ASN:$unknownas ($unknownasp%)\n\n";
+
+		print "Delta-Hops distribution\n\n";
+		for($i=0; $i<= $#hops; $i++){
+			if($hops[$i] != 0){
+				$dhop= ($hops[$i] * 100)/$dropped;
+				print"DHop $i: $hops[$i] ($dhop %)\n";
+			}
 		}
 	}
 
