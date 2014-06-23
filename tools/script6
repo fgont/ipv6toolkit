@@ -323,7 +323,7 @@ elsif($ARGV[0] eq "get-trace-stats" || $ARGV[0] eq "get-trace6-stats"){
 		print "Valid entries: $valid\tPass: $pass ($passp%)\t Dropped: $dropped ($droppedp%)\n";
 		print "******************************************************************************\n";
 	}
-	elsif{
+	else{
 		print "No valid entries were found\n";
 	}
 
