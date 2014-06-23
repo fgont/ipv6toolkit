@@ -429,47 +429,6 @@ elsif($ARGV[0] eq "get-trace-invalid"){
 	#		print "iporig: $1, ipfree: $2, hopsfree: $3, iptrouble: $4, hopstrouble: $5\n";
 		}
 	}
-
-	print "SI6 Networks IPv6 Toolkit v2.0\n";
-	print "script6: A tool to make complex IPv6 tasks easy\n\n";
-
-#	print "Total entries: $total\t Valid entries: $valid\n";
-
-	if($valid >= 1){
-		$passp= ($pass * 100)/$valid;
-		$droppedp= ($dropped * 100)/$valid;
-
-		print "Valid entries: $valid\tPass: $pass ($passp%)\t Dropped: $dropped ($droppedp%)\n";
-		print "******************************************************************************\n";
-	}
-	else{
-		print "No valid entries were found\n";
-	}
-
-	if($dropped >= 1){
-		$sameasp= ($sameas * 100)/$dropped;
-		$difasp= ($difas * 100)/$dropped;
-		$unknownasp= ($unknownas * 100)/$dropped;
-
-		print "Packet Drops\n\n";
-		printf "Same ASN: %d (%.2f%)\t Different ASN: %d (%.2f%)\t Unknown ASN:%d (%.2f%)\n\n", $sameas, $sameasp, $difas, $difasp, $unknownas, $unknownasp;
-
-		print "Delta-Hops distribution\n\n";
-		for($i=0; $i<= $#hops; $i++){
-			if($hops[$i] != 0){
-				$dhop= ($hops[$i] * 100)/$dropped;
-				printf "DHop %d: %d (%.2f%)\n", $i, $hops[$i], $dhop;
-			}
-		}
-	}
-
-	print "******************************************************************************\n";
-	if( ($total - $valid) > 0){
-		print "Validation of input data\n\n";
-		printf "Total entries: %d\tValid entries: %d\tInvalid: %d\n", $total, $valid, ($total-$valid);
-		print "Unknown no-EH IPv6: $unknownipfree\tUnknown EH IPv6: $unknowniptrouble\tNo-EH IPv6 != Dst IPv6: $ipfreedrop\n";
-		print "No-EH Hops==0: $hopzero\tNo-EH Hops < EH Hops: $hoperror\n";
-	}
 }
 elsif($ARGV[0] eq "get-alexa-domains"){
 	while($line=<STDIN>){
