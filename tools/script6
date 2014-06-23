@@ -398,35 +398,33 @@ elsif($ARGV[0] eq "get-trace-invalid"){
 
 			if($ipfree eq ""){
 				$unknownipfree++;
-				print "fline\n";
+				print "$fline\n";
 				next;
 			}
 
 			if($iptrouble eq ""){
 				$unknowniptrouble++;
-				print "fline\n";
+				print "$fline\n";
 				next;
 			}
 
 			if($ipfree ne $iporig){
 				$ipfreedrop++;
-				print "fline\n";
+				print "$fline\n";
 				next;
 			}
 
 			if($hopsfree == 0){
 				$hopzero++;
-				print "fline\n";
+				print "$fline\n";
 				next;
 			}
 
 			if($hopstrouble > $hopsfree){
 				$hoperror++;
-				print "fline\n";
+				print "$fline\n";
 				next;
 			}
-
-	#		print "iporig: $1, ipfree: $2, hopsfree: $3, iptrouble: $4, hopstrouble: $5\n";
 		}
 	}
 }
