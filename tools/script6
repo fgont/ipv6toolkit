@@ -333,13 +333,14 @@ elsif($ARGV[0] eq "get-trace-stats" || $ARGV[0] eq "get-trace6-stats"){
 		$unknownasp= ($unknownas * 100)/$dropped;
 
 		print "Packet Drops\n\n";
-		print "Same ASN: $sameas ($sameasp%)\t Different ASN: $difas ($difasp%)\t Unknown ASN:$unknownas ($unknownasp%)\n\n";
+		printf "Same ASN: %d (%.2f%)\t Different ASN: %d (%.2f%)\t Unknown ASN:%d (%.2f%)\n\n", $sameas,
+		$sameasp, $difas, $difasp, $unknownas, $unknownasp;
 
 		print "Delta-Hops distribution\n\n";
 		for($i=0; $i<= $#hops; $i++){
 			if($hops[$i] != 0){
 				$dhop= ($hops[$i] * 100)/$dropped;
-				print"DHop $i: $hops[$i] ($dhop %)\n";
+				printf "DHop %d: %d (%.2f%)\n", $i, $hops[$i, $dhop;
 			}
 		}
 	}
