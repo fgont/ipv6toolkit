@@ -63,11 +63,11 @@ else{
 }
 
 if($ehtype eq "fh" || $ehtype eq "frag"){
-	if($ehzise < 8){
+	if($ehsize < 8){
 		print "Error: Fragment size should be larger than or equal to 8 bytes";
 		exit 1;
 	}
-	elsif($ehzise > 1280){
+	elsif($ehsize > 1280){
 		print "Error: Fragment size should be smaller than or equal to 1280 bytes";
 		exit 1;
 	}
