@@ -346,7 +346,7 @@ elsif($ARGV[0] eq "get-trace-stats" || $ARGV[0] eq "get-trace6-stats"){
 
 	print "******************************************************************************\n";
 	if( ($total - $valid) > 0){
-		print "Validation of input data\n\n"
+		print "Validation of input data\n\n";
 		printf "Total entries: %d\tValid entries: %d\tInvalid: %d\n", $total, $valid, ($total-$valid);
 		print "Unknown no-EH IPv6: $unknownipfree\tUnknown EH IPv6: $unknowniptrouble\tNo-EH IPv6 != Dst IPv6: $ipfreedrop\n";
 		print "No-EH Hops==0: $hopzero\tNo-EH Hops < EH Hops: $hoperror\n";
