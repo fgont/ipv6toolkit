@@ -16,6 +16,7 @@ if($ARGV[0] eq "get-aaaa"){
 
 
 		while(1){
+			undef @dig;
 			@dig=`dig $domcmd aaaa`;
 			$answer_f=0;
 
@@ -82,40 +83,39 @@ elsif($ARGV[0] eq "get-mx"){
 			$domcmd = $1;
 		}
 
-			@dig=`dig $domcmd mx`;
+		@dig=`dig $domcmd mx`;
 
-			$answer_f=0;
-			foreach $line (@dig){
-
-				# Detect the "ANSWER" portion of the dig command
-				if($answer_f == 0){
-					if($line =~ m/\;\; ANSWER SECTION:/){
-						$answer_f=1; # Found the ANSWER section
-					}
-
-					next;  
+		$answer_f=0;
+		foreach $line (@dig){
+			# Detect the "ANSWER" portion of the dig command
+			if($answer_f == 0){
+				if($line =~ m/\;\; ANSWER SECTION:/){
+					$answer_f=1; # Found the ANSWER section
 				}
-				elsif($answer_f == 1){
-					# If we are in the answer portion, look for MX records
-					if($line =~ m/^\s*$/){
-						# Empty line masrk end of ANSWER section
-						last;
+
+				next;  
+			}
+			elsif($answer_f == 1){
+				# If we are in the answer portion, look for MX records
+				if($line =~ m/^\s*$/){
+					# Empty line masrk end of ANSWER section
+					last;
+				}
+
+				elsif($line =~ m/(\S+)\s+\d+\s+IN\s+MX\s+\d+\s+(\S+)/){
+					# FIrst 
+					if($mx_f == 0){
+						print "# $domcmd ($1)\n";
 					}
 
-					elsif($line =~ m/(\S+)\s+\d+\s+IN\s+MX\s+\d+\s+(\S+)/){
-						# FIrst 
-						if($mx_f == 0){
-							print "# $domcmd ($1)\n";
-						}
-
-						printf "$2\n";      # MX record
-						$mx_f = 1;
-					}
-					else{
-						last;
-					}
+					printf "$2\n";      # MX record
+					$mx_f = 1;
+				}
+				else{
+					last;
 				}
 			}
+		}
 	}
 }
 elsif($ARGV[0] eq "get-ns"){
@@ -128,7 +128,8 @@ elsif($ARGV[0] eq "get-ns"){
 		if($domcmd =~ m/www\.(\S+)/){
 			$domcmd = $1;
 		}
-	
+
+		undef @dig;	
 		@dig=`dig $domcmd ns`;
 		$answer_f=0;
 
@@ -268,6 +269,8 @@ elsif($ARGV[0] eq "get-trace-stats" || $ARGV[0] eq "get-trace6-stats"){
 					$unknownipdrop++;
 				}
 				else{
+					undef @revname;
+					undef @reverse;
 					@revname=`addr6 -a $ipfree -r`;
 					chomp($revname[0]);
 					$queryname= $revname[0] . ".origin6.asn.cymru.com.";
@@ -281,6 +284,8 @@ elsif($ARGV[0] eq "get-trace-stats" || $ARGV[0] eq "get-trace6-stats"){
 						$unknownipfreeas++;
 					}
 
+					undef @revname;
+					undef @reverse;
 					@revname=`addr6 -a $ipdrop -r`;
 					chomp($revname[0]);
 					$queryname= $revname[0] . ".origin6.asn.cymru.com.";
@@ -459,6 +464,7 @@ elsif($ARGV[0] eq "trace-do8-tcp-stdin"){
 
 		# Remove all items from the array of IP addresses
 		undef @ipsfree;
+		undef @tcp;
 
 		$maxhopsfree=0;
 		$maxhopsfreeip="";
@@ -480,6 +486,8 @@ elsif($ARGV[0] eq "trace-do8-tcp-stdin"){
 
 		$maxhopstrouble=0;
 		$maxhopstroubleip="";
+		undef @tcp;
+
 		@tcp=`path6 -p tcp -a 80 -u 8 -d $fline --tcp-flags S --rate-limit 20pps`;
 		foreach $line (@tcp){
 			# Discard lines that do not contain a "probe" line
@@ -541,6 +549,7 @@ elsif($ARGV[0] eq "trace-do8-icmp"){
 
 		# Remove all items from the array of IP addresses
 		undef @ipsfree;
+		undef @tcp;
 
 		$maxhopsfree=0;
 		$maxhopsfreeip="";
@@ -562,6 +571,8 @@ elsif($ARGV[0] eq "trace-do8-icmp"){
 
 		$maxhopstrouble=0;
 		$maxhopstroubleip="";
+		undef @tcp;
+
 		@tcp=`path6 -p icmp -u 8 -d $fline --rate-limit 20pps`;
 		foreach $line (@tcp){
 			# Discard lines that do not contain a "probe" line
@@ -644,9 +655,9 @@ elsif($ARGV[0] eq "trace-do256-tcp"){
 			}
 		}
 
-		undef @tcp;
 		$maxhopstrouble=0;
 		$maxhopstroubleip="";
+		undef @tcp;
 		@tcp=`path6 -p tcp -a 80 -u 256 -d $fline --tcp-flags S --rate-limit 20pps`;
 		foreach $line (@tcp){
 			# Discard lines that do not contain a "probe" line
@@ -710,6 +721,7 @@ elsif($ARGV[0] eq "trace-do256-icmp"){
 
 		# Remove all items from the array of IP addresses
 		undef @ipsfree;
+		undef @tcp;
 
 		$maxhopsfree=0;
 		$maxhopsfreeip="";
@@ -731,6 +743,8 @@ elsif($ARGV[0] eq "trace-do256-icmp"){
 
 		$maxhopstrouble=0;
 		$maxhopstroubleip="";
+		undef @tcp;
+
 		@tcp=`path6 -p icmp -u 256 -d $fline --rate-limit 20pps`;
 		foreach $line (@tcp){
 			# Discard lines that do not contain a "probe" line
@@ -756,10 +770,6 @@ elsif($ARGV[0] eq "trace-do256-icmp"){
 				}
 			}
 		}
-
-#		if($i > $#ipsfree){
-#			next;
-#		}
 
 		print "$fline#$maxhopsfreeip#$maxhopsfree#$maxhopstroubleip#$maxhopstrouble#$dropip\n";
 	}
@@ -793,6 +803,7 @@ elsif($ARGV[0] eq "trace-hbh8-tcp"){
 
 		# Remove all items from the array of IP addresses
 		undef @ipsfree;
+		undef @tcp;
 
 		$maxhopsfree=0;
 		$maxhopsfreeip="";
@@ -814,6 +825,7 @@ elsif($ARGV[0] eq "trace-hbh8-tcp"){
 
 		$maxhopstrouble=0;
 		$maxhopstroubleip="";
+		undef @tcp;
 		@tcp=`path6 -p tcp -a 80 -H 8 -d $fline --tcp-flags S --rate-limit 20pps`;
 		foreach $line (@tcp){
 			# Discard lines that do not contain a "probe" line
@@ -839,10 +851,6 @@ elsif($ARGV[0] eq "trace-hbh8-tcp"){
 				}
 			}
 		}
-
-#		if($i > $#ipsfree){
-#			next;
-#		}
 
 		print "$fline#$maxhopsfreeip#$maxhopsfree#$maxhopstroubleip#$maxhopstrouble#$dropip\n";
 	}
@@ -876,6 +884,7 @@ elsif($ARGV[0] eq "trace-hbh8-icmp"){
 
 		# Remove all items from the array of IP addresses
 		undef @ipsfree;
+		undef @tcp;
 
 		$maxhopsfree=0;
 		$maxhopsfreeip="";
@@ -897,6 +906,7 @@ elsif($ARGV[0] eq "trace-hbh8-icmp"){
 
 		$maxhopstrouble=0;
 		$maxhopstroubleip="";
+		undef @tcp;
 		@tcp=`path6 -p icmp -H 8 -d $fline --rate-limit 20pps`;
 		foreach $line (@tcp){
 			# Discard lines that do not contain a "probe" line
@@ -956,6 +966,7 @@ elsif($ARGV[0] eq "trace-hbh256-tcp"){
 
 		# Remove all items from the array of IP addresses
 		undef @ipsfree;
+		undef @tcp;
 
 		$maxhopsfree=0;
 		$maxhopsfreeip="";
@@ -977,6 +988,8 @@ elsif($ARGV[0] eq "trace-hbh256-tcp"){
 
 		$maxhopstrouble=0;
 		$maxhopstroubleip="";
+		undef @tcp;
+
 		@tcp=`path6 -p tcp -a 80 -H 256 -d $fline --tcp-flags S --rate-limit 20pps`;
 		foreach $line (@tcp){
 			# Discard lines that do not contain a "probe" line
@@ -1037,6 +1050,7 @@ elsif($ARGV[0] eq "trace-hbh256-icmp"){
 
 		# Remove all items from the array of IP addresses
 		undef @ipsfree;
+		undef @tcp;
 
 		$maxhopsfree=0;
 		$maxhopsfreeip="";
@@ -1058,6 +1072,7 @@ elsif($ARGV[0] eq "trace-hbh256-icmp"){
 
 		$maxhopstrouble=0;
 		$maxhopstroubleip="";
+		undef @tcp;
 		@tcp=`path6 -p icmp -H 256 -d $fline --rate-limit 20pps`;
 		foreach $line (@tcp){
 			# Discard lines that do not contain a "probe" line
@@ -1116,6 +1131,7 @@ elsif($ARGV[0] eq "trace-fh256-tcp"){
 
 		# Remove all items from the array of IP addresses
 		undef @ipsfree;
+		undef @tcp;
 
 		$maxhopsfree=0;
 		$maxhopsfreeip="";
@@ -1137,6 +1153,7 @@ elsif($ARGV[0] eq "trace-fh256-tcp"){
 
 		$maxhopstrouble=0;
 		$maxhopstroubleip="";
+		undef @tcp;
 		@tcp=`path6 -p tcp -a 80 --tcp-flags S -P 450 -y 256 -d $fline --rate-limit 20pps`;
 		foreach $line (@tcp){
 			# Discard lines that do not contain a "probe" line
@@ -1196,6 +1213,7 @@ elsif($ARGV[0] eq "trace-fh256-icmp"){
 
 		# Remove all items from the array of IP addresses
 		undef @ipsfree;
+		undef @tcp;
 
 		$maxhopsfree=0;
 		$maxhopsfreeip="";
@@ -1217,6 +1235,7 @@ elsif($ARGV[0] eq "trace-fh256-icmp"){
 
 		$maxhopstrouble=0;
 		$maxhopstroubleip="";
+		undef @tcp;
 		@tcp=`path6 -p icmp -P 450 -y 256 -d $fline --rate-limit 20pps`;
 		foreach $line (@tcp){
 			# Discard lines that do not contain a "probe" line
