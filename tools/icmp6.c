@@ -1483,7 +1483,7 @@ void send_packet(struct iface_data *idata, const u_char *pktdata, struct pcap_pk
 		else{
 			ipv6->ip6_dst = pkt_ipv6->ip6_src;
 
-			if(idata->type == DLT_EN10MB && !(idata->type & IFACE_LOOPBACK))
+			if(idata->type == DLT_EN10MB && !(idata->flags & IFACE_LOOPBACK))
 				ethernet->dst = pkt_ether->src;
 		}
 
