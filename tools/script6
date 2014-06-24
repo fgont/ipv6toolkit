@@ -624,6 +624,7 @@ elsif($ARGV[0] eq "trace-do256-tcp"){
 
 		# Remove all items from the array of IP addresses
 		undef @ipsfree;
+		undef @tcp;
 
 		$maxhopsfree=0;
 		$maxhopsfreeip="";
@@ -643,6 +644,7 @@ elsif($ARGV[0] eq "trace-do256-tcp"){
 			}
 		}
 
+		undef @tcp;
 		$maxhopstrouble=0;
 		$maxhopstroubleip="";
 		@tcp=`path6 -p tcp -a 80 -u 256 -d $fline --tcp-flags S --rate-limit 20pps`;
@@ -1337,6 +1339,7 @@ elsif($ARGV[0] eq "trace" || $ARGV[0] eq "trace6"){
 
 		# Remove all items from the array of IP addresses
 		undef @ipsfree;
+		undef @tcp;
 
 		$maxhopsfree=0;
 		$maxhopsfreeip="";
@@ -1356,6 +1359,7 @@ elsif($ARGV[0] eq "trace" || $ARGV[0] eq "trace6"){
 			}
 		}
 
+		undef @tcp;
 		$maxhopstrouble=0;
 		$maxhopstroubleip="";
 		@tcp=`path6 -d $fline -p $prototype $protoopt $eh --rate-limit 20pps`;
