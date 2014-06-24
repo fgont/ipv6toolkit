@@ -440,7 +440,7 @@ elsif($ARGV[0] eq "get-alexa-domains"){
 		}
 	}
 }
-elsif($ARGV[0] eq "trace-do8-tcp-stdin"){
+elsif($ARGV[0] eq "trace-do8-tcp"){
 	$total=0;
 	$response=0;
 	$timeout=0;
