@@ -1272,6 +1272,8 @@ elsif($ARGV[0] eq "trace" || $ARGV[0] eq "trace6"){
 		exit 1;
 	}
 
+	select STDOUT; $| = 1;
+
 	$total=0;
 	$response=0;
 	$timeout=0;
