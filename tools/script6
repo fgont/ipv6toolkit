@@ -340,7 +340,7 @@ elsif($ARGV[0] eq "get-trace-stats" || $ARGV[0] eq "get-trace6-stats"){
 		$passp= ($pass * 100)/$valid;
 		$droppedp= ($dropped * 100)/$valid;
 
-		printf "Valid entries: $d\tPass: %d (%.2f%%)\t Dropped: %d (%.2f%%)\n", $valid, $pass, $passp, $dropped, $droppedp;
+		printf "Valid entries: %d\tPass: %d (%.2f%%)\t Dropped: %d (%.2f%%)\n", $valid, $pass, $passp, $dropped, $droppedp;
 		print "******************************************************************************\n";
 	}
 	else{
