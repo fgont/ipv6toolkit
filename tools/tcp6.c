@@ -1211,13 +1211,13 @@ int main(int argc, char **argv){
 				exit(EXIT_FAILURE);
 			}			
 
-			if(is_time_elapsed(&curtime, &lastprobe, 1) && retr < retrans){
+			if(is_time_elapsed(&curtime, &lastprobe, rto * 1000000) && retr < retrans){
 				retr++;
 				lastprobe= curtime;
 				send_packet(&idata, NULL, NULL);
 			}
 
-			if(is_time_elapsed(&curtime, &lastprobe, rto) && retr >= retrans){
+			if(is_time_elapsed(&curtime, &lastprobe, rto * 1000000) && retr >= retrans){
 				end_f=1;
 				break;
 			}
