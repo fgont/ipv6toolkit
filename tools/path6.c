@@ -140,7 +140,7 @@ unsigned char		*prev_nh, *startoffragment;
 /* Parameters for the probe packets */
 unsigned char		srcport_f=0, dstport_f=0, tcpflags_f=0, pps_f=0, bps_f=0, endhost_f=0, rhbytes_f=0, droppacket_f=FALSE;
 u_int16_t			srcport, dstport;
-u_int8_t			tcpflags=0, cprobe, pprobe, nprobe, maxprobes, chop, phop, nhop, maxhops, ulthop;
+u_int8_t			tcpflags=0, cprobe, pprobe, nprobe, maxprobes, chop, phop, nhop, maxhops;
 struct in6_addr		nsrc;
 u_int32_t			tcpseq;
 
@@ -571,7 +571,7 @@ int main(int argc, char **argv){
 		if(!dstport_f)
 			dstport= 80;
 
-		tcpseq=random();
+		tcpseq=random() & 0x7fffffff;
 	}
 	else if(probetype == PROBE_UDP){
 		if(!dstport_f)
@@ -629,7 +629,6 @@ int main(int argc, char **argv){
 
 	maxhops=MAXHOPS;
 	maxprobes=MAXPROBES;
-	ulthop=maxhops;
 
 	/* Initialize the table of results for the different tests */
 	memset(test, 0, sizeof(test));
@@ -653,8 +652,8 @@ int main(int argc, char **argv){
 	}
 
 	/* PROBE_TIMEOUT is in seconds */
-	sched.tv_sec= PROBE_TIMEOUT/2;
-	sched.tv_usec= (PROBE_TIMEOUT%2) * 1000;
+	sched.tv_sec= PROBE_TIMEOUT;
+	sched.tv_usec= 0;
 
 	lastprobe= timeval_sub(&start, &sched);
 
@@ -672,7 +671,7 @@ int main(int argc, char **argv){
 		   If the next probe to be printed out has been sent, evaluate whether it is time to print out
 		   the result.
 		 */
-		if(phop < ulthop && test[phop][pprobe].sent){
+		if(phop < maxhops && pprobe < maxprobes && test[phop][pprobe].sent){
 			
 			/*
 			   If a response was received, print the RTT.
@@ -700,7 +699,6 @@ int main(int argc, char **argv){
 					delayp_f=0;
 				}
 				else{
-				
 					if(pprobe == 0)
 						printf(" %2d (%s)", phop+1, psrcaddr);
 
@@ -715,15 +713,16 @@ int main(int argc, char **argv){
 					pprobe=0;
 					phop++;
 
-					if(phop >= ulthop)
+					if(phop >= maxhops)
 						end_f=1;
 				}
 
-				/* XXX: If a response was received, we allow further probes to be sent */
-				send_f=1;
+				fflush(stdout);
 			}
+			else if(is_time_elapsed(&curtime, &(test[phop][pprobe].ststamp), PROBE_TIMEOUT * 1000000)){
+				/* If there was a probe timeout, we allow to send another probe */
+				send_f=1;
 
-			else if(is_time_elapsed(&curtime, &test[phop][pprobe].ststamp, PROBE_TIMEOUT * 1000000)){
 				/*
 				   If more than probe_timeout seconds have elapsed, consider the probe lost. 
 				   Print an asterisk, and wait for the next probe.
@@ -734,22 +733,20 @@ int main(int argc, char **argv){
 
 					if(pprobe >= maxprobes){
 						printf(" %2d ()   *  *  *\n", phop+1);
+						fflush(stdout);
 						pprobe=0;
 				
 						phop++;
 
 						delayp_f=0;
 
-						if(phop >= ulthop)
+						if(phop >= maxhops)
 							end_f=1;
-						else
-							send_f=1;
 
-						continue;
 					}
-
-					send_f=1;
-					delayp_f=1;
+					else{
+						delayp_f=1;
+					}
 				}
 				else{
 					printf(" *");
@@ -761,18 +758,23 @@ int main(int argc, char **argv){
 				
 						phop++;
 
-						if(phop >= ulthop)
+						if(phop >= maxhops)
 							end_f=1;
 					}
-
-					/* If there was a probe timeout, we are always allowed to send another probe */
-					send_f=1;
+					fflush(stdout);
 				}
 			}
 		}
 
 		/* If there is a probe to be sent, and rate-limiting allows, send the probe */
-		while( (send_f || is_time_elapsed(&curtime, &lastprobe, pktinterval)) && chop < ulthop && cprobe < maxprobes){
+		while( (send_f || is_time_elapsed(&curtime, &lastprobe, pktinterval)) && chop < maxhops && cprobe < maxprobes){
+			if(gettimeofday(&curtime, NULL) == -1){
+				if(idata.verbose_f)
+					perror("path6");
+
+				exit(EXIT_FAILURE);
+			}
+
 			test[chop][cprobe].sent= TRUE;
 			test[chop][cprobe].ststamp= curtime;
 			lastprobe= curtime;
@@ -783,15 +785,13 @@ int main(int argc, char **argv){
 			}
 
 			send_f=0;
-			lastprobe= curtime;
 			
 			cprobe++;
 
 			if(cprobe >= maxprobes){
 				cprobe=0;
 
-				if(chop < maxhops)
-					chop++;
+				chop++;
 			}
 		}
 
@@ -813,9 +813,14 @@ int main(int argc, char **argv){
 			}
 		}
 
-		if(sel == 0)
+/* puts("Volvi de select()"); */
+		/*
+		   If select() returned because of the timeout, go back to the beginning of the loop (i.e.,
+		   check whether there are packets to be sent
+		 */
+/*		if(sel == 0)
 			continue;
-
+*/
 		/* Read a packet (Echo Reply, ICMPv6 Error, or Neighbor Solicitation) */
 		if((r=pcap_next_ex(idata.pfd, &pkthdr, &pktdata)) == -1){
 			printf("pcap_next_ex(): %s", pcap_geterr(idata.pfd));
@@ -834,7 +839,7 @@ int main(int argc, char **argv){
 
 		/*
 		   We currently handle two cases: In the first case, there are extension headers, and hence we need to walk through
-		   the extension header chain. IN the other, the upper layer protocol is right after the fixed IPv6 header
+		   the extension header chain. In the other, the upper layer protocol is right after the fixed IPv6 header
 		 */
 		if(pkt_ipv6->ip6_nxt != IPPROTO_ICMPV6 && pkt_ipv6->ip6_nxt != IPPROTO_TCP && pkt_ipv6->ip6_nxt != IPPROTO_UDP){
 			pkt_eh= (struct ip6_eh *) ((char *) pkt_ipv6 + sizeof(struct ip6_hdr));
@@ -852,6 +857,7 @@ int main(int argc, char **argv){
 				pkt_icmp6= (struct icmp6_hdr *) ( (char *) pkt_eh + (pkt_eh->eh_len + 1) * 8);
 				pkt_udp= (struct udp_hdr *) ( (char *) pkt_eh + (pkt_eh->eh_len + 1) * 8);
 				pkt_icmp6 = (struct icmp6_hdr *) ( (char *) pkt_eh + (pkt_eh->eh_len + 1) * 8);
+				pkt_tcp = (struct tcp_hdr *) ( (char *) pkt_eh + (pkt_eh->eh_len + 1) * 8);
 				pkt_ns= (struct nd_neighbor_solicit *) ( (char *) pkt_eh + (pkt_eh->eh_len + 1) * 8);
 			}
 		}
@@ -864,8 +870,9 @@ int main(int argc, char **argv){
 		}
 
 		/*
-		   XXX: We employ the ts member (struct timeval) in struct pcap_pkthdr. That way we wouldn't need to
-		   hurry up to process the received packets, and could e.g. do DNS resolutions without screwing up the tests.
+		   XXX: We employ the ts member (struct timeval) in struct pcap_pkthdr. That way we don't  need to
+		   hurry up to process the received packets, and can e.g. do DNS resolutions without screwing up the
+		   measured RTTs.
          */
 
 		if(ulhtype == IPPROTO_ICMPV6 && probetype == PROBE_UDP && pkt_icmp6->icmp6_type == 1 && pkt_icmp6->icmp6_code == 4){
@@ -951,7 +958,10 @@ int main(int argc, char **argv){
 				nhop= ntohs(pkt_icmp6->icmp6_data16[1]) >> 8;
 				nprobe= ntohs(pkt_icmp6->icmp6_data16[1]) & 0xff;
 
-				if(nhop == 0 || nhop > maxhops)
+				if(nhop >= maxhops)
+					continue;
+
+				if(!is_eq_in6_addr(&(pkt_ipv6->ip6_src), &(idata.dstaddr)))
 					continue;
 
 				nsrc= pkt_ipv6->ip6_src;
@@ -967,6 +977,9 @@ int main(int argc, char **argv){
 				}
 
 				pkt_ipv6=  (struct ip6_hdr *) ((char *) pkt_icmp6 + sizeof(struct icmp6_hdr));
+
+				if(!is_eq_in6_addr(&(pkt_ipv6->ip6_dst), &(idata.dstaddr)))
+					continue;
 
 				if( ((unsigned char *)pkt_ipv6 + sizeof(struct ip6_hdr)) > pkt_end)
 					continue;
@@ -1033,6 +1046,9 @@ int main(int argc, char **argv){
 					if( (pkt_end - (unsigned char *) pkt_tcp) < sizeof(struct tcp_hdr))
 						continue;
 
+					if( ntohl(pkt_tcp->th_seq) != tcpseq)
+						continue;
+
 					nhop= (ntohs(pkt_tcp->th_sport) >> 8) - PROBE_PORT_OFFSET;
 					nprobe= ntohs(pkt_tcp->th_sport) & 0xff;
 				}
@@ -1055,12 +1071,18 @@ int main(int argc, char **argv){
 		}
 		else if(probetype == PROBE_TCP && ulhtype == IPPROTO_TCP){
 			/* Must still verify the TCP checksum */
-
 			if( (pkt_end - (unsigned char *) pkt_tcp) < sizeof(struct tcp_hdr))
 				continue;
 
-			if(!is_eq_in6_addr(&(pkt_ipv6->ip6_src), &(idata.dstaddr)))
+			if(!is_eq_in6_addr(&(pkt_ipv6->ip6_src), &(idata.dstaddr))){
 				continue;
+			}
+
+
+			/* XXX: This check should really take into account the payload size */
+			if( ntohl(pkt_tcp->th_ack) < tcpseq || ntohl(pkt_tcp->th_ack) > (tcpseq+100000)){
+				continue;
+			}
 
 			if(ntohs(pkt_tcp->th_sport) != dstport){
 				continue;
@@ -1069,12 +1091,7 @@ int main(int argc, char **argv){
 			nhop= (ntohs(pkt_tcp->th_dport) >> 8) - PROBE_PORT_OFFSET;
 			nprobe= ntohs(pkt_tcp->th_dport) & 0xff;
 
-			/* Discard the packet if it was supposedly sent with a Hop Limit of 0 */
-			if(!nhop)
-				continue;
-
 			nsrc= pkt_ipv6->ip6_src;
-
 			endhost_f=1;
 		}
 		else if(probetype == PROBE_UDP && ulhtype == IPPROTO_UDP){
@@ -1082,10 +1099,12 @@ int main(int argc, char **argv){
 			if( (pkt_end - (unsigned char *) pkt_udp) < sizeof(struct udp_hdr))
 				continue;
 
+			if(ntohs(pkt_udp->uh_sport) != dstport){
+				continue;
+			}
+
 			nprobe= (ntohs(pkt_udp->uh_sport) >> 8) - PROBE_PORT_OFFSET;
 			nhop= ntohs(pkt_udp->uh_sport) & 0x00ff;
-			if(!nhop)
-				continue;
 
 			nsrc= pkt_ipv6->ip6_src;
 			endhost_f=1;
@@ -1097,27 +1116,32 @@ int main(int argc, char **argv){
 		if(nprobe >= maxprobes)
 			continue;
 
-		if(nhop == 0 || nhop > maxhops)
+		if(nhop >= maxhops)
 			continue;
 
-		test[nhop-1][nprobe].received= TRUE;
-		test[nhop-1][nprobe].rtstamp.tv_sec= (pkthdr->ts).tv_sec;
-		test[nhop-1][nprobe].rtstamp.tv_usec= (pkthdr->ts).tv_usec;
-		test[nhop-1][nprobe].srcaddr= nsrc;
+		if(test[nhop][nprobe].received)
+			continue;
+
+		if(test[nhop][nprobe].sent == FALSE)
+			continue;
+
+		test[nhop][nprobe].received= TRUE;
+		test[nhop][nprobe].rtstamp.tv_sec= (pkthdr->ts).tv_sec;
+		test[nhop][nprobe].rtstamp.tv_usec= (pkthdr->ts).tv_usec;
+		test[nhop][nprobe].srcaddr= nsrc;
+
+		/* If we got a response to a probe packet, allow for an additional probe to be sent */
+		send_f= TRUE;
 
 		/*
 		   If we received a response from the end host, we artificially change maxhops such that we do not send
            probes for larger Hop Limits
 		 */
 
-
-		if(endhost_f && nhop < ulthop)
-			ulthop=nhop;
+		if(endhost_f && nhop < maxhops)
+			maxhops=nhop+1;
 
 		endhost_f=0;
-/*		maxhops= nhop; */
-
-
 	}
 
 	exit(EXIT_SUCCESS);
@@ -1365,8 +1389,8 @@ int send_probe(struct iface_data *idata, unsigned int probetype, unsigned char c
 	struct udp_hdr		*udp;
 
 	ptr=startofprefixes;
-	chop= chop+1;
-	ipv6->ip6_hlim= chop;
+	chop= chop;
+	ipv6->ip6_hlim= chop+1;
 
 	if(probetype == PROBE_ICMP6_ECHO){
 		*prev_nh = IPPROTO_ICMPV6;
