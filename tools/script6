@@ -276,6 +276,8 @@ elsif($ARGV[0] eq "get-trace-stats" || $ARGV[0] eq "get-trace6-stats"){
 
 				if($ipdrop eq ""){
 					$unknownipdrop++;
+					$unknownas++;
+					next;
 				}
 				else{
 					undef @revname;
@@ -287,10 +289,12 @@ elsif($ARGV[0] eq "get-trace-stats" || $ARGV[0] eq "get-trace6-stats"){
 					@reverse=`host -t TXT $queryname`;
 					$reverse[0] =~ m/\"\s*((\d+)\s*)\s+|"/;
 
-					$asiporig=$1;
+					$asiporig=$2;
 
 					if($asiporig==0){
+						$unknownas++;
 						$unknowniporigas++;
+						next;
 					}
 
 					undef @revname;
@@ -304,7 +308,9 @@ elsif($ARGV[0] eq "get-trace-stats" || $ARGV[0] eq "get-trace6-stats"){
 					$asipdrop=$1;
 
 					if($asipdrop==0){
+						$unknownas++;
 						$unknownipdropas++;
+						next;
 					}
 
 					if($asiporig eq "" || $asipdrop eq ""){
