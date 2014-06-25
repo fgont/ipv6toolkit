@@ -4319,12 +4319,18 @@ struct timeval timeval_sub(struct timeval *t2, struct timeval *t1){
 }
 
 
+/*
+ * Function: time_diff_ms()
+ *
+ * Return the difference between two struct timeval
+ */
+
 float time_diff_ms(struct timeval *t2, struct timeval *t1){
 	/* XXX: Need to review!! */
 	
 	float result;
 
-	result= (t2->tv_sec - t1->tv_sec) * 1000 + (t2->tv_usec - t1->tv_usec) / 1000;
+	result= t2->tv_sec * 1000 - t1->tv_sec * 1000 + (float ) t2->tv_usec / 1000 - (float) t1->tv_usec / 1000;
 
 	return(result);
 }
