@@ -174,14 +174,21 @@ elsif($ARGV[0] eq "get-asn" || $ARGV[0] eq "get-asn6"){
 }
 elsif($ARGV[0] eq "get-as" || $ARGV[0] eq "get-as6"){
 	@revname=`addr6 -a $ARGV[1] -r`;
-
 	chomp($revname[0]);
 	$queryname= $revname[0] . ".origin6.asn.cymru.com.";
 
 	@reverse=`host -t TXT $queryname`;
-
 	$reverse[0] =~ m/\"(.*)\"/;
 	print "$1\n";
+
+	$reverse[0] =~ m/"\s*(\d+).*"/;
+	$asn=$1;
+	$querystring="host -t TXT AS".$asn.".asn.cymru.com";
+
+	@asinfo= `$querystring`;
+	$asinfo[0] =~ m/\"(.*)\"/;
+	print "$1\n";
+	exit 0;
 }
 elsif($ARGV[0] eq "get-trace-stats" || $ARGV[0] eq "get-trace6-stats"){
 	$valid=0;
@@ -198,6 +205,8 @@ elsif($ARGV[0] eq "get-trace-stats" || $ARGV[0] eq "get-trace6-stats"){
 	$hoperror=0;
 	$hopzero=0;
 	$unknownas=0;
+	$unknowniporigas=0;
+	$unknownipdropas=0;
 
 	while($fline=<STDIN>){
 		chomp($fline);
@@ -257,7 +266,7 @@ elsif($ARGV[0] eq "get-trace-stats" || $ARGV[0] eq "get-trace6-stats"){
 
 			$valid= $valid+1;
 
-			if($ipfree eq $iptrouble){
+			if($iporig eq $iptrouble){
 				#notdropped
 				$pass=$pass+1;
 			}
@@ -271,17 +280,17 @@ elsif($ARGV[0] eq "get-trace-stats" || $ARGV[0] eq "get-trace6-stats"){
 				else{
 					undef @revname;
 					undef @reverse;
-					@revname=`addr6 -a $ipfree -r`;
+					@revname=`addr6 -a $iporig -r`;
 					chomp($revname[0]);
 					$queryname= $revname[0] . ".origin6.asn.cymru.com.";
 
 					@reverse=`host -t TXT $queryname`;
 					$reverse[0] =~ m/\"\s*((\d+)\s*)\s+|"/;
 
-					$asipfree=$1;
+					$asiporig=$1;
 
-					if($asipfree==0){
-						$unknownipfreeas++;
+					if($asiporig==0){
+						$unknowniporigas++;
 					}
 
 					undef @revname;
@@ -292,17 +301,17 @@ elsif($ARGV[0] eq "get-trace-stats" || $ARGV[0] eq "get-trace6-stats"){
 
 					@reverse=`host -t TXT $queryname`;
 					$reverse[0] =~ m/\"\s*((\d+)\s*)\s+|"/;
-					$asiptrouble=$1;
+					$asipdrop=$1;
 
-					if($asiptrouble==0){
-						$unknowniptroubleas++;
+					if($asipdrop==0){
+						$unknownipdropas++;
 					}
 
-					if($asipfree eq "" || $asiptrouble eq ""){
+					if($asiporig eq "" || $asipdrop eq ""){
 						$unknownas++;
 					}
 
-					if($asipfree == $asiptrouble){
+					if($asiporig == $asipdrop){
 						$sameas++;
 					}
 					else{

@@ -12,6 +12,23 @@ sub usage{
 	print "usage: blackhole6 DESTINATION [EH_TYPE[:EHSIZE]] [PROTOCOL [PORT]]]\n";
 }
 
+
+sub GetASN{
+	@revname=`addr6 -a $_[0] -r`;
+	chomp($revname[0]);
+	$queryname= $revname[0] . ".origin6.asn.cymru.com.";
+	@reverse=`host -t TXT $queryname`;
+	$reverse[0] =~ m/\"\s*((\d+)\s*)\s+|"/;
+	return($2);
+}
+
+sub GetORG{
+	$querystring="host -t TXT AS".$_[0].".asn.cymru.com";
+	@asinfo= `$querystring`;
+	$asinfo[0] =~ m/\"*.\|.*\|.*\|.*\|\s*(.*)\"/;
+	return($1);
+}
+
 # Remove all items from the array of IP addresses
 undef @ipsfree;
 
@@ -94,7 +111,7 @@ else{
 $fline= $ARGV[0];
 $maxhopsfree=0;
 $maxhopsfreeip="";
-@tcp=`path6 -d $fline -p $prototype $protoopt --rate-limit 20pps`;
+@tcp=`path6 -d $fline -p $prototype $protoopt --rate-limit 40pps`;
 foreach $line (@tcp){
 	# Discard lines that do not contain a "probe" line
 	if($line =~ m/\s+(\d+)\s+\((\S*)\)/){
@@ -112,7 +129,7 @@ foreach $line (@tcp){
 
 $maxhopstrouble=0;
 $maxhopstroubleip="";
-@tcp=`path6 -d $fline -p $prototype $protoopt $eh --rate-limit 20pps`;
+@tcp=`path6 -d $fline -p $prototype $protoopt $eh --rate-limit 40pps`;
 foreach $line (@tcp){
 	# Discard lines that do not contain a "probe" line
 	if($line =~ m/\s+(\d+)\s+\((\S*)\)/){
@@ -139,53 +156,49 @@ for($i=0; $i<= $#ipsfree; $i++){
 	}
 }
 
-@revname=`addr6 -a $fline -r`;
-chomp($revname[0]);
-$queryname= $revname[0] . ".origin6.asn.cymru.com.";
-@reverse=`host -t TXT $queryname`;
-$reverse[0] =~ m/\"\s*((\d+)\s*)\s+|"/;
-$flineasn= $2;
+$flineasn= GetASN($fline);
 
 if($flineasn eq ""){
 	$flineasn= "Unknown";
 }
 
-@revname=`addr6 -a $maxhopsfreeip -r`;
-chomp($revname[0]);
-$queryname= $revname[0] . ".origin6.asn.cymru.com.";
-@reverse=`host -t TXT $queryname`;
-$reverse[0] =~ m/\"\s*((\d+)\s*)\s+|"/;
-$maxhopsfreeasn= $2;
+
+$maxhopsfreeasn= GetASN($maxhopsfreeip);
 
 if($maxhopsfreeasn eq ""){
 	$maxhopsfreeasn= "Unknown";
 }
 
-@revname=`addr6 -a $maxhopstroubleip -r`;
-chomp($revname[0]);
-$queryname= $revname[0] . ".origin6.asn.cymru.com.";
-@reverse=`host -t TXT $queryname`;
-$reverse[0] =~ m/\"\s*((\d+)\s*)\s+|"/;
-$maxhopstroubleasn= $2;
+$maxhopstroubleasn= GetASN($maxhopstroubleip);
 
 if($maxhopstroubleasn eq ""){
 	$maxhopstroubleasn= "Unknown";
 }
 
 $ehtype_uc= uc($ehtype);
-print "\nDestination IPv6 address: $fline (AS $flineasn)\n";
-print "Last responding node (no EHs): $maxhopsfreeip (AS $maxhopsfreeasn) ($maxhopsfree hop(s))\n";
-print "Last responding node ($ehtype_uc $ehsize): $maxhopstroubleip (AS $maxhopstroubleasn) ($maxhopstrouble hop(s))\n";
+$flineorg= GetORG($flineasn);
+$maxhopsfreeorg= GetORG($maxhopsfreeasn);
+$maxhopstroubleorg= GetORG($maxhopstroubleasn);
+
+print "\nDestination IPv6 address: $fline (AS$flineasn - $flineorg)\n";
+print "Last resp. node (no EHs): $maxhopsfreeip (AS$maxhopsfreeasn - $maxhopsfreeorg) ($maxhopsfree hop(s))\n";
+print "Last resp. node ($ehtype_uc $ehsize): $maxhopstroubleip (AS$maxhopstroubleasn -$maxhopstroubleorg) ($maxhopstrouble hop(s))\n";
 
 if($maxhopsfreeip == $fline){
 	if($maxhopstroubleip == $fline){
 			print "Dropping node: No packet drops\n";
 	}
 	else{
-		print "Dropping node: $dropip\n";
+		$dropasn= GetASN($dropip);
+		$droporg= GetORG($dropasn);
+
+		if($dropasn eq ""){
+			$dropasn= "Unknown";
+		}
+		print "Dropping node: $dropip (AS$dropasn - $droporg)\n";
 	}
 }
 else{
-	print "Dropping node: $dropip\n";
+	print "Dropping nodes: Packets being dropped for both the no-EH and the EH case\n";
 }
 
