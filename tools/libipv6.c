@@ -4302,19 +4302,24 @@ int find_ipv6_router(pcap_t *pfd, struct ether_addr *hsrcaddr, struct in6_addr *
 }
 
 
-
+/*
+ * Function: timeval timeval_sub()
+ *
+ * Substract two struct timeval
+ */
 
 struct timeval timeval_sub(struct timeval *t2, struct timeval *t1){
-	/* XXX: Need to review!! */
 	struct timeval result;
 
 	if(t1->tv_usec > t2->tv_usec){
-		t1->tv_usec = t1->tv_sec + ( ( (t1->tv_usec - t2->tv_usec) / 10000000) + 1  ) * 1000000;
-		t1->tv_sec= t1->tv_sec - ( ( (t1->tv_usec - t2->tv_usec) / 10000000) + 1  );
+		result.tv_sec= t2->tv_sec - t1->tv_sec - 1;
+		result.tv_usec= 1000000 - t1->tv_usec + t2->tv_usec ;
+	}
+	else{
+		result.tv_sec= t2->tv_sec - t1->tv_sec;
+		result.tv_usec= t2->tv_usec - t1->tv_usec ;
 	}
 
-	result.tv_sec= t2->tv_sec - t1->tv_sec;
-	result.tv_usec= t2->tv_usec - t1->tv_usec;
 	return(result);
 }
 
@@ -4322,7 +4327,7 @@ struct timeval timeval_sub(struct timeval *t2, struct timeval *t1){
 /*
  * Function: time_diff_ms()
  *
- * Return the difference between two struct timeval
+ * Return the difference between two struct timeval (in msec)
  */
 
 float time_diff_ms(struct timeval *t2, struct timeval *t1){
