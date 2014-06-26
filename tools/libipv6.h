@@ -286,8 +286,38 @@ struct ip6_eh{
     uint8_t  eh_len;		/* length in units of 8 octets.  */
 } __attribute__ ((__packed__));
 
-
 typedef	u_int32_t tcp_seq;
+
+
+/*
+   Different OSes employ different constants fo specifying the byte order.
+   We employ the native Linux one, and if not available, map the BSD or Mac
+   OS into the Linux one.
+ */
+#ifndef __BYTE_ORDER
+	#define	__LITTLE_ENDIAN	1234
+	#define	__BIG_ENDIAN	4321
+
+	/* Mac OS */
+	#if defined (__BYTE_ORDER__)
+		# if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
+			#define __BYTE_ORDER __LITTLE_ENDIAN
+		#elif __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
+			#define __BYTE_ORDER __BIG_ENDIAN
+		#endif
+
+	/* BSD */
+	#elif defined(_BYTE_ORDER)
+		#if _BYTE_ORDER == _LITTLE_ENDIAN
+			#define __BYTE_ORDER __LITTLE_ENDIAN
+		#elif _BYTE_ORDER == _BIG_ENDIAN
+			#define __BYTE_ORDER __BIG_ENDIAN		
+		#endif
+	#endif
+#endif
+
+
+/* BSD definition */
 
 /*
  * TCP header.
@@ -298,11 +328,11 @@ struct tcp_hdr {
 	u_int16_t th_dport;		/* destination port */
 	tcp_seq	  th_seq;		/* sequence number */
 	tcp_seq	  th_ack;		/* acknowledgement number */
-#if _BYTE_ORDER == _LITTLE_ENDIAN
+#if __BYTE_ORDER == __LITTLE_ENDIAN
 	u_int32_t th_x2:4,		/* (unused) */
 		  th_off:4;		/* data offset */
 #endif
-#if _BYTE_ORDER == _BIG_ENDIAN
+#  if __BYTE_ORDER == __BIG_ENDIAN
 	u_int32_t th_off:4,		/* data offset */
 		  th_x2:4;		/* (unused) */
 #endif
