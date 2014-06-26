@@ -46,7 +46,7 @@ BINTOOLS= addr6
 TOOLS= $(BINTOOLS) $(SBINTOOLS)
 LIBS= libipv6.o
 
-all: $(TOOLS) ipv6toolkit.conf
+all: $(TOOLS) data/ipv6toolkit.conf
 
 addr6: $(SRCPATH)/addr6.c $(SRCPATH)/addr6.h $(SRCPATH)/ipv6toolkit.h $(LIBS) $(SRCPATH)/libipv6.h
 	$(CC) $(CPPFLAGS) $(CFLAGS) -o addr6 $(SRCPATH)/addr6.c $(LIBS) $(LDFLAGS) 
@@ -99,7 +99,7 @@ tcp6: $(SRCPATH)/tcp6.c $(SRCPATH)/tcp6.h $(SRCPATH)/ipv6toolkit.h $(LIBS) $(SRC
 libipv6.o: $(SRCPATH)/libipv6.c $(SRCPATH)/libipv6.h
 	$(CC) $(CPPFLAGS) $(CFLAGS) -c -o libipv6.o $(SRCPATH)/libipv6.c
 
-ipv6toolkit.conf:
+data/ipv6toolkit.conf:
 	echo "# SI6 Networks' IPv6 Toolkit Configuration File" > \
            data/ipv6toolkit.conf
 	echo OUI-Database=$(PREFIX)/share/ipv6toolkit/oui.txt >> \
