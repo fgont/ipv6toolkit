@@ -46,7 +46,7 @@ BINTOOLS= addr6
 TOOLS= $(BINTOOLS) $(SBINTOOLS)
 LIBS= libipv6.o
 
-all: $(TOOLS) $(LIBS) data/ipv6toolkit.conf
+all: $(TOOLS) data/ipv6toolkit.conf
 
 addr6: $(SRCPATH)/addr6.c $(SRCPATH)/addr6.h $(SRCPATH)/ipv6toolkit.h $(LIBS) $(SRCPATH)/libipv6.h
 	$(CC) $(CPPFLAGS) $(CFLAGS) -o addr6 $(SRCPATH)/addr6.c $(LIBS) $(LDFLAGS) 
