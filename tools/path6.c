@@ -813,14 +813,14 @@ int main(int argc, char **argv){
 			}
 		}
 
-/* puts("Volvi de select()"); */
+
 		/*
 		   If select() returned because of the timeout, go back to the beginning of the loop (i.e.,
 		   check whether there are packets to be sent
 		 */
-/*		if(sel == 0)
+		if(sel == 0)
 			continue;
-*/
+
 		/* Read a packet (Echo Reply, ICMPv6 Error, or Neighbor Solicitation) */
 		if((r=pcap_next_ex(idata.pfd, &pkthdr, &pktdata)) == -1){
 			printf("pcap_next_ex(): %s", pcap_geterr(idata.pfd));
@@ -1389,7 +1389,6 @@ int send_probe(struct iface_data *idata, unsigned int probetype, unsigned char c
 	struct udp_hdr		*udp;
 
 	ptr=startofprefixes;
-	chop= chop;
 	ipv6->ip6_hlim= chop+1;
 
 	if(probetype == PROBE_ICMP6_ECHO){
