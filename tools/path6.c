@@ -24,6 +24,7 @@
  * Please send any bug reports to Fernando Gont <fgont@si6networks.com>
  */
 
+/*#define DEBUG */
 
 #include <sys/types.h>
 #include <sys/param.h>
@@ -141,6 +142,9 @@ unsigned char		*prev_nh, *startoffragment;
 unsigned char		srcport_f=0, dstport_f=0, tcpflags_f=0, pps_f=0, bps_f=0, endhost_f=0, rhbytes_f=0, droppacket_f=FALSE;
 u_int16_t			srcport, dstport;
 u_int8_t			tcpflags=0, cprobe, pprobe, nprobe, maxprobes, chop, phop, nhop, maxhops;
+#ifdef DEBUG
+u_int8_t			scprobe=0, spprobe=0, snprobe=0, smaxprobes=0, schop=0, sphop=0, snhop=0, smaxhops=0;
+#endif
 struct in6_addr		nsrc;
 u_int32_t			tcpseq;
 
@@ -667,6 +671,29 @@ int main(int argc, char **argv){
 			exit(EXIT_FAILURE);
 		}
 
+#ifdef DEBUG
+	if(scprobe != cprobe || spprobe != pprobe || snprobe != nprobe || smaxprobes != maxprobes || schop != chop || sphop != phop || snhop != nhop || smaxhops != maxhops){
+
+		scprobe= cprobe; spprobe= pprobe; snprobe = nprobe; smaxprobes = maxprobes; schop = chop; sphop= phop; snhop= nhop; smaxhops= maxhops;
+
+		printf("\n\ncprobe: %d; pprobe: %d; nprobe: %d; maxprobes: %d chop: %d; phop: %d; nhop: %d; maxhops: %d; cprobe: %d; pprobe: %d; nprobe: %d; maxprobes: %d\n", cprobe, pprobe, nprobe, maxprobes, chop, phop, nhop, maxhops, cprobe, pprobe, nprobe, maxprobes);
+
+
+		printf("Curtime: %lu sec, %lu usec\n", (unsigned long)curtime.tv_sec, (unsigned long) curtime.tv_usec);
+
+		if(test[phop][pprobe].sent){
+			printf("Sentime [%d][%d]: %lu sec, %lu usec\n", phop, pprobe, (unsigned long) test[phop][pprobe].ststamp.tv_sec, (unsigned long) test[phop][pprobe].ststamp.tv_usec);
+		}
+		if(test[phop][pprobe].received){
+			printf("Receiveime [%d][%d]: %lu sec, %lu usec\n", phop, pprobe, (unsigned long) test[phop][pprobe].rtstamp.tv_sec, (unsigned long) test[phop][pprobe].rtstamp.tv_usec);
+		}
+
+		if(test[phop][pprobe].sent && test[phop][pprobe].received){
+			printf("Time recv-sent: %f ms\n", time_diff_ms(&(test[phop][pprobe].rtstamp), &(test[phop][pprobe].ststamp)));
+		}
+	}
+#endif
+
 		/*
 		   If the next probe to be printed out has been sent, evaluate whether it is time to print out
 		   the result.
@@ -788,7 +815,6 @@ int main(int argc, char **argv){
 
 			if(cprobe >= maxprobes){
 				cprobe=0;
-
 				chop++;
 			}
 		}
