@@ -735,14 +735,12 @@ int main(int argc, char **argv){
 						printf(" %2d ()   *  *  *\n", phop+1);
 						fflush(stdout);
 						pprobe=0;
-				
 						phop++;
-
-						delayp_f=0;
 
 						if(phop >= maxhops)
 							end_f=1;
 
+						delayp_f=0;
 					}
 					else{
 						delayp_f=1;
@@ -1126,8 +1124,19 @@ int main(int argc, char **argv){
 			continue;
 
 		test[nhop][nprobe].received= TRUE;
+/*
 		test[nhop][nprobe].rtstamp.tv_sec= (pkthdr->ts).tv_sec;
 		test[nhop][nprobe].rtstamp.tv_usec= (pkthdr->ts).tv_usec;
+*/
+		if(gettimeofday(&curtime, NULL) == -1){
+			if(idata.verbose_f)
+				perror("path6");
+
+			exit(EXIT_FAILURE);
+		}
+
+		test[nhop][nprobe].rtstamp.tv_sec= curtime.tv_sec;
+		test[nhop][nprobe].rtstamp.tv_usec= curtime.tv_usec;
 		test[nhop][nprobe].srcaddr= nsrc;
 
 		/* If we got a response to a probe packet, allow for an additional probe to be sent */
