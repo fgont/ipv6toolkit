@@ -1335,7 +1335,7 @@ elsif($ARGV[0] eq "trace" || $ARGV[0] eq "trace6"){
 			exit 1;
 		}
 
-		$payload= ($ehsize * 2) - 8;
+		$payload= ($ehsize * 2) - 20;
 		$protoopt="-P $payload " . $protoopt;
 	}
 
@@ -1379,7 +1379,7 @@ elsif($ARGV[0] eq "trace" || $ARGV[0] eq "trace6"){
 
 		$maxhopsfree=0;
 		$maxhopsfreeip="";
-		@tcp=`path6 -d $fline -p $prototype $protoopt --rate-limit 20pps`;
+		@tcp=`path6 -d $fline -p $prototype $protoopt --rate-limit 25pps`;
 		foreach $line (@tcp){
 			# Discard lines that do not contain a "probe" line
 			if($line =~ m/\s+(\d+)\s+\((\S*)\)/){
@@ -1398,8 +1398,162 @@ elsif($ARGV[0] eq "trace" || $ARGV[0] eq "trace6"){
 		undef @tcp;
 		$maxhopstrouble=0;
 		$maxhopstroubleip="";
-		@tcp=`path6 -d $fline -p $prototype $protoopt $eh --rate-limit 20pps`;
+		@tcp=`path6 -d $fline -p $prototype $protoopt $eh --rate-limit 25pps`;
 		foreach $line (@tcp){
+			# Discard lines that do not contain a "probe" line
+			if($line =~ m/\s+(\d+)\s+\((\S*)\)/){
+				if($1 > $maxhopstrouble){
+					if($2 ne ""){
+						$maxhopstrouble=$1;
+						$maxhopstroubleip= $2;
+					}
+				}
+			}
+		}
+
+		$dropip="";
+		for($i=0; $i<= $#ipsfree; $i++){
+			if($ipsfree[$i] eq $maxhopstroubleip){
+				if($i == $#ipsfree){
+					$dropip= $ipsfree[$i];
+					last;
+				}
+				else{
+					$dropip= $ipsfree[$i+1];
+					last;
+				}
+			}
+		}
+
+		print "$fline#$maxhopsfreeip#$maxhopsfree#$maxhopstroubleip#$maxhopstrouble#$dropip\n";
+
+	}
+}
+elsif($ARGV[0] eq "trace-debug" || $ARGV[0] eq "trace6-debug"){
+	if($> != 0){
+		print "Error: This script requires superuser privileges\n";
+		exit 1;
+	}
+
+	select STDOUT; $| = 1;
+
+	$total=0;
+	$response=0;
+	$timeout=0;
+
+	$ehtype= "do";
+	$ehsize= "8";
+	$prototype="icmp";
+
+	if($#ARGV > 0){
+		if($ARGV[1] =~ m/([a-zA-Z]+):?(\d+)/){
+			$ehtype= lc($1);
+			$ehsize= $2;
+		}
+		else{
+			$ehtype= $ARGV[1];
+		}
+
+		if($#ARGV > 1){
+			$prototype=	$ARGV[2];
+
+			if($#ARGV > 2){
+				$port=	$ARGV[3];
+			}
+			else{
+				$port= "80";
+			}
+		}
+	}
+
+	if($prototype eq "tcp"){
+		$protoopt= "--tcp-flags S -a $port";
+	}
+	else{
+		$protoopt="";
+	}
+
+	if($ehtype eq "fh" || $ehtype eq "frag"){
+		if($ehsize < 8){
+			print "Error: Fragment size should be larger than or equal to 8 bytes";
+			exit 1;
+		}
+		elsif($ehsize > 1280){
+			print "Error: Fragment size should be smaller than or equal to 1280 bytes";
+			exit 1;
+		}
+
+		$payload= ($ehsize * 2) - 20;
+		$protoopt="-P $payload " . $protoopt;
+	}
+
+	if($ehtype eq "fh" || $ehtype eq "frag"){
+		$eh= "-y $ehsize";
+	}
+	elsif($ehtype eq "hbh"){
+		$eh= "-H $ehsize";
+	}
+	elsif($ehtype eq "do"){
+		$eh= "-u $ehsize";
+	}
+	else{
+		print "Error: Unknown EH type";
+		exit 1;
+	}
+
+#	print "path6 -d NOSPEC -p $prototype $protoopt --rate-limit 20pps\n";
+#	print "path6 -d NOSPEC -p $prototype $protoopt $eh --rate-limit 20pps\n";
+
+	while($fline=<STDIN>){
+		chomp($fline);
+
+		if($fline =~ m/([^\x0d]+)/){
+			$fline= $1;
+		}
+
+		# Check whether this line is just a comment -- if so, skip it
+		if($fline =~ m/^((\s)*#)/){
+			next;
+		}
+
+		# Skip blanck lines 
+		if($fline =~ m/^(\s)*$/){
+			next;
+		}
+
+		# Remove all items from the array of IP addresses
+		undef @ipsfree;
+		undef @tcp;
+
+		$maxhopsfree=0;
+		$maxhopsfreeip="";
+		print "############################################################\n";
+		print "path6 -d $fline -p $prototype $protoopt --rate-limit 25pps\n\n";
+		@tcp=`path6 -d $fline -p $prototype $protoopt --rate-limit 25pps`;
+		foreach $line (@tcp){
+			print "$line";
+			# Discard lines that do not contain a "probe" line
+			if($line =~ m/\s+(\d+)\s+\((\S*)\)/){
+				if($1 > $maxhopsfree){
+					if($2 ne ""){
+						$maxhopsfree=$1;
+						$maxhopsfreeip=$2;
+					}
+
+					# We store the IPv6 addresses of all hops
+					push(@ipsfree, $2);
+				}
+			}
+		}
+
+		undef @tcp;
+		$maxhopstrouble=0;
+		$maxhopstroubleip="";
+		print "**************************************************************\n";
+		print "path6 -d $fline -p $prototype $protoopt $eh --rate-limit 25pps\n\n";
+		@tcp=`path6 -d $fline -p $prototype $protoopt $eh --rate-limit 25pps`;
+		foreach $line (@tcp){
+			print "$line";
 			# Discard lines that do not contain a "probe" line
 			if($line =~ m/\s+(\d+)\s+\((\S*)\)/){
 				if($1 > $maxhopstrouble){
