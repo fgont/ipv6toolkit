@@ -24,7 +24,7 @@
  * Please send any bug reports to Fernando Gont <fgont@si6networks.com>
  */
 
-/*#define DEBUG */
+/* #define DEBUG */
 
 #include <sys/types.h>
 #include <sys/param.h>
@@ -144,6 +144,7 @@ u_int16_t			srcport, dstport;
 u_int8_t			tcpflags=0, cprobe, pprobe, nprobe, maxprobes, chop, phop, nhop, maxhops;
 #ifdef DEBUG
 u_int8_t			scprobe=0, spprobe=0, snprobe=0, smaxprobes=0, schop=0, sphop=0, snhop=0, smaxhops=0;
+unsigned char	s_end_f=0;
 #endif
 struct in6_addr		nsrc;
 u_int32_t			tcpseq;
@@ -672,11 +673,11 @@ int main(int argc, char **argv){
 		}
 
 #ifdef DEBUG
-	if(scprobe != cprobe || spprobe != pprobe || snprobe != nprobe || smaxprobes != maxprobes || schop != chop || sphop != phop || snhop != nhop || smaxhops != maxhops){
+	if(s_end_f != end_f || scprobe != cprobe || spprobe != pprobe || snprobe != nprobe || smaxprobes != maxprobes || schop != chop || sphop != phop || snhop != nhop || smaxhops != maxhops){
 
-		scprobe= cprobe; spprobe= pprobe; snprobe = nprobe; smaxprobes = maxprobes; schop = chop; sphop= phop; snhop= nhop; smaxhops= maxhops;
+		s_end_f= end_f; scprobe= cprobe; spprobe= pprobe; snprobe = nprobe; smaxprobes = maxprobes; schop = chop; sphop= phop; snhop= nhop; smaxhops= maxhops;
 
-		printf("\n\ncprobe: %d; pprobe: %d; nprobe: %d; maxprobes: %d chop: %d; phop: %d; nhop: %d; maxhops: %d; cprobe: %d; pprobe: %d; nprobe: %d; maxprobes: %d\n", cprobe, pprobe, nprobe, maxprobes, chop, phop, nhop, maxhops, cprobe, pprobe, nprobe, maxprobes);
+		printf("\n\nend_f: %s;  chop: %d; cprobe: %d; phop: %d; pprobe: %d; nhop: %d; nprobe: %d; maxprobes: %d; maxhops: %d\n", ((end_f)?"TRUE":"FALSE"), chop, cprobe, phop, pprobe, nhop, nprobe, maxprobes, maxhops);
 
 
 		printf("Curtime: %lu sec, %lu usec\n", (unsigned long)curtime.tv_sec, (unsigned long) curtime.tv_usec);
