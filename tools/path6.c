@@ -24,8 +24,6 @@
  * Please send any bug reports to Fernando Gont <fgont@si6networks.com>
  */
 
-/* #define DEBUG */
-
 #include <sys/types.h>
 #include <sys/param.h>
 #include <sys/socket.h>
@@ -142,10 +140,7 @@ unsigned char		*prev_nh, *startoffragment;
 unsigned char		srcport_f=0, dstport_f=0, tcpflags_f=0, pps_f=0, bps_f=0, endhost_f=0, rhbytes_f=0, droppacket_f=FALSE;
 u_int16_t			srcport, dstport;
 u_int8_t			tcpflags=0, cprobe, pprobe, nprobe, maxprobes, chop, phop, nhop, maxhops;
-#ifdef DEBUG
-u_int8_t			scprobe=0, spprobe=0, snprobe=0, smaxprobes=0, schop=0, sphop=0, snhop=0, smaxhops=0;
-unsigned char	s_end_f=0;
-#endif
+
 struct in6_addr		nsrc;
 u_int32_t			tcpseq;
 
@@ -191,11 +186,6 @@ int main(int argc, char **argv){
 	char shortopts[]= "i:S:D:s:d:u:U:H:y:p:P:o:a:X:r:vh";
 
 	char option;
-
-#ifdef DEBUG
-	puts("Starting path6");
-	fflush(stdout);
-#endif
 
 	if(argc<=1){
 		usage();
@@ -669,11 +659,6 @@ int main(int argc, char **argv){
 
 	end_f=0;
 
-#ifdef DEBUG
-	puts("Getting into main loop");
-	fflush(stdout);
-#endif
-
 	while(!end_f){
 		if(gettimeofday(&curtime, NULL) == -1){
 			if(idata.verbose_f)
@@ -681,50 +666,6 @@ int main(int argc, char **argv){
 
 			exit(EXIT_FAILURE);
 		}
-
-#ifdef DEBUG
-	if(s_end_f != end_f || scprobe != cprobe || spprobe != pprobe || snprobe != nprobe || smaxprobes != maxprobes || schop != chop || sphop != phop || snhop != nhop || smaxhops != maxhops){
-
-		s_end_f= end_f; scprobe= cprobe; spprobe= pprobe; snprobe = nprobe; smaxprobes = maxprobes; schop = chop; sphop= phop; snhop= nhop; smaxhops= maxhops;
-
-		printf("\n\nend_f: %s;  chop: %d; cprobe: %d; phop: %d; pprobe: %d; nhop: %d; nprobe: %d; maxprobes: %d; maxhops: %d\n", ((end_f)?"TRUE":"FALSE"), chop, cprobe, phop, pprobe, nhop, nprobe, maxprobes, maxhops);
-
-
-		printf("Curtime: %lu sec, %lu usec\n", (unsigned long)curtime.tv_sec, (unsigned long) curtime.tv_usec);
-
-		if(test[phop][pprobe].sent){
-			printf("Sentime [%d][%d]: %lu sec, %lu usec\n", phop, pprobe, (unsigned long) test[phop][pprobe].ststamp.tv_sec, (unsigned long) test[phop][pprobe].ststamp.tv_usec);
-		}
-		if(test[phop][pprobe].received){
-			printf("Receiveime [%d][%d]: %lu sec, %lu usec\n", phop, pprobe, (unsigned long) test[phop][pprobe].rtstamp.tv_sec, (unsigned long) test[phop][pprobe].rtstamp.tv_usec);
-		}
-
-		if(test[phop][pprobe].sent && test[phop][pprobe].received){
-			printf("Time recv-sent: %f ms\n", time_diff_ms(&(test[phop][pprobe].rtstamp), &(test[phop][pprobe].ststamp)));
-		}
-	}
-
-	if(is_time_elapsed(&curtime, &start, 30 * 1000000)){
-		printf("\n\nend_f: %s;  chop: %d; cprobe: %d; phop: %d; pprobe: %d; nhop: %d; nprobe: %d; maxprobes: %d; maxhops: %d\n", ((end_f)?"TRUE":"FALSE"), chop, cprobe, phop, pprobe, nhop, nprobe, maxprobes, maxhops);
-
-
-		printf("Curtime: %lu sec, %lu usec\n", (unsigned long)curtime.tv_sec, (unsigned long) curtime.tv_usec);
-
-		if(test[phop][pprobe].sent){
-			printf("Sentime [%d][%d]: %lu sec, %lu usec\n", phop, pprobe, (unsigned long) test[phop][pprobe].ststamp.tv_sec, (unsigned long) test[phop][pprobe].ststamp.tv_usec);
-		}
-		if(test[phop][pprobe].received){
-			printf("Receiveime [%d][%d]: %lu sec, %lu usec\n", phop, pprobe, (unsigned long) test[phop][pprobe].rtstamp.tv_sec, (unsigned long) test[phop][pprobe].rtstamp.tv_usec);
-		}
-
-		if(test[phop][pprobe].sent && test[phop][pprobe].received){
-			printf("Time recv-sent: %f ms\n", time_diff_ms(&(test[phop][pprobe].rtstamp), &(test[phop][pprobe].ststamp)));
-		}
-
-		puts("ZZZZZZZZZZZZZ TRABADO ZZZZZZZZZZZZZZZZZZZZZZZ");
-		exit(0);
-	}
-#endif
 
 		/*
 		   If the next probe to be printed out has been sent, evaluate whether it is time to print out
@@ -1210,11 +1151,6 @@ int main(int argc, char **argv){
 
 		endhost_f=0;
 	}
-
-#ifdef DEBUG
-	puts("Finishing path6");
-	fflush(stdout);
-#endif
 
 	exit(EXIT_SUCCESS);
 }
