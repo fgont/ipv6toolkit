@@ -192,6 +192,11 @@ int main(int argc, char **argv){
 
 	char option;
 
+#ifdef DEBUG
+	puts("Starting path6");
+	fflush(stdout);
+#endif
+
 	if(argc<=1){
 		usage();
 		exit(EXIT_FAILURE);
@@ -664,6 +669,11 @@ int main(int argc, char **argv){
 
 	end_f=0;
 
+#ifdef DEBUG
+	puts("Getting into main loop");
+	fflush(stdout);
+#endif
+
 	while(!end_f){
 		if(gettimeofday(&curtime, NULL) == -1){
 			if(idata.verbose_f)
@@ -692,6 +702,27 @@ int main(int argc, char **argv){
 		if(test[phop][pprobe].sent && test[phop][pprobe].received){
 			printf("Time recv-sent: %f ms\n", time_diff_ms(&(test[phop][pprobe].rtstamp), &(test[phop][pprobe].ststamp)));
 		}
+	}
+
+	if(is_time_elapsed(&curtime, &start, 30 * 1000000)){
+		printf("\n\nend_f: %s;  chop: %d; cprobe: %d; phop: %d; pprobe: %d; nhop: %d; nprobe: %d; maxprobes: %d; maxhops: %d\n", ((end_f)?"TRUE":"FALSE"), chop, cprobe, phop, pprobe, nhop, nprobe, maxprobes, maxhops);
+
+
+		printf("Curtime: %lu sec, %lu usec\n", (unsigned long)curtime.tv_sec, (unsigned long) curtime.tv_usec);
+
+		if(test[phop][pprobe].sent){
+			printf("Sentime [%d][%d]: %lu sec, %lu usec\n", phop, pprobe, (unsigned long) test[phop][pprobe].ststamp.tv_sec, (unsigned long) test[phop][pprobe].ststamp.tv_usec);
+		}
+		if(test[phop][pprobe].received){
+			printf("Receiveime [%d][%d]: %lu sec, %lu usec\n", phop, pprobe, (unsigned long) test[phop][pprobe].rtstamp.tv_sec, (unsigned long) test[phop][pprobe].rtstamp.tv_usec);
+		}
+
+		if(test[phop][pprobe].sent && test[phop][pprobe].received){
+			printf("Time recv-sent: %f ms\n", time_diff_ms(&(test[phop][pprobe].rtstamp), &(test[phop][pprobe].ststamp)));
+		}
+
+		puts("ZZZZZZZZZZZZZ TRABADO ZZZZZZZZZZZZZZZZZZZZZZZ");
+		exit(0);
 	}
 #endif
 
@@ -1174,11 +1205,16 @@ int main(int argc, char **argv){
            probes for larger Hop Limits
 		 */
 
-		if(endhost_f && nhop < maxhops)
+		if(endhost_f && nhop < maxhops && phop <= nhop)
 			maxhops=nhop+1;
 
 		endhost_f=0;
 	}
+
+#ifdef DEBUG
+	puts("Finishing path6");
+	fflush(stdout);
+#endif
 
 	exit(EXIT_SUCCESS);
 }
