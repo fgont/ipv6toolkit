@@ -89,7 +89,7 @@ if($ehtype eq "fh" || $ehtype eq "frag"){
 		exit 1;
 	}
 
-	$payload= ($ehsize * 2) - 8;
+	$payload= ($ehsize * 2) - 20;
 	$protoopt="-P $payload " . $protoopt;
 }
 
@@ -159,20 +159,20 @@ for($i=0; $i<= $#ipsfree; $i++){
 $flineasn= GetASN($fline);
 
 if($flineasn eq ""){
-	$flineasn= "Unknown";
+	$flineasn= " Unknown";
 }
 
 
 $maxhopsfreeasn= GetASN($maxhopsfreeip);
 
 if($maxhopsfreeasn eq ""){
-	$maxhopsfreeasn= "Unknown";
+	$maxhopsfreeasn= " Unknown";
 }
 
 $maxhopstroubleasn= GetASN($maxhopstroubleip);
 
 if($maxhopstroubleasn eq ""){
-	$maxhopstroubleasn= "Unknown";
+	$maxhopstroubleasn= " Unknown";
 }
 
 $ehtype_uc= uc($ehtype);
@@ -182,7 +182,7 @@ $maxhopstroubleorg= GetORG($maxhopstroubleasn);
 
 print "\nDestination IPv6 address: $fline (AS$flineasn - $flineorg)\n";
 print "Last resp. node (no EHs): $maxhopsfreeip (AS$maxhopsfreeasn - $maxhopsfreeorg) ($maxhopsfree hop(s))\n";
-print "Last resp. node ($ehtype_uc $ehsize): $maxhopstroubleip (AS$maxhopstroubleasn -$maxhopstroubleorg) ($maxhopstrouble hop(s))\n";
+print "Last resp. node ($ehtype_uc $ehsize): $maxhopstroubleip (AS$maxhopstroubleasn - $maxhopstroubleorg) ($maxhopstrouble hop(s))\n";
 
 if($maxhopsfreeip == $fline){
 	if($maxhopstroubleip == $fline){
@@ -193,7 +193,7 @@ if($maxhopsfreeip == $fline){
 		$droporg= GetORG($dropasn);
 
 		if($dropasn eq ""){
-			$dropasn= "Unknown";
+			$dropasn= " Unknown";
 		}
 		print "Dropping node: $dropip (AS$dropasn - $droporg)\n";
 	}
