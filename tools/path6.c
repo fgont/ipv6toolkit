@@ -108,14 +108,14 @@ size_t				nw;
 unsigned long		ul_res, ul_val;
 unsigned int		i, j, startrand;
 unsigned int		skip;
-unsigned int		frags, nfrags, nsleep;
+unsigned int		frags, nfrags;
 u_int16_t			mask, ip6length;
 u_int8_t			hoplimit;
 
 char 				plinkaddr[ETHER_ADDR_PLEN];
 char 				psrcaddr[INET6_ADDRSTRLEN], pdstaddr[INET6_ADDRSTRLEN], pv6addr[INET6_ADDRSTRLEN];
 unsigned char 		verbose_f=0;
-unsigned char 		loop_f=0, sleep_f=0, localaddr_f=0, probe_f=0;
+unsigned char 		loop_f=0, localaddr_f=0, probe_f=0;
 unsigned char		srcprefix_f=0, hoplimit_f=0, ip6length_f=0, icmp6psize_f=0, send_f=0, end_f=0, delayp_f=0;
 
 
@@ -550,9 +550,6 @@ int main(int argc, char **argv){
 
 	if((idata.ip6_local_flag && idata.ip6_global_flag) && !idata.srcaddr_f)
 		localaddr_f=1;
-
-	if(!sleep_f)
-		nsleep=QUERY_TIMEOUT;
 
 	if(idata.verbose_f){
 		print_attack_info(&idata);
