@@ -1120,27 +1120,18 @@ int main(int argc, char **argv){
 			continue;
 
 		test[nhop][nprobe].received= TRUE;
-/*
+
+		/* Record the receive time from the pkthdr timestamp */
 		test[nhop][nprobe].rtstamp.tv_sec= (pkthdr->ts).tv_sec;
 		test[nhop][nprobe].rtstamp.tv_usec= (pkthdr->ts).tv_usec;
-*/
-		if(gettimeofday(&curtime, NULL) == -1){
-			if(idata.verbose_f)
-				perror("path6");
-
-			exit(EXIT_FAILURE);
-		}
-
-		test[nhop][nprobe].rtstamp.tv_sec= curtime.tv_sec;
-		test[nhop][nprobe].rtstamp.tv_usec= curtime.tv_usec;
 		test[nhop][nprobe].srcaddr= nsrc;
 
 		/* If we got a response to a probe packet, allow for an additional probe to be sent */
 		send_f= TRUE;
 
 		/*
-		   If we received a response from the end host, we artificially change maxhops such that we do not send
-           probes for larger Hop Limits
+		   If we received a response from the end host, we artificially change maxhops such that we do not 
+		   send probes for larger Hop Limits
 		 */
 
 		if(endhost_f && nhop < maxhops && phop <= nhop)
