@@ -1,5 +1,5 @@
-CREDITS
--------
+CONTRIBUTORS
+------------
 
 ** Contributors **
 
@@ -61,4 +61,5 @@ toolkit (thus leading to fixes and improvements):
     Declan A Rieb <darieb@sandia.gov>
     Tim <tim-security@sentinelchicken.org>
     Ray Hunter <Ray.Hunter@globis.net>
+
 
