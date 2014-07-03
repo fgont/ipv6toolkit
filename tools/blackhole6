@@ -143,16 +143,13 @@ foreach $line (@tcp){
 }
 
 $dropip="";
-for($i=0; $i<= $#ipsfree; $i++){
+$dropip2="";
+
+for($i=0; $i< $#ipsfree; $i++){
 	if($ipsfree[$i] eq $maxhopstroubleip){
-		if($i == $#ipsfree){
-			$dropip= $ipsfree[$i];
-			last;
-		}
-		else{
-			$dropip= $ipsfree[$i+1];
-			last;
-		}
+		$dropip= $ipsfree[$i+1];
+		$dropip2= $ipsfree[$i+2];
+		last;
 	}
 }
 
@@ -180,22 +177,53 @@ $flineorg= GetORG($flineasn);
 $maxhopsfreeorg= GetORG($maxhopsfreeasn);
 $maxhopstroubleorg= GetORG($maxhopstroubleasn);
 
-print "\nDestination IPv6 address: $fline (AS$flineasn - $flineorg)\n";
-print "Last resp. node (no EHs): $maxhopsfreeip (AS$maxhopsfreeasn - $maxhopsfreeorg) ($maxhopsfree hop(s))\n";
-print "Last resp. node ($ehtype_uc $ehsize): $maxhopstroubleip (AS$maxhopstroubleasn - $maxhopstroubleorg) ($maxhopstrouble hop(s))\n";
+print "\nDst. IPv6 address: $fline (AS$flineasn - $flineorg)\n";
+print "Last node (no EHs): $maxhopsfreeip (AS$maxhopsfreeasn - $maxhopsfreeorg) ($maxhopsfree hop(s))\n";
+print "Last node ($ehtype_uc $ehsize): $maxhopstroubleip (AS$maxhopstroubleasn - $maxhopstroubleorg) ($maxhopstrouble hop(s))\n";
 
-if($maxhopsfreeip == $fline){
-	if($maxhopstroubleip == $fline){
+if($maxhopsfreeip eq $fline){
+	if($maxhopstroubleip eq $fline){
 			print "Dropping node: No packet drops\n";
 	}
 	else{
 		$dropasn= GetASN($dropip);
-		$droporg= GetORG($dropasn);
+		$droporg= "";
 
+		if($dropasn ne ""){
+			$droporg= GetORG($dropasn);
+		}
+		
 		if($dropasn eq ""){
 			$dropasn= " Unknown";
 		}
-		print "Dropping node: $dropip (AS$dropasn - $droporg)\n";
+
+		if($droporg eq ""){
+			$droporg= "Unknown";
+		}
+
+		if($dropip2 ne ""){
+			$dropasn2= GetASN($dropip2);
+			$droporg2= "";
+
+			if($dropasn2 ne ""){
+				$droporg2= GetORG($dropasn2);
+			}
+		
+			if($dropasn2 eq ""){
+				$dropasn2= " Unknown";
+			}
+
+			if($droporg2 eq ""){
+				$droporg2= "Unknown";
+			}
+		}
+
+		if( ($dropip2 eq "") || ($dropasn1 eq $dropasn2)){
+			print "Dropping node: $dropip (AS$dropasn - $droporg)\n";
+		}
+		else{
+			print "Dropping node: $dropip (AS$dropasn - $droporg || AS$dropasn2 - $droporg2)\n";
+		}
 	}
 }
 else{

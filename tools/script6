@@ -3,6 +3,16 @@
 # script6: A tool to make complex IPv6 tasks easy
 #
 
+sub GetASN{
+	@revname=`addr6 -a $_[0] -r`;
+	chomp($revname[0]);
+	$queryname= $revname[0] . ".origin6.asn.cymru.com.";
+	@reverse=`host -t TXT $queryname`;
+	$reverse[0] =~ m/\"\s*((\d+)\s*)\s+|"/;
+	return($2);
+}
+
+
 if($ARGV[0] eq "get-aaaa"){
 	while($domain=<STDIN>){
 		$aaaa_f=0;
@@ -191,6 +201,205 @@ elsif($ARGV[0] eq "get-as" || $ARGV[0] eq "get-as6"){
 	exit 0;
 }
 elsif($ARGV[0] eq "get-trace-stats" || $ARGV[0] eq "get-trace6-stats"){
+	$valid=0;
+	$dropped=0;
+	$pass=0;
+	$total=0;
+	$sameas=0;
+	$difas=0;
+	$sameas2=0;
+	$difas2=0;
+	$unknownas=0;
+	$unknownipdrop=0;
+	$unknownipfree=0;
+	$unknowniptrouble=0;
+	$ipfreedrop=0;
+	$hoperror=0;
+	$hopzero=0;
+	$unknownas=0;
+	$unknowniporigas=0;
+	$unknownipdropas=0;
+
+	while($fline=<STDIN>){
+		chomp($fline);
+
+		if($fline =~ m/([^\x0d]+)/){
+			$fline= $1;
+		}
+
+		# Check whether this line is just a comment -- if so, skip it
+		if($fline =~ m/^((\s)*#)/){
+			next;
+		}
+
+		# Skip blanck lines 
+		if($fline =~ m/^(\s)*$/){
+			next;
+		}
+
+		# Grab elements 
+		if($fline =~ m/(\S*)#(\S*)#(\d*)#(\S*)#(\d*)#(\S*)#(\S*)/){
+			$total++;
+
+			$iporig= $1;
+			$ipfree= $2;
+			$hopsfree= $3;
+			$iptrouble= $4;
+			$hopstrouble= $5;
+			$ipdrop=$6;
+			$ipdrop2=$7;
+
+			if($ipfree eq ""){
+				$unknownipfree++;
+				next;
+			}
+
+			if($iptrouble eq ""){
+				$unknowniptrouble++;
+				next;
+			}
+
+			if($ipfree ne $iporig){
+				$ipfreedrop++;
+				next;
+			}
+
+			if($hopsfree == 0){
+				$hopzero++;
+				next;
+			}
+
+			if($hopstrouble > $hopsfree){
+				$hoperror++;
+				next;
+			}
+
+			$delta= $hopsfree - $hopstrouble;
+
+
+			$valid= $valid+1;
+
+			if($iporig eq $iptrouble){
+				#notdropped
+				$pass=$pass+1;
+			}
+			else{
+				$dropped= $dropped +1;
+				$hops[$delta]++;
+
+				if($ipdrop eq ""){
+					$unknownipdrop++;
+					$unknownas++;
+					next;
+				}
+				else{
+					$asiporig= GetASN($iporig);
+
+					if($asiporig eq ""){
+						$unknownas++;
+						$unknowniporigas++;
+						next;
+					}
+
+					$asipdrop= GetASN($ipdrop);
+
+					if($asipdrop eq ""){
+						$unknownas++;
+						$unknownas2++;
+						$unknownipdropas++;
+						next;
+					}
+
+					if($asiporig eq "" || $asipdrop eq ""){
+						$unknownas++;
+					}
+
+					if($asiporig == $asipdrop){
+						$sameas++;
+					}
+					else{
+						$difas++;
+					}
+
+					if($ipdrop2 ne ""){
+						$asipdrop2= GetASN($ipdrop2);
+						if($asipdrop2 eq ""){
+							$unknownas2++;
+							$unknownipdropas2++;
+							next;
+						}
+					}
+					else{
+						$asipdrop2= $asipdrop;
+					}
+
+					if($asiporig == $asipdrop2){
+						$sameas2++;
+					}
+					else{
+						$difas2++;
+					}
+				}
+			}
+
+	#		print "iporig: $1, ipfree: $2, hopsfree: $3, iptrouble: $4, hopstrouble: $5\n";
+		}
+
+	}
+
+	print "SI6 Networks IPv6 Toolkit v2.0\n";
+	print "script6: A tool to make complex IPv6 tasks easy\n";
+	print "[Computing stats....]\n\n";
+
+#	print "Total entries: $total\t Valid entries: $valid\n";
+
+	if($valid >= 1){
+		$passp= ($pass * 100)/$valid;
+		$droppedp= ($dropped * 100)/$valid;
+
+		printf "Valid entries: %d\tPassed: %d (%.2f%%)\t Dropped: %d (%.2f%%)\n", $valid, $pass, $passp, $dropped, $droppedp;
+	}
+	else{
+		print "No valid entries were found\n";
+	}
+
+	if($dropped >= 1){
+		print "******************************************************************************\n";
+		$sameasp= ($sameas * 100)/$dropped;
+		$difasp= ($difas * 100)/$dropped;
+		$unknownasp= ($unknownas * 100)/$dropped;
+		$sameasp2= ($sameas2 * 100)/$dropped;
+		$difasp2= ($difas2 * 100)/$dropped;
+		$unknownasp2= ($unknownas2 * 100)/$dropped;
+
+		print "PACKET DROPS\n\n";
+
+		if($sameas == $sameas2 && $difas == $difas2){
+			printf "Same ASN: %d (%.2f%%)\t Different ASN: %d (%.2f%%)\t Unknown ASN:%d (%.2f%%)\n", $sameas, $sameasp, $difas, $difasp, $unknownas, $unknownasp;
+		}
+		else{
+			printf "Best case:\nSame ASN: %d (%.2f%%)\t Different ASN: %d (%.2f%%)\t Unknown ASN:%d (%.2f%%)\n", $sameas2, $sameasp2, $difas2, $difasp2, $unknownas2, $unknownasp2;
+			printf "Worst case:\nSame ASN: %d (%.2f%%)\t Different ASN: %d (%.2f%%)\t Unknown ASN:%d (%.2f%%)\n", $sameas, $sameasp, $difas, $difasp, $unknownas, $unknownasp;
+		}
+
+		print "\nDelta-Hops Distribution\n\n";
+		for($i=0; $i<= $#hops; $i++){
+			if($hops[$i] != 0){
+				$dhop= ($hops[$i] * 100)/$dropped;
+				printf "Delta-Hop %d: %d (%.2f%%)\n", $i, $hops[$i], $dhop;
+			}
+		}
+	}
+
+	if( ($total - $valid) > 0){
+		print "******************************************************************************\n";
+		print "VALIDATION OF INPUT DATA\n\n";
+		printf "Total entries: %d\tValid entries: %d\tInvalid: %d\n", $total, $valid, ($total-$valid);
+		print "Unknown no-EH IPv6: $unknownipfree\tUnknown EH IPv6: $unknowniptrouble\tNo-EH IPv6 != Dst IPv6: $ipfreedrop\n";
+		print "No-EH Hops==0: $hopzero\tNo-EH Hops < EH Hops: $hoperror\n";
+	}
+}
+elsif($ARGV[0] eq "get-trace-stats-old" || $ARGV[0] eq "get-trace6-stats-old"){
 	$valid=0;
 	$dropped=0;
 	$pass=0;
@@ -1412,20 +1621,32 @@ elsif($ARGV[0] eq "trace" || $ARGV[0] eq "trace6"){
 		}
 
 		$dropip="";
+		$dropip2="";
+
 		for($i=0; $i<= $#ipsfree; $i++){
 			if($ipsfree[$i] eq $maxhopstroubleip){
 				if($i == $#ipsfree){
 					$dropip= $ipsfree[$i];
-					last;
 				}
 				else{
 					$dropip= $ipsfree[$i+1];
-					last;
 				}
+
+				if($dropip eq $fline){
+					$dropip2= $dropip;
+				}
+				else{
+					$dropip2= $ipsfree[$i+2];
+					if($dropip2 eq ""){
+						$dropip2= $dropip;
+					}
+				}
+
+				last;
 			}
 		}
 
-		print "$fline#$maxhopsfreeip#$maxhopsfree#$maxhopstroubleip#$maxhopstrouble#$dropip\n";
+		print "$fline#$maxhopsfreeip#$maxhopsfree#$maxhopstroubleip#$maxhopstrouble#$dropip#$dropip2\n";
 
 	}
 }
