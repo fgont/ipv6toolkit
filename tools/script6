@@ -249,100 +249,108 @@ elsif($ARGV[0] eq "get-trace-stats" || $ARGV[0] eq "get-trace6-stats"){
 			$ipdrop=$6;
 			$ipdrop2=$7;
 
+			# Discard this line if we did not lear any host address in the normal path6
 			if($ipfree eq ""){
 				$unknownipfree++;
 				next;
 			}
 
+			# Discard this line if we did not learn any address in the path6 with EHs
 			if($iptrouble eq ""){
 				$unknowniptrouble++;
 				next;
 			}
 
+			# If the final node in the normal traceroute was not the final destination, discard
+			# this line -- it is impossible to learn where the packets are being dropped
 			if($ipfree ne $iporig){
 				$ipfreedrop++;
 				next;
 			}
 
+			
+			# The number of hops from the first-responding node cannot possibly be 0.
 			if($hopsfree == 0){
 				$hopzero++;
 				next;
 			}
 
+			# The number of hops till the last responding node cannot be larger for the
+			# EH-case than for the non-EH case.
 			if($hopstrouble > $hopsfree){
 				$hoperror++;
 				next;
 			}
 
+			# If packets are being dropped but the address of the node dropping the packets is
+			# unavailable, discard this line
+			if($iporig ne $iptrouble && $ipdrop eq ""){
+				$unknownipdrop++;
+				next;
+			}
+
+
+			# If the line has passed all the previous checks, we consider it to be valid
+			$valid= $valid+1;
 			$delta= $hopsfree - $hopstrouble;
 
-
-			$valid= $valid+1;
-
+			# If the last responding node of the EH case is the destination address, then there
+			# are no packet drops
 			if($iporig eq $iptrouble){
-				#notdropped
 				$pass=$pass+1;
 			}
 			else{
+				# Otherwise, there is a packet drop
+
 				$dropped= $dropped +1;
 				$hops[$delta]++;
 
-				if($ipdrop eq ""){
-					$unknownipdrop++;
+				$asiporig= GetASN($iporig);
+
+				if($asiporig eq ""){
+					$unknownas2++;
 					$unknownas++;
+					$unknowniporigas++;
 					next;
 				}
+
+				$asipdrop= GetASN($ipdrop);
+
+				if($asipdrop eq ""){
+					$unknownas++;
+					$unknownas2++;
+					$unknownipdropas++;
+					next;
+				}
+
+				# Count whether the dropping node is in the same or different ASN as the destination node
+				if($asiporig == $asipdrop){
+					$sameas++;
+				}
 				else{
-					$asiporig= GetASN($iporig);
+					$difas++;
+				}
 
-					if($asiporig eq ""){
-						$unknownas++;
-						$unknowniporigas++;
-						next;
-					}
-
-					$asipdrop= GetASN($ipdrop);
-
-					if($asipdrop eq ""){
-						$unknownas++;
+				if($ipdrop2 ne ""){
+					$asipdrop2= GetASN($ipdrop2);
+					if($asipdrop2 eq ""){
 						$unknownas2++;
-						$unknownipdropas++;
+						$unknownipdropas2++;
 						next;
-					}
-
-					if($asiporig eq "" || $asipdrop eq ""){
-						$unknownas++;
-					}
-
-					if($asiporig == $asipdrop){
-						$sameas++;
-					}
-					else{
-						$difas++;
-					}
-
-					if($ipdrop2 ne ""){
-						$asipdrop2= GetASN($ipdrop2);
-						if($asipdrop2 eq ""){
-							$unknownas2++;
-							$unknownipdropas2++;
-							next;
-						}
-					}
-					else{
-						$asipdrop2= $asipdrop;
-					}
-
-					if($asiporig == $asipdrop2){
-						$sameas2++;
-					}
-					else{
-						$difas2++;
 					}
 				}
-			}
+				else{
+					# If M+2 is "null", we use M+1
+					$asipdrop2= $asipdrop;
+				}
 
-	#		print "iporig: $1, ipfree: $2, hopsfree: $3, iptrouble: $4, hopstrouble: $5\n";
+				if($asiporig == $asipdrop2){
+					$sameas2++;
+				}
+				else{
+					$difas2++;
+				}
+			}
 		}
 
 	}
