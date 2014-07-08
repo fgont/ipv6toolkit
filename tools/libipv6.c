@@ -94,7 +94,7 @@ struct nlrequest{
  * Decodes/analyzes an IPv6 address
  */
 
-void decode_ipv6_address(struct decode6 *addr, struct stats6 *stats){
+void decode_ipv6_address(struct decode6 *addr){
 	u_int16_t	scope;
 
 	if(IN6_IS_ADDR_UNSPECIFIED(&(addr->ip6))){

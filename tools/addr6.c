@@ -553,7 +553,7 @@ int main(int argc, char **argv){
 				}
 
 				if(filter_f || decode_f || stats_f)
-					decode_ipv6_address(&addr, &stats);
+					decode_ipv6_address(&addr);
 
 
 				if(nblock){
@@ -623,7 +623,7 @@ int main(int argc, char **argv){
 	else{
 		/* If we were not asked to decode the address, we should print it on stdout */
 		if(decode_f){
-			decode_ipv6_address(&addr, &stats);
+			decode_ipv6_address(&addr);
 			print_dec_address_script(&addr);
 		}
 		else if(canonic_f){

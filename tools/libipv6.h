@@ -799,7 +799,7 @@ int					address_contains_ranges(char *);
 void				change_endianness(u_int32_t *, unsigned int);
 void				debug_print_ifaces_data(struct iface_list *);
 u_int16_t			dec_to_hex(u_int16_t);
-void				decode_ipv6_address(struct decode6 *, struct stats6 *);
+void				decode_ipv6_address(struct decode6 *);
 int					dns_decode(unsigned char *, unsigned int, unsigned char *, char *, unsigned int, unsigned char **);
 int					dns_str2wire(char *, unsigned int, char *, unsigned int);
 void				dump_hex(void *, size_t);
