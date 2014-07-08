@@ -41,8 +41,6 @@
 
 void					usage(void);
 void					print_help(void);
-unsigned int			is_service_port(u_int16_t);
-unsigned int			zero_byte_iid(struct in6_addr *);
 void					stat_ipv6_address(struct decode6 *, struct stats6 *);
 void					print_dec_address_script(struct decode6 *);
 int						init_host_list(struct hashed_host_list *);
@@ -635,51 +633,6 @@ int main(int argc, char **argv){
 	}
 
 	exit(EXIT_SUCCESS);
-}
-
-
-/*
- * Function: is_service_port()
- *
- * Check whether a short int is in the list of service ports (in hexadecmal or decimal "notations")
- */
-
-unsigned int is_service_port(u_int16_t port){
-	unsigned int 	i;
-	u_int16_t		service_ports_hex[]={0x21, 0x22, 0x23, 0x25, 0x49, 0x53, 0x80, 0x110, 0x123, 0x179, 0x220, 0x389, \
-						                 0x443, 0x547, 0x993, 0x995, 0x1194, 0x3306, 0x5060, 0x5061, 0x5432, 0x6446, 0x8080};
-	u_int16_t		service_ports_dec[]={21, 22, 23, 25, 49, 53, 80, 110, 123, 179, 220, 389, \
-						                 443, 547, 993, 995, 1194, 3306, 5060, 5061, 5432, 6446, 8080};
-
-	
-	for(i=0; i< (sizeof(service_ports_hex)/sizeof(u_int16_t)); i++){
-		if(port == service_ports_hex[i])
-			return(1);
-	}
-
-	for(i=0; i< (sizeof(service_ports_hex)/sizeof(u_int16_t)); i++){
-		if(port == service_ports_dec[i])
-			return(1);
-	}
-
-	return(0);
-}
-
-/*
- * Function: zero_byte_iid()
- *
- * Counts the number of zero-bytes in an IPv6 Interface ID
- */
-
-unsigned int zero_byte_iid(struct in6_addr *ipv6){
-	unsigned int i, nonzero=0;
-
-	for(i=8; i<=15; i++){
-		if(ipv6->s6_addr[i] == 0)
-			nonzero++;
-	}
-
-	return(nonzero);
 }
 
 

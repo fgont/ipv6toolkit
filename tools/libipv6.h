@@ -828,6 +828,7 @@ int					is_ip6_in_iface_entry(struct iface_list *, int, struct in6_addr *);
 int					is_ip6_in_list(struct in6_addr *, struct host_list *);
 int					is_ip6_in_prefix_list(struct in6_addr *, struct prefix_list *);
 int					is_eq_in6_addr(struct in6_addr *, struct in6_addr *);
+unsigned int		is_service_port(u_int16_t);
 int					is_time_elapsed(struct timeval *, struct timeval *, unsigned long);
 int					keyval(char *, unsigned int, char **, char **);
 int					load_dst_and_pcap(struct iface_data *, unsigned int);
@@ -858,4 +859,5 @@ int					string_escapes(char *, unsigned int *, unsigned int);
 size_t				Strnlen(const char *, size_t);
 struct timeval		timeval_sub(struct timeval *, struct timeval *);
 float				time_diff_ms(struct timeval *, struct timeval *);
+unsigned int		zero_byte_iid(struct in6_addr *);
 
