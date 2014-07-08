@@ -431,10 +431,96 @@ struct iface_list{
 };
 
 
+/* Constants employed by decode_ipv6_address() */
+
+#define IPV6_UNSPEC				1
+#define IPV6_MULTICAST			2
+#define IPV6_UNICAST			4
+
+#define UCAST_V4MAPPED			1
+#define UCAST_V4COMPAT			2
+#define UCAST_LINKLOCAL			4
+#define UCAST_SITELOCAL			8
+#define UCAST_UNIQUELOCAL		16
+#define UCAST_6TO4				32
+#define UCAST_TEREDO			64
+#define UCAST_GLOBAL			128
+#define UCAST_LOOPBACK			256
+
+#define MCAST_PERMANENT			512
+#define MCAST_NONPERMANENT		1024
+#define MCAST_INVALID			2048
+#define MCAST_UNICASTBASED		4096
+#define MCAST_EMBEDRP			8192
+#define MCAST_UNKNOWN			16384
+
+#define SCOPE_RESERVED			1
+#define SCOPE_INTERFACE			2
+#define SCOPE_LINK				4
+#define SCOPE_ADMIN				8
+#define SCOPE_SITE				16
+#define SCOPE_ORGANIZATION		32
+#define SCOPE_GLOBAL			64
+#define SCOPE_UNASSIGNED		128
+#define SCOPE_UNSPECIFIED		256
+
+#define IID_MACDERIVED			1
+#define IID_ISATAP				2
+#define IID_EMBEDDEDIPV4		4
+#define IID_EMBEDDEDPORT		8
+#define IID_EMBEDDEDPORTREV		16
+#define IID_LOWBYTE				32
+#define IID_EMBEDDEDIPV4_64		64
+#define IID_PATTERN_BYTES		128
+#define IID_RANDOM				256
+#define IID_TEREDO_RFC4380		512
+#define IID_TEREDO_RFC5991		1024
+#define IID_TEREDO_UNKNOWN		2048
+#define IID_UNSPECIFIED			4096
+
+/* This struture is employed by decode_ipv6_address */
+struct	decode6{
+	struct in6_addr	ip6;
+	unsigned int	type;
+	unsigned int	subtype;
+	unsigned int	scope;
+	unsigned int	iidtype;
+	unsigned int	iidsubtype;
+};
+
+
+#ifndef IN6_IS_ADDR_UNIQUELOCAL
+	#define IN6_IS_ADDR_UNIQUELOCAL(a) \
+		((((uint32_t *) (a))[0] & htonl (0xfe000000))		      \
+		 == htonl (0xfc000000))
+#endif
+
+#ifndef IN6_IS_ADDR_6TO4
+	#define IN6_IS_ADDR_6TO4(a) \
+		((((uint32_t *) (a))[0] & htonl (0xffff0000))		      \
+		 == htonl (0x20020000))
+#endif
+
+#ifndef IN6_IS_ADDR_TEREDO
+	#define IN6_IS_ADDR_TEREDO(a) \
+		(((uint32_t *) (a))[0] == htonl (0x20020000))
+#endif
+
+#ifndef IN6_IS_ADDR_TEREDO_LEGACY
+	#define IN6_IS_ADDR_TEREDO_LEGACY(a) \
+		(((uint32_t *) (a))[0] == htonl (0x3ffe831f))
+#endif
+
+
+
 
 #if defined (__FreeBSD__) || defined(__NetBSD__) || defined (__OpenBSD__) || defined(__APPLE__)
     #ifndef s6_addr16
 	    #define s6_addr16	__u6_addr.__u6_addr16
+    #endif
+
+    #ifndef s6_addr
+	    #define s6_addr		__u6_addr.__u6_addr8
     #endif
 
     #ifndef s6_addr8
@@ -444,6 +530,14 @@ struct iface_list{
     #ifndef s6_addr32
 	    #define s6_addr32	__u6_addr.__u6_addr32
     #endif
+#elif defined __linux__ || ( !defined(__FreeBSD__) && defined(__FreeBSD_kernel__))
+    #ifndef s6_addr16
+	    #define s6_addr16	__in6_u.__u6_addr16
+    #endif
+
+	#ifndef s6_addr32
+		#define s6_addr32	__in6_u.__u6_addr32
+	#endif
 #endif
 
 
@@ -705,6 +799,7 @@ int					address_contains_ranges(char *);
 void				change_endianness(u_int32_t *, unsigned int);
 void				debug_print_ifaces_data(struct iface_list *);
 u_int16_t			dec_to_hex(u_int16_t);
+void				decode_ipv6_address(struct decode6 *, struct stats6 *);
 int					dns_decode(unsigned char *, unsigned int, unsigned char *, char *, unsigned int, unsigned char **);
 int					dns_str2wire(char *, unsigned int, char *, unsigned int);
 void				dump_hex(void *, size_t);

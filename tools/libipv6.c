@@ -87,6 +87,191 @@ struct nlrequest{
 #endif
 
 
+
+/*
+ * Function: decode_ipv6_address()
+ *
+ * Decodes/analyzes an IPv6 address
+ */
+
+void decode_ipv6_address(struct decode6 *addr, struct stats6 *stats){
+	u_int16_t	scope;
+
+	if(IN6_IS_ADDR_UNSPECIFIED(&(addr->ip6))){
+		addr->type= IPV6_UNSPEC;
+		addr->subtype= IPV6_UNSPEC;
+		addr->scope= SCOPE_UNSPECIFIED;
+	}
+	else if(IN6_IS_ADDR_MULTICAST(&(addr->ip6))){
+		addr->type= IPV6_MULTICAST;
+		addr->iidtype= IID_UNSPECIFIED;
+		addr->iidsubtype= IID_UNSPECIFIED;
+
+		if((addr->ip6.s6_addr16[0] & htons(0xff00)) == htons(0xff00)){
+			if((addr->ip6.s6_addr16[0] & htons(0xfff0)) == htons(0xff00)){
+				addr->subtype= MCAST_PERMANENT;
+			}
+			else if((addr->ip6.s6_addr16[0] & htons(0xfff0)) == htons(0xff10)){
+				addr->subtype= MCAST_NONPERMANENT;
+			}
+			else if((addr->ip6.s6_addr16[0] & htons(0xfff0)) == htons(0xff20)){
+				addr->subtype= MCAST_INVALID;
+			}
+			else if((addr->ip6.s6_addr16[0] & htons(0xfff0)) == htons(0xff30)){
+				addr->subtype= MCAST_UNICASTBASED;
+			}
+			else if((addr->ip6.s6_addr16[0] & htons(0xfff0)) == htons(0xff40)){
+				addr->subtype= MCAST_INVALID;
+			}
+			else if((addr->ip6.s6_addr16[0] & htons(0xfff0)) == htons(0xff50)){
+				addr->subtype= MCAST_INVALID;
+			}
+			else if((addr->ip6.s6_addr16[0] & htons(0xfff0)) == htons(0xff60)){
+				addr->subtype= MCAST_INVALID;
+			}
+			else if((addr->ip6.s6_addr16[0] & htons(0xfff0)) == htons(0xff70)){
+				addr->subtype= MCAST_EMBEDRP;
+			}
+
+			scope= htons(addr->ip6.s6_addr16[0]) & 0x000f;
+
+			switch(scope){
+				case 0:
+					addr->scope= SCOPE_RESERVED;
+					break;
+
+				case 1:
+					addr->scope= SCOPE_INTERFACE;
+					break;
+
+				case 2:
+					addr->scope= SCOPE_LINK;
+					break;
+
+				case 3:
+					addr->scope= SCOPE_RESERVED;
+					break;
+
+				case 4:
+					addr->scope= SCOPE_ADMIN;
+					break;
+
+				case 5:
+					addr->scope= SCOPE_SITE;
+					break;
+
+				case 8:
+					addr->scope= SCOPE_ORGANIZATION;
+					break;
+
+				case 0Xe:
+					addr->scope= SCOPE_GLOBAL;
+					break;
+
+				default:
+					addr->scope= SCOPE_UNASSIGNED;
+					break;
+			}
+		}
+		else{
+			addr->subtype= MCAST_UNKNOWN;
+		}
+	}
+	else{
+		addr->type= IPV6_UNICAST;
+		addr->iidtype= IID_UNSPECIFIED;
+		addr->iidsubtype= IID_UNSPECIFIED;
+
+		if(IN6_IS_ADDR_LOOPBACK(&(addr->ip6))){
+			addr->subtype= UCAST_LOOPBACK;
+			addr->scope= SCOPE_INTERFACE;
+		}
+		else if(IN6_IS_ADDR_V4MAPPED(&(addr->ip6))){
+			addr->subtype= UCAST_V4MAPPED;
+			addr->scope= SCOPE_UNSPECIFIED;
+		}
+		else if(IN6_IS_ADDR_V4COMPAT(&(addr->ip6))){
+			addr->subtype= UCAST_V4COMPAT;
+			addr->scope= SCOPE_UNSPECIFIED;
+		}
+		else if(IN6_IS_ADDR_LINKLOCAL(&(addr->ip6))){
+			addr->subtype= UCAST_LINKLOCAL;
+			addr->scope= SCOPE_LINK;
+		}
+		else if(IN6_IS_ADDR_SITELOCAL(&(addr->ip6))){
+			addr->subtype= UCAST_SITELOCAL;
+			addr->scope= SCOPE_SITE;
+		}
+		else if(IN6_IS_ADDR_UNIQUELOCAL(&(addr->ip6))){
+			addr->subtype= UCAST_UNIQUELOCAL;
+			addr->scope= SCOPE_GLOBAL;
+		}
+		else if(IN6_IS_ADDR_6TO4(&(addr->ip6))){
+			addr->subtype= UCAST_6TO4;
+			addr->scope= SCOPE_GLOBAL;
+		}
+		else if(IN6_IS_ADDR_TEREDO(&(addr->ip6)) || IN6_IS_ADDR_TEREDO_LEGACY(&(addr->ip6))){
+			addr->subtype= UCAST_TEREDO;
+			addr->scope= SCOPE_GLOBAL;
+
+			/* If the U or G bytes are set, the IID type is unknown */
+			if(ntohs(addr->ip6.s6_addr16[4]) & 0x0300){
+				addr->iidtype= IID_TEREDO_UNKNOWN;
+			}
+			else if(ntohs(addr->ip6.s6_addr16[4]) & 0x3cff){
+				addr->iidtype= IID_TEREDO_RFC5991;
+			}
+			else{
+				addr->iidtype= IID_TEREDO_RFC4380;
+			}
+		}
+		else{
+			addr->subtype= UCAST_GLOBAL;
+			addr->scope= SCOPE_GLOBAL;
+		}
+
+		if(addr->subtype==UCAST_GLOBAL || addr->subtype==UCAST_V4MAPPED || addr->subtype==UCAST_V4COMPAT || \
+			addr->subtype==UCAST_LINKLOCAL || addr->subtype==UCAST_SITELOCAL || addr->subtype==UCAST_UNIQUELOCAL ||\
+			addr->subtype == UCAST_6TO4){
+
+			if( (addr->ip6.s6_addr32[2] & htonl(0x020000ff)) == htonl(0x020000ff) && 
+				(addr->ip6.s6_addr32[3] & htonl(0xff000000)) == htonl(0xfe000000)){
+				addr->iidtype= IID_MACDERIVED;
+				addr->iidsubtype= (ntohl(addr->ip6.s6_addr32[2]) >> 8) & 0xfffdffff;
+			}
+			else if((addr->ip6.s6_addr32[2] & htonl(0xfdffffff)) == htonl(0x00005efe)){
+				/* We assume the u bit can be o o 1, but the i/g bit must be 0 */
+				addr->iidtype= IID_ISATAP;
+			}
+			else if(addr->ip6.s6_addr32[2] == 0 && (addr->ip6.s6_addr16[6] & htons(0xff00)) != 0 && addr->ip6.s6_addr16[7] != 0){
+				addr->iidtype= IID_EMBEDDEDIPV4;
+			}
+			else if(addr->ip6.s6_addr32[2] == 0 && \
+			          ((addr->ip6.s6_addr16[6] & htons(0xff00)) == 0 && is_service_port(ntohs(addr->ip6.s6_addr16[7])))){
+				addr->iidtype= IID_EMBEDDEDPORT;
+			}
+			else if(addr->ip6.s6_addr32[2] == 0 && \
+			        	         ((addr->ip6.s6_addr16[7] & htons(0xff00)) == 0 && is_service_port(ntohs(addr->ip6.s6_addr16[6])))){
+				addr->iidtype= IID_EMBEDDEDPORTREV;
+			}
+			else if(addr->ip6.s6_addr32[2] == 0 && (addr->ip6.s6_addr16[6] & htons(0xff00)) == 0 && addr->ip6.s6_addr16[7] != 0){
+				addr->iidtype= IID_LOWBYTE;
+			}
+			else if( ntohs(addr->ip6.s6_addr16[4]) <= 0x255 && ntohs(addr->ip6.s6_addr16[5]) <= 0x255 && \
+					ntohs(addr->ip6.s6_addr16[6]) <= 0x255 && ntohs(addr->ip6.s6_addr16[7]) <= 0x255){
+				addr->iidtype= IID_EMBEDDEDIPV4_64;
+			}
+			else if( zero_byte_iid(&(addr->ip6)) > 2 ){
+				addr->iidtype= IID_PATTERN_BYTES;
+			}
+			else{
+				addr->iidtype= IID_RANDOM;
+			}
+		}
+	}
+}
+
+
 /*
  * Function: dns_decode()
  *
@@ -1303,13 +1488,12 @@ int is_time_elapsed(struct timeval *curtime, struct timeval *lastprobe, unsigned
 		if( curtime->tv_sec > (lastprobe->tv_sec + delta / 1000000) ){
 			return(1);
 		}else if( curtime->tv_sec == (lastprobe->tv_sec + delta / 1000000)){
-			if( curtime->tv_usec > (lastprobe->tv_usec + delta % 1000000) ){
+			if( curtime->tv_usec >= (lastprobe->tv_usec + delta % 1000000) ){
 				return(1);
 			}
 		}
 
 		return(0);
-
 }
 
 
