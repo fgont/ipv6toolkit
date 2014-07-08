@@ -29,6 +29,13 @@
 #include <sys/socket.h>
 #include <sys/select.h>
 
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <netinet/ip6.h>
+#include <netinet/icmp6.h>
+#include <net/if.h>
+#include <netinet/tcp.h>
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <errno.h>
@@ -39,18 +46,12 @@
 #include <string.h>
 #include <setjmp.h>
 #include <math.h>
-
 #include <pcap.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <netinet/ip6.h>
-#include <netinet/icmp6.h>
-#include <net/if.h>
 
 #include "path6.h"
 #include "ipv6toolkit.h"
 #include "libipv6.h"
-#include <netinet/tcp.h>
+
 
 
 /* Function prototypes */
@@ -114,10 +115,9 @@ u_int8_t			hoplimit;
 
 char 				plinkaddr[ETHER_ADDR_PLEN];
 char 				psrcaddr[INET6_ADDRSTRLEN], pdstaddr[INET6_ADDRSTRLEN], pv6addr[INET6_ADDRSTRLEN];
-unsigned char 		verbose_f=0;
+unsigned char 		verbose_f=0, numeric_f= TRUE;
 unsigned char 		loop_f=0, localaddr_f=0, probe_f=0;
 unsigned char		srcprefix_f=0, hoplimit_f=0, ip6length_f=0, icmp6psize_f=0, send_f=0, end_f=0, delayp_f=0;
-
 
 /* Support for Extension Headers */
 unsigned int		dstopthdrs, dstoptuhdrs, hbhopthdrs;
@@ -161,6 +161,7 @@ int main(int argc, char **argv){
 	struct timeval	curtime, start, lastprobe, sched, timeout;
 	uint8_t			ulhtype;
 	unsigned char	probetype=PROBE_ICMP6_ECHO;
+	struct target_ipv6	targetipv6;
 
 	static struct option longopts[] = {
 		{"interface", required_argument, 0, 'i'},
@@ -172,6 +173,7 @@ int main(int argc, char **argv){
 		{"dst-opt-u-hdr", required_argument, 0, 'U'},
 		{"hbh-opt-hdr", required_argument, 0, 'H'},
 		{"frag-hdr", required_argument, 0, 'y'},
+		{"numeric", no_argument, 0, 'n'},
 		{"probe-type", required_argument, 0, 'p'},
 		{"payload-size", required_argument, 0, 'P'},
 		{"src-port", required_argument, 0, 'o'},
@@ -183,7 +185,7 @@ int main(int argc, char **argv){
 		{0, 0, 0,  0 }
 	};
 
-	char shortopts[]= "i:S:D:s:d:u:U:H:y:p:P:o:a:X:r:vh";
+	char shortopts[]= "i:S:D:s:d:u:U:H:y:np:P:o:a:X:r:vh";
 
 	char option;
 
@@ -236,11 +238,23 @@ int main(int argc, char **argv){
 				break;
 	    
 			case 'd':	/* IPv6 Destination Address */
-				if( inet_pton(AF_INET6, optarg, &(idata.dstaddr)) <= 0){
-					puts("inet_pton(): address not valid");
-					exit(EXIT_FAILURE);
+				strncpy( targetipv6.name, optarg, NI_MAXHOST);
+				targetipv6.name[NI_MAXHOST-1]= 0;
+				targetipv6.flags= AI_CANONNAME;
+
+				if( (r=get_ipv6_target(&targetipv6)) != 0){
+
+					if(r < 0){
+						printf("Unknown Destination: %s\n", gai_strerror(targetipv6.res));
+					}
+					else{
+						puts("Unknown Destination: No IPv6 address found for specified destination");
+					}
+
+					exit(1);
 				}
-		
+
+				idata.dstaddr= targetipv6.ip6;
 				idata.dstaddr_f = 1;
 				break;
 
@@ -386,6 +400,10 @@ int main(int argc, char **argv){
 		
 				nfrags = (nfrags +7) & 0xfff8;
 				idata.fragh_f=TRUE;
+				break;
+
+			case 'n':	/* Fragment header */
+				numeric_f=TRUE;
 				break;
 
 			case 'S':	/* Source Ethernet address */
@@ -534,6 +552,11 @@ int main(int argc, char **argv){
 		exit(EXIT_FAILURE);
 	}
 
+	if(!idata.dstaddr_f){
+		puts("Error: Must specify Destination System");
+		exit(EXIT_FAILURE);
+	}
+
 	if(!idata.iface_f){
 		if(idata.dstaddr_f && IN6_IS_ADDR_LINKLOCAL(&(idata.dstaddr))){
 			puts("Must specify a network interface for link-local destinations");
@@ -555,10 +578,13 @@ int main(int argc, char **argv){
 		print_attack_info(&idata);
 	}
 
-	if(!idata.dstaddr_f){
-		puts("Error: Nothing to send! (Destination Address left unspecified)");
+
+	if(inet_ntop(AF_INET6, &(idata.dstaddr), pv6addr, sizeof(pv6addr)) == NULL){
+		puts("inet_ntop(): Error converting IPv6 Source Address to presentation format");
 		exit(EXIT_FAILURE);
 	}
+
+	printf("Tracing path to %s (%s)...\n\n", targetipv6.name, pv6addr);
 
 	if(!probe_f)
 		probetype= PROBE_ICMP6_ECHO;
@@ -686,7 +712,12 @@ int main(int argc, char **argv){
 
 
 				if(delayp_f){
-						printf(" %2d (%s)", phop+1, psrcaddr);
+						if(numeric_f){
+							printf(" %2d (%s)", phop+1, psrcaddr);
+						}
+						else{
+
+						}
 
 						for(i=0; i<pprobe; i++)
 							printf("  *");
@@ -696,8 +727,14 @@ int main(int argc, char **argv){
 					delayp_f=0;
 				}
 				else{
-					if(pprobe == 0)
-						printf(" %2d (%s)", phop+1, psrcaddr);
+					if(pprobe == 0){
+						if(numeric_f){
+							printf(" %2d (%s)", phop+1, psrcaddr);
+						}
+						else{
+
+						}
+					}
 
 					printf("  %4.1f ms", time_diff_ms(&(test[phop][pprobe].rtstamp), &(test[phop][pprobe].ststamp)));
 				}

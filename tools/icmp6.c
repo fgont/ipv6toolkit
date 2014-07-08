@@ -37,7 +37,9 @@
 #include <netinet/tcp.h>
 #include <netinet/udp.h>
 #include <net/if.h>
+#include <pcap.h>
 
+#include <netdb.h>
 #include <errno.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -46,7 +48,6 @@
 #include <unistd.h>
 #include <signal.h>
 #include <string.h>
-#include <pcap.h>
 
 #include "icmp6.h"
 #include "ipv6toolkit.h"
@@ -161,10 +162,11 @@ unsigned char		*prev_nh, *startoffragment;
 struct filters		filters;
 
 int main(int argc, char **argv){
-	extern char		*optarg;
-	char			*endptr; /* Used by strtoul() */
-	int				r, sel;
-	fd_set			sset, rset;
+	extern char			*optarg;
+	char				*endptr; /* Used by strtoul() */
+	int					r, sel;
+	fd_set				sset, rset;
+	struct target_ipv6	targetipv6;
 
 	static struct option longopts[] = {
 		{"interface", required_argument, 0, 'i'},
@@ -286,11 +288,23 @@ int main(int argc, char **argv){
 				break;
 	    
 			case 'd':	/* IPv6 Destination Address */
-				if( inet_pton(AF_INET6, optarg, &(idata.dstaddr)) <= 0){
-					puts("inet_pton(): address not valid");
-					exit(EXIT_FAILURE);
+				strncpy( targetipv6.name, optarg, NI_MAXHOST);
+				targetipv6.name[NI_MAXHOST-1]= 0;
+				targetipv6.flags= AI_CANONNAME;
+
+				if( (r=get_ipv6_target(&targetipv6)) != 0){
+
+					if(r < 0){
+						printf("Unknown Destination: %s\n", gai_strerror(targetipv6.res));
+					}
+					else{
+						puts("Unknown Destination: No IPv6 address found for specified destination");
+					}
+
+					exit(1);
 				}
-		
+
+				idata.dstaddr= targetipv6.ip6;
 				idata.dstaddr_f = 1;
 				break;
 
@@ -589,11 +603,23 @@ int main(int argc, char **argv){
 				break;
 
 			case 'x':	/* Source Address of the ICMPv6 payload */
-				if( inet_pton(AF_INET6, optarg, &peeraddr) <= 0){
-					puts("inet_pton(): address not valid");
-					exit(EXIT_FAILURE);
+				strncpy( targetipv6.name, optarg, NI_MAXHOST);
+				targetipv6.name[NI_MAXHOST-1]= 0;
+				targetipv6.flags= AI_CANONNAME;
+
+				if( (r=get_ipv6_target(&targetipv6)) != 0){
+
+					if(r < 0){
+						printf("Unknown Destination: %s\n", gai_strerror(targetipv6.res));
+					}
+					else{
+						puts("Unknown Destination: No IPv6 address found for specified destination");
+					}
+
+					exit(1);
 				}
-		
+
+				peeraddr= targetipv6.ip6;
 				peeraddr_f = 1;
 				break;
 

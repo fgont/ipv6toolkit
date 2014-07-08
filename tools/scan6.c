@@ -32,6 +32,15 @@
 #include <sys/time.h>
 #include <sys/resource.h>
 
+#include <arpa/inet.h>
+#include <netinet/in.h>
+#include <netinet/ip6.h>
+#include <netinet/icmp6.h>
+#include <netinet/tcp.h>
+#include <net/if.h>
+#include <netdb.h>
+#include <pcap.h>
+
 #include <errno.h>
 #include <ctype.h>
 #include <time.h>
@@ -42,14 +51,6 @@
 #include <string.h>
 #include <setjmp.h>
 #include <unistd.h>
-
-#include <pcap.h>
-#include <arpa/inet.h>
-#include <netinet/in.h>
-#include <netinet/ip6.h>
-#include <netinet/icmp6.h>
-#include <netinet/tcp.h>
-#include <net/if.h>
 
 #include "scan6.h"
 #include "ipv6toolkit.h"
@@ -231,10 +232,12 @@ sigjmp_buf				env;
 unsigned int			canjump;
 
 int main(int argc, char **argv){
-	extern char		*optarg;
-	int			r;
-	struct timeval	timeout;
-	char			date[DATE_STR_LEN];
+	extern char				*optarg;
+	int						r;
+	struct addrinfo			hints, *res, *aiptr;
+	struct target_ipv6		target;
+	struct timeval			timeout;
+	char					date[DATE_STR_LEN];
 
 	static struct option longopts[] = {
 		{"interface", required_argument, 0, 'i'},
@@ -350,8 +353,93 @@ int main(int argc, char **argv){
 				break;
 
 			case 'd':	/* IPv6 Destination Address/Prefix */
+				if(!address_contains_colons(optarg)){
+					if((charptr = strtok_r(optarg, "/", &lasts)) == NULL){
+						puts("Error in Destination Address");
+						exit(EXIT_FAILURE);
+					}
 
-				if( (ranges= address_contains_ranges(optarg)) == 1){
+					strncpy(target.name, charptr, NI_MAXHOST);
+					target.name[NI_MAXHOST-1]=0;
+
+					if((charptr = strtok_r(NULL, " ", &lasts)) != NULL){
+						prefix.len = atoi(charptr);
+		
+						if(prefix.len > 128){
+							puts("Prefix length error in IPv6 Destination Address");
+							exit(EXIT_FAILURE);
+						}
+					}
+					else{
+						prefix.len= 128;
+					}
+
+					memset(&hints, 0, sizeof(hints));
+					hints.ai_family= AF_INET6;
+					hints.ai_canonname = NULL;
+					hints.ai_addr = NULL;
+					hints.ai_next = NULL;
+					hints.ai_socktype= SOCK_DGRAM;
+
+					if( (target.res = getaddrinfo(target.name, NULL, &hints, &res)) != 0){
+						printf("Unknown Destination '%s': %s\n", target.name, gai_strerror(target.res));
+						exit(1);
+					}
+
+					for(aiptr=res; aiptr != NULL; aiptr=aiptr->ai_next){
+						if(aiptr->ai_family != AF_INET6)
+							continue;
+
+						if(aiptr->ai_addrlen != sizeof(struct sockaddr_in6))
+							continue;
+
+						if(aiptr->ai_addr == NULL)
+							continue;
+
+						prefix.ip6= ( (struct sockaddr_in6 *)aiptr->ai_addr)->sin6_addr;
+						sanitize_ipv6_prefix(&(prefix.ip6), prefix.len);
+
+						if(prefix_list.ntarget <= prefix_list.maxtarget){
+							if( (prefix_list.target[prefix_list.ntarget] = malloc(sizeof(struct scan_entry))) == NULL){
+								if(idata.verbose_f)
+									puts("scan6: Not enough memory");
+
+								exit(EXIT_FAILURE);
+							}
+
+							prefix_to_scan(&prefix, prefix_list.target[prefix_list.ntarget]);
+
+							if(IN6_IS_ADDR_MULTICAST(&(prefix_list.target[prefix_list.ntarget]->start))){
+								if(idata.verbose_f)
+									puts("scan6: Remote scan cannot target a multicast address");
+
+								exit(EXIT_FAILURE);
+							}
+
+							if(IN6_IS_ADDR_MULTICAST(&(prefix_list.target[prefix_list.ntarget]->end))){
+								if(idata.verbose_f)
+									puts("scan6: Remote scan cannot target a multicast address");
+
+								exit(EXIT_FAILURE);
+							}
+
+							prefix_list.ntarget++;
+						}
+						else{
+							/*
+							   If the number of "targets" has already been exceeded, it doesn't make sense to continue further,
+							   since there wouldn't be space for any specific target types
+							 */
+							if(idata.verbose_f)
+								puts("Too many targets!");
+
+							exit(EXIT_FAILURE);
+						}
+					}
+
+					freeaddrinfo(res);
+				}
+				else if( (ranges= address_contains_ranges(optarg)) == 1){
 					charptr= optarg;
 					charstart= rangestart;
 					charend= rangeend;

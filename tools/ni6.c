@@ -26,6 +26,22 @@
  * Please send any bug reports to Fernando Gont <fgont@si6networks.com>
  */
 
+#include <sys/types.h>
+#include <sys/param.h>
+#include <sys/socket.h>
+
+#include <arpa/inet.h>
+#include <netinet/in.h>
+#include <netinet/tcp.h>
+#include <netinet/udp.h>
+#include <netinet/ip6.h>
+#include <netinet/icmp6.h>
+#include <net/if.h>
+
+#include <netdb.h>
+#include <pcap.h>
+#include <setjmp.h>
+#include <pwd.h>
 #include <errno.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -34,23 +50,10 @@
 #include <unistd.h>
 #include <signal.h>
 #include <string.h>
-#include <pcap.h>
-#include <sys/types.h>
-#include <sys/param.h>
-#include <setjmp.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <netinet/ip6.h>
-#include <netinet/icmp6.h>
-#include <pwd.h>
-#include <sys/socket.h>
-#include <net/if.h>
 
 #include "ni6.h"
 #include "ipv6toolkit.h"
 #include "libipv6.h"
-#include <netinet/tcp.h>
-#include <netinet/udp.h>
 
 
 /* Function prototypes */
@@ -156,11 +159,12 @@ struct filters		filters;
 
 
 int main(int argc, char **argv){
-	extern char		*optarg;
-	int				r, sel;
-	fd_set			sset, rset;
-	time_t			curtime, lastni=0, start=0;
-	struct timeval	timeout;
+	extern char			*optarg;
+	int					r, sel;
+	fd_set				sset, rset;
+	time_t				curtime, lastni=0, start=0;
+	struct timeval		timeout;
+	struct target_ipv6	targetipv6;
 
 	/* For queries only: loops to the beginning of the same label (shouldn't work) */
 	unsigned char	dnsloopq0[]={0x04, 0x61, 0x61, 0x61, 0x61, 0x0c, 0x00};
@@ -284,13 +288,25 @@ int main(int argc, char **argv){
 				break;
 	    
 			case 'd':	/* IPv6 Destination Address */
-				if( inet_pton(AF_INET6, optarg, &(idata.dstaddr)) <= 0){
-					puts("inet_pton(): address not valid");
-					exit(EXIT_FAILURE);
+				strncpy( targetipv6.name, optarg, NI_MAXHOST);
+				targetipv6.name[NI_MAXHOST-1]= 0;
+				targetipv6.flags= AI_CANONNAME;
+
+				if( (r=get_ipv6_target(&targetipv6)) != 0){
+
+					if(r < 0){
+						printf("Unknown Destination: %s\n", gai_strerror(targetipv6.res));
+					}
+					else{
+						puts("Unknown Destination: No IPv6 address found for specified destination");
+					}
+
+					exit(1);
 				}
 
+				idata.dstaddr= targetipv6.ip6;
+				idata.dstaddr_f = TRUE;
 				type= ICMP6_NI_QUERY;
-				idata.dstaddr_f = 1;
 				break;
 
 			case 'c':	/* Hop Limit */
@@ -461,12 +477,23 @@ int main(int argc, char **argv){
 				break;
 
 			case '6':	/* Subject: IPv6 address */
+				strncpy( targetipv6.name, optarg, NI_MAXHOST);
+				targetipv6.name[NI_MAXHOST-1]= 0;
+				targetipv6.flags= AI_CANONNAME;
 
-				if ( inet_pton(AF_INET6, optarg, &ipv6addr) <= 0){
-					puts("inet_pton(): Subject Address not valid");
-					exit(EXIT_FAILURE);
+				if( (r=get_ipv6_target(&targetipv6)) != 0){
+
+					if(r < 0){
+						printf("Unknown Destination: %s\n", gai_strerror(targetipv6.res));
+					}
+					else{
+						puts("Unknown Destination: No IPv6 address found for specified destination");
+					}
+
+					exit(1);
 				}
 
+				ipv6addr= targetipv6.ip6;
 				ipv6addr_f = 1;
 				break;
 
@@ -519,12 +546,23 @@ int main(int argc, char **argv){
 				break;
 
 			case 'w':	/* Data: IPv6 address */
+				strncpy( targetipv6.name, optarg, NI_MAXHOST);
+				targetipv6.name[NI_MAXHOST-1]= 0;
+				targetipv6.flags= AI_CANONNAME;
 
-				if ( inet_pton(AF_INET6, optarg, &ipv6addrd) <= 0){
-					puts("inet_pton(): Redirected Address not valid");
-					exit(EXIT_FAILURE);
+				if( (r=get_ipv6_target(&targetipv6)) != 0){
+
+					if(r < 0){
+						printf("Unknown Destination: %s\n", gai_strerror(targetipv6.res));
+					}
+					else{
+						puts("Unknown Destination: No IPv6 address found for specified destination");
+					}
+
+					exit(1);
 				}
 
+				ipv6addrd= targetipv6.ip6;
 				ipv6addrd_f = 1;
 				break;
 
@@ -899,8 +937,8 @@ int main(int argc, char **argv){
 		exit(EXIT_FAILURE);
 	}
 
-	if(!iface_f){
-		puts("Must specify the network interface with the -i option");
+	if(listen_f && !iface_f){
+		puts("Must specify the network interface with the -i option when 'listening' mode is set");
 		exit(EXIT_FAILURE);
 	}
 

@@ -2,6 +2,8 @@
 #include <pcap.h>
 #endif
 
+#include <netdb.h>
+
 
 /* General constants */
 #define SUCCESS		1
@@ -376,6 +378,16 @@ struct arp_hdr{
 	struct ether_addr		tgt_ether;
 	struct in_addr			tgt_ip;
 } __attribute__ ((__packed__));
+
+
+/* For obtaining an IPv6 target */
+struct target_ipv6{
+	struct in6_addr		ip6;	/* IPv6 address */
+	char name			[NI_MAXHOST]; /* Name */
+	char canonname		[NI_MAXHOST]; /* Canonic name */
+	int					res;	/* Error code */
+	unsigned int		flags;	/* Value-result: Whether the canonic name is required/obtained */
+};
 
 struct prefix_entry{
 	struct in6_addr		ip6;
@@ -795,6 +807,7 @@ struct next_hop{
 #define SA_NEXT(sa) (sa= (struct sockaddr *) ( (char *) sa + SA_SIZE(sa)))
 #endif
 
+int					address_contains_colons(char *);
 int					address_contains_ranges(char *);
 void				change_endianness(u_int32_t *, unsigned int);
 void				debug_print_ifaces_data(struct iface_list *);
@@ -816,6 +829,8 @@ struct iface_entry  *find_matching_address(struct iface_data *, struct iface_lis
 void				generate_slaac_address(struct in6_addr *, struct ether_addr *, struct in6_addr *);
 int					get_if_addrs(struct iface_data *);
 int					get_local_addrs(struct iface_data *);
+int					get_ipv6_address(struct in6_addr *, char *);
+int			 		get_ipv6_target(struct target_ipv6 *);
 int					inc_sdev(u_int32_t *, unsigned int, u_int32_t *, double *);
 int					init_iface_data(struct iface_data *);
 int					init_filters(struct filters *);

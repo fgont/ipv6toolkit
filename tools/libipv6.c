@@ -41,6 +41,7 @@
 #include <netinet/icmp6.h>
 #include <netinet/tcp.h>
 #include <net/if.h>
+#include <netdb.h>
 #include <ifaddrs.h>
 #ifdef __linux__
 	#include <asm/types.h>
@@ -4174,6 +4175,32 @@ int address_contains_ranges(char *ptr){
 
 
 /*
+ * Function: address_contains_colons()
+ *
+ * Checks whether a string contains colons. This is a trivial way to differentiate between
+ * domain names and IPv6 addresses.
+ */
+
+int address_contains_colons(char *ptr){
+	unsigned char colon_f=0;
+	unsigned int i=0;
+
+	while(i <= (MAX_RANGE_STR_LEN) && *ptr){
+		if(*ptr == ':')
+			colon_f=1;
+
+		ptr++;
+		i++;
+	}
+
+	if(colon_f)
+		return(1);
+	else
+		return(0);
+}
+
+
+/*
  * Function: read_prefix()
  *
  * Obtain a pointer to the beginning of non-blank text, and zero-terminate that text upon space or comment.
@@ -4584,4 +4611,61 @@ void dump_hex(void* ptr, size_t s){
 	}
 
 	puts("");
+}
+
+
+
+/*
+ * Function: get_ipv6_target()
+ *
+ * Obtains the first IPv6 address and the canonical name for a given domain
+ *
+ * Return value: 0: success, -1: name conversion error, 1: non-suitable address
+ */
+int get_ipv6_target(struct target_ipv6 *target){
+	struct addrinfo	hints, *res, *ptr;
+
+	memset(&hints, 0, sizeof(hints));
+	hints.ai_flags= (target->flags)?AI_CANONNAME:0;
+	hints.ai_family= AF_INET6;
+	hints.ai_canonname = NULL;
+	hints.ai_addr = NULL;
+	hints.ai_next = NULL;
+
+	if( (target->res = getaddrinfo(target->name, NULL, &hints, &res)) != 0){
+		return(-1);
+	}
+
+	/* If canonname is non-NULL, the canonic name is required */
+	if(target->flags){
+		if(res != NULL && res->ai_canonname != NULL){
+			strncpy( target->canonname, res->ai_canonname, NI_MAXHOST);
+			target->canonname[NI_MAXHOST-1]=0;
+		}
+		else{
+			target->canonname[0]=0;
+			target->flags=0;
+		}
+	}
+
+	for(ptr=res; ptr != NULL; ptr=ptr->ai_next){
+		if(ptr->ai_family != AF_INET6)
+			continue;
+
+		if(ptr->ai_addrlen != sizeof(struct sockaddr_in6))
+			continue;
+
+		if(ptr->ai_addr == NULL)
+			continue;
+
+		memcpy( &(target->ip6), &(( (struct sockaddr_in6 *)ptr->ai_addr)->sin6_addr), sizeof(struct in6_addr));
+		break;
+	}
+
+	freeaddrinfo(res);
+
+	if(ptr != NULL)
+		return(0);
+	else
+		return(1);
 }
