@@ -50,11 +50,12 @@ struct stats6{
 
 	unsigned int	iidmacderived;
 	unsigned int	iidisatap;
-	unsigned int	iidmbeddedipv4;
+	unsigned int	iidmbeddedipv4;     /* This one is currently unused */
+	unsigned int	iidembeddedipv4_32;
+	unsigned int	iidembeddedipv4_64;
 	unsigned int	iidembeddedport;
 	unsigned int	iidembeddedportrev;
 	unsigned int	iidlowbyte;
-	unsigned int	iidembeddedipv4_64;
 	unsigned int	iidpatternbytes;
 	unsigned int	iidrandom;
 

@@ -776,7 +776,15 @@ void stat_ipv6_address(struct decode6 *addr, struct stats6 *stats){
 						break;
 
 					case IID_EMBEDDEDIPV4:
-						(stats->iidmbeddedipv4)++;
+						switch(addr->iidsubtype){
+							case IID_EMBEDDEDIPV4_32:
+								(stats->iidmbeddedipv4_32)++;
+								break;
+
+							case IID_EMBEDDEDIPV4_64:
+								(stats->iidembeddedipv4_64)++;
+								break;
+						}
 						break;
 
 					case IID_EMBEDDEDPORT:
@@ -789,10 +797,6 @@ void stat_ipv6_address(struct decode6 *addr, struct stats6 *stats){
 
 					case IID_LOWBYTE:
 						(stats->iidlowbyte)++;
-						break;
-
-					case IID_EMBEDDEDIPV4_64:
-						(stats->iidembeddedipv4_64)++;
 						break;
 
 					case IID_PATTERN_BYTES:
@@ -851,6 +855,7 @@ void print_dec_address_script(struct decode6 *addr){
 	char *iidembeddedport="embedded-port";
 	char *iidembeddedportrev="embedded-port-rev";
 	char *iidlowbyte="low-byte";
+	char *iidembeddedipv4_32="embedded-ipv4-32";
 	char *iidembeddedipv4_64="embedded-ipv4-64";
 	char *iidpatternbytes="pattern-bytes";
 	char *iidrandom="randomized";
@@ -951,6 +956,16 @@ void print_dec_address_script(struct decode6 *addr){
 
 					case IID_EMBEDDEDIPV4:
 						iidtype= iidmbeddedipv4;
+						switch(addr->iidsubtype){
+							case IID_EMBEDDEDIPV4_32:
+								iidsubtype= iidembeddedipv4_32;
+								break;
+
+							case IID_EMBEDDEDIPV4_64:
+								iidsubtype= iidembeddedipv4_64;
+								break;
+						}
+
 						break;
 
 					case IID_EMBEDDEDPORT:
