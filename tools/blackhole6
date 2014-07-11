@@ -4,6 +4,8 @@
 #
 # Syntax: blackhole6 DESTINATION [HEADERSIZE [PROTOCOL [PORT]]]
 
+use Socket();
+
 $total=0;
 $response=0;
 $timeout=0;
@@ -13,20 +15,44 @@ sub usage{
 }
 
 
+# Function GetASN()
+#
+# Obtains the autonomous system number (ASN) for a given IPv6 address
+#
 sub GetASN{
 	@revname=`addr6 -a $_[0] -r`;
-	chomp($revname[0]);
-	$queryname= $revname[0] . ".origin6.asn.cymru.com.";
-	@reverse=`host -t TXT $queryname`;
-	$reverse[0] =~ m/\"\s*((\d+)\s*)\s+|"/;
-	return($2);
+
+	if( ($? >> 8) != 0){
+		return(-1);
+	}
+	else{
+		chomp($revname[0]);
+		$queryname= $revname[0] . ".origin6.asn.cymru.com.";
+		@reverse=`host -t TXT $queryname`;
+
+		if($reverse[0] =~ m/\"\s*((\d+)\s*)\s+|"/){
+			return($2);
+		}
+		else{
+			return(-1);
+		}
+	}
 }
 
+# Function GetORG()
+#
+# Obtains the organization corresponding to an autonomous system number (ASN)
+#
 sub GetORG{
 	$querystring="host -t TXT AS".$_[0].".asn.cymru.com";
 	@asinfo= `$querystring`;
-	$asinfo[0] =~ m/\"*.\|.*\|.*\|.*\|\s*(.*)\"/;
-	return($1);
+
+	if($asinfo[0] =~ m/\"*.\|.*\|.*\|.*\|\s*(.*)\"/){
+		return($1);
+	}
+	else{
+		return(-1);
+	}
 }
 
 # Remove all items from the array of IP addresses
@@ -46,6 +72,22 @@ if($#ARGV < 0){
 	usage();
 	exit 1;
 }
+
+
+# Obtain the IPv6 addres corresponding to the specified domain name
+# (This implicitly obtains the canonic address if an IPv6 address was specified)
+my ( $err, @addrs ) = Socket::getaddrinfo( $ARGV[0], 0, { 'protocol' => Socket::IPPROTO_TCP, 'family' => Socket::AF_INET6 } );
+
+if($err){
+	die $err;
+}
+
+my ( $err, $fline ) = Socket::getnameinfo( $addrs[0]->{addr}, Socket::NI_NUMERICHOST );
+if ($err){
+	die $err;
+}
+
+#$fline= Socket::inet_ntop(Socket::AF_INET6, $addrs[0]->{addr});
 
 $ehtype= "do";
 $ehsize= "8";
@@ -107,11 +149,17 @@ else{
 	exit 1;
 }
 
+print "Tracing $ARGV[0] ($fline)...\n";
 
-$fline= $ARGV[0];
 $maxhopsfree=0;
 $maxhopsfreeip="";
 @tcp=`path6 -d $fline -p $prototype $protoopt --rate-limit 40pps`;
+
+if(($? >> 8) != 0){
+	print "blackhole6: Found issues when running path6 to the specified target";
+	exit(1);
+}
+
 foreach $line (@tcp){
 	# Discard lines that do not contain a "probe" line
 	if($line =~ m/\s+(\d+)\s+\((\S*)\)/){
@@ -130,6 +178,12 @@ foreach $line (@tcp){
 $maxhopstrouble=0;
 $maxhopstroubleip="";
 @tcp=`path6 -d $fline -p $prototype $protoopt $eh --rate-limit 40pps`;
+
+if(($? >> 8) != 0){
+	print "blackhole6: Found issues when running path6 to the specified target\n";
+	exit(1);
+}
+
 foreach $line (@tcp){
 	# Discard lines that do not contain a "probe" line
 	if($line =~ m/\s+(\d+)\s+\((\S*)\)/){
@@ -155,6 +209,11 @@ for($i=0; $i< $#ipsfree; $i++){
 
 $flineasn= GetASN($fline);
 
+if($flineasn == -1){
+	print "blackhole6: Error when trying to obtain ASN for $fline\n";
+	exit(1);
+}
+
 if($flineasn eq ""){
 	$flineasn= " Unknown";
 }
@@ -162,11 +221,21 @@ if($flineasn eq ""){
 
 $maxhopsfreeasn= GetASN($maxhopsfreeip);
 
+if($maxhopsfreeasn == -1){
+	print "blackhole6: Error when trying to obtain ASN for $maxhopsfreeip\n";
+	exit(1);
+}
+
 if($maxhopsfreeasn eq ""){
 	$maxhopsfreeasn= " Unknown";
 }
 
 $maxhopstroubleasn= GetASN($maxhopstroubleip);
+
+if($maxhopstroubleasn == -1){
+	print "blackhole6: Error when trying to obtain ASN for $maxhopstroubleip\n";
+	exit(1);
+}
 
 if($maxhopstroubleasn eq ""){
 	$maxhopstroubleasn= " Unknown";
@@ -174,8 +243,25 @@ if($maxhopstroubleasn eq ""){
 
 $ehtype_uc= uc($ehtype);
 $flineorg= GetORG($flineasn);
+
+if($flineorg == -1){
+	print "blackhole6: Error when trying to obtain organization for AS$flineasn\n";
+	exit(1);
+}
+
 $maxhopsfreeorg= GetORG($maxhopsfreeasn);
+
+if($maxhopsfreeorg == -1){
+	print "blackhole6: Error when trying to obtain organization for AS$maxhopsfreeasn\n";
+	exit(1);
+}
+
 $maxhopstroubleorg= GetORG($maxhopstroubleasn);
+
+if($maxhopstroubleorg == -1){
+	print "blackhole6: Error when trying to obtain organization for AS$maxhopstroubleasn\n";
+	exit(1);
+}
 
 print "\nDst. IPv6 address: $fline (AS$flineasn - $flineorg)\n";
 print "Last node (no EHs): $maxhopsfreeip (AS$maxhopsfreeasn - $maxhopsfreeorg) ($maxhopsfree hop(s))\n";
@@ -187,10 +273,19 @@ if($maxhopsfreeip eq $fline){
 	}
 	else{
 		$dropasn= GetASN($dropip);
+		if($dropasn == -1){
+			print "blackhole6: Error when trying to obtain ASN for $dropip\n";
+			exit(1);
+		}
+
 		$droporg= "";
 
 		if($dropasn ne ""){
 			$droporg= GetORG($dropasn);
+			if($droporg == -1){
+				print "blackhole6: Error when trying to obtain organization for AS$dropasn\n";
+				exit(1);
+			}
 		}
 		
 		if($dropasn eq ""){
@@ -203,10 +298,18 @@ if($maxhopsfreeip eq $fline){
 
 		if($dropip2 ne ""){
 			$dropasn2= GetASN($dropip2);
+			if($dropasn2 == -1){
+				print "blackhole6: Error when trying to obtain ASN for $dropip2\n";
+				exit(1);
+			}
 			$droporg2= "";
 
 			if($dropasn2 ne ""){
 				$droporg2= GetORG($dropasn2);
+				if($droporg2 == -1){
+					print "blackhole6: Error when trying to obtain organization for AS$dropasn2\n";
+					exit(1);
+				}
 			}
 		
 			if($dropasn2 eq ""){

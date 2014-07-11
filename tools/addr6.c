@@ -625,10 +625,12 @@ int main(int argc, char **argv){
 			print_dec_address_script(&addr);
 		}
 		else if(canonic_f){
-			print_ipv6_address("", &(addr.ip6));
+			if(print_ipv6_address("", &(addr.ip6)) != EXIT_SUCCESS)
+				exit(EXIT_FAILURE);
 		}
 		else if(reverse_f){
-			print_ipv6_address_rev(&(addr.ip6));
+			if(print_ipv6_address_rev(&(addr.ip6)) != EXIT_SUCCESS)
+				exit(EXIT_FAILURE);
 		}
 	}
 
