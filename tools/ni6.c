@@ -113,8 +113,8 @@ unsigned int		skip;
 unsigned int		nsleep;
 unsigned char		srcpreflen;
 
-u_int16_t			mask;
-u_int8_t			hoplimit;
+uint16_t			mask;
+uint8_t			hoplimit;
 
 char 				plinkaddr[ETHER_ADDR_PLEN];
 char 				psrcaddr[INET6_ADDRSTRLEN], pdstaddr[INET6_ADDRSTRLEN], pv6addr[INET6_ADDRSTRLEN];
@@ -150,9 +150,9 @@ unsigned int		maxlabel, slvariant, slsize, dlvariant, dlsize;
 char				*name, *named;
 unsigned int		fnamelen, exceedp, fnamedlen, exceedpd, payloadsize;
 int					namelen, namedlen;
-u_int8_t			qtype, type;
-u_int8_t			code=0;
-u_int16_t			flags=0;
+uint8_t			qtype, type;
+uint8_t			code=0;
+uint16_t			flags=0;
 unsigned char		*slpointer, *dlpointer;
 
 struct filters		filters;
@@ -1377,7 +1377,7 @@ int	print_ni_addr(struct iface_data *idata, const u_char *pktdata, struct pcap_p
 	struct ip6_hdr 			*pkt_ipv6;
 	struct icmp6_nodeinfo	*pkt_ni;
 	unsigned char			*pkt_end;
-	u_int16_t				flags;
+	uint16_t				flags;
 	struct ni_reply_ip		*pkt_nidata;
 
 	pkt_ether = (struct ether_header *) pktdata;
@@ -1519,7 +1519,7 @@ int	print_ni_addr6(struct iface_data *idata, const u_char *pktdata, struct pcap_
 	struct ip6_hdr 			*pkt_ipv6;
 	struct icmp6_nodeinfo	*pkt_ni;
 	unsigned char			*pkt_end;
-	u_int16_t				flags;
+	uint16_t				flags;
 	struct ni_reply_ip6     *pkt_nidata;
 
 	pkt_ether = (struct ether_header *) pktdata;

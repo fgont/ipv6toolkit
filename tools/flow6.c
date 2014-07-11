@@ -2,7 +2,7 @@
  * flow6: A security assessment tool that determines the Flow Label
  *        generation policy of a target node
  *
- * Copyright (C) 2011-2013 Fernando Gont <fgont@si6networks.com>
+ * Copyright (C) 2011-2014 Fernando Gont <fgont@si6networks.com>
  *
  * Programmed by Fernando Gont for SI6 Networks (www.si6networks.com)
  *
@@ -39,6 +39,7 @@
 #include <netinet/tcp.h>
 #include <netinet/udp.h>
 #include <net/if.h>
+#include <netdb.h>
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -60,7 +61,7 @@ void				print_attack_info(void);
 void				usage(void);
 void				print_help(void);
 int					send_fid_probe(void);
-int					predict_flow_id(u_int32_t *, unsigned int, u_int32_t *, unsigned int);
+int					predict_flow_id(uint32_t *, unsigned int, uint32_t *, unsigned int);
 
 
 /* Used for router discovery */
@@ -109,8 +110,8 @@ unsigned int		skip;
 unsigned int		frags, nfrags, nsleep;
 unsigned char		srcpreflen;
 
-u_int16_t			mask, ip6length;
-u_int8_t			hoplimit;
+uint16_t			mask, ip6length;
+uint8_t			hoplimit;
 
 char 				plinkaddr[ETHER_ADDR_PLEN];
 char 				psrcaddr[INET6_ADDRSTRLEN], pdstaddr[INET6_ADDRSTRLEN], pv6addr[INET6_ADDRSTRLEN];
@@ -136,9 +137,9 @@ unsigned char		*prev_nh, *startoffragment;
 
 
 /* For the sampling of Flow Label values */
-u_int16_t			baseport, lastport, dstport, tcpwin, addr_sig, addr_key;
-u_int32_t			tcpseq;
-u_int8_t			protocol;
+uint16_t			baseport, lastport, dstport, tcpwin, addr_sig, addr_key;
+uint32_t			tcpseq;
+uint8_t			protocol;
 
 
 int main(int argc, char **argv){
@@ -147,11 +148,12 @@ int main(int argc, char **argv){
 	struct timeval		timeout;
 	int					r, sel;
 	time_t				curtime, start, lastfrag1=0;
+	struct target_ipv6	targetipv6;
 
 	/* Arrays for storing the Flow ID samples */
-	u_int32_t		test1[NSAMPLES], test2[NSAMPLES];
-	unsigned int	ntest1=0, ntest2=0;
-	unsigned char	testtype;
+	uint32_t			test1[NSAMPLES], test2[NSAMPLES];
+	unsigned int		ntest1=0, ntest2=0;
+	unsigned char		testtype;
 
 	static struct option longopts[] = {
 		{"interface", required_argument, 0, 'i'},
@@ -226,11 +228,23 @@ int main(int argc, char **argv){
 				break;
 	    
 			case 'd':	/* IPv6 Destination Address */
-				if( inet_pton(AF_INET6, optarg, &(idata.dstaddr)) <= 0){
-					puts("inet_pton(): address not valid");
-					exit(EXIT_FAILURE);
+				strncpy( targetipv6.name, optarg, NI_MAXHOST);
+				targetipv6.name[NI_MAXHOST-1]= 0;
+				targetipv6.flags= AI_CANONNAME;
+
+				if( (r=get_ipv6_target(&targetipv6)) != 0){
+
+					if(r < 0){
+						printf("Unknown Destination: %s\n", gai_strerror(targetipv6.res));
+					}
+					else{
+						puts("Unknown Destination: No IPv6 address found for specified destination");
+					}
+
+					exit(1);
 				}
-		
+
+				idata.dstaddr= targetipv6.ip6;
 				idata.dstaddr_f = 1;
 				break;
 
@@ -355,7 +369,7 @@ int main(int argc, char **argv){
 		puts("Identifying the 'Flow ID' generation policy of the target node....");
 
 		if(protocol == IPPROTO_TCP){
-			tcpwin= ((u_int16_t) random() + 1500) & (u_int16_t)0x7f00;
+			tcpwin= ((uint16_t) random() + 1500) & (uint16_t)0x7f00;
 			tcpseq= random();
 			baseport= 50000+ random()%10000;
 			lastport= baseport;
@@ -809,8 +823,8 @@ void print_attack_info(void){
  *
  * Identifies and prints the Flow Label generation policy
 */
-int predict_flow_id(u_int32_t *s1, unsigned int n1, u_int32_t *s2, unsigned int n2){
-	u_int32_t		diff1_avg, diff2_avg;
+int predict_flow_id(uint32_t *s1, unsigned int n1, uint32_t *s2, unsigned int n2){
+	uint32_t		diff1_avg, diff2_avg;
 	double			diff1_sdev, diff2_sdev;
 
 	if(inc_sdev(s1, n1, &diff1_avg, &diff1_sdev) == -1){

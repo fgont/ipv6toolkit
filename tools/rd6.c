@@ -37,7 +37,9 @@
 #include <netinet/icmp6.h>
 #include <netinet/tcp.h>
 #include <netinet/udp.h>
+#include <netdb.h>
 
+#include <pcap.h>
 #include <errno.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -45,7 +47,6 @@
 #include <getopt.h>
 #include <unistd.h>
 #include <string.h>
-#include <pcap.h>
 
 #include "rd6.h"
 #include "libipv6.h"
@@ -70,12 +71,12 @@ unsigned int		learnrouter_f=0, sanityfilters_f=0;
 
 /* Variables used for ICMPv6 Redirect (specifically) */
 
-u_int16_t			ip6length;
+uint16_t			ip6length;
 struct in6_addr		rediraddr, peeraddr;
 unsigned char		redirpreflen, targetpreflen;
-u_int16_t			redirport, peerport, tcpurg, tcpwin, icmp6id, icmp6seq;
-u_int32_t			tcpseq, tcpack;
-u_int8_t			tcpflags=0, ip6hoplimit;
+uint16_t			redirport, peerport, tcpurg, tcpwin, icmp6id, icmp6seq;
+uint32_t			tcpseq, tcpack;
+uint8_t			tcpflags=0, ip6hoplimit;
 struct ip6_hdr		*rhipv6;
 struct udp_hdr		*rhudp;
 struct tcp_hdr		*rhtcp;
@@ -125,8 +126,8 @@ unsigned int			i, j, startrand;
 unsigned int			skip;
 unsigned int			ntargets, sources, nsources, targets, nsleep;
 
-u_int16_t				mask;
-u_int8_t				hoplimit;
+uint16_t				mask;
+uint8_t				hoplimit;
 
 char 					plinkaddr[ETHER_ADDR_PLEN];
 char 					psrcaddr[INET6_ADDRSTRLEN], pdstaddr[INET6_ADDRSTRLEN], pv6addr[INET6_ADDRSTRLEN];
@@ -156,10 +157,11 @@ struct iface_data		idata;
 struct filters			filters;
 
 int main(int argc, char **argv){
-	extern char		*optarg;	
-	char			*endptr; /* Used by strtoul() */
-	int				r, sel;
-	fd_set			sset, rset;
+	extern char			*optarg;	
+	char				*endptr; /* Used by strtoul() */
+	int					r, sel;
+	fd_set				sset, rset;
+	struct target_ipv6	targetipv6;
 
 	static struct option longopts[] = {
 		{"interface", required_argument, 0, 'i'},
@@ -279,11 +281,23 @@ int main(int argc, char **argv){
 				break;
 	    
 			case 'd':	/* IPv6 Destination Address */
-				if( inet_pton(AF_INET6, optarg, &(idata.dstaddr)) <= 0){
-					puts("inet_pton(): address not valid");
-					exit(EXIT_FAILURE);
+				strncpy( targetipv6.name, optarg, NI_MAXHOST);
+				targetipv6.name[NI_MAXHOST-1]= 0;
+				targetipv6.flags= AI_CANONNAME;
+
+				if( (r=get_ipv6_target(&targetipv6)) != 0){
+
+					if(r < 0){
+						printf("Unknown Destination: %s\n", gai_strerror(targetipv6.res));
+					}
+					else{
+						puts("Unknown Destination: No IPv6 address found for specified destination");
+					}
+
+					exit(1);
 				}
-		
+
+				idata.dstaddr= targetipv6.ip6;
 				idata.dstaddr_f = 1;
 				break;
 
@@ -553,11 +567,23 @@ int main(int argc, char **argv){
 				break;
 
 			case 'x':	/* Redirected peer address */
-				if( inet_pton(AF_INET6, optarg, &peeraddr) <= 0){
-					puts("inet_pton(): address not valid");
-					exit(EXIT_FAILURE);
+				strncpy( targetipv6.name, optarg, NI_MAXHOST);
+				targetipv6.name[NI_MAXHOST-1]= 0;
+				targetipv6.flags= AI_CANONNAME;
+
+				if( (r=get_ipv6_target(&targetipv6)) != 0){
+
+					if(r < 0){
+						printf("Unknown Destination: %s\n", gai_strerror(targetipv6.res));
+					}
+					else{
+						puts("Unknown Destination: No IPv6 address found for specified destination");
+					}
+
+					exit(1);
 				}
-		
+
+				peeraddr= targetipv6.ip6;
 				peeraddr_f = 1;
 				break;
 
@@ -1139,7 +1165,7 @@ int main(int argc, char **argv){
 			tcpseq= random();
 
 		if(!tcpwin_f)
-			tcpwin= ((u_int16_t) random() + 1500) & (u_int16_t)0x7f00;
+			tcpwin= ((uint16_t) random() + 1500) & (uint16_t)0x7f00;
 
 		if(!peerport_f)
 			peerport= random();
@@ -1769,9 +1795,9 @@ void send_packet(struct iface_data *idata, const u_char *pktdata, struct pcap_pk
 								rhbytes -= MIN_IPV6_HLEN+MIN_TCP_HLEN;
 
 								while(rhbytes>=4){
-									*(u_int32_t *)ptr = random();
-									ptr += sizeof(u_int32_t);
-									rhbytes -= sizeof(u_int32_t);
+									*(uint32_t *)ptr = random();
+									ptr += sizeof(uint32_t);
+									rhbytes -= sizeof(uint32_t);
 								}
 							}
 						}
@@ -1793,9 +1819,9 @@ void send_packet(struct iface_data *idata, const u_char *pktdata, struct pcap_pk
 								ptr += MIN_IPV6_HLEN+MIN_UDP_HLEN;
 								rhbytes -= MIN_IPV6_HLEN+MIN_UDP_HLEN;
 								while(rhbytes>=4){
-									*(u_int32_t *)ptr = random();
-									ptr += sizeof(u_int32_t);
-									rhbytes -= sizeof(u_int32_t);
+									*(uint32_t *)ptr = random();
+									ptr += sizeof(uint32_t);
+									rhbytes -= sizeof(uint32_t);
 								}
 							}
 						}
@@ -1817,9 +1843,9 @@ void send_packet(struct iface_data *idata, const u_char *pktdata, struct pcap_pk
 								ptr += MIN_IPV6_HLEN+MIN_ICMP6_HLEN;
 								rhbytes -= MIN_IPV6_HLEN+MIN_ICMP6_HLEN;
 								while(rhbytes>=4){
-									*(u_int32_t *)ptr = random();
-									ptr += sizeof(u_int32_t);
-									rhbytes -= sizeof(u_int32_t);
+									*(uint32_t *)ptr = random();
+									ptr += sizeof(uint32_t);
+									rhbytes -= sizeof(uint32_t);
 								}
 							}
 						}
@@ -1967,8 +1993,8 @@ void print_help(void){
 	     "  --tcp-urg, -V             Redirected Header Payload's TCP URG Pointer\n"
 	     "  --tcp-win, -w             Redirected Header Payload's TCP Window\n"
 	     "  --resp-mcast, -M          Respond to Multicast Packets\n"
-	     "  --make-onlink, O          Make victim on-link\n"
-	     "  --learn-router, N         Dynamically learn local router addresses\n"
+	     "  --make-onlink, -O         Make victim on-link\n"
+	     "  --learn-router, -N        Dynamically learn local router addresses\n"
 	     "  --target-lla-opt, -E      Target link-layer address option\n"
 	     "  --add-tlla-opt, -e        Add Target link-layer address option\n"
 	     "  --block-src, -j           Block IPv6 Source Address prefix\n"

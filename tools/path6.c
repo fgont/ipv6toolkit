@@ -110,8 +110,8 @@ unsigned long		ul_res, ul_val;
 unsigned int		i, j, startrand;
 unsigned int		skip;
 unsigned int		frags, nfrags;
-u_int16_t			mask, ip6length;
-u_int8_t			hoplimit;
+uint16_t			mask, ip6length;
+uint8_t			hoplimit;
 
 char 				plinkaddr[ETHER_ADDR_PLEN];
 char 				psrcaddr[INET6_ADDRSTRLEN], pdstaddr[INET6_ADDRSTRLEN], pv6addr[INET6_ADDRSTRLEN];
@@ -138,11 +138,11 @@ unsigned char		*prev_nh, *startoffragment;
 
 /* Parameters for the probe packets */
 unsigned char		srcport_f=0, dstport_f=0, tcpflags_f=0, pps_f=0, bps_f=0, endhost_f=0, rhbytes_f=0, droppacket_f=FALSE;
-u_int16_t			srcport, dstport;
-u_int8_t			tcpflags=0, cprobe, pprobe, nprobe, maxprobes, chop, phop, nhop, maxhops;
+uint16_t			srcport, dstport;
+uint8_t			tcpflags=0, cprobe, pprobe, nprobe, maxprobes, chop, phop, nhop, maxhops;
 
 struct in6_addr		nsrc;
-u_int32_t			tcpseq;
+uint32_t			tcpseq;
 
 #define MAXHOPS		30
 #define MAXPROBES	3
@@ -1443,7 +1443,7 @@ int send_probe(struct iface_data *idata, unsigned int probetype, unsigned char c
 		   hop limit is encoded in the lower 8 bits.
 		 */
 		icmp6->icmp6_data16[0]= htons(getpid());
-		icmp6->icmp6_data16[1]= htons( ((u_int16_t) chop << 8)  + (cprobe & 0xff) );
+		icmp6->icmp6_data16[1]= htons( ((uint16_t) chop << 8)  + (cprobe & 0xff) );
 		ptr += sizeof(struct icmp6_hdr);
 
 		if(rhbytes){
@@ -1455,13 +1455,13 @@ int send_probe(struct iface_data *idata, unsigned int probetype, unsigned char c
 			}
 
 			while(rhleft>=4){
-				*(u_int32_t *)ptr = random();
-				ptr += sizeof(u_int32_t);
-				rhleft -= sizeof(u_int32_t);
+				*(uint32_t *)ptr = random();
+				ptr += sizeof(uint32_t);
+				rhleft -= sizeof(uint32_t);
 			}
 
 			while(rhleft>0){
-				*(u_int8_t *) ptr= (u_int8_t) random();
+				*(uint8_t *) ptr= (uint8_t) random();
 				ptr++;
 				rhleft--;
 			}
@@ -1489,7 +1489,7 @@ int send_probe(struct iface_data *idata, unsigned int probetype, unsigned char c
 		   number, such that the resulting Source Port falls into what is typically known as the
 		   dynamic ports range (say, ports larger than 50000).
 		 */
-		tcp->th_sport= htons( (((u_int16_t) chop + PROBE_PORT_OFFSET) << 8) + cprobe);
+		tcp->th_sport= htons( (((uint16_t) chop + PROBE_PORT_OFFSET) << 8) + cprobe);
 		tcp->th_dport= htons(dstport);
 		tcp->th_seq = htonl(tcpseq);
 
@@ -1512,13 +1512,13 @@ int send_probe(struct iface_data *idata, unsigned int probetype, unsigned char c
 			}
 
 			while(rhleft>=4){
-				*(u_int32_t *)ptr = random();
-				ptr += sizeof(u_int32_t);
-				rhleft -= sizeof(u_int32_t);
+				*(uint32_t *)ptr = random();
+				ptr += sizeof(uint32_t);
+				rhleft -= sizeof(uint32_t);
 			}
 
 			while(rhleft>0){
-				*(u_int8_t *) ptr= (u_int8_t) random();
+				*(uint8_t *) ptr= (uint8_t) random();
 				ptr++;
 				rhleft--;
 			}
@@ -1549,7 +1549,7 @@ int send_probe(struct iface_data *idata, unsigned int probetype, unsigned char c
 		   dynamic ports range (say, ports larger than 50000).
 		 */
 
-		udp->uh_sport= htons(  (((u_int16_t) chop + PROBE_PORT_OFFSET) << 8) + cprobe);
+		udp->uh_sport= htons(  (((uint16_t) chop + PROBE_PORT_OFFSET) << 8) + cprobe);
 
 		udp->uh_dport= htons(dstport);
 
@@ -1562,13 +1562,13 @@ int send_probe(struct iface_data *idata, unsigned int probetype, unsigned char c
 			}
 
 			while(rhleft>=4){
-				*(u_int32_t *)ptr = random();
-				ptr += sizeof(u_int32_t);
-				rhleft -= sizeof(u_int32_t);
+				*(uint32_t *)ptr = random();
+				ptr += sizeof(uint32_t);
+				rhleft -= sizeof(uint32_t);
 			}
 
 			while(rhleft>0){
-				*(u_int8_t *) ptr= (u_int8_t) random();
+				*(uint8_t *) ptr= (uint8_t) random();
 				ptr++;
 				rhleft--;
 			}

@@ -94,20 +94,20 @@ struct nlrequest{
  * Check whether a short int is in the list of service ports (in hexadecmal or decimal "notations")
  */
 
-unsigned int is_service_port(u_int16_t port){
+unsigned int is_service_port(uint16_t port){
 	unsigned int 	i;
-	u_int16_t		service_ports_hex[]={0x21, 0x22, 0x23, 0x25, 0x49, 0x53, 0x80, 0x110, 0x123, 0x179, 0x220, 0x389, \
+	uint16_t		service_ports_hex[]={0x21, 0x22, 0x23, 0x25, 0x49, 0x53, 0x80, 0x110, 0x123, 0x179, 0x220, 0x389, \
 						                 0x443, 0x547, 0x993, 0x995, 0x1194, 0x3306, 0x5060, 0x5061, 0x5432, 0x6446, 0x8080};
-	u_int16_t		service_ports_dec[]={21, 22, 23, 25, 49, 53, 80, 110, 123, 179, 220, 389, \
+	uint16_t		service_ports_dec[]={21, 22, 23, 25, 49, 53, 80, 110, 123, 179, 220, 389, \
 						                 443, 547, 993, 995, 1194, 3306, 5060, 5061, 5432, 6446, 8080};
 
 	
-	for(i=0; i< (sizeof(service_ports_hex)/sizeof(u_int16_t)); i++){
+	for(i=0; i< (sizeof(service_ports_hex)/sizeof(uint16_t)); i++){
 		if(port == service_ports_hex[i])
 			return(1);
 	}
 
-	for(i=0; i< (sizeof(service_ports_hex)/sizeof(u_int16_t)); i++){
+	for(i=0; i< (sizeof(service_ports_hex)/sizeof(uint16_t)); i++){
 		if(port == service_ports_dec[i])
 			return(1);
 	}
@@ -140,7 +140,7 @@ unsigned int zero_byte_iid(struct in6_addr *ipv6){
  */
 
 void decode_ipv6_address(struct decode6 *addr){
-	u_int16_t	scope;
+	uint16_t	scope;
 
 	if(IN6_IS_ADDR_UNSPECIFIED(&(addr->ip6))){
 		addr->type= IPV6_UNSPEC;
@@ -894,10 +894,10 @@ void ether_to_ipv6_linklocal(struct ether_addr *etheraddr, struct in6_addr *ipv6
 	for(i=1;i<4;i++)
 		ipv6addr->s6_addr16[i]=0x0000;
 
-	ipv6addr->s6_addr16[4]=  htons(((u_int16_t)etheraddr->a[0] << 8) | etheraddr->a[1]);
-	ipv6addr->s6_addr16[5]=  htons( ((u_int16_t)etheraddr->a[2] << 8) | 0xff);
-	ipv6addr->s6_addr16[6]=  htons((u_int16_t) 0xfe00 | etheraddr->a[3]);
-	ipv6addr->s6_addr16[7]=  htons(((u_int16_t)etheraddr->a[4] << 8) | etheraddr->a[5]);
+	ipv6addr->s6_addr16[4]=  htons(((uint16_t)etheraddr->a[0] << 8) | etheraddr->a[1]);
+	ipv6addr->s6_addr16[5]=  htons( ((uint16_t)etheraddr->a[2] << 8) | 0xff);
+	ipv6addr->s6_addr16[6]=  htons((uint16_t) 0xfe00 | etheraddr->a[3]);
+	ipv6addr->s6_addr16[7]=  htons(((uint16_t)etheraddr->a[4] << 8) | etheraddr->a[5]);
 }
 
 
@@ -909,7 +909,7 @@ void ether_to_ipv6_linklocal(struct ether_addr *etheraddr, struct in6_addr *ipv6
  * Finds if an IPv6 address matches a prefix in a list of prefixes.
  */
 
-unsigned int match_ipv6(struct in6_addr *prefixlist, u_int8_t *prefixlen, unsigned int nprefix, 
+unsigned int match_ipv6(struct in6_addr *prefixlist, uint8_t *prefixlen, unsigned int nprefix, 
 								struct in6_addr *ipv6addr){
 
 	unsigned int 	i, j;
@@ -962,13 +962,13 @@ unsigned int match_ether(struct ether_addr *addrlist, unsigned int naddr, \
  * Calculate the 16-bit ICMPv6 checksum
  */
 
-u_int16_t in_chksum(void *ptr_ipv6, void *ptr_icmpv6, size_t len, u_int8_t proto){
+uint16_t in_chksum(void *ptr_ipv6, void *ptr_icmpv6, size_t len, uint8_t proto){
 	struct ipv6pseudohdr pseudohdr;
 	struct ip6_hdr *v6packet;
 	size_t nleft;
 	unsigned int sum = 0;
-	u_int16_t *w;
-	u_int16_t answer = 0;
+	uint16_t *w;
+	uint16_t answer = 0;
 
 	v6packet=ptr_ipv6;
 	
@@ -979,7 +979,7 @@ u_int16_t in_chksum(void *ptr_ipv6, void *ptr_icmpv6, size_t len, u_int8_t proto
 	pseudohdr.nh = proto;
 
 	nleft=40;
-	w= (u_int16_t *) &pseudohdr;
+	w= (uint16_t *) &pseudohdr;
 
 	while(nleft > 1){
 		sum += *w++;
@@ -987,7 +987,7 @@ u_int16_t in_chksum(void *ptr_ipv6, void *ptr_icmpv6, size_t len, u_int8_t proto
 	}
 
 	nleft= len;
-	w= (u_int16_t *) ptr_icmpv6;
+	w= (uint16_t *) ptr_icmpv6;
 
 	while(nleft > 1){
 		sum += *w++;
@@ -1352,10 +1352,10 @@ void generate_slaac_address(struct in6_addr *prefix, struct ether_addr *etheradd
 	for(i=0;i<4;i++)
 		ipv6addr->s6_addr16[i]= prefix->s6_addr16[i];
 
-	ipv6addr->s6_addr16[4]=  htons(((u_int16_t) (etheraddr->a[0] | 0x02) << 8) | etheraddr->a[1]);
-	ipv6addr->s6_addr16[5]=  htons( ((u_int16_t)etheraddr->a[2] << 8) | 0xff);
-	ipv6addr->s6_addr16[6]=  htons((u_int16_t) 0xfe00 | etheraddr->a[3]);
-	ipv6addr->s6_addr16[7]=  htons(((u_int16_t)etheraddr->a[4] << 8) | etheraddr->a[5]);
+	ipv6addr->s6_addr16[4]=  htons(((uint16_t) (etheraddr->a[0] | 0x02) << 8) | etheraddr->a[1]);
+	ipv6addr->s6_addr16[5]=  htons( ((uint16_t)etheraddr->a[2] << 8) | 0xff);
+	ipv6addr->s6_addr16[6]=  htons((uint16_t) 0xfe00 | etheraddr->a[3]);
+	ipv6addr->s6_addr16[7]=  htons(((uint16_t)etheraddr->a[4] << 8) | etheraddr->a[5]);
 }
 
 
@@ -1496,7 +1496,7 @@ int is_ip6_in_address_list(struct prefix_list *plist, struct in6_addr *target){
 
 int is_ip6_in_prefix_list(struct in6_addr *target, struct prefix_list *plist){
 	unsigned int i, j, full16, rest16;
-	u_int16_t	mask16;
+	uint16_t	mask16;
 
 	for(i=0; i < plist->nprefix; i++){
 		full16=(plist->prefix[i])->len / 16;
@@ -1551,7 +1551,7 @@ int is_time_elapsed(struct timeval *curtime, struct timeval *lastprobe, unsigned
 
 int match_ipv6_to_prefixes(struct in6_addr *ipv6addr, struct prefix_list *pf){
 	unsigned int	i, j, full16, rbits;
-	u_int16_t	mask;
+	uint16_t	mask;
 
 	for(i=0; i < pf->nprefix; i++){
 		full16= (pf->prefix[i])->len/16;
@@ -1785,9 +1785,9 @@ void randomize_ether_addr(struct ether_addr *ethaddr){
  * Select a random IPv6 from a given prefix.
  */
 
-void randomize_ipv6_addr(struct in6_addr *ipv6addr, struct in6_addr *prefix, u_int8_t preflen){
-	u_int16_t mask;
-	u_int8_t startrand;	
+void randomize_ipv6_addr(struct in6_addr *ipv6addr, struct in6_addr *prefix, uint8_t preflen){
+	uint16_t mask;
+	uint8_t startrand;	
 	unsigned int i;
 
 	startrand= preflen/16;
@@ -1867,9 +1867,9 @@ void release_privileges(void){
  * Clears those bits in an IPv6 address that are not within a prefix length.
  */
 
-void sanitize_ipv6_prefix(struct in6_addr *ipv6addr, u_int8_t prefixlen){
+void sanitize_ipv6_prefix(struct in6_addr *ipv6addr, uint8_t prefixlen){
 	unsigned int	skip, i;
-	u_int16_t	mask;
+	uint16_t	mask;
 
 	skip= (prefixlen+15)/16;
 
@@ -1908,7 +1908,7 @@ void sig_alarm(int num){
  */
 
 struct in6_addr *sel_src_addr_ra(struct iface_data *idata, struct in6_addr *dst){
-	u_int16_t	mask16;
+	uint16_t	mask16;
 	unsigned int	i, j, full16, rest16;
 	/*
 	   If the destination address is a link-local address, we select our link-local
@@ -2271,13 +2271,13 @@ int init_filters(struct filters *filters){
 	if( (filters->blocklinkdst= malloc(sizeof(struct ether_addr) * MAX_BLOCK_LINK_DST)) == NULL)
 		return(-1);
 
-	if( (filters->blocksrclen= malloc(sizeof(u_int8_t) * MAX_BLOCK_SRC)) == NULL)
+	if( (filters->blocksrclen= malloc(sizeof(uint8_t) * MAX_BLOCK_SRC)) == NULL)
 		return(-1);
 
-	if( (filters->blockdstlen= malloc(sizeof(u_int8_t) * MAX_BLOCK_DST)) == NULL)
+	if( (filters->blockdstlen= malloc(sizeof(uint8_t) * MAX_BLOCK_DST)) == NULL)
 		return(-1);
 
-	if( (filters->blocktargetlen= malloc(sizeof(u_int8_t) * MAX_BLOCK_TARGET)) == NULL)
+	if( (filters->blocktargetlen= malloc(sizeof(uint8_t) * MAX_BLOCK_TARGET)) == NULL)
 		return(-1);
 
 	if( (filters->acceptsrc= malloc(sizeof(struct in6_addr) * MAX_ACCEPT_SRC)) == NULL)
@@ -2295,13 +2295,13 @@ int init_filters(struct filters *filters){
 	if( (filters->acceptlinkdst= malloc(sizeof(struct ether_addr) * MAX_ACCEPT_LINK_DST)) == NULL)
 		return(-1);
 
-	if( (filters->acceptsrclen= malloc(sizeof(u_int8_t) * MAX_ACCEPT_SRC)) == NULL)
+	if( (filters->acceptsrclen= malloc(sizeof(uint8_t) * MAX_ACCEPT_SRC)) == NULL)
 		return(-1);
 
-	if( (filters->acceptdstlen= malloc(sizeof(u_int8_t) * MAX_ACCEPT_DST)) == NULL)
+	if( (filters->acceptdstlen= malloc(sizeof(uint8_t) * MAX_ACCEPT_DST)) == NULL)
 		return(-1);
 
-	if( (filters->accepttargetlen= malloc(sizeof(u_int8_t) * MAX_ACCEPT_TARGET)) == NULL)
+	if( (filters->accepttargetlen= malloc(sizeof(uint8_t) * MAX_ACCEPT_TARGET)) == NULL)
 		return(-1);
 
 	return(0);
@@ -2382,17 +2382,17 @@ int sel_next_hop_ra(struct iface_data *idata){
 /*
  * Function: inc_sdev()
  *
- * Computes the average increment and standard deviation of an array of u_int32_t's.
+ * Computes the average increment and standard deviation of an array of uint32_t's.
  * The function computes the aforementioned values for network byte order and host byte order,
  * and returns as a result the set of values with smaller standard deviation.
 */
-int inc_sdev(u_int32_t *s, unsigned int n, u_int32_t *diff_avg, double *diff_sdev){
+int inc_sdev(uint32_t *s, unsigned int n, uint32_t *diff_avg, double *diff_sdev){
 	unsigned int			i;
-	u_int32_t				*diff, *s2;
+	uint32_t				*diff, *s2;
 	unsigned long long int	diff1_avg, diff2_avg;
 	double					diff1_sdev, diff2_sdev;
 
-	if( (diff=malloc((n-1)*sizeof(u_int32_t))) == NULL)
+	if( (diff=malloc((n-1)*sizeof(uint32_t))) == NULL)
 		return(-1);
 
 	diff1_avg= 0;
@@ -2411,10 +2411,10 @@ int inc_sdev(u_int32_t *s, unsigned int n, u_int32_t *diff_avg, double *diff_sde
 
 	diff1_sdev= sqrt(diff1_sdev/(n-2));
 
-	if( (s2=malloc(n * sizeof(u_int32_t))) == NULL)
+	if( (s2=malloc(n * sizeof(uint32_t))) == NULL)
 		return(-1);
 
-	memcpy(s2, s, n* sizeof(u_int32_t));
+	memcpy(s2, s, n* sizeof(uint32_t));
 	change_endianness(s2, n);
 
 	diff2_avg= 0;
@@ -2452,12 +2452,12 @@ int inc_sdev(u_int32_t *s, unsigned int n, u_int32_t *diff_avg, double *diff_sde
 /*
  * Function: change_endianness()
  *
- * Changes the endianness of an array of u_int32_t's
+ * Changes the endianness of an array of uint32_t's
 */
-void change_endianness(u_int32_t *s, unsigned int n){
+void change_endianness(uint32_t *s, unsigned int n){
 	unsigned int		i;
 	union {
-		u_int32_t		ui;
+		uint32_t		ui;
 		unsigned char	c[4];
 	} swapper;
 
@@ -4049,8 +4049,8 @@ int is_ip6_in_list(struct in6_addr *target, struct host_list *hlist){
  *
  * Convert a decimal number into a number that has the same representation in hexadecimal
  */
-u_int16_t dec_to_hex(u_int16_t n){
-	u_int16_t	r=0;
+uint16_t dec_to_hex(uint16_t n){
+	uint16_t	r=0;
 	unsigned int	d, i;
 
 	/* The source number is truncated to the first four digits */
@@ -4607,7 +4607,7 @@ void dump_hex(void* ptr, size_t s){
 	unsigned int i;
 
 	for(i=0; i < s; i++){
-		printf("%02x ",  *( ((u_int8_t *)ptr)+i) );
+		printf("%02x ",  *( ((uint8_t *)ptr)+i) );
 	}
 
 	puts("");

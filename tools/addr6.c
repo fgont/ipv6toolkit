@@ -1,7 +1,7 @@
 /*
  * addr6: A tool to decode IPv6 addresses
  *
- * Copyright (C) 2013 Fernando Gont (fgont@si6networks.com)
+ * Copyright (C) 2013-2014 Fernando Gont (fgont@si6networks.com)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -44,7 +44,7 @@ void					print_help(void);
 void					stat_ipv6_address(struct decode6 *, struct stats6 *);
 void					print_dec_address_script(struct decode6 *);
 int						init_host_list(struct hashed_host_list *);
-u_int16_t				key(struct hashed_host_list *, struct in6_addr *);
+uint16_t				key(struct hashed_host_list *, struct in6_addr *);
 struct hashed_host_entry *		add_hashed_host_entry(struct hashed_host_list *, struct in6_addr *);
 unsigned int			is_ip6_in_hashed_list(struct hashed_host_list *, struct in6_addr *);
 void					print_stats(struct stats6 *);
@@ -70,12 +70,12 @@ int main(int argc, char **argv){
 
 	/* Block Filters */
 	struct in6_addr 	block[MAX_BLOCK];
-	u_int8_t			blocklen[MAX_BLOCK];
+	uint8_t			blocklen[MAX_BLOCK];
 	unsigned int		nblock=0;
 
 	/* Accept Filters */
 	struct in6_addr		accept[MAX_ACCEPT];
-	u_int8_t			acceptlen[MAX_ACCEPT];
+	uint8_t			acceptlen[MAX_ACCEPT];
 	unsigned int		naccept=0;
 
 	static struct option longopts[] = {
@@ -1148,7 +1148,7 @@ int init_host_list(struct hashed_host_list *hlist){
  * Compute a key for accessing the hash-table of a hashed_host_list structure
  */
 
-u_int16_t key(struct hashed_host_list *hlist, struct in6_addr *ipv6){
+uint16_t key(struct hashed_host_list *hlist, struct in6_addr *ipv6){
 		return( ((hlist->key_l ^ ipv6->s6_addr16[0] ^ ipv6->s6_addr16[7]) \
 				^ (hlist->key_h ^ ipv6->s6_addr16[1] ^ ipv6->s6_addr16[6])) % MAX_LIST_ENTRIES);
 }
@@ -1162,7 +1162,7 @@ u_int16_t key(struct hashed_host_list *hlist, struct in6_addr *ipv6){
 
 struct hashed_host_entry *add_hashed_host_entry(struct hashed_host_list *hlist, struct in6_addr *ipv6){
 	struct hashed_host_entry	*hentry, *ptr;
-	u_int16_t			hkey;
+	uint16_t			hkey;
 
 	hkey= key(hlist, ipv6);
 
@@ -1204,7 +1204,7 @@ struct hashed_host_entry *add_hashed_host_entry(struct hashed_host_list *hlist, 
  */
 
 unsigned int is_ip6_in_hashed_list(struct hashed_host_list *hlist, struct in6_addr *target){
-	u_int16_t			ckey;
+	uint16_t			ckey;
 	struct hashed_host_entry	*chentry;
 
 	ckey= key(hlist, target);

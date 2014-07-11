@@ -89,10 +89,10 @@ unsigned char		pps_f=0, bps_f=0, probemode_f=0, retrans_f=0, rto_f=0;
 unsigned char		ackdata_f=1, ackflags_f=1;
 unsigned int		probemode, tcpopen=0, tcpclose=0, win1_size=0, win2_size=0, window=0, time1_len=0, time2_len=0;
 
-u_int16_t			srcport, dstport, tcpurg, tcpwin, tcpwinm;
+uint16_t			srcport, dstport, tcpurg, tcpwin, tcpwinm;
 unsigned int		retrans, rto;
-u_int32_t			tcpseq, tcpack;
-u_int8_t			tcpflags=0, pkt_tcp_flags;
+uint32_t			tcpseq, tcpack;
+uint8_t			tcpflags=0, pkt_tcp_flags;
 struct tcp_hdr		*rhtcp;
 unsigned int		rhbytes, currentsize, packetsize;
 
@@ -144,9 +144,9 @@ unsigned int		skip;
 unsigned int		sources, nsources, ports, nports, nsleep;
 unsigned char		randpreflen;
 
-u_int16_t			mask;
-u_int8_t			hoplimit;
-u_int16_t			addr_key;
+uint16_t			mask;
+uint8_t			hoplimit;
+uint16_t			addr_key;
 
 char 				plinkaddr[ETHER_ADDR_PLEN];
 char 				psrcaddr[INET6_ADDRSTRLEN], pdstaddr[INET6_ADDRSTRLEN], pv6addr[INET6_ADDRSTRLEN];
@@ -1123,7 +1123,7 @@ int main(int argc, char **argv){
 
 	/* By default, we randomize the TCP Window */
 	if(!tcpwin_f)
-		tcpwin= ((u_int16_t) random() + 1500) & (u_int16_t)0x7f00;
+		tcpwin= ((uint16_t) random() + 1500) & (uint16_t)0x7f00;
 
 	if(!rhbytes_f)
 		rhbytes=0;
@@ -2002,13 +2002,13 @@ void send_packet(struct iface_data *idata, const u_char *pktdata, struct pcap_pk
 			}
 
 			while(rhbytes>=4){
-				*(u_int32_t *)ptr = random();
-				ptr += sizeof(u_int32_t);
-				rhbytes -= sizeof(u_int32_t);
+				*(uint32_t *)ptr = random();
+				ptr += sizeof(uint32_t);
+				rhbytes -= sizeof(uint32_t);
 			}
 
 			while(rhbytes>0){
-				*(u_int8_t *) ptr= (u_int8_t) random();
+				*(uint8_t *) ptr= (uint8_t) random();
 				ptr++;
 				rhbytes--;
 			}
@@ -2036,7 +2036,7 @@ void send_packet(struct iface_data *idata, const u_char *pktdata, struct pcap_pk
 				if(window == WIN_CLOSED)
 					tcp->th_win = htons(0);
 				else
-					tcp->th_win = htons((u_int16_t) win1_size);
+					tcp->th_win = htons((uint16_t) win1_size);
 			}
 			else{
 				tcp->th_win = htons(tcpwin);
@@ -2116,13 +2116,13 @@ void send_packet(struct iface_data *idata, const u_char *pktdata, struct pcap_pk
 		}
 
 		while(rhbytes>=4){
-			*(u_int32_t *)ptr = random();
-			ptr += sizeof(u_int32_t);
-			rhbytes -= sizeof(u_int32_t);
+			*(uint32_t *)ptr = random();
+			ptr += sizeof(uint32_t);
+			rhbytes -= sizeof(uint32_t);
 		}
 
 		while(rhbytes>0){
-			*(u_int8_t *) ptr= (u_int8_t) random();
+			*(uint8_t *) ptr= (uint8_t) random();
 			ptr++;
 			rhbytes--;
 		}

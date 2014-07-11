@@ -85,10 +85,10 @@ struct nd_opt_route_info_l	*routeopt;
 char						*lasts, *rpref, *endptr;
     
 size_t						nw;
-u_int16_t					lifetime;
-u_int32_t					reachable;
-u_int32_t					retrans;
-u_int8_t					curhop, hoplimit;
+uint16_t					lifetime;
+uint32_t					reachable;
+uint32_t					retrans;
+uint8_t					curhop, hoplimit;
 char						preference=0, prefbits=0;
 unsigned int				nprefixes=0, nroutes=0, nfrags=0;
 unsigned int				hdrlen, ndstopthdr=0, nhbhopthdr=0, ndstoptuhdr=0;
@@ -105,25 +105,25 @@ unsigned long				ul_res, ul_val;
 unsigned int				i, j, startrand, sources, nsources, prefixes, routes, mtus;
 unsigned int				nfloodp, nfloodr, endrand;
 unsigned int				nfloodda, nflooddoa, nsleep;
-u_int16_t					mask;
-u_int8_t					prefixlen[MAX_PREFIX_OPTION];
-u_int32_t					prefixvalid[MAX_PREFIX_OPTION];
-u_int32_t					prefixpref[MAX_PREFIX_OPTION];
+uint16_t					mask;
+uint8_t					prefixlen[MAX_PREFIX_OPTION];
+uint32_t					prefixvalid[MAX_PREFIX_OPTION];
+uint32_t					prefixpref[MAX_PREFIX_OPTION];
 struct in6_addr				prefix[MAX_PREFIX_OPTION];
-u_int8_t					prefixflags[MAX_PREFIX_OPTION];
+uint8_t					prefixflags[MAX_PREFIX_OPTION];
 
 struct in6_addr				route[MAX_ROUTE_OPTION];
-u_int8_t					routelen[MAX_ROUTE_OPTION];
-u_int32_t					routelife[MAX_ROUTE_OPTION];
-u_int8_t					routepref[MAX_ROUTE_OPTION];
+uint8_t					routelen[MAX_ROUTE_OPTION];
+uint32_t					routelife[MAX_ROUTE_OPTION];
+uint8_t					routepref[MAX_ROUTE_OPTION];
     
 struct in6_addr				rdnss[MAX_RDNSS_OPTION][MAX_RDNSS_OPT_ADDRS];
-u_int32_t					rdnsslife[MAX_RDNSS_OPTION];
+uint32_t					rdnsslife[MAX_RDNSS_OPTION];
 unsigned int				nrdnss=0, dnsopts;
 unsigned int				nrdnssopt[MAX_RDNSS_OPTION];
 int 						smaxaddrs;
 
-u_int16_t					mtu[MAX_MTU_OPTION];
+uint16_t					mtu[MAX_MTU_OPTION];
 unsigned int				nmtu=0;
 
 struct ether_addr			linkaddr[MAX_SLLA_OPTION];

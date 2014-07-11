@@ -65,33 +65,33 @@ struct queue{
 struct tcp{
 	struct in6_addr	srcaddr;
 	struct in6_addr dstaddr;
-	u_int16_t		srcport;
-	u_int16_t		dstport;
+	uint16_t		srcport;
+	uint16_t		dstport;
 
 	struct queue	in;
-	u_int32_t		rcv_nxt;
-	u_int32_t		rcv_nxtwnd;	
+	uint32_t		rcv_nxt;
+	uint32_t		rcv_nxtwnd;	
 
 	struct queue	out;
 	unsigned char	*out_una;
 	unsigned char	*out_nxt;    /*  una         nxt  */
-	u_int32_t		snd_una;
-	u_int32_t		snd_nxt;
-	u_int32_t		snd_nxtwnd;
-	u_int32_t		snd_seq; /* TCP seq to use for outgoing segments (for RSTs) */
-	u_int32_t		snd_wl1;
-	u_int32_t		snd_wl2;
+	uint32_t		snd_una;
+	uint32_t		snd_nxt;
+	uint32_t		snd_nxtwnd;
+	uint32_t		snd_seq; /* TCP seq to use for outgoing segments (for RSTs) */
+	uint32_t		snd_wl1;
+	uint32_t		snd_wl2;
 
 	unsigned char	fin_flag;
-	u_int32_t	fin_seq;
+	uint32_t	fin_seq;
 		
 	struct timeval	time;
 	unsigned int	state;
 	unsigned int	open;
 	unsigned int	close;
-	u_int8_t		flags;
-	u_int32_t		ack;
-	u_int32_t		win;	
+	uint8_t		flags;
+	uint32_t		ack;
+	uint32_t		win;	
 
 	unsigned int		fbytes;
 	
