@@ -287,6 +287,7 @@ void decode_ipv6_address(struct decode6 *addr){
 			}
 			else if(addr->ip6.s6_addr32[2] == 0 && (addr->ip6.s6_addr16[6] & htons(0xff00)) != 0 && addr->ip6.s6_addr16[7] != 0){
 				addr->iidtype= IID_EMBEDDEDIPV4;
+				addr->iidsubtype= IID_EMBEDDEDIPV4_32;
 			}
 			else if(addr->ip6.s6_addr32[2] == 0 && \
 			          ((addr->ip6.s6_addr16[6] & htons(0xff00)) == 0 && is_service_port(ntohs(addr->ip6.s6_addr16[7])))){
@@ -301,7 +302,8 @@ void decode_ipv6_address(struct decode6 *addr){
 			}
 			else if( ntohs(addr->ip6.s6_addr16[4]) <= 0x255 && ntohs(addr->ip6.s6_addr16[5]) <= 0x255 && \
 					ntohs(addr->ip6.s6_addr16[6]) <= 0x255 && ntohs(addr->ip6.s6_addr16[7]) <= 0x255){
-				addr->iidtype= IID_EMBEDDEDIPV4_64;
+				addr->iidtype= IID_EMBEDDEDIPV4;
+				addr->iidsubtype= IID_EMBEDDEDIPV4_64;
 			}
 			else if( zero_byte_iid(&(addr->ip6)) > 2 ){
 				addr->iidtype= IID_PATTERN_BYTES;
@@ -4666,3 +4668,35 @@ int get_ipv6_target(struct target_ipv6 *target){
 	else
 		return(1);
 }
+
+
+/*
+ * Function: is_iid_null()
+ *
+ * Checks whether the IID of a prefix is set to all-zeroes
+ * 
+ */
+int is_iid_null(struct in6_addr *prefix, uint8_t len){
+	unsigned int 	skip, i;
+	uint32_t	mask;
+
+	skip= len/32;
+
+	if(len%32){
+		mask= 0xffffffff;
+		mask= mask >> (len%32);
+
+		if(prefix->s6_addr32[skip] & htonl(mask))
+			return(FALSE);
+
+		skip=skip+1;
+	}
+
+	for(i=skip; i<4; i++){
+		if(prefix->s6_addr32[i])
+			return(FALSE);
+	}
+
+	return TRUE;
+}
+

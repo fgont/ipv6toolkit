@@ -778,7 +778,7 @@ void stat_ipv6_address(struct decode6 *addr, struct stats6 *stats){
 					case IID_EMBEDDEDIPV4:
 						switch(addr->iidsubtype){
 							case IID_EMBEDDEDIPV4_32:
-								(stats->iidmbeddedipv4_32)++;
+								(stats->iidembeddedipv4_32)++;
 								break;
 
 							case IID_EMBEDDEDIPV4_64:

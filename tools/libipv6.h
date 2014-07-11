@@ -489,6 +489,8 @@ struct iface_list{
 #define IID_TEREDO_RFC5991		1024
 #define IID_TEREDO_UNKNOWN		2048
 #define IID_UNSPECIFIED			4096
+#define IID_EMBEDDEDIPV4_32		8192
+
 
 /* This struture is employed by decode_ipv6_address */
 struct	decode6{
@@ -838,6 +840,7 @@ uint16_t			in_chksum(void *, void *, size_t, uint8_t);
 int					insert_pad_opt(unsigned char *ptrhdr, const unsigned char *, unsigned int);
 int					ipv6_to_ether(pcap_t *, struct iface_data *, struct in6_addr *, struct ether_addr *);
 unsigned int		ip6_longest_match(struct in6_addr *, struct in6_addr *);
+int					is_iid_null(struct in6_addr *, uint8_t);
 int					is_ip6_in_address_list(struct prefix_list *, struct in6_addr *);
 int					is_ip6_in_iface_entry(struct iface_list *, int, struct in6_addr *);
 int					is_ip6_in_list(struct in6_addr *, struct host_list *);

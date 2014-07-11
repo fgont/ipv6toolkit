@@ -92,6 +92,7 @@ int					load_vendor_entries(struct scan_list *, struct scan_entry *, char *);
 int					load_knownprefix_entries(struct scan_list *, struct scan_list *, FILE *);
 int					load_knowniid_entries(struct scan_list *, struct scan_list *, struct prefix_list *);
 int					load_knowniidfile_entries(struct scan_list *, struct scan_list *, FILE *);
+int					load_smart_entries(struct scan_list *, struct scan_list *);
 int					match_strings(char *, char *);
 int					load_bruteforce_entries(struct scan_list *, struct scan_entry *);
 void				prefix_to_scan(struct prefix_entry *, struct scan_entry *);
@@ -189,9 +190,10 @@ unsigned char			*prev_nh, *startoffragment;
 /* Remote scans */
 unsigned int			inc=1;
 int						ranges;
-struct	scan_list		scan_list, prefix_list;
+struct	scan_list		scan_list, prefix_list, smart_list;
 struct scan_entry		*target_list[MAX_SCAN_ENTRIES];
 struct	scan_entry		*tgt_pref_list[MAX_PREF_ENTRIES];
+struct	scan_entry		*smrt_pref_list[MAX_PREF_ENTRIES];
 struct prefix_list		iid_list;
 struct prefix_entry		*tgt_iid_list[MAX_IID_ENTRIES];
 unsigned char			dst_f=FALSE, tgt_ipv4mapped32_f=FALSE, tgt_ipv4mapped64_f=FALSE, tgt_lowbyte_f=FALSE, tgt_oui_f=FALSE;
@@ -309,6 +311,11 @@ int main(int argc, char **argv){
 	prefix_list.ntarget=0;
 	prefix_list.maxtarget= MAX_PREF_ENTRIES;
 
+	/* Initialize the smart_list structure (for remote scans) */
+	smart_list.target= smrt_pref_list;
+	smart_list.ntarget=0;
+	smart_list.maxtarget= MAX_PREF_ENTRIES;
+
 	/* Initialize the iid_list structure (for remote scans/tracking) */
 	iid_list.prefix= tgt_iid_list;
 	iid_list.nprefix=0;
@@ -397,49 +404,97 @@ int main(int argc, char **argv){
 							continue;
 
 						prefix.ip6= ( (struct sockaddr_in6 *)aiptr->ai_addr)->sin6_addr;
-						sanitize_ipv6_prefix(&(prefix.ip6), prefix.len);
 
-						if(prefix_list.ntarget <= prefix_list.maxtarget){
-							if( (prefix_list.target[prefix_list.ntarget] = malloc(sizeof(struct scan_entry))) == NULL){
+						/*
+						   If the prefix length is 128 bits (either implicitly or explicitly), we perform a smart scan
+						 */
+						if(prefix.len == 128){
+							if(smart_list.ntarget <= smart_list.maxtarget){
+								if( (smart_list.target[smart_list.ntarget] = malloc(sizeof(struct scan_entry))) == NULL){
+									if(idata.verbose_f)
+										puts("scan6: Not enough memory");
+
+									exit(EXIT_FAILURE);
+								}
+
+								prefix_to_scan(&prefix, smart_list.target[smart_list.ntarget]);
+
+								if(IN6_IS_ADDR_MULTICAST(&(smart_list.target[smart_list.ntarget]->start))){
+									if(idata.verbose_f)
+										puts("scan6: Remote scan cannot target a multicast address");
+
+									exit(EXIT_FAILURE);
+								}
+
+								if(IN6_IS_ADDR_MULTICAST(&(smart_list.target[smart_list.ntarget]->end))){
+									if(idata.verbose_f)
+										puts("scan6: Remote scan cannot target a multicast address");
+
+									exit(EXIT_FAILURE);
+								}
+
+								smart_list.ntarget++;
+							}
+							else{
+								/*
+								   If the number of "targets" has already been exceeded, it doesn't make sense to continue further,
+								   since there wouldn't be space for any specific target types
+								 */
 								if(idata.verbose_f)
-									puts("scan6: Not enough memory");
+									puts("Too many targets!");
 
 								exit(EXIT_FAILURE);
 							}
-
-							prefix_to_scan(&prefix, prefix_list.target[prefix_list.ntarget]);
-
-							if(IN6_IS_ADDR_MULTICAST(&(prefix_list.target[prefix_list.ntarget]->start))){
-								if(idata.verbose_f)
-									puts("scan6: Remote scan cannot target a multicast address");
-
-								exit(EXIT_FAILURE);
-							}
-
-							if(IN6_IS_ADDR_MULTICAST(&(prefix_list.target[prefix_list.ntarget]->end))){
-								if(idata.verbose_f)
-									puts("scan6: Remote scan cannot target a multicast address");
-
-								exit(EXIT_FAILURE);
-							}
-
-							prefix_list.ntarget++;
 						}
 						else{
-							/*
-							   If the number of "targets" has already been exceeded, it doesn't make sense to continue further,
-							   since there wouldn't be space for any specific target types
-							 */
-							if(idata.verbose_f)
-								puts("Too many targets!");
+							sanitize_ipv6_prefix(&(prefix.ip6), prefix.len);
 
-							exit(EXIT_FAILURE);
+							if(prefix_list.ntarget <= prefix_list.maxtarget){
+								if( (prefix_list.target[prefix_list.ntarget] = malloc(sizeof(struct scan_entry))) == NULL){
+									if(idata.verbose_f)
+										puts("scan6: Not enough memory");
+
+									exit(EXIT_FAILURE);
+								}
+
+								prefix_to_scan(&prefix, prefix_list.target[prefix_list.ntarget]);
+
+								if(IN6_IS_ADDR_MULTICAST(&(prefix_list.target[prefix_list.ntarget]->start))){
+									if(idata.verbose_f)
+										puts("scan6: Remote scan cannot target a multicast address");
+
+									exit(EXIT_FAILURE);
+								}
+
+								if(IN6_IS_ADDR_MULTICAST(&(prefix_list.target[prefix_list.ntarget]->end))){
+									if(idata.verbose_f)
+										puts("scan6: Remote scan cannot target a multicast address");
+
+									exit(EXIT_FAILURE);
+								}
+
+								prefix_list.ntarget++;
+							}
+							else{
+								/*
+								   If the number of "targets" has already been exceeded, it doesn't make sense to continue further,
+								   since there wouldn't be space for any specific target types
+								 */
+								if(idata.verbose_f)
+									puts("Too many targets!");
+
+								exit(EXIT_FAILURE);
+							}
 						}
 					}
 
 					freeaddrinfo(res);
 				}
 				else if( (ranges= address_contains_ranges(optarg)) == 1){
+					/*
+					   When an address range is specified, such address range is scanned, but the correspnding prefix is also
+					   employed for generating additional addresses to be scanned (EUI-64 based, etc.)
+					 */
 					charptr= optarg;
 					charstart= rangestart;
 					charend= rangeend;
@@ -589,46 +644,88 @@ int main(int argc, char **argv){
 						prefix.len= 128;
 					}
 
+					/* If the Prefix length is /128 (explicitly set, or by omission), we do a smart scan */
+					if(prefix.len == 128){
+						if(smart_list.ntarget <= smart_list.maxtarget){
+							if( (smart_list.target[smart_list.ntarget] = malloc(sizeof(struct scan_entry))) == NULL){
+								if(idata.verbose_f)
+									puts("scan6: Not enough memory");
 
-					if(prefix_list.ntarget <= prefix_list.maxtarget){
-						if( (prefix_list.target[prefix_list.ntarget] = malloc(sizeof(struct scan_entry))) == NULL){
+								exit(EXIT_FAILURE);
+							}
+
+							prefix_to_scan(&prefix, smart_list.target[smart_list.ntarget]);
+
+							if(IN6_IS_ADDR_MULTICAST(&(smart_list.target[smart_list.ntarget]->start))){
+								if(idata.verbose_f)
+									puts("scan6: Remote scan cannot target a multicast address");
+
+								exit(EXIT_FAILURE);
+							}
+
+							if(IN6_IS_ADDR_MULTICAST(&(smart_list.target[smart_list.ntarget]->end))){
+								if(idata.verbose_f)
+									puts("scan6: Remote scan cannot target a multicast address");
+
+								exit(EXIT_FAILURE);
+							}
+
+							idata.dstaddr= smart_list.target[smart_list.ntarget]->start;
+							smart_list.ntarget++;
+						}
+						else{
+							/*
+							   If the number of "targets" has already been exceeded, it doesn't make sense to continue further,
+							   since there wouldn't be space for any specific target types
+							 */
 							if(idata.verbose_f)
-								puts("scan6: Not enough memory");
+								puts("Too many targets!");
 
 							exit(EXIT_FAILURE);
 						}
-
-						prefix_to_scan(&prefix, prefix_list.target[prefix_list.ntarget]);
-
-						if(IN6_IS_ADDR_MULTICAST(&(prefix_list.target[prefix_list.ntarget]->start))){
-							if(idata.verbose_f)
-								puts("scan6: Remote scan cannot target a multicast address");
-
-							exit(EXIT_FAILURE);
-						}
-
-						if(IN6_IS_ADDR_MULTICAST(&(prefix_list.target[prefix_list.ntarget]->end))){
-							if(idata.verbose_f)
-								puts("scan6: Remote scan cannot target a multicast address");
-
-							exit(EXIT_FAILURE);
-						}
-
-						prefix_list.ntarget++;
+puts("Finalice agregacion");
 					}
 					else{
-						/*
-						   If the number of "targets" has already been exceeded, it doesn't make sense to continue further,
-						   since there wouldn't be space for any specific target types
-						 */
-						if(idata.verbose_f)
-							puts("Too many targets!");
+						if(prefix_list.ntarget <= prefix_list.maxtarget){
+							if( (prefix_list.target[prefix_list.ntarget] = malloc(sizeof(struct scan_entry))) == NULL){
+								if(idata.verbose_f)
+									puts("scan6: Not enough memory");
 
-						exit(EXIT_FAILURE);
+								exit(EXIT_FAILURE);
+							}
+
+							prefix_to_scan(&prefix, prefix_list.target[prefix_list.ntarget]);
+
+							if(IN6_IS_ADDR_MULTICAST(&(prefix_list.target[prefix_list.ntarget]->start))){
+								if(idata.verbose_f)
+									puts("scan6: Remote scan cannot target a multicast address");
+
+								exit(EXIT_FAILURE);
+							}
+
+							if(IN6_IS_ADDR_MULTICAST(&(prefix_list.target[prefix_list.ntarget]->end))){
+								if(idata.verbose_f)
+									puts("scan6: Remote scan cannot target a multicast address");
+
+								exit(EXIT_FAILURE);
+							}
+
+							prefix_list.ntarget++;
+							idata.dstaddr= prefix_list.target[0]->start;
+						}
+						else{
+							/*
+							   If the number of "targets" has already been exceeded, it doesn't make sense to continue further,
+							   since there wouldn't be space for any specific target types
+							 */
+							if(idata.verbose_f)
+								puts("Too many targets!");
+
+							exit(EXIT_FAILURE);
+						}
 					}
 				}
 
-				idata.dstaddr= prefix_list.target[0]->start;
 				idata.dstaddr_f= TRUE;
 				dst_f=TRUE;
 				break;
@@ -1168,7 +1265,7 @@ int main(int argc, char **argv){
 	    to pass &idata as an argument
 	 */
 	verbose_f= idata.verbose_f;
-
+puts("Pase las opciones");
 	if(geteuid()){
 		puts("scan6 needs superuser privileges to run");
 		exit(EXIT_FAILURE);
@@ -1455,6 +1552,14 @@ int main(int argc, char **argv){
 
 	/* Remote scan */
 	else{
+		/* Smart entries are the first ones to be included */
+		if(smart_list.ntarget){
+			if(!load_smart_entries(&scan_list, &smart_list)){
+				puts("Couldn't load smart entries");
+				exit(EXIT_FAILURE);
+			}
+		}
+
 		if(tgt_knowniids_f){
 			if(!load_knowniid_entries(&scan_list, &prefix_list, &iid_list)){
 				puts("Couldn't load known IID IPv6 addresses");
@@ -1541,6 +1646,10 @@ int main(int argc, char **argv){
 					exit(EXIT_FAILURE);
 				}
 			}
+		}
+
+		if(idata.verbose_f && !bps_f && !pps_f){
+			puts("Rate-limiting probe packets to 1000 pps (override with the '-r' option if necessary)");
 		}
 
 		if(idata.verbose_f){
@@ -2978,8 +3087,74 @@ int load_bruteforce_entries(struct scan_list *scan, struct scan_entry *dst){
 
 	*scan->target[scan->ntarget]= *dst;
 	scan->ntarget++;
-
 	return(1);
+}
+
+
+/*
+ * Function: load_smart_entries()
+ *
+ * Loads targets based on IID type
+ */
+
+int load_smart_entries(struct scan_list *scan, struct scan_list *smart){
+	struct decode6		decode;
+	unsigned int		i;
+
+	for(i=0; i < smart->ntarget; i++){
+		decode.ip6= (smart->target[i])->start;
+		decode_ipv6_address(&decode);
+
+		if(scan->ntarget >= scan->maxtarget)
+			return(FALSE);
+
+		if( (scan->target[scan->ntarget]= malloc(sizeof(struct scan_entry))) == NULL){
+			if(verbose_f)
+				puts("scans: malloc(): Not enough memory");
+
+			return(FALSE);
+		}
+
+		*(scan->target[scan->ntarget])= *(smart->target[i]);
+
+		switch(decode.iidtype){
+			case IID_MACDERIVED:
+
+				break;
+
+			case IID_ISATAP:
+
+				break;
+
+			case IID_EMBEDDEDIPV4:
+				switch(decode.iidsubtype){
+					case IID_EMBEDDEDIPV4_32:
+puts("IPv4-32");
+						(scan->target[scan->ntarget])->start.s6_addr32[2]= htonl(0x00000000);
+						(scan->target[scan->ntarget])->start.s6_addr32[3]= (scan->target[scan->ntarget])->start.s6_addr32[3] & htonl(0xffff0000);
+						(scan->target[scan->ntarget])->end= (scan->target[scan->ntarget])->start;
+						(scan->target[scan->ntarget])->end.s6_addr32[3]= (scan->target[scan->ntarget])->end.s6_addr32[3] | htonl(0x0000ffff);
+						(scan->target[scan->ntarget])->cur= (scan->target[scan->ntarget])->start;
+						scan->ntarget++;
+						break;
+
+					case IID_EMBEDDEDIPV4_64:
+puts("IPv4-64");
+						(scan->target[scan->ntarget])->start.s6_addr32[2]= (scan->target[scan->ntarget])->start.s6_addr32[2] & htonl(0x00ff00ff);
+						(scan->target[scan->ntarget])->start.s6_addr32[3]= htonl(0x00000000);
+						(scan->target[scan->ntarget])->end= (scan->target[scan->ntarget])->start;
+						(scan->target[scan->ntarget])->end.s6_addr32[3]= (scan->target[scan->ntarget])->end.s6_addr32[3] | htonl(0x00ff00ff);
+						(scan->target[scan->ntarget])->cur= (scan->target[scan->ntarget])->start;
+						scan->ntarget++;
+						break;
+				}
+
+				break;
+
+		}
+	}
+
+	return(TRUE);
 }
 
 
