@@ -32,9 +32,6 @@
 #include <sys/socket.h>
 #include <sys/select.h>
 
-#ifndef __FAVOR_BSD
-	#define __FAVOR_BSD		/* This causes Linux to use the BSD definition of the TCP and UDP header fields */
-#endif
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <netinet/ip6.h>
@@ -1944,9 +1941,9 @@ struct in6_addr *sel_src_addr_ra(struct iface_data *idata, struct in6_addr *dst)
 
 		return( &((idata->ip6_global.prefix[0])->ip6));
 	}
-	else{
-		return( &(idata->ip6_local));
-	}
+
+	/* else */
+	return( &(idata->ip6_local));
 }
 
 
