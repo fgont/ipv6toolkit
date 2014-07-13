@@ -4695,6 +4695,7 @@ int is_iid_null(struct in6_addr *prefix, uint8_t len){
 	for(i=skip; i<4; i++){
 		if(prefix->s6_addr32[i])
 			return(FALSE);
+
 	}
 
 	return TRUE;
