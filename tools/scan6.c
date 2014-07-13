@@ -202,9 +202,9 @@ unsigned char			tgt_knowniids_f=FALSE, tgt_knowniidsfile_f=FALSE, knownprefixes_
 unsigned char			vm_vbox_f=FALSE, vm_vmware_f=FALSE, vm_vmwarem_f=FALSE, v4hostaddr_f=FALSE;
 unsigned char			v4hostprefix_f=FALSE, sort_ouis_f=FALSE, rnd_probes_f=FALSE, inc_f=FALSE, end_f=FALSE, donesending_f=FALSE;
 unsigned char			onlink_f=FALSE, pps_f=FALSE, bps_f=FALSE, tcpflags_f=FALSE, rhbytes_f=FALSE, srcport_f=FALSE, dstport_f=FALSE, probetype;
-unsigned char			loop_f=FALSE, sleep_f=FALSE;
+unsigned char			loop_f=FALSE, sleep_f=FALSE, smart_f=FALSE;
 uint16_t				srcport, dstport;
-uint8_t				tcpflags=0;
+uint8_t					tcpflags=0;
 unsigned long			pktinterval, rate;
 unsigned int			packetsize, rhbytes;
 struct prefix4_entry	v4host;
@@ -213,6 +213,7 @@ struct ether_addr		oui;
 char					*charstart, *charend, *lastcolon;
 char					rangestart[MAX_RANGE_STR_LEN+1], rangeend[MAX_RANGE_STR_LEN+1];
 char 					fname[MAX_FILENAME_SIZE], fname_f=FALSE, configfile[MAX_FILENAME_SIZE], knowniidsfile[MAX_FILENAME_SIZE];
+char 					portsfname[MAX_FILENAME_SIZE], portsfname_f=FALSE;
 char					knownprefixesfile[MAX_FILENAME_SIZE];
 FILE					*knowniids_fp, *knownprefixes_fp;
 char 					*oui_end=":00:00:00";
@@ -265,6 +266,7 @@ int main(int argc, char **argv){
 		{"timeout", required_argument, 0, 'O'},
 		{"rand-src-addr", no_argument, 0, 'f'},
 		{"rand-link-src-addr", no_argument, 0, 'F'},
+		{"smart", no_argument, 0, 'A'},
 		{"tgt-virtual-machines", required_argument, 0, 'V'},
 		{"tgt-low-byte", no_argument, 0, 'b'},
 		{"tgt-ipv4", required_argument, 0, 'B'},
@@ -361,6 +363,7 @@ int main(int argc, char **argv){
 
 			case 'd':	/* IPv6 Destination Address/Prefix */
 				if(!address_contains_colons(optarg)){
+					/* The '-d' option contains a domain name */
 					if((charptr = strtok_r(optarg, "/", &lasts)) == NULL){
 						puts("Error in Destination Address");
 						exit(EXIT_FAILURE);
@@ -408,7 +411,8 @@ int main(int argc, char **argv){
 						/*
 						   If the prefix length is 128 bits (either implicitly or explicitly), we perform a smart scan
 						 */
-						if(prefix.len == 128){
+
+						if(smart_f || (prefix.len == 64 && !is_iid_null(&(prefix.ip6), 64))){
 							if(smart_list.ntarget <= smart_list.maxtarget){
 								if( (smart_list.target[smart_list.ntarget] = malloc(sizeof(struct scan_entry))) == NULL){
 									if(idata.verbose_f)
@@ -620,6 +624,7 @@ int main(int argc, char **argv){
 					}
 				}
 				else if(ranges == 0){
+					/* The '-d' option contains a prefix with the slash notation */
 					if((charptr = strtok_r(optarg, "/", &lasts)) == NULL){
 						puts("Error in Destination Address");
 						exit(EXIT_FAILURE);
@@ -645,7 +650,7 @@ int main(int argc, char **argv){
 					}
 
 					/* If the Prefix length is /128 (explicitly set, or by omission), we do a smart scan */
-					if(prefix.len == 128){
+					if(smart_f || (prefix.len == 64 && !is_iid_null(&(prefix.ip6), 64))){
 						if(smart_list.ntarget <= smart_list.maxtarget){
 							if( (smart_list.target[smart_list.ntarget] = malloc(sizeof(struct scan_entry))) == NULL){
 								if(idata.verbose_f)
@@ -683,7 +688,6 @@ int main(int argc, char **argv){
 
 							exit(EXIT_FAILURE);
 						}
-puts("Finalice agregacion");
 					}
 					else{
 						if(prefix_list.ntarget <= prefix_list.maxtarget){
@@ -1041,6 +1045,10 @@ puts("Finalice agregacion");
 				rand_link_src_f=TRUE;
 				break;
 
+			case 'A':
+				smart_f=TRUE;
+				break;
+
 			case 'V':
 				if(strncmp(optarg, "vbox", strlen("vbox")) == 0){
 					tgt_vm_f=TRUE;
@@ -1265,7 +1273,7 @@ puts("Finalice agregacion");
 	    to pass &idata as an argument
 	 */
 	verbose_f= idata.verbose_f;
-puts("Pase las opciones");
+
 	if(geteuid()){
 		puts("scan6 needs superuser privileges to run");
 		exit(EXIT_FAILURE);
@@ -3099,7 +3107,7 @@ int load_bruteforce_entries(struct scan_list *scan, struct scan_entry *dst){
 
 int load_smart_entries(struct scan_list *scan, struct scan_list *smart){
 	struct decode6		decode;
-	unsigned int		i;
+	unsigned int		i, j;
 
 	for(i=0; i < smart->ntarget; i++){
 		decode.ip6= (smart->target[i])->start;
@@ -3119,17 +3127,44 @@ int load_smart_entries(struct scan_list *scan, struct scan_list *smart){
 
 		switch(decode.iidtype){
 			case IID_MACDERIVED:
-
+				(scan->target[scan->ntarget])->start.s6_addr32[3]= (scan->target[scan->ntarget])->start.s6_addr32[3] & htonl(0xff000000);
+				(scan->target[scan->ntarget])->end= (scan->target[scan->ntarget])->start;
+				(scan->target[scan->ntarget])->end.s6_addr32[3]= (scan->target[scan->ntarget])->end.s6_addr32[3] | htonl(0x00ffffff);
+				(scan->target[scan->ntarget])->cur= (scan->target[scan->ntarget])->start;
+				scan->ntarget++;
 				break;
 
 			case IID_ISATAP:
+				(scan->target[scan->ntarget])->start.s6_addr32[3]= (scan->target[scan->ntarget])->start.s6_addr32[3] & htonl(0xffff0000);
+				(scan->target[scan->ntarget])->end= (scan->target[scan->ntarget])->start;
+				(scan->target[scan->ntarget])->end.s6_addr32[3]= (scan->target[scan->ntarget])->end.s6_addr32[3] | htonl(0x0000ffff);
+				(scan->target[scan->ntarget])->cur= (scan->target[scan->ntarget])->start;
+				scan->ntarget++;
+				break;
 
+			case IID_LOWBYTE:
+			case IID_EMBEDDEDPORT:
+			case IID_EMBEDDEDPORTREV:
+			case IID_UNSPECIFIED:
+			case IID_RANDOM:
+				/*
+				   Embedded-port addresses are rather unlikely, and usully a false-positive resulting from low-byte
+				   addresses. Hence we scan for low-byte addresses when "embedded port" addresses are detected.
+				 */
+
+				for(j=4; j<=7; j++)
+					(scan->target[scan->ntarget])->start.s6_addr16[j]= 0;
+
+				(scan->target[scan->ntarget])->end= (scan->target[scan->ntarget])->start;
+				(scan->target[scan->ntarget])->end.s6_addr16[6]= htons(LOW_BYTE_2ND_WORD_UPPER);
+				(scan->target[scan->ntarget])->end.s6_addr16[7]= htons(LOW_BYTE_1ST_WORD_UPPER);
+				(scan->target[scan->ntarget])->cur= (scan->target[scan->ntarget])->start;
+				scan->ntarget++;
 				break;
 
 			case IID_EMBEDDEDIPV4:
 				switch(decode.iidsubtype){
 					case IID_EMBEDDEDIPV4_32:
-puts("IPv4-32");
 						(scan->target[scan->ntarget])->start.s6_addr32[2]= htonl(0x00000000);
 						(scan->target[scan->ntarget])->start.s6_addr32[3]= (scan->target[scan->ntarget])->start.s6_addr32[3] & htonl(0xffff0000);
 						(scan->target[scan->ntarget])->end= (scan->target[scan->ntarget])->start;
@@ -3139,7 +3174,6 @@ puts("IPv4-32");
 						break;
 
 					case IID_EMBEDDEDIPV4_64:
-puts("IPv4-64");
 						(scan->target[scan->ntarget])->start.s6_addr32[2]= (scan->target[scan->ntarget])->start.s6_addr32[2] & htonl(0x00ff00ff);
 						(scan->target[scan->ntarget])->start.s6_addr32[3]= htonl(0x00000000);
 						(scan->target[scan->ntarget])->end= (scan->target[scan->ntarget])->start;
@@ -3151,6 +3185,47 @@ puts("IPv4-64");
 
 				break;
 
+			case IID_PATTERN_BYTES:
+				(scan->target[scan->ntarget])->end= (scan->target[scan->ntarget])->start;
+
+				for(j=8; j<=16; j++)
+					(scan->target[scan->ntarget])->end.s6_addr[j]= ((scan->target[scan->ntarget])->start.s6_addr[j])?0xff:0x00;
+
+				for(j=8; j<=16; j++)
+					(scan->target[scan->ntarget])->start.s6_addr[j]= 0x00;
+
+				(scan->target[scan->ntarget])->cur= (scan->target[scan->ntarget])->start;
+				scan->ntarget++;
+				break;
+
+			case IID_TEREDO_RFC5991:
+			case IID_TEREDO_RFC4380:
+			case IID_TEREDO_UNKNOWN:
+				for(j=8; j<=11; j++)
+					(scan->target[scan->ntarget])->start.s6_addr[j]= 0x00;
+
+				(scan->target[scan->ntarget])->end= (scan->target[scan->ntarget])->start;
+
+				(scan->target[scan->ntarget])->start.s6_addr[8]= 0xbc;
+
+				for(j=9; j<=11; j++)
+					(scan->target[scan->ntarget])->start.s6_addr[8]= 0xff;
+
+				(scan->target[scan->ntarget])->cur= (scan->target[scan->ntarget])->start;
+				scan->ntarget++;
+				break;
+
+			default:
+				/* By default we scan for low-byte-addresses (same code as above) */
+				for(j=8; j<=16; j++)
+					(scan->target[scan->ntarget])->start.s6_addr[j]= 0x00;
+
+				for(j=8; j<=16; j++)
+					(scan->target[scan->ntarget])->end.s6_addr[j]= 0xff;
+
+				(scan->target[scan->ntarget])->cur= (scan->target[scan->ntarget])->start;
+				scan->ntarget++;
+				break;
 		}
 	}
 
@@ -3169,7 +3244,6 @@ void prefix_to_scan(struct prefix_entry *pref, struct scan_entry *scan){
 	uint8_t words;	
 	unsigned int i;
 
-	sanitize_ipv6_prefix(&(pref->ip6), pref->len);
 	scan->start= pref->ip6;
 	scan->cur= pref->ip6;
 	words= pref->len/16;
@@ -4525,8 +4599,11 @@ int process_config_file(const char *path){
 				fname[MAX_FILENAME_SIZE-1]=0;
 				fname_f=TRUE;
 			}
-
-
+			else if(strncmp(key, "Ports-Database", MAX_VAR_NAME_LEN) == 0){
+				strncpy(portsfname, value, MAX_FILENAME_SIZE-1);
+				portsfname[MAX_FILENAME_SIZE-1]=0;
+				portsfname_f=TRUE;
+			}
 		}
 		else if(r == -1){
 			if(verbose_f){
@@ -4543,7 +4620,10 @@ int process_config_file(const char *path){
 	fclose(fp);
 
 	if(!fname_f)
-		strncpy(fname, "/usr/share/ipv6toolkit/oui.txt", MAX_FILENAME_SIZE-1);
+		strncpy(fname, "/usr/local/share/ipv6toolkit/oui.txt", MAX_FILENAME_SIZE-1);
+
+	if(!portsfname_f)
+		strncpy(fname, "/usr/local/share/ipv6toolkit/service-names-port-numbers.csv", MAX_FILENAME_SIZE-1);
 
 	return(1);
 }
