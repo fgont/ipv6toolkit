@@ -87,6 +87,7 @@ int					load_ipv4mapped64_entries(struct scan_list *, struct scan_entry *, struc
 int					load_embeddedport_entries(struct scan_list *, struct scan_entry *);
 int					load_lowbyte_entries(struct scan_list *, struct scan_entry *);
 int					load_oui_entries(struct scan_list *, struct scan_entry *, struct ether_addr *);
+int					load_port_table(struct port_table_entry *, char *, unsigned int);
 int					load_vm_entries(struct scan_list *, struct scan_entry *, struct prefix4_entry *);
 int					load_vendor_entries(struct scan_list *, struct scan_entry *, char *);
 int					load_knownprefix_entries(struct scan_list *, struct scan_list *, FILE *);
@@ -96,6 +97,7 @@ int					load_smart_entries(struct scan_list *, struct scan_list *);
 int					match_strings(char *, char *);
 int					load_bruteforce_entries(struct scan_list *, struct scan_entry *);
 void				prefix_to_scan(struct prefix_entry *, struct scan_entry *);
+void				print_port_table(struct port_table_entry *, unsigned int);
 int					get_next_target(struct scan_list *);
 int					is_target_in_range(struct scan_entry *);
 int					send_probe_remote(struct iface_data *, struct scan_list *, struct in6_addr *, unsigned char);
@@ -196,13 +198,19 @@ struct	scan_entry		*tgt_pref_list[MAX_PREF_ENTRIES];
 struct	scan_entry		*smrt_pref_list[MAX_PREF_ENTRIES];
 struct prefix_list		iid_list;
 struct prefix_entry		*tgt_iid_list[MAX_IID_ENTRIES];
+struct port_list		tcp_port_list, udp_port_list, *port_list;
+struct port_entry		*tcp_prt_list[MAX_PORT_ENTRIES];
+struct port_entry		*udp_prt_list[MAX_PORT_ENTRIES];
+struct port_table_entry tcp_port_table[MAX_PORT_ENTRIES];
+struct port_table_entry udp_port_table[MAX_PORT_ENTRIES];
+uint16_t				portscanl, portscanh, portscanp, portscantemp;
 unsigned char			dst_f=FALSE, tgt_ipv4mapped32_f=FALSE, tgt_ipv4mapped64_f=FALSE, tgt_lowbyte_f=FALSE, tgt_oui_f=FALSE;
 unsigned char			tgt_vendor_f=FALSE, tgt_vm_f=FALSE, tgt_bruteforce_f=FALSE, tgt_range_f=FALSE, tgt_portembedded_f=FALSE;
 unsigned char			tgt_knowniids_f=FALSE, tgt_knowniidsfile_f=FALSE, knownprefixes_f=FALSE;
 unsigned char			vm_vbox_f=FALSE, vm_vmware_f=FALSE, vm_vmwarem_f=FALSE, v4hostaddr_f=FALSE;
 unsigned char			v4hostprefix_f=FALSE, sort_ouis_f=FALSE, rnd_probes_f=FALSE, inc_f=FALSE, end_f=FALSE, donesending_f=FALSE;
 unsigned char			onlink_f=FALSE, pps_f=FALSE, bps_f=FALSE, tcpflags_f=FALSE, rhbytes_f=FALSE, srcport_f=FALSE, dstport_f=FALSE, probetype;
-unsigned char			loop_f=FALSE, sleep_f=FALSE, smart_f=FALSE;
+unsigned char			loop_f=FALSE, sleep_f=FALSE, smart_f=FALSE, portscan_f=FALSE;
 uint16_t				srcport, dstport;
 uint8_t					tcpflags=0;
 unsigned long			pktinterval, rate;
@@ -259,6 +267,7 @@ int main(int argc, char **argv){
 		{"dst-port", required_argument, 0, 'a'},
 		{"tcp-flags", required_argument, 0, 'X'},
 		{"print-type", required_argument, 0, 'P'},
+		{"port-scan", required_argument, 0, 'j'},
 		{"print-unique", no_argument, 0, 'q'},
 		{"print-link-addr", no_argument, 0, 'e'},
 		{"print-timestamp", no_argument, 0, 't'},
@@ -289,7 +298,7 @@ int main(int argc, char **argv){
 		{0, 0, 0,  0 }
 	};
 
-	char shortopts[]= "i:s:d:u:U:H:y:S:D:Lp:Z:o:a:X:P:qetx:O:fFV:bB:gk:K:w:W:m:Q:TNI:r:lz:c:vh";
+	char shortopts[]= "i:s:d:u:U:H:y:S:D:Lp:Z:o:a:X:P:j:qetx:O:fFV:bB:gk:K:w:W:m:Q:TNI:r:lz:c:vh";
 
 	char option;
 
@@ -306,17 +315,32 @@ int main(int argc, char **argv){
 	/* Initialize the scan_list structure (for remote scans) */
 	scan_list.target=target_list;
 	scan_list.ntarget=0;
+	scan_list.ctarget=0;
 	scan_list.maxtarget= MAX_SCAN_ENTRIES;
 
 	/* Initialize the prefix_list structure (for remote scans) */
 	prefix_list.target= tgt_pref_list;
 	prefix_list.ntarget=0;
+	prefix_list.ctarget=0;
 	prefix_list.maxtarget= MAX_PREF_ENTRIES;
 
 	/* Initialize the smart_list structure (for remote scans) */
 	smart_list.target= smrt_pref_list;
 	smart_list.ntarget=0;
+	smart_list.ctarget=0;
 	smart_list.maxtarget= MAX_PREF_ENTRIES;
+
+	/* Initialize the TCP port struture (for port scans) */
+	tcp_port_list.port= tcp_prt_list;
+	tcp_port_list.nport=0;
+	tcp_port_list.cport=0;
+	tcp_port_list.maxport= MAX_PORT_ENTRIES;
+
+	/* Initialize the TCP port struture (for port scans) */
+	udp_port_list.port= tcp_prt_list;
+	udp_port_list.nport=0;
+	udp_port_list.cport=0;
+	udp_port_list.maxport= MAX_PORT_ENTRIES;
 
 	/* Initialize the iid_list structure (for remote scans/tracking) */
 	iid_list.prefix= tgt_iid_list;
@@ -1049,6 +1073,72 @@ int main(int argc, char **argv){
 				smart_f=TRUE;
 				break;
 
+			case 'j':
+				if((pref = strtok_r(optarg, ":", &lasts)) == NULL){
+					printf("Error in prefix option number %u. \n", i);
+					exit(EXIT_FAILURE);
+				}
+
+				if(strncmp(pref, "udp", 3) == 0 || strncmp(pref, "udp", 3) == 0){
+					portscanp= IPPROTO_UDP;
+					port_list= &udp_port_list;
+				}
+				else if(strncmp(pref, "tcp", 3) == 0 || strncmp(pref, "TCP", 3) == 0){
+					portscanp= IPPROTO_TCP;
+					port_list= &tcp_port_list;
+				}
+				else{
+					puts("Error unknown protocol in 'port-scan' option");
+					exit(1);
+				}
+
+				if(address_contains_ranges(lasts)){
+					if((pref = strtok_r(NULL, "-", &lasts)) == NULL){
+						puts("Error in 'port-scan' option");
+						exit(EXIT_FAILURE);
+					}
+
+					portscanl= atoi(pref);
+					portscanh= atoi(lasts);
+				}
+				else{
+					portscanl= atoi(lasts);
+					portscanh= portscanl;
+				}
+
+				if(portscanl > portscanh){
+					portscantemp= portscanl;
+					portscanl= portscanh;
+					portscanh= portscantemp;
+				}
+
+				if(port_list->nport <= port_list->maxport){
+					if( (port_list->port[port_list->nport] = malloc(sizeof(struct port_entry))) == NULL){
+						if(idata.verbose_f)
+							puts("scan6: Not enough memory");
+
+						exit(EXIT_FAILURE);
+					}
+
+					port_list->port[port_list->nport]->start= portscanl;
+					port_list->port[port_list->nport]->end= portscanh;
+					(port_list->port[port_list->nport])->cur= (port_list->port[port_list->nport])->start;
+					port_list->nport++;
+				}
+				else{
+					/*
+					   If the number of "prots" has already been exceeded, it doesn't make sense to continue further,
+					   since there wouldn't be space for any specific target types
+								 */
+					if(idata.verbose_f)
+						puts("Too many port ranges!");
+
+					exit(EXIT_FAILURE);
+				}
+
+				portscan_f=TRUE;
+				break;
+
 			case 'V':
 				if(strncmp(optarg, "vbox", strlen("vbox")) == 0){
 					tgt_vm_f=TRUE;
@@ -1377,10 +1467,26 @@ int main(int argc, char **argv){
 		strncpy(configfile, "/etc/ipv6toolkit.conf", MAX_FILENAME_SIZE);
 	}
 
-	if(tgt_vendor_f){
+	if(tgt_vendor_f || portscan_f){
 		if(!process_config_file(configfile)){
 			puts("Error while processing configuration file");
 			exit(EXIT_FAILURE);
+		}
+	}
+
+	if(portscan_f){
+		if(tcp_port_list.nport){
+			if(!load_port_table(tcp_port_table, "tcp", MAX_PORT_ENTRIES)){
+				puts("Error while loading port number descriptions");
+				exit(EXIT_FAILURE);
+			}
+		}
+
+		if(tcp_port_list.nport){
+			if(!load_port_table(udp_port_table, "udp", MAX_PORT_ENTRIES)){
+				puts("Error while loading port number descriptions");
+				exit(EXIT_FAILURE);
+			}
 		}
 	}
 
@@ -1557,7 +1663,11 @@ int main(int argc, char **argv){
 			}
 		}
 	}
-
+	/* Perform a port-scan of a single target */
+	else if(portscan_f){
+		puts("Portscanning is still work in progress");
+		exit(EXIT_FAILURE);
+	}
 	/* Remote scan */
 	else{
 		/* Smart entries are the first ones to be included */
@@ -4668,3 +4778,93 @@ void local_sig_alarm(int num){
 	siglongjmp(env, 1);
 }
 
+
+
+/*
+ * Function: load_port_table()
+ *
+ * Create table with mappings of port number -> service name
+ */
+
+int load_port_table(struct port_table_entry *pentry, char *prot, unsigned int maxport){
+	FILE 				*fp;
+	char				line[MAX_PORTS_LINE_SIZE], proto[MAX_PORTS_LINE_SIZE], name[MAX_PORTS_LINE_SIZE];
+	char				*charptr, *lasts;
+	unsigned int		lines=0, ports=0;
+	unsigned int 		port;
+	char unassigned[]="Unassigned";
+
+	/* We initialize all entries to "Unassigned" */
+	for(i=0; i<maxport; i++){
+		strncpy(pentry[i].name, unassigned, sizeof(pentry[i].name));
+		pentry[i].name[sizeof(pentry[i].name)-1]=0;
+	}
+
+printf("Nombre del file: %s\n", portsfname);
+	if( (fp=fopen(portsfname, "r")) == NULL){
+		perror("scan6:");
+		return(0);
+	}
+
+	while( ports < maxport && fgets(line, MAX_PORTS_LINE_SIZE, fp) != NULL){
+		lines=Strnlen(line, MAX_PORTS_LINE_SIZE);
+		charptr= (char *)line;
+
+		/* Skip any whitespaces */
+		while(charptr < ( (char *)line + lines) && *charptr == ' ')
+			charptr++;
+
+		if((charptr = strtok_r(charptr, ",", &lasts)) == NULL){
+			continue;
+		}
+
+		strncpy(name, charptr, sizeof(name));
+		name[sizeof(name)-1]=0;
+
+		if((charptr = strtok_r(NULL, ",", &lasts)) == NULL){
+			continue;
+		}
+
+		port= atoi(charptr);
+
+		if(port >= maxport)
+			continue;
+
+		if((charptr = strtok_r(NULL, ",", &lasts)) == NULL){
+			continue;
+		}
+
+		strncpy(proto, charptr, sizeof(proto));
+		proto[sizeof(proto)-1]=0;
+
+		if(strncmp(prot, proto, sizeof(proto)) == 0){
+			strncpy(pentry[port].name, name, sizeof(pentry[port].name));
+			pentry[port].name[sizeof(pentry[port].name)-1]=0;
+		}
+	}
+
+
+	if(ferror(fp)){
+		perror("scan6:");
+
+		return(0);
+	}
+
+	fclose(fp);
+	return(1);
+}
+
+
+/*
+ * Function: print_port_table()
+ *
+ * Print the port table (for debugging puroses)
+ */
+
+void print_port_table(struct port_table_entry *pentry, unsigned int maxport){
+	unsigned int i;
+
+	for(i=0; i < maxport; i++){
+		printf("%5d (%s)\n", i, pentry[i].name);
+	}
+}

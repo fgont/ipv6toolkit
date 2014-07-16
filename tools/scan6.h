@@ -42,6 +42,7 @@
 #define	OUI_HEX_STRING_SIZE		5
 #define	MAX_IEEE_OUIS			1000
 #define MAX_SCAN_ENTRIES		65535
+#define MAX_PORT_ENTRIES		65535
 #define MAX_PREF_ENTRIES		MAX_SCAN_ENTRIES
 #define	SELECT_TIMEOUT			4
 #define MAX_RANGE_STR_LEN		79
@@ -73,3 +74,27 @@ struct scan_list{
 	unsigned int		inc;
 };
 
+
+#define	MAX_PORTS_LINE_SIZE			80
+
+/* Stores one port entry to scan */
+struct port_entry{
+	uint16_t	start;
+	uint16_t	end;
+	uint16_t	cur;
+};
+
+/* Store the list of remote targets to scan */
+struct port_list{
+	struct port_entry	**port;
+	unsigned int		cport;
+	unsigned int		nport;
+	unsigned int		maxport;
+};
+
+
+/* Store the list of remote targets to scan */
+struct port_table_entry{
+	unsigned int	loaded;
+	char	name[MAX_PORTS_LINE_SIZE];
+};
