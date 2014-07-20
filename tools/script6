@@ -200,7 +200,7 @@ elsif($ARGV[0] eq "get-as" || $ARGV[0] eq "get-as6"){
 	print "$1\n";
 	exit 0;
 }
-elsif($ARGV[0] eq "get-trace-stats" || $ARGV[0] eq "get-trace6-stats"){
+elsif($ARGV[0] eq "get-trace-stats" || $ARGV[0] eq "get-trace6-stats" || $ARGV[0] eq "get-trace-results"){
 	$valid=0;
 	$dropped=0;
 	$pass=0;
