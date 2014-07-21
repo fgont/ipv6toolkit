@@ -1788,6 +1788,7 @@ int main(int argc, char **argv){
 		end_f= FALSE;
 		donesending_f= FALSE;
 
+		puts("PORT       STATE      SERVICE");
 		while(!endpscan_f){
 			lastprobe.tv_sec= 0;	
 			lastprobe.tv_usec=0;
@@ -2620,17 +2621,17 @@ void print_port_scan(struct port_list *port_list, unsigned int *res, int types){
 			switch(res[j]){
 				case PORT_FILTERED:
 					if(types & PORT_FILTERED)
-						printf("%u/%s\t %s  (filtered)\n", j, (port_list->proto == IPPROTO_TCP)?"tcp":"udp", port_list->port_table[j].name);
+						printf("%5u/%10s (filtered)  %s\n", j, (port_list->proto == IPPROTO_TCP)?"tcp":"udp", port_list->port_table[j].name);
 					break;
 
 				case PORT_OPEN:
 					if(types & PORT_OPEN)
-						printf("%u/%s\t %s  (open)\n", j, (port_list->proto == IPPROTO_TCP)?"tcp":"udp", port_list->port_table[j].name);
+						printf("%5u/%10s (open)      %s\n", j, (port_list->proto == IPPROTO_TCP)?"tcp":"udp", port_list->port_table[j].name);
 					break;
 
 				case PORT_CLOSED:
 					if(types & PORT_CLOSED)
-						printf("%u/%s\t %s  (closed)\n", j, (port_list->proto == IPPROTO_TCP)?"tcp":"udp", port_list->port_table[j].name);
+						printf("%5u/%10s (closed)    %s\n", j, (port_list->proto == IPPROTO_TCP)?"tcp":"udp", port_list->port_table[j].name);
 					break;
 			}
 		}
