@@ -2621,17 +2621,17 @@ void print_port_scan(struct port_list *port_list, unsigned int *res, int types){
 			switch(res[j]){
 				case PORT_FILTERED:
 					if(types & PORT_FILTERED)
-						printf("%5u/%10s (filtered)  %s\n", j, (port_list->proto == IPPROTO_TCP)?"tcp":"udp", port_list->port_table[j].name);
+						printf("%5u/%-10s filtered  %s\n", j, (port_list->proto == IPPROTO_TCP)?"tcp":"udp", port_list->port_table[j].name);
 					break;
 
 				case PORT_OPEN:
 					if(types & PORT_OPEN)
-						printf("%5u/%10s (open)      %s\n", j, (port_list->proto == IPPROTO_TCP)?"tcp":"udp", port_list->port_table[j].name);
+						printf("%5u/%-10s open      %s\n", j, (port_list->proto == IPPROTO_TCP)?"tcp":"udp", port_list->port_table[j].name);
 					break;
 
 				case PORT_CLOSED:
 					if(types & PORT_CLOSED)
-						printf("%5u/%10s (closed)    %s\n", j, (port_list->proto == IPPROTO_TCP)?"tcp":"udp", port_list->port_table[j].name);
+						printf("%5u/%-10s closed    %s\n", j, (port_list->proto == IPPROTO_TCP)?"tcp":"udp", port_list->port_table[j].name);
 					break;
 			}
 		}
