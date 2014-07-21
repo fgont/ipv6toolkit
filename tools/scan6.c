@@ -1788,7 +1788,7 @@ int main(int argc, char **argv){
 		end_f= FALSE;
 		donesending_f= FALSE;
 
-		puts("PORT        STATE      SERVICE");
+		puts("PORT      STATE     SERVICE");
 		while(!endpscan_f){
 			lastprobe.tv_sec= 0;	
 			lastprobe.tv_usec=0;
