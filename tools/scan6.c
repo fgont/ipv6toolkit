@@ -2619,7 +2619,7 @@ void print_port_scan(struct port_list *port_list, unsigned int *res, int types){
 
 	for(i=0; i< port_list->nport; i++){
 		for(j= (port_list->port[i])->start; j <= (port_list->port[i])->end; j++){
-			snprintf(portstring, "%u/%s", j, (port_list->proto == IPPROTO_TCP)?"tcp":"udp");
+			snprintf(portstring, sizeof(portstring), "%u/%s", j, (port_list->proto == IPPROTO_TCP)?"tcp":"udp");
 			portstring[sizeof(portstring)-1]=0;
 
 			switch(res[j]){
