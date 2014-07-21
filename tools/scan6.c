@@ -2625,17 +2625,17 @@ void print_port_scan(struct port_list *port_list, unsigned int *res, int types){
 			switch(res[j]){
 				case PORT_FILTERED:
 					if(types & PORT_FILTERED)
-						printf("%-11s filtered  %s\n", portstring, port_list->port_table[j].name);
+						printf("%11s filtered  %s\n", portstring, port_list->port_table[j].name);
 					break;
 
 				case PORT_OPEN:
 					if(types & PORT_OPEN)
-						printf("%-11s open     %s\n", portstring, port_list->port_table[j].name);
+						printf("%11s open     %s\n", portstring, port_list->port_table[j].name);
 					break;
 
 				case PORT_CLOSED:
 					if(types & PORT_CLOSED)
-						printf("%-11s closed  %s\n", portstring, port_list->port_table[j].name);
+						printf("%11s closed  %s\n", portstring, port_list->port_table[j].name);
 					break;
 			}
 		}
