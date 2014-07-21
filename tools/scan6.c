@@ -100,7 +100,7 @@ int					match_strings(char *, char *);
 int					load_bruteforce_entries(struct scan_list *, struct scan_entry *);
 void				prefix_to_scan(struct prefix_entry *, struct scan_entry *);
 void				print_port_entries(struct port_list *);
-void				print_port_scan(struct port_list *, unsigned int *);
+void				print_port_scan(struct port_list *, unsigned int *, int);
 void				print_port_table(struct port_table_entry *, unsigned int);
 int					get_next_target(struct scan_list *);
 int					get_next_port(struct port_list *);
@@ -757,7 +757,6 @@ puts("NO fue smart");
 
 							prefix_list.ntarget++;
 							idata.dstaddr= prefix_list.target[0]->start;
-print_ipv6_address("Nueva: ", &(idata.dstaddr));
 						}
 						else{
 							/*
@@ -1721,8 +1720,6 @@ print_ipv6_address("Nueva: ", &(idata.dstaddr));
 			}
 		}
 
-print_ipv6_address("dst addr: ", &(idata.dstaddr));
-
 		if(tcp_port_list.nport){
 			if(udp_port_list.nport){
 				/* Allow both TCP and UDP packets */
@@ -2077,7 +2074,12 @@ print_ipv6_address("dst addr: ", &(idata.dstaddr));
 				}
 			}
 
-			print_port_scan(port_list, port_results);
+			if(pscantype== IPPROTO_TCP){
+				print_port_scan(port_list, port_results, PORT_OPEN | PORT_FILTERED);
+			}
+			else{
+				print_port_scan(port_list, port_results, PORT_OPEN);
+			}
 
 			/* We always start with TCP scans (if there are any target ports) */
 			if(pscantype== IPPROTO_TCP){
@@ -2609,22 +2611,25 @@ int get_next_port(struct port_list *port_list){
  * Prints the result of a port scan
  */
 
-void print_port_scan(struct port_list *port_list, unsigned int *res){
+void print_port_scan(struct port_list *port_list, unsigned int *res, int types){
 	int i, j;
 
 	for(i=0; i< port_list->nport; i++){
 		for(j= (port_list->port[i])->start; j <= (port_list->port[i])->end; j++){
 			switch(res[j]){
 				case PORT_FILTERED:
-					printf("%u\t %s  (filtered)\n", j, port_list->port_table[j].name);
+					if(types & PORT_FILTERED)
+						printf("%u\t %s  (filtered)\n", j, port_list->port_table[j].name);
 					break;
 
 				case PORT_OPEN:
-					printf("%u\t %s  (open)\n", j, port_list->port_table[j].name);
+					if(types & PORT_OPEN)
+						printf("%u\t %s  (open)\n", j, port_list->port_table[j].name);
 					break;
 
 				case PORT_CLOSED:
-					printf("%u\t %s  (closed)\n", j, port_list->port_table[j].name);
+					if(types & PORT_CLOSED)
+						printf("%u\t %s  (closed)\n", j, port_list->port_table[j].name);
 					break;
 			}
 		}
@@ -4245,7 +4250,6 @@ int send_pscan_probe(struct iface_data *idata, struct port_list *port_list, stru
 
 	ipv6->ip6_src= idata->srcaddr;
 	ipv6->ip6_dst= idata->dstaddr;
-print_ipv6_address("Desde send:", &(idata->srcaddr));
 	prev_nh = (unsigned char *) &(ipv6->ip6_nxt);
 
 	ptr = (unsigned char *) v6buffer + MIN_IPV6_HLEN;

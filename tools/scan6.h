@@ -108,6 +108,6 @@ struct port_table_entry{
 
 #define PORT_FILTERED	1
 #define PORT_OPEN		2
-#define PORT_CLOSED		3
+#define PORT_CLOSED		4
 
 
