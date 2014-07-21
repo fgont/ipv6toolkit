@@ -1788,7 +1788,7 @@ int main(int argc, char **argv){
 		end_f= FALSE;
 		donesending_f= FALSE;
 
-		puts("PORT       STATE      SERVICE");
+		puts("PORT        STATE      SERVICE");
 		while(!endpscan_f){
 			lastprobe.tv_sec= 0;	
 			lastprobe.tv_usec=0;
@@ -2625,17 +2625,17 @@ void print_port_scan(struct port_list *port_list, unsigned int *res, int types){
 			switch(res[j]){
 				case PORT_FILTERED:
 					if(types & PORT_FILTERED)
-						printf("%-9s    filtered  %s\n", portstring, port_list->port_table[j].name);
+						printf("%-9s filtered  %s\n", portstring, port_list->port_table[j].name);
 					break;
 
 				case PORT_OPEN:
 					if(types & PORT_OPEN)
-						printf("%-9s    open     %s\n", portstring, port_list->port_table[j].name);
+						printf("%-9s open      %s\n", portstring, port_list->port_table[j].name);
 					break;
 
 				case PORT_CLOSED:
 					if(types & PORT_CLOSED)
-						printf("%-9s    closed  %s\n", portstring, port_list->port_table[j].name);
+						printf("%-9s closed    %s\n", portstring, port_list->port_table[j].name);
 					break;
 			}
 		}
