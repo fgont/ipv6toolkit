@@ -1,5 +1,5 @@
 /*
- * scan6: An IPv6 Network Scanning Tool
+ * scan6: An IPv6 Scanning Tool
  *
  * Copyright (C) 2011-2014 Fernando Gont <fgont@si6networks.com>
  *
@@ -1703,7 +1703,9 @@ int main(int argc, char **argv){
 	}
 	/* Perform a port-scan of a single target */
 	else if(portscan_f){
-		if(idata.verbose_f && !bps_f && !pps_f){
+		puts(SI6_TOOLKIT);
+		puts( "scan6: An advanced IPv6 scanning tool\n");
+		if(!bps_f && !pps_f){
 			puts("Rate-limiting probe packets to 1000 pps (override with the '-r' option if necessary)");
 		}
 
@@ -1788,7 +1790,7 @@ int main(int argc, char **argv){
 		end_f= FALSE;
 		donesending_f= FALSE;
 
-		puts("PORT      STATE     SERVICE");
+		puts("\nPORT      STATE     SERVICE");
 		while(!endpscan_f){
 			lastprobe.tv_sec= 0;	
 			lastprobe.tv_usec=0;
@@ -2077,7 +2079,8 @@ int main(int argc, char **argv){
 			}
 
 			if(pscantype== IPPROTO_TCP){
-				print_port_scan(port_list, port_results, PORT_OPEN | PORT_FILTERED);
+				/* Result types can be PORT_OPEN, PORT_CLOSED, and PORT_FILTERED */
+				print_port_scan(port_list, port_results, PORT_OPEN);
 			}
 			else{
 				print_port_scan(port_list, port_results, PORT_OPEN);
@@ -3922,7 +3925,7 @@ void usage(void){
 
 void print_help(void){
 	puts(SI6_TOOLKIT);
-	puts( "scan6: An advanced IPv6 Address Scanning tool\n");
+	puts( "scan6: An advanced IPv6 scanning tool\n");
 	usage();
     
 	puts("\nOPTIONS:\n"
