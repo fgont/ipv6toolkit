@@ -2615,23 +2615,27 @@ int get_next_port(struct port_list *port_list){
 
 void print_port_scan(struct port_list *port_list, unsigned int *res, int types){
 	int i, j;
+	char portstring[10];
 
 	for(i=0; i< port_list->nport; i++){
 		for(j= (port_list->port[i])->start; j <= (port_list->port[i])->end; j++){
+			snprintf(portstring, "%u/%s", j, (port_list->proto == IPPROTO_TCP)?"tcp":"udp");
+			portstring[sizeof(portstring)-1]=0;
+
 			switch(res[j]){
 				case PORT_FILTERED:
 					if(types & PORT_FILTERED)
-						printf("%5u/%-10s filtered  %s\n", j, (port_list->proto == IPPROTO_TCP)?"tcp":"udp", port_list->port_table[j].name);
+						printf("%-11s filtered  %s\n", portstring, port_list->port_table[j].name);
 					break;
 
 				case PORT_OPEN:
 					if(types & PORT_OPEN)
-						printf("%5u/%-10s open      %s\n", j, (port_list->proto == IPPROTO_TCP)?"tcp":"udp", port_list->port_table[j].name);
+						printf("%-11s open     %s\n", portstring, port_list->port_table[j].name);
 					break;
 
 				case PORT_CLOSED:
 					if(types & PORT_CLOSED)
-						printf("%5u/%-10s closed    %s\n", j, (port_list->proto == IPPROTO_TCP)?"tcp":"udp", port_list->port_table[j].name);
+						printf("%-11s closed  %s\n", portstring, port_list->port_table[j].name);
 					break;
 			}
 		}
