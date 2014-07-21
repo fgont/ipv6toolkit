@@ -346,12 +346,14 @@ int main(int argc, char **argv){
 	tcp_port_list.port= tcp_prt_list;
 	tcp_port_list.nport=0;
 	tcp_port_list.cport=0;
+	tcp_port_list.proto= IPPROTO_TCP;
 	tcp_port_list.maxport= MAX_PORT_ENTRIES;
 
-	/* Initialize the TCP port struture (for port scans) */
+	/* Initialize the UDP port struture (for port scans) */
 	udp_port_list.port= tcp_prt_list;
 	udp_port_list.nport=0;
 	udp_port_list.cport=0;
+	tcp_port_list.proto= IPPROTO_UDP;
 	udp_port_list.maxport= MAX_PORT_ENTRIES;
 
 	/* Initialize the iid_list structure (for remote scans/tracking) */
@@ -399,7 +401,6 @@ int main(int argc, char **argv){
 
 			case 'd':	/* IPv6 Destination Address/Prefix */
 				if(!address_contains_colons(optarg)){
-puts("dominio");
 					/* The '-d' option contains a domain name */
 					if((charptr = strtok_r(optarg, "/", &lasts)) == NULL){
 						puts("Error in Destination Address");
@@ -450,7 +451,6 @@ puts("dominio");
 						 */
 
 						if(smart_f || (prefix.len == 64 && !is_iid_null(&(prefix.ip6), 64))){
-puts("Fue smart");
 							if(smart_list.ntarget <= smart_list.maxtarget){
 								if( (smart_list.target[smart_list.ntarget] = malloc(sizeof(struct scan_entry))) == NULL){
 									if(idata.verbose_f)
@@ -475,6 +475,7 @@ puts("Fue smart");
 									exit(EXIT_FAILURE);
 								}
 
+								idata.dstaddr= smart_list.target[smart_list.ntarget]->start;
 								smart_list.ntarget++;
 							}
 							else{
@@ -490,7 +491,6 @@ puts("Fue smart");
 
 						}
 						else{
-puts("NO fue smart");
 							sanitize_ipv6_prefix(&(prefix.ip6), prefix.len);
 
 							if(prefix_list.ntarget <= prefix_list.maxtarget){
@@ -628,6 +628,7 @@ puts("NO fue smart");
 							exit(EXIT_FAILURE);
 						}
 
+						idata.dstaddr= scan_list.target[scan_list.ntarget]->start;
 						scan_list.ntarget++;
 					}
 					else{
@@ -2619,17 +2620,17 @@ void print_port_scan(struct port_list *port_list, unsigned int *res, int types){
 			switch(res[j]){
 				case PORT_FILTERED:
 					if(types & PORT_FILTERED)
-						printf("%u\t %s  (filtered)\n", j, port_list->port_table[j].name);
+						printf("%u/%s\t %s  (filtered)\n", j, (port_list->proto == IPPROTO_TCP)?"tcp":"udp", port_list->port_table[j].name);
 					break;
 
 				case PORT_OPEN:
 					if(types & PORT_OPEN)
-						printf("%u\t %s  (open)\n", j, port_list->port_table[j].name);
+						printf("%u/%s\t %s  (open)\n", j, (port_list->proto == IPPROTO_TCP)?"tcp":"udp", port_list->port_table[j].name);
 					break;
 
 				case PORT_CLOSED:
 					if(types & PORT_CLOSED)
-						printf("%u\t %s  (closed)\n", j, port_list->port_table[j].name);
+						printf("%u/%s\t %s  (closed)\n", j, (port_list->proto == IPPROTO_TCP)?"tcp":"udp", port_list->port_table[j].name);
 					break;
 			}
 		}

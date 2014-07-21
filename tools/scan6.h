@@ -92,6 +92,7 @@ struct port_list{
 	unsigned int		cport;
 	unsigned int		nport;
 	unsigned int		maxport;
+	unsigned int		proto;
 	struct port_table_entry *port_table;
 };
 
