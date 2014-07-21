@@ -104,6 +104,8 @@ data/ipv6toolkit.conf:
            data/ipv6toolkit.conf
 	echo OUI-Database=$(PREFIX)/share/ipv6toolkit/oui.txt >> \
            data/ipv6toolkit.conf 
+	echo Ports-Database=$(PREFIX)/share/ipv6toolkit/service-names-port-numbers.csv >> \
+           data/ipv6toolkit.conf 
 
 clean: 
 	rm -f $(TOOLS) $(LIBS)
@@ -123,6 +125,9 @@ install: all
 	# Install the IEEE OUI database
 	install -m0755 -d $(DATAPATH)
 	install -m0644 data/oui.txt $(DATAPATH)
+
+	# Install the port numbers database
+	install -m0644 data/service-names-port-numbers.csv $(DATAPATH)
 
 	# Install the manual pages
 	install -m0755 -d $(MANPATH)/man1
