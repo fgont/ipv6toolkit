@@ -1807,7 +1807,7 @@ int main(int argc, char **argv){
 				}
 				else{
 					timeout.tv_usec=0;
-					timeout.tv_sec= SELECT_TIMEOUT;
+					timeout.tv_sec= PSCAN_TIMEOUT;
 				}
 
 				/*
