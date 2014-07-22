@@ -353,7 +353,7 @@ int main(int argc, char **argv){
 	udp_port_list.port= tcp_prt_list;
 	udp_port_list.nport=0;
 	udp_port_list.cport=0;
-	tcp_port_list.proto= IPPROTO_UDP;
+	udp_port_list.proto= IPPROTO_UDP;
 	udp_port_list.maxport= MAX_PORT_ENTRIES;
 
 	/* Initialize the iid_list structure (for remote scans/tracking) */
@@ -1098,11 +1098,11 @@ int main(int argc, char **argv){
 				}
 
 				if(strncmp(pref, "udp", 3) == 0 || strncmp(pref, "udp", 3) == 0){
-					portscanp= IPPROTO_UDP;
+/*					portscanp= IPPROTO_UDP; */
 					port_list= &udp_port_list;
 				}
 				else if(strncmp(pref, "tcp", 3) == 0 || strncmp(pref, "TCP", 3) == 0){
-					portscanp= IPPROTO_TCP;
+/*					portscanp= IPPROTO_TCP; */
 					port_list= &tcp_port_list;
 				}
 				else{
@@ -1790,7 +1790,7 @@ int main(int argc, char **argv){
 		end_f= FALSE;
 		donesending_f= FALSE;
 
-		puts("\nPORT      STATE     SERVICE");
+		puts("PORT      STATE     SERVICE");
 		while(!endpscan_f){
 			lastprobe.tv_sec= 0;	
 			lastprobe.tv_usec=0;
@@ -1948,8 +1948,7 @@ int main(int argc, char **argv){
 								}
 							}
 							else if(pscantype == IPPROTO_UDP && pkt_icmp6->icmp6_type == ICMP6_DST_UNREACH && \
-									pkt_icmp6->icmp6_code == ICMP6_DST_UNREACH_NOPORT){
-
+ 								pkt_icmp6->icmp6_code == ICMP6_DST_UNREACH_NOPORT){
 								/* We are interested in the embedded payload */
 								pkt_ipv6=  (struct ip6_hdr *) ((char *) pkt_icmp6 + sizeof(struct icmp6_hdr));
 
@@ -2003,7 +2002,7 @@ int main(int argc, char **argv){
 								}
 
 								pkt_udp= (struct udp_hdr *) ((char *) pkt_eh);
-								port_results[ntohs(pkt_udp->uh_sport)] = PORT_OPEN;
+								port_results[ntohs(pkt_udp->uh_dport)] = PORT_CLOSED;
 							}
 						}
 						/* We only bother to process TCP segments if we are currently sending TCP segments */
@@ -4331,8 +4330,8 @@ int send_pscan_probe(struct iface_data *idata, struct port_list *port_list, stru
 			}
 
 			udp= (struct udp_hdr *) ptr;
-			ptr+= sizeof(struct udp_hdr);
 			memset(udp, 0, sizeof(struct udp_hdr));
+			ptr+= sizeof(struct udp_hdr);
 
 			/*
 			   For UDP, we encode the current probe number and the current Hop Limit as fr TCP.

@@ -33,8 +33,8 @@
 #define PCAP_ICMPV6_ERQNSNA_FILTER	"icmp6 and ((ip6[40]==129 and ip6[41]==0) or ((ip6[40]==135 or ip6[40]==136) and ip6[41]==0 and ip6[7]==255))"
 #define PCAP_ICMPV6_ERRORNSNA_FILTER	"icmp6 and ((ip6[40]==4) or ((ip6[7]==255 and ip6[41]==0) and (ip6[40]==135 or ip6[40]==136)))"
 #define PCAP_TCP_NSNA_FILTER		"(ip6 and tcp) or (icmp6 and ip6[7]==255 and ip6[41]==0 and (ip6[40]==135 or ip6[40]==136))"
-#define PCAP_UDP_NSNA_FILTER		"(ip6 and udp) or (icmp6 and ip6[7]==255 and ip6[41]==0 and (ip6[40]==135 or ip6[40]==136))"
-#define PCAP_TCP_UDP_NSNA_FILTER	"(ip6 and (tcp or udp)) or (icmp6 and ip6[7]==255 and ip6[41]==0 and (ip6[40]==135 or ip6[40]==136))"
+#define PCAP_UDP_NSNA_FILTER		"(ip6 and (udp or icmp6)) or (icmp6 and ip6[7]==255 and ip6[41]==0 and (ip6[40]==135 or ip6[40]==136))"
+#define PCAP_TCP_UDP_NSNA_FILTER	"(ip6 and (tcp or udp or icmp6)) or (icmp6 and ip6[7]==255 and ip6[41]==0 and (ip6[40]==135 or ip6[40]==136))"
 
 /* Remote scans */
 #define LOW_BYTE_1ST_WORD_UPPER		0x1500
