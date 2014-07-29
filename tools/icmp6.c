@@ -1594,10 +1594,10 @@ void send_packet(struct iface_data *idata, const u_char *pktdata, struct pcap_pk
 					rhipv6 = (struct ip6_hdr *) rhbuff;
 					rhipv6->ip6_flow= 0;
 					rhipv6->ip6_vfc= 0x60;
-					rhipv6->ip6_plen= htons(ip6length);
 					rhipv6->ip6_hlim= ip6hoplimit;
 					rhipv6->ip6_src= targetaddr;
 					rhipv6->ip6_dst= peeraddr;
+					rhipv6->ip6_plen= htons(ip6length);
 
 					if(rhtcp_f || rhdefault_f){
 						rhipv6->ip6_nxt= IPPROTO_TCP;
@@ -1611,13 +1611,20 @@ void send_packet(struct iface_data *idata, const u_char *pktdata, struct pcap_pk
 						rhtcp->th_urp= htons(tcpurg);
 						rhtcp->th_win= htons(tcpwin);
 						rhtcp->th_off= MIN_TCP_HLEN >> 2;
-						rhtcp->th_sum = random();
 
-						if(rhbytes <= (MIN_IPV6_HLEN + MIN_TCP_HLEN)){
+						if(rhbytes < (MIN_IPV6_HLEN + MIN_TCP_HLEN)){
+							rhtcp->th_sum= random();
 							memcpy(ptr, rhbuff, rhbytes);
 							ptr+= rhbytes;
 						}
 						else{
+							/* We will compute the TCP checksum */
+							rhtcp->th_sum= 0;
+
+							/* We now reuse the rhipv6 and rhtcp variables to point to the IPv6 and TCP header of the packet to be sent */
+							rhipv6= (struct ip6_hdr *) ptr;
+							rhtcp= (struct tcp_hdr *) ( (char *) rhipv6 + sizeof(struct ip6_hdr));
+
 							memcpy(ptr, rhbuff, MIN_IPV6_HLEN+MIN_TCP_HLEN);
 							ptr += MIN_IPV6_HLEN+MIN_TCP_HLEN;
 							rhbytes -= MIN_IPV6_HLEN+MIN_TCP_HLEN;
@@ -1627,6 +1634,13 @@ void send_packet(struct iface_data *idata, const u_char *pktdata, struct pcap_pk
 								ptr += sizeof(uint32_t);
 								rhbytes -= sizeof(uint32_t);
 							}
+
+							if(ip6length_f)
+								rhipv6->ip6_plen= htons(ip6length);
+							else
+								rhipv6->ip6_plen= htons(ptr - ((unsigned char *) rhipv6 + sizeof(struct ip6_hdr)));
+
+							rhtcp->th_sum= in_chksum(rhipv6, rhtcp, (ptr - (unsigned char *) rhtcp), IPPROTO_TCP);
 						}
 					}
 
@@ -1635,22 +1649,34 @@ void send_packet(struct iface_data *idata, const u_char *pktdata, struct pcap_pk
 						rhudp = (struct udp_hdr *) (rhbuff + sizeof(struct ip6_hdr));
 						rhudp->uh_sport= htons(targetport);
 						rhudp->uh_dport= htons(peerport);
-						rhudp->uh_ulen= rhipv6->ip6_plen;
-						rhudp->uh_sum= random();
 
-						if(rhbytes <= (MIN_IPV6_HLEN + MIN_UDP_HLEN)){
+						if(rhbytes < (MIN_IPV6_HLEN + MIN_UDP_HLEN)){
+							rhudp->uh_sum= random();
 							memcpy(ptr, rhbuff, rhbytes);
 							ptr+= rhbytes;
 						}
 						else{
+							/* We will compute the UDP checksum */
+							rhudp->uh_sum= 0;
+
+							/* We now reuse the rhipv6 and rhudp variables to point to the IPv6 and TCP header of the packet to be sent */
+							rhipv6= (struct ip6_hdr *) ptr;
+							rhudp= (struct udp_hdr *) ( (char *) rhipv6 + sizeof(struct ip6_hdr));
+
 							memcpy(ptr, rhbuff, MIN_IPV6_HLEN+MIN_UDP_HLEN);
-							ptr += MIN_IPV6_HLEN+MIN_UDP_HLEN;
+							ptr += (MIN_IPV6_HLEN+MIN_UDP_HLEN);
 							rhbytes -= MIN_IPV6_HLEN+MIN_UDP_HLEN;
 							while(rhbytes>=4){
 								*(uint32_t *)ptr = random();
 								ptr += sizeof(uint32_t);
 								rhbytes -= sizeof(uint32_t);
 							}
+
+							if(!ip6length_f)
+								rhipv6->ip6_plen= htons(ptr - ((unsigned char *) rhipv6 + sizeof(struct ip6_hdr)));
+
+							rhudp->uh_ulen= htons(ptr - ((unsigned char *) rhipv6 + sizeof(struct ip6_hdr)));
+							rhudp->uh_sum= in_chksum(rhipv6, rhudp, (ptr - (unsigned char *) rhudp), IPPROTO_UDP);
 						}
 					}
 					else if(rhicmp6_f){
@@ -1658,15 +1684,21 @@ void send_packet(struct iface_data *idata, const u_char *pktdata, struct pcap_pk
 						rhicmp6 = (struct icmp6_hdr *) (rhbuff + sizeof(struct ip6_hdr));
 						rhicmp6->icmp6_type = ICMP6_ECHO_REQUEST;
 						rhicmp6->icmp6_code = 0;
-						rhicmp6->icmp6_cksum = random();
 						rhicmp6->icmp6_data16[0]= random(); /* Identifier */
 						rhicmp6->icmp6_data16[1]= random(); /* Sequence Number */
 
 						if(rhbytes <= (MIN_IPV6_HLEN + MIN_ICMP6_HLEN)){
+							rhicmp6->icmp6_cksum = random();
 							memcpy(ptr, rhbuff, rhbytes);
 							ptr+= rhbytes;
 						}
 						else{
+							rhicmp6->icmp6_cksum = 0;
+
+							/* We now reuse the rhipv6 and rhicmp6 variables to point to the IPv6 and ICMPv6 header of the packet to be sent */
+							rhipv6= (struct ip6_hdr *) ptr;
+							rhicmp6= (struct icmp6_hdr *) ( (char *) rhipv6 + sizeof(struct ip6_hdr));
+
 							memcpy(ptr, rhbuff, MIN_IPV6_HLEN+MIN_ICMP6_HLEN);
 							ptr += MIN_IPV6_HLEN+MIN_ICMP6_HLEN;
 							rhbytes -= MIN_IPV6_HLEN+MIN_ICMP6_HLEN;
@@ -1675,6 +1707,11 @@ void send_packet(struct iface_data *idata, const u_char *pktdata, struct pcap_pk
 								ptr += sizeof(uint32_t);
 								rhbytes -= sizeof(uint32_t);
 							}
+
+							if(!ip6length_f)
+								rhipv6->ip6_plen= htons(ptr - ((unsigned char *) rhipv6 + sizeof(struct ip6_hdr)));
+
+							rhicmp6->icmp6_cksum= in_chksum(rhipv6, rhicmp6, (ptr - (unsigned char *) rhicmp6), IPPROTO_ICMPV6);
 						}
 					}
 				}
@@ -2025,7 +2062,7 @@ void print_attack_info(struct iface_data *idata){
 		exit(EXIT_FAILURE);
 	}
 
-	if(idata->dstaddr_f){
+	if(idata->srcaddr_f){
 		printf("Source Address: %s%s\n", pv6addr, ((!targetaddr_f)?" (automatically-selected)":""));
 	}
 
@@ -2079,10 +2116,10 @@ void print_attack_info(struct iface_data *idata){
 		}
 
 		if(peerporth_f){
-			printf("Destination Port: %u-%u\t", peerportl, peerporth);
+			printf("Destination Port: %u-%u\n", peerportl, peerporth);
 		}
 		else{
-			printf("Destination Port: %u%s\t", peerportl, (peerportl_f?"":" (randomized)"));
+			printf("Destination Port: %u%s\n", peerportl, (peerportl_f?"":" (randomized)"));
 
 		}
 	}

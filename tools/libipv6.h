@@ -36,7 +36,7 @@
 #define	MIN_IPV6_HLEN			40
 #define MIN_IPV6_MTU			1280
 #define MIN_TCP_HLEN			20
-#define MIN_UDP_HLEN			20
+#define MIN_UDP_HLEN			8
 #define MIN_ICMP6_HLEN			8
 #define MIN_HBH_LEN				8
 #define	MIN_EXT_HLEN			8
