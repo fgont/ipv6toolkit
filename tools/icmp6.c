@@ -1891,7 +1891,7 @@ void print_help(void){
  */
  
 void print_attack_info(struct iface_data *idata){
-	puts( "icmp6: Security ssessment tool for attack vectors based on ICMPv6 error messages\n");
+	puts( "icmp6: Security assessment tool for attack vectors based on ICMPv6 messages\n");
 
 	if(idata->type == DLT_EN10MB && !(idata->flags & IFACE_LOOPBACK)){
 		if(ether_ntop(&(idata->hsrcaddr), plinkaddr, sizeof(plinkaddr)) == 0){
