@@ -1009,10 +1009,10 @@ int main(int argc, char **argv){
 
 				pkt_ipv6=  (struct ip6_hdr *) ((char *) pkt_icmp6 + sizeof(struct icmp6_hdr));
 
-				if(!is_eq_in6_addr(&(pkt_ipv6->ip6_dst), &(idata.dstaddr)))
+				if( ((unsigned char *)pkt_ipv6 + sizeof(struct ip6_hdr)) > pkt_end)
 					continue;
 
-				if( ((unsigned char *)pkt_ipv6 + sizeof(struct ip6_hdr)) > pkt_end)
+				if(!is_eq_in6_addr(&(pkt_ipv6->ip6_dst), &(idata.dstaddr)))
 					continue;
 
 				ulhtype= pkt_ipv6->ip6_nxt;

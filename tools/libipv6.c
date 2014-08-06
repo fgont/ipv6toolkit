@@ -2742,7 +2742,7 @@ int sel_next_hop(struct iface_data *idata){
 						}
 						else{
 #ifdef DEBUG
-	puts("DEBUG: Did not set the nhaddr_F flag was ADR_UNSPECIFIED)");
+	puts("DEBUG: Did not set the nhaddr_f flag was ADR_UNSPECIFIED)");
 #endif
 						}
 						break;
