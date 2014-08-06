@@ -572,13 +572,15 @@ int main(int argc, char **argv){
 				break;
 
 			case 'p':	/* Protocol used in the ICMPv6 Payload */
-				if(strcmp(optarg, "TCP") == 0)
+				if(strcmp(optarg, "TCP") == 0 || strcmp(optarg, "tcp") == 0)
 					rhtcp_f = 1;
-				else if(strcmp(optarg, "ICMP6") == 0)
+				else if(strcmp(optarg, "ICMP6") == 0 || strcmp(optarg, "ICMPv6") == 0 || \
+						strcmp(optarg, "icmpv6") == 0 || strcmp(optarg, "icmp6") == 0)
 					rhicmp6_f = 1;
-				else if(strcmp(optarg, "UDP") == 0)
+				else if(strcmp(optarg, "UDP") == 0 || strcmp(optarg, "udp") == 0)
 					rhudp_f = 1;
-				else if(strcmp(optarg, "IP6") == 0){
+				else if(strcmp(optarg, "IP6") == 0 || strcmp(optarg, "ip6") == 0 || \
+						strcmp(optarg, "IPv6") == 0 || strcmp(optarg, "ipv6") == 0){
 					rhip6_f= 1;
 				}
 				else{
