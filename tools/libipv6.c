@@ -3913,6 +3913,9 @@ puts("Encontre loopback y voy a sobreeescribir la info de destino");
 		}
 	}
 
+	if(idata->nhifindex_f && !idata->nhaddr_f)
+		idata->nhaddr= idata->dstaddr;
+
 #ifdef DEBUG
 	if(idata->nhaddr_f)
 		print_ipv6_address("DEBUG: load_dst_(): Nex Hop: ", &(idata->nhaddr));
