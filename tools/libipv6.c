@@ -2788,7 +2788,6 @@ int sel_next_hop(struct iface_data *idata){
 	pid_t				pid;
 	int					seq;
 	ssize_t				r;
-	size_t				ssize;
 	unsigned int		queries=0, i;
 	char				reply[MAX_RTPAYLOAD];
 #if defined(__APPLE__)
@@ -2798,7 +2797,6 @@ int sel_next_hop(struct iface_data *idata){
 	struct sockaddr_in6	*sin6;
 	struct	sockaddr_dl	*sockpptr;
 	struct sockaddr		*sa;
-	void				*end;
 	unsigned char		onlink_f=FALSE;
 
 #ifdef DEBUG
