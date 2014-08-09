@@ -1868,20 +1868,20 @@ void release_privileges(void){
 
 void sanitize_ipv6_prefix(struct in6_addr *ipv6addr, uint8_t prefixlen){
 	unsigned int	skip, i;
-	uint16_t	mask;
+	uint32_t	mask;
 
-	skip= (prefixlen+15)/16;
+	skip= (prefixlen+31)/32;
 
-	if(prefixlen%16){
+	if(prefixlen%32){
 		mask=0;
-		for(i=0; i<(prefixlen%16); i++)
-			mask= (mask>>1) | 0x8000;
+		for(i=0; i<(prefixlen%32); i++)
+			mask= (mask>>1) | 0x80000000;
 	    
-		ipv6addr->s6_addr16[skip-1]= ipv6addr->s6_addr16[skip-1] & htons(mask);
+		ipv6addr->s6_addr32[skip-1]= ipv6addr->s6_addr32[skip-1] & htonl(mask);
 	}
 			
-	for(i=skip;i<8;i++)
-		ipv6addr->s6_addr16[i]=0;
+	for(i=skip;i<4;i++)
+		ipv6addr->s6_addr32[i]=0;
 }
 
 
@@ -2945,10 +2945,8 @@ unsigned int print_ipv6_address(char *s, struct in6_addr *v6addr){
 unsigned int print_ipv6_address_rev(struct in6_addr *v6addr){
 	int					i;
 
-	for(i=7; i>=0; i--){
-		printf("%01x.%01x.%01x.%01x%s", ntohs(v6addr->s6_addr16[i]) &0x000f, (ntohs(v6addr->s6_addr16[i])>>4) &0x000f,\
-		                                (ntohs(v6addr->s6_addr16[i])>>8) &0x000f, (ntohs(v6addr->s6_addr16[i])>>12) &0x000f,
-										i?".":"\n");
+	for(i=15; i>=0; i--){
+		printf("%01x.%01x%s", v6addr->s6_addr[i] & 0x0f, v6addr->s6_addr[i] >>4, i?".":"\n");
 
 	}
 
