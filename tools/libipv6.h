@@ -546,12 +546,20 @@ struct	decode6{
 	    #define s6_addr32	__u6_addr.__u6_addr32
     #endif
 #elif defined __linux__ || ( !defined(__FreeBSD__) && defined(__FreeBSD_kernel__))
-    #ifndef s6_addr16
-	    #define s6_addr16	__in6_u.__u6_addr16
-    #endif
+	#ifndef s6_addr16
+		#define s6_addr16	__in6_u.__u6_addr16
+	#endif
 
 	#ifndef s6_addr32
 		#define s6_addr32	__in6_u.__u6_addr32
+	#endif
+#elif defined(__sun) || defined(sun)
+	#ifndef s6_addr8
+		#define	s6_addr8	_S6_un._S6_u8
+	#endif
+
+	#ifndef s6_addr32
+		#define	s6_addr32	_S6_un._S6_u32
 	#endif
 #endif
 
