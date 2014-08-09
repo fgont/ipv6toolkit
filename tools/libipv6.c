@@ -2789,7 +2789,7 @@ int sel_next_hop(struct iface_data *idata){
 	int					seq;
 	ssize_t				r;
 	size_t				ssize;
-	unsigned int		queries=0;
+	unsigned int		queries=0, i;
 	char				reply[MAX_RTPAYLOAD];
 #if defined(__APPLE__)
 	char				aflink_f= FALSE;
@@ -2819,15 +2819,15 @@ int sel_next_hop(struct iface_data *idata){
 	idata->nhaddr= idata->dstaddr;
 
 	do{
-#ifdef DEBUG
-	printf("DEBUG: sel_next_hop() %u SOCKET_RAW query\n", queries);
-#endif
+		if(debug_f)
+			printf("DEBUG: %u SOCKET_RAW query\n", queries+1);
+
 		rtm= (struct rt_msghdr *) reply;
 		memset(rtm, 0, sizeof(struct rt_msghdr));
 		rtm->rtm_msglen= sizeof(struct rt_msghdr) + sizeof(struct sockaddr_in6);
 		rtm->rtm_version= RTM_VERSION;
 		rtm->rtm_type= RTM_GET;
-		rtm->rtm_addrs= RTA_DST;
+		rtm->rtm_addrs= RTA_DST | RTA_IFP;
 		rtm->rtm_pid= pid= getpid();
 		rtm->rtm_seq= seq= random();
 
@@ -2835,157 +2835,60 @@ int sel_next_hop(struct iface_data *idata){
 		memset(sin6, 0, sizeof(struct sockaddr_in6));
 		sin6->sin6_len= sizeof(struct sockaddr_in6);
 		sin6->sin6_family= AF_INET6;
-		sin6->sin6_addr= idata->nhaddr;
-
-#if defined(__APPLE__)
-		if(IN6_IS_ADDR_LINKLOCAL(&(idata->nhaddr))){
-			aflink_f= TRUE;
-		}
-#endif
+		sin6->sin6_addr= nhaddr;
 
 		if(write(sockfd, rtm, rtm->rtm_msglen) == -1){
 			if(idata->verbose_f)
-				puts("No route to the intenteded destination in the local routing table");
+				puts("write() failed. No route to the intenteded destination in the local routing table");
 
-#ifdef DEBUG
-	puts("DEBUG: sel_next_hop() write failed");
-	puts("DEBUG END sel_next_hop() (FAILURE)");
-#endif
 			return(FAILURE);
 		}
 
 		do{
 			if( (r=read(sockfd, rtm, MAX_RTPAYLOAD)) < 0){
-				puts("Error in read() call from sel_next_hop()");
+				if(idata->verbose_f)
+					puts("Error in read() call from sel_next_hop()");
 
-#ifdef DEBUG
-	puts("DEBUG: sel_next_hop() read failed");
-	puts("DEBUG: END sel_next_hop() (FAILURE)");
-#endif
 				return(FAILURE);
 			}
-
-			/* The size of the structure should be at least sizof(long) */
-			end= (char *) rtm + r - (sizeof(long) -1);
-
-#ifdef DEBUG
-	puts("DEBUG: sel_next_hop() Received message");
-	printf("DEBUG sel_next_hop() rtm_type: %d (%d), rtm_pid: %d (%d), rtm_seq: %d (%d)\n", rtm->rtm_type, RTM_GET, rtm->rtm_pid, pid, \
-																			rtm->rtm_seq, seq);
-#endif
 		}while( rtm->rtm_type != RTM_GET || rtm->rtm_pid != pid || rtm->rtm_seq != seq);
 
-		queries++;
-
-		/* The rt_msghdr{} structure is fllowed by sockaddr structures */
+		/* The rt_msghdr{} structure is followed by sockaddr structures */
 		sa= (struct sockaddr *) (rtm+1);
 
-		if(rtm->rtm_addrs & RTA_DST){
-#ifdef DEBUG
-	puts("DEBUG: sel_next_hop() RTA_DST was set");
-	print_ipv6_address("RTA_DST: ", &( ((struct sockaddr_in6 *)sa)->sin6_addr));
-#endif
-			SA_NEXT(sa);
-		}
 
-		if(rtm->rtm_addrs & RTA_GATEWAY){
-#ifdef DEBUG
-	puts("DEBUG: sel_next_hop() RTA_GATEWAY was set");
-	printf("DEBUG: Family: %d, size %d, realsize: %lu\n", sa->sa_family, sa->sa_len, SA_SIZE(sa));
-	printf("DEBUG: sizeof(AF_LINK): %lu, sizeof(AF_INET6): %lu\n", sizeof(struct sockaddr_dl), sizeof(struct sockaddr_in6));
-	dump_hex(sa, SA_SIZE(sa));
-#endif
-			if(sa->sa_family == AF_INET6){
-				idata->nhaddr= ((struct sockaddr_in6 *) sa)->sin6_addr;
-				idata->nhaddr_f=TRUE;
-#ifdef DEBUG
-	print_ipv6_address("DEBUG: RTA_GATEWAY: ", &(idata->nhaddr));
-#endif
-			}
-			else if(sa->sa_family == AF_LINK){
-				sockpptr = (struct sockaddr_dl *) (sa);
-				idata->nhifindex= sockpptr->sdl_index;
-				idata->nhifindex_f=TRUE;
-
-				if(if_indextoname(idata->nhifindex, idata->nhiface) == NULL){
-					puts("Error calling if_indextoname() from sel_next_hop()");
-					return(FAILURE);
-				}
-
-#ifdef DEBUG
-	printf("DEBUG: RTA_GATEWAY: Name: %s, Index: %d\n", idata->nhiface, idata->nhifindex);
-#endif
-
-				onlink_f=TRUE;
-			}
-			else{
-
-				do{
-#ifdef DEBUG
-	printf("DEBUG: Family: %d, size %d, realsize: %lu\n", sa->sa_family, sa->sa_len, SA_SIZE(sa));
-	printf("DEBUG: sizeof(AF_LINK): %lu, sizeof(AF_INET6): %lu\n", sizeof(struct sockaddr_dl), sizeof(struct sockaddr_in6));
-	dump_hex(sa, SA_SIZE(sa));
-#endif
-
-					ssize= (sa->sa_len)?sa->sa_len:SA_SIZE(sa);
-
-					if(ssize == sizeof(struct sockaddr_in6)){
-						sa->sa_family= AF_INET6;
-#ifdef DEBUG
-	puts("DEBUG: Assumed AF_INET6");
-#endif
-					}
-					else if(ssize == sizeof(struct sockaddr_dl)){
-						sa->sa_family= AF_LINK;
-#ifdef DEBUG
-	puts("DEBUG: Assumed AF_LINK");
-#endif
-					}
-					else{
-#ifdef DEBUG
-	puts("DEBUG: Could not guess structure type");
-#endif
-					}
-
-					if(sa->sa_family == AF_INET6){
-						idata->nhaddr= ((struct sockaddr_in6 *) sa)->sin6_addr;
-						idata->nhaddr_f=TRUE;
-#ifdef DEBUG
-	print_ipv6_address("DEBUG: RTA_GATEWAY: ", &(idata->nhaddr));
-#endif
-					}
-					else if(sa->sa_family == AF_LINK){
-						sockpptr = (struct sockaddr_dl *) (sa);
-						idata->nhifindex= sockpptr->sdl_index;
-						idata->nhifindex_f=TRUE;
-
-						if(if_indextoname(idata->nhifindex, idata->nhiface) == NULL){
-							puts("Error calling if_indextoname() from sel_next_hop()");
-							return(FAILURE);
+		for(i=0; i<RTAX_MAX; i++) {
+			if (rtm->rtm_addrs & (1 << i)){
+				switch(i){
+					case RTAX_GATEWAY:
+						if(sa->sa_family == AF_INET6){
+							idata->nhaddr= ((struct sockaddr_in6 *) sa)->sin6_addr;
+							idata->nhaddr_f=TRUE;
 						}
+						break;
 
-#ifdef DEBUG
-	printf("DEBUG: RTA_GATEWAY: Name: %s, Index: %d\n", idata->nhiface, idata->nhifindex);
-#endif
+					case RTAX_IFP:
+						if(sa->sa_family == AF_LINK){
+							sockpptr = (struct sockaddr_dl *) (sa);
+							idata->nhifindex= sockpptr->sdl_index;
+							idata->nhifindex_f=TRUE;
 
-						onlink_f=TRUE;
-					}
+							if(if_indextoname(idata->nhifindex, idata->nhiface) == NULL){
+								puts("Error calling if_indextoname() from sel_next_hop()");
+								return(EXIT_FAILURE);
+							}
 
-					SA_NEXT(sa);
-				}while(((void *)sa) < end && sa->sa_family != AF_LINK && sa->sa_family != AF_INET6);
-
-#ifdef DEBUG
-	if(((void *)sa) >= end){
-		puts("DEBUG: Went past the end of the data read");
-	}
-#endif
+							onlink_f=TRUE;
+						}
+						break;
+				}
+				
+				sa = (struct sockaddr *) ((char *) sa + SA_SIZE(sa));
 			}
 		}
-	}while(!onlink_f && queries < 10);
 
-#ifdef DEBUG
-	printf("DEBUG: sel_next_hop() Quitted loop. onlink_f: %d, queries: %d\n", onlink_f, queries);
-#endif
+		queries++;
+	}while(!onlink_f && queries < 10);
 
 	close(sockfd);
 
