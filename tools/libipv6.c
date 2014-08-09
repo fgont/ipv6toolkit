@@ -709,7 +709,7 @@ int find_ipv6_router_full(pcap_t *pfd, struct iface_data *idata){
 			   Check that the IPv6 Source Address of the Router Advertisement is an IPv6 link-local
 			   address.
 			 */
-			if(!IN6_IS_ADDR_LINKLOCAL(&(pkt_ipv6->ip6_src))
+			if(!IN6_IS_ADDR_LINKLOCAL(&(pkt_ipv6->ip6_src)))
 				continue;
 
 			/* 
@@ -1549,29 +1549,29 @@ int is_time_elapsed(struct timeval *curtime, struct timeval *lastprobe, unsigned
  */
 
 int match_ipv6_to_prefixes(struct in6_addr *ipv6addr, struct prefix_list *pf){
-	unsigned int	i, j, full16, rbits;
-	uint16_t	mask;
+	unsigned int	i, j, full32, rbits;
+	uint32_t	mask;
 
 	for(i=0; i < pf->nprefix; i++){
-		full16= (pf->prefix[i])->len/16;
-		for(j=0; j<full16; j++){
-			if(ipv6addr->s6_addr16[j] != (pf->prefix[i])->ip6.s6_addr16[j])
+		full32= (pf->prefix[i])->len/32;
+		for(j=0; j<full32; j++){
+			if(ipv6addr->s6_addr32[j] != (pf->prefix[i])->ip6.s6_addr32[j])
 				break;
 		}
 
-		if(j == full16){
-			if((rbits= (pf->prefix[i])->len%16) == 0)
-				return 1;
+		if(j == full32){
+			if((rbits= (pf->prefix[i])->len%32) == 0)
+				return TRUE;
 			else{
-				mask= 0xffff;
+				mask= 0xffffffff;
 				mask= mask<<rbits;
-				if((pf->prefix[i])->ip6.s6_addr16[full16] == (ipv6addr->s6_addr16[full16] & htons(mask)))
-					return 1;
+				if((pf->prefix[i])->ip6.s6_addr32[full32] == (ipv6addr->s6_addr32[full32] & htonl(mask)))
+					return TRUE;
 			}
 		}
 	}
 
-	return 0;
+	return FALSE;
 }
 
 
@@ -1907,8 +1907,8 @@ void sig_alarm(int num){
  */
 
 struct in6_addr *sel_src_addr_ra(struct iface_data *idata, struct in6_addr *dst){
-	uint16_t	mask16;
-	unsigned int	i, j, full16, rest16;
+	uint32_t	mask32;
+	unsigned int	i, j, full32, rest32;
 	/*
 	   If the destination address is a link-local address, we select our link-local
 	   address as the Source Address. If the dst address is a global unicast address
@@ -1916,8 +1916,7 @@ struct in6_addr *sel_src_addr_ra(struct iface_data *idata, struct in6_addr *dst)
 	   Worst case scenario, we don't have global address and must use our link-local
 	   address.
 	*/   
-
-	if( (dst->s6_addr16[0] & htons(0xffc0)) == htons(0xfe80)){
+	if(IN6_IS_ADDR_LINKLOCAL(dst)){
 		return( &(idata->ip6_local));
 	}
 	else if(IN6_IS_ADDR_MC_LINKLOCAL(dst) || IN6_IS_ADDR_LINKLOCAL(dst)){
@@ -1925,18 +1924,18 @@ struct in6_addr *sel_src_addr_ra(struct iface_data *idata, struct in6_addr *dst)
 	}
 	else if(idata->ip6_global_flag){
 		for(i=0; i < idata->ip6_global.nprefix; i++){
-				full16=(idata->ip6_global.prefix[i])->len / 16;
-				rest16=(idata->ip6_global.prefix[i])->len % 16;
-				mask16 = 0xffff;
+				full32=(idata->ip6_global.prefix[i])->len / 32;
+				rest32=(idata->ip6_global.prefix[i])->len % 32;
+				mask32 = 0xffffffff;
 
-				for(j=0; j < full16; j++)
-					if( dst->s6_addr16[j] != (idata->ip6_global.prefix[i])->ip6.s6_addr16[j])
+				for(j=0; j < full32; j++)
+					if( dst->s6_addr32[j] != (idata->ip6_global.prefix[i])->ip6.s6_addr32[j])
 						break;
 
-				if( (j == full16) && rest16){
-					mask16 = mask16 << (16 - rest16);
+				if( (j == full32) && rest32){
+					mask32 = mask32 << (32 - rest32);
 
-					if( (dst->s6_addr16[full16] & mask16) == ((idata->ip6_global.prefix[i])->ip6.s6_addr16[full16] & mask16))
+					if( (dst->s6_addr32[full32] & htonl(mask32)) == ((idata->ip6_global.prefix[i])->ip6.s6_addr32[full32] & htonl(mask32)))
 						return( &((idata->ip6_global.prefix[i])->ip6));
 				}
 		}
@@ -4408,7 +4407,7 @@ int find_ipv6_router(pcap_t *pfd, struct ether_addr *hsrcaddr, struct in6_addr *
 			   Check that the IPv6 Source Address of the Router Advertisement is an IPv6 link-local
 			   address.
 			 */
-			if(!IN6_IS_ADDR_LINKLOCAL(&(pkt_ipv6->ip6_src))
+			if(!IN6_IS_ADDR_LINKLOCAL(&(pkt_ipv6->ip6_src)))
 				continue;
 
 			/* 
