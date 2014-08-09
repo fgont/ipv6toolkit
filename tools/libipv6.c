@@ -2773,7 +2773,7 @@ int sel_next_hop(struct iface_data *idata){
 		return(FAILURE);
 	}
 }
-#elif defined (__FreeBSD__) || defined(__NetBSD__) || defined (__OpenBSD__) || defined(__APPLE__) || defined(__FreeBSD_kernel__)
+#elif defined (__FreeBSD__) || defined(__NetBSD__) || defined (__OpenBSD__) || defined(__APPLE__) || defined(__FreeBSD_kernel__) || defined(__sun) || defined(sun)
 /*
  * Function: sel_next_hop()
  *
