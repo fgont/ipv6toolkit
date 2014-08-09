@@ -1328,11 +1328,11 @@ struct in6_addr solicited_node(const struct in6_addr *ipv6addr){
 int is_eq_in6_addr(struct in6_addr *ip1, struct in6_addr *ip2){
 	unsigned int i;
 
-	for(i=0; i<8; i++)
-		if(ip1->s6_addr16[i] != ip2->s6_addr16[i])
-			return 0;
+	for(i=0; i<4; i++)
+		if(ip1->s6_addr32[i] != ip2->s6_addr32[i])
+			return FALSE;
 
-	return 1;
+	return TRUE;
 }
 
 
@@ -1346,15 +1346,18 @@ int is_eq_in6_addr(struct in6_addr *ip1, struct in6_addr *ip2){
 
 void generate_slaac_address(struct in6_addr *prefix, struct ether_addr *etheraddr, struct in6_addr *ipv6addr){
 	unsigned int	i;
-	ipv6addr->s6_addr16[0]= htons(0xfe80); /* Link-local unicast prefix */
 
-	for(i=0;i<4;i++)
-		ipv6addr->s6_addr16[i]= prefix->s6_addr16[i];
+	for(i=0;i<2;i++)
+		ipv6addr->s6_addr32[i]= prefix->s6_addr32[i];
 
-	ipv6addr->s6_addr16[4]=  htons(((uint16_t) (etheraddr->a[0] | 0x02) << 8) | etheraddr->a[1]);
-	ipv6addr->s6_addr16[5]=  htons( ((uint16_t)etheraddr->a[2] << 8) | 0xff);
-	ipv6addr->s6_addr16[6]=  htons((uint16_t) 0xfe00 | etheraddr->a[3]);
-	ipv6addr->s6_addr16[7]=  htons(((uint16_t)etheraddr->a[4] << 8) | etheraddr->a[5]);
+	ipv6addr->s6_addr[8]= etheraddr->a[0] | 0x02;
+	ipv6addr->s6_addr[9]= etheraddr->a[1];
+	ipv6addr->s6_addr[10]= etheraddr->a[2];
+	ipv6addr->s6_addr[11]= 0xff;
+	ipv6addr->s6_addr[12]= 0xfe;
+	ipv6addr->s6_addr[13]= etheraddr->a[3];
+	ipv6addr->s6_addr[14]= etheraddr->a[4];
+	ipv6addr->s6_addr[15]= etheraddr->a[5];
 }
 
 
