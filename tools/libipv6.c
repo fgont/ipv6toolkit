@@ -149,33 +149,33 @@ void decode_ipv6_address(struct decode6 *addr){
 		addr->iidtype= IID_UNSPECIFIED;
 		addr->iidsubtype= IID_UNSPECIFIED;
 
-		if((addr->ip6.s6_addr16[0] & htons(0xff00)) == htons(0xff00)){
-			if((addr->ip6.s6_addr16[0] & htons(0xfff0)) == htons(0xff00)){
+		if((addr->ip6.s6_addr32[0] & htonl(0xff000000)) == htonl(0xff000000)){
+			if((addr->ip6.s6_addr32[0] & htonl(0xfff00000)) == htonl(0xff00)){
 				addr->subtype= MCAST_PERMANENT;
 			}
-			else if((addr->ip6.s6_addr16[0] & htons(0xfff0)) == htons(0xff10)){
+			else if((addr->ip6.s6_addr32[0] & htonl(0xfff00000)) == htonl(0xff100000)){
 				addr->subtype= MCAST_NONPERMANENT;
 			}
-			else if((addr->ip6.s6_addr16[0] & htons(0xfff0)) == htons(0xff20)){
+			else if((addr->ip6.s6_addr32[0] & htonl(0xfff00000)) == htonl(0xff200000)){
 				addr->subtype= MCAST_INVALID;
 			}
-			else if((addr->ip6.s6_addr16[0] & htons(0xfff0)) == htons(0xff30)){
+			else if((addr->ip6.s6_addr32[0] & htonl(0xfff00000)) == htonl(0xff300000)){
 				addr->subtype= MCAST_UNICASTBASED;
 			}
-			else if((addr->ip6.s6_addr16[0] & htons(0xfff0)) == htons(0xff40)){
+			else if((addr->ip6.s6_addr32[0] & htonl(0xfff00000)) == htonl(0xff400000)){
 				addr->subtype= MCAST_INVALID;
 			}
-			else if((addr->ip6.s6_addr16[0] & htons(0xfff0)) == htons(0xff50)){
+			else if((addr->ip6.s6_addr32[0] & htonl(0xfff00000)) == htonl(0xff500000)){
 				addr->subtype= MCAST_INVALID;
 			}
-			else if((addr->ip6.s6_addr16[0] & htons(0xfff0)) == htons(0xff60)){
+			else if((addr->ip6.s6_addr32[0] & htonl(0xfff00000)) == htonl(0xff600000)){
 				addr->subtype= MCAST_INVALID;
 			}
-			else if((addr->ip6.s6_addr16[0] & htons(0xfff0)) == htons(0xff70)){
+			else if((addr->ip6.s6_addr32[0] & htonl(0xfff00000)) == htonl(0xff700000)){
 				addr->subtype= MCAST_EMBEDRP;
 			}
 
-			scope= htons(addr->ip6.s6_addr16[0]) & 0x000f;
+			scope= (htonl(addr->ip6.s6_addr32[0]) & 0x000f0000) >> 16;
 
 			switch(scope){
 				case 0:
@@ -257,10 +257,10 @@ void decode_ipv6_address(struct decode6 *addr){
 			addr->scope= SCOPE_GLOBAL;
 
 			/* If the U or G bytes are set, the IID type is unknown */
-			if(ntohs(addr->ip6.s6_addr16[4]) & 0x0300){
+			if(ntohl(addr->ip6.s6_addr32[2]) & 0x03000000){
 				addr->iidtype= IID_TEREDO_UNKNOWN;
 			}
-			else if(ntohs(addr->ip6.s6_addr16[4]) & 0x3cff){
+			else if(ntohs(addr->ip6.s6_addr32[2]) & 0x3cff0000){
 				addr->iidtype= IID_TEREDO_RFC5991;
 			}
 			else{
@@ -285,23 +285,23 @@ void decode_ipv6_address(struct decode6 *addr){
 				/* We assume the u bit can be o o 1, but the i/g bit must be 0 */
 				addr->iidtype= IID_ISATAP;
 			}
-			else if(addr->ip6.s6_addr32[2] == 0 && (addr->ip6.s6_addr16[6] & htons(0xff00)) != 0 && addr->ip6.s6_addr16[7] != 0){
+			else if(addr->ip6.s6_addr32[2] == 0 && (addr->ip6.s6_addr32[3] & htonl(0xff000000)) != 0 && (ntohl(addr->ip6.s6_addr32[3]) & 0x0000ffff) != 0){
 				addr->iidtype= IID_EMBEDDEDIPV4;
 				addr->iidsubtype= IID_EMBEDDEDIPV4_32;
 			}
 			else if(addr->ip6.s6_addr32[2] == 0 && \
-			          ((addr->ip6.s6_addr16[6] & htons(0xff00)) == 0 && is_service_port(ntohs(addr->ip6.s6_addr16[7])))){
+			          ((addr->ip6.s6_addr32[3] & htonl(0xff000000)) == 0 && is_service_port(ntohl(addr->ip6.s6_addr32[3]) & 0x0000ffff))){
 				addr->iidtype= IID_EMBEDDEDPORT;
 			}
 			else if(addr->ip6.s6_addr32[2] == 0 && \
-			        	         ((addr->ip6.s6_addr16[7] & htons(0xff00)) == 0 && is_service_port(ntohs(addr->ip6.s6_addr16[6])))){
+			        	         ((addr->ip6.s6_addr32[3] & htonl(0x0000ff00)) == 0 && is_service_port(ntohl(addr->ip6.s6_addr32[3]) >> 16))){
 				addr->iidtype= IID_EMBEDDEDPORTREV;
 			}
-			else if(addr->ip6.s6_addr32[2] == 0 && (addr->ip6.s6_addr16[6] & htons(0xff00)) == 0 && addr->ip6.s6_addr16[7] != 0){
+			else if(addr->ip6.s6_addr32[2] == 0 && (addr->ip6.s6_addr16[3] & htonl(0xff000000)) == 0 && (ntohl(addr->ip6.s6_addr32[3]) & 0x0000ffff) != 0){
 				addr->iidtype= IID_LOWBYTE;
 			}
-			else if( ntohs(addr->ip6.s6_addr16[4]) <= 0x255 && ntohs(addr->ip6.s6_addr16[5]) <= 0x255 && \
-					ntohs(addr->ip6.s6_addr16[6]) <= 0x255 && ntohs(addr->ip6.s6_addr16[7]) <= 0x255){
+			else if( (ntohl(addr->ip6.s6_addr32[2]) >> 16) <= 0x255 && (ntohl(addr->ip6.s6_addr32[2]) & 0x0000ffff) <= 0x255 && \
+					 (ntohl(addr->ip6.s6_addr32[3]) >> 16) <= 0x255 && (ntohl(addr->ip6.s6_addr32[3]) & 0x0000ffff) <= 0x255){
 				addr->iidtype= IID_EMBEDDEDIPV4;
 				addr->iidsubtype= IID_EMBEDDEDIPV4_64;
 			}
@@ -887,18 +887,18 @@ int ether_ntop(const struct ether_addr *ether, char *ascii, size_t s){
  */
 
 void ether_to_ipv6_linklocal(struct ether_addr *etheraddr, struct in6_addr *ipv6addr){
-	unsigned int i;
-	ipv6addr->s6_addr16[0]= htons(0xfe80); /* Link-local unicast prefix */
+	ipv6addr->s6_addr32[0]= htonl(0xfe800000); /* Link-local unicast prefix */
+	ipv6addr->s6_addr32[1]= htonl(0x00000000);
 
-	for(i=1;i<4;i++)
-		ipv6addr->s6_addr16[i]=0x0000;
-
-	ipv6addr->s6_addr16[4]=  htons(((uint16_t)etheraddr->a[0] << 8) | etheraddr->a[1]);
-	ipv6addr->s6_addr16[5]=  htons( ((uint16_t)etheraddr->a[2] << 8) | 0xff);
-	ipv6addr->s6_addr16[6]=  htons((uint16_t) 0xfe00 | etheraddr->a[3]);
-	ipv6addr->s6_addr16[7]=  htons(((uint16_t)etheraddr->a[4] << 8) | etheraddr->a[5]);
+	ipv6addr->s6_addr[8]= etheraddr->a[0] | 0x02;
+	ipv6addr->s6_addr[9]= etheraddr->a[1];
+	ipv6addr->s6_addr[10]= etheraddr->a[2];
+	ipv6addr->s6_addr[11]= 0xff;
+	ipv6addr->s6_addr[12]= 0xfe;
+	ipv6addr->s6_addr[13]= etheraddr->a[3];
+	ipv6addr->s6_addr[14]= etheraddr->a[4];
+	ipv6addr->s6_addr[15]= etheraddr->a[5];
 }
-
 
 
 
@@ -1305,14 +1305,9 @@ int ipv6_to_ether(pcap_t *pfd, struct iface_data *idata, struct in6_addr *target
 struct in6_addr solicited_node(const struct in6_addr *ipv6addr){
 	struct in6_addr solicited;
 
-	solicited.s6_addr16[0]= htons(0xff02);
-	solicited.s6_addr16[1]= 0x0000;
-	solicited.s6_addr16[2]= 0x0000;
-	solicited.s6_addr16[3]= 0x0000;
-	solicited.s6_addr16[4]= 0x0000;
-	solicited.s6_addr16[5]= htons(0x0001);
-	solicited.s6_addr16[6]= htons(0xff00) | ipv6addr->s6_addr16[6];
-	solicited.s6_addr16[7]= ipv6addr->s6_addr16[7];
+	solicited.s6_addr32[0]= htonl(0xff020000);
+	solicited.s6_addr32[2]= htonl(0x00000001);
+	solicited.s6_addr32[3]= htonl(0xff000000) | ipv6addr->s6_addr32[3];
 
 	return solicited;
 }
