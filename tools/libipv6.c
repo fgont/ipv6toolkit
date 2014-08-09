@@ -2819,9 +2819,6 @@ int sel_next_hop(struct iface_data *idata){
 	idata->nhaddr= idata->dstaddr;
 
 	do{
-		if(debug_f)
-			printf("DEBUG: %u SOCKET_RAW query\n", queries+1);
-
 		rtm= (struct rt_msghdr *) reply;
 		memset(rtm, 0, sizeof(struct rt_msghdr));
 		rtm->rtm_msglen= sizeof(struct rt_msghdr) + sizeof(struct sockaddr_in6);
@@ -2835,7 +2832,7 @@ int sel_next_hop(struct iface_data *idata){
 		memset(sin6, 0, sizeof(struct sockaddr_in6));
 		sin6->sin6_len= sizeof(struct sockaddr_in6);
 		sin6->sin6_family= AF_INET6;
-		sin6->sin6_addr= nhaddr;
+		sin6->sin6_addr= idata->nhaddr;
 
 		if(write(sockfd, rtm, rtm->rtm_msglen) == -1){
 			if(idata->verbose_f)
