@@ -800,14 +800,19 @@ struct next_hop{
 #define IFACE_TUNNEL			2
 
 #ifndef SA_SIZE
+#if defined(__APPLE__)
+#define SA_SIZE(sa)                                            \
+        (  (!(sa) || ((struct sockaddr *)(sa))->sa_len == 0) ?  \
+           sizeof(long)         :                               \
+           ((struct sockaddr *)(sa))->sa_len )
+#elif defined (__FreeBSD__) || defined(__NetBSD__) || defined (__OpenBSD__)
 #define SA_SIZE(sa)                                            \
         (  (!(sa) || ((struct sockaddr *)(sa))->sa_len == 0) ?  \
            sizeof(long)         :                               \
            1 + ( (((struct sockaddr *)(sa))->sa_len - 1) | (sizeof(long) - 1) ) )
+#else
+	#define SA_SIZE(sa) sizeof(struct sockaddr)
 #endif
-
-#ifndef SA_NEXT
-#define SA_NEXT(sa) (sa= (struct sockaddr *) ( (char *) sa + SA_SIZE(sa)))
 #endif
 
 int					address_contains_colons(char *);
