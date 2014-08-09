@@ -1166,8 +1166,8 @@ int init_host_list(struct hashed_host_list *hlist){
  */
 
 uint16_t key(struct hashed_host_list *hlist, struct in6_addr *ipv6){
-		return( ((hlist->key_l ^ ipv6->s6_addr16[0] ^ ipv6->s6_addr16[7]) \
-				^ (hlist->key_h ^ ipv6->s6_addr16[1] ^ ipv6->s6_addr16[6])) % MAX_LIST_ENTRIES);
+		return( ((hlist->key_l ^ (uint16_t)(ntohl(ipv6->s6_addr32[0]) >> 16) ^ (uint16_t)(ntohl(ipv6->s6_addr32[3]) & 0x0000ffff)) \
+				^ (hlist->key_h ^ (uint16_t)(ntohl(ipv6->s6_addr32[0]) >> 16) ^ (uint16_t)(ipv6->s6_addr32[3] >> 16))) % MAX_LIST_ENTRIES);
 }
 
 
