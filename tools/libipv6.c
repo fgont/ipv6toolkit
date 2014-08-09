@@ -45,7 +45,7 @@
 	#include <linux/netlink.h>
 	#include <linux/rtnetlink.h>
 	#include <netpacket/packet.h>   /* For datalink structure */
-#elif defined (__FreeBSD__) || defined(__NetBSD__) || defined (__OpenBSD__) || defined(__APPLE__) || defined(__FreeBSD_kernel__)
+#elif defined (__FreeBSD__) || defined(__NetBSD__) || defined (__OpenBSD__) || defined(__APPLE__) || defined(__FreeBSD_kernel__) || defined(__sun) || defined(sun)
 	#include <net/if_dl.h>
 	#include <net/route.h>
 #endif
