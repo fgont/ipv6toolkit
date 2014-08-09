@@ -1392,7 +1392,7 @@ int get_if_addrs(struct iface_data *idata){
 				sockpptr = (struct sockaddr_ll *) (ptr->ifa_addr);
 				if(sockpptr->sll_halen == ETHER_ADDR_LEN){
 					memcpy((idata->ether).a, sockpptr->sll_addr, ETHER_ADDR_LEN);
-					idata->ether_flag=1;
+					idata->ether_flag=TRUE;
 				}
 			}
 		}
@@ -1402,7 +1402,7 @@ int get_if_addrs(struct iface_data *idata){
 				sockpptr = (struct sockaddr_dl *) (ptr->ifa_addr);
 				if(sockpptr->sdl_alen == ETHER_ADDR_LEN){
 					memcpy((idata->ether).a, (sockpptr->sdl_data + sockpptr->sdl_nlen), ETHER_ADDR_LEN);
-					idata->ether_flag= 1;
+					idata->ether_flag=TRUE;
 				}
 			}
 		}
@@ -1410,8 +1410,7 @@ int get_if_addrs(struct iface_data *idata){
 		else if((ptr->ifa_addr)->sa_family == AF_INET6){
 			sockin6ptr= (struct sockaddr_in6 *) (ptr->ifa_addr);
 
-			if( !(idata->ip6_local_flag) &&  (((sockin6ptr->sin6_addr).s6_addr16[0] & htons(0xffc0)) \
-															== htons(0xfe80))){
+			if( !(idata->ip6_local_flag) &&  IN6_IS_ADDR_LINKLOCAL(&(sockin6ptr->sin6_addr))){
 				if(strncmp(idata->iface, ptr->ifa_name, IFACE_LENGTH-1) == 0){
 					idata->ip6_local = sockin6ptr->sin6_addr;
 #if defined (__FreeBSD__) || defined(__NetBSD__) || defined (__OpenBSD__) || defined(__APPLE__) || defined(__FreeBSD_kernel__)
@@ -1420,10 +1419,10 @@ int get_if_addrs(struct iface_data *idata){
 					idata->ip6_local.s6_addr16[2] =0;
 					idata->ip6_local.s6_addr16[3] =0;					
 #endif
-					idata->ip6_local_flag= 1;
+					idata->ip6_local_flag= TRUE;
 				}
 			}
-			else if( ((sockin6ptr->sin6_addr).s6_addr16[0] & htons(0xffc0)) != htons(0xfe80)){
+			else if(!IN6_IS_ADDR_LINKLOCAL(&(sockin6ptr->sin6_addr))){
 				if(strncmp(idata->iface, ptr->ifa_name, IFACE_LENGTH-1) == 0){
 					if(IN6_IS_ADDR_LOOPBACK(&(sockin6ptr->sin6_addr)))
 						idata->flags = IFACE_LOOPBACK;
@@ -1442,7 +1441,7 @@ int get_if_addrs(struct iface_data *idata){
 							(idata->ip6_global.prefix[idata->ip6_global.nprefix])->len = 64;
 							(idata->ip6_global.prefix[idata->ip6_global.nprefix])->ip6 = sockin6ptr->sin6_addr;
 							idata->ip6_global.nprefix++;
-							idata->ip6_global_flag= 1;
+							idata->ip6_global_flag= TRUE;
 						}
 					}
 				}
@@ -1472,16 +1471,16 @@ int is_ip6_in_address_list(struct prefix_list *plist, struct in6_addr *target){
 	unsigned int i, j;
 
 	for(i=0; i < plist->nprefix; i++){
-		for(j=0; j < 8; j++){
-			if(target->s6_addr16[j] != (plist->prefix[i])->ip6.s6_addr16[j])
+		for(j=0; j<4; j++){
+			if(target->s6_addr32[j] != (plist->prefix[i])->ip6.s6_addr32[j])
 				break;
 		}
 
-		if(j == 8)
-			return 1;
+		if(j == 4)
+			return TRUE;
 	}
 
-	return 0;
+	return FALSE;
 }
 
 
@@ -1494,31 +1493,31 @@ int is_ip6_in_address_list(struct prefix_list *plist, struct in6_addr *target){
  */
 
 int is_ip6_in_prefix_list(struct in6_addr *target, struct prefix_list *plist){
-	unsigned int i, j, full16, rest16;
-	uint16_t	mask16;
+	unsigned int i, j, full32, rest32;
+	uint32_t	mask32;
 
 	for(i=0; i < plist->nprefix; i++){
-		full16=(plist->prefix[i])->len / 16;
-		rest16=(plist->prefix[i])->len % 16;
-		mask16 = 0xffff;
+		full32=(plist->prefix[i])->len / 32;
+		rest32=(plist->prefix[i])->len % 32;
+		mask32 = 0xffffffff;
 
-		for(j=0; j < full16; j++)
-			if(target->s6_addr16[j] != (plist->prefix[i])->ip6.s6_addr16[j])
+		for(j=0; j < full32; j++)
+			if(target->s6_addr32[j] != (plist->prefix[i])->ip6.s6_addr32[j])
 				break;
 
-		if(j == full16){
-			if(rest16 == 0)
-				return 1;
+		if(j == full32){
+			if(rest32 == 0)
+				return TRUE;
 			else{
-				mask16 = mask16 << (16 - rest16);
+				mask32 = mask32 << (32 - rest32);
 
-				if( (target->s6_addr16[full16] & mask16) == ((plist->prefix[i])->ip6.s6_addr16[full16] & mask16))
-					return 1;
+				if( (target->s6_addr32[full32] & htonl(mask32)) == ((plist->prefix[i])->ip6.s6_addr32[full32] & htonl(mask32)))
+					return TRUE;
 			}
 		}
 	}
 
-	return 0;
+	return FALSE;
 }
 
 
