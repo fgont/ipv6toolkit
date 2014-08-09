@@ -2790,9 +2790,6 @@ int sel_next_hop(struct iface_data *idata){
 	ssize_t				r;
 	unsigned int		queries=0, i;
 	char				reply[MAX_RTPAYLOAD];
-#if defined(__APPLE__)
-	char				aflink_f= FALSE;
-#endif
 	struct rt_msghdr	*rtm;
 	struct sockaddr_in6	*sin6;
 	struct	sockaddr_dl	*sockpptr;
@@ -2828,7 +2825,9 @@ int sel_next_hop(struct iface_data *idata){
 
 		sin6= (struct sockaddr_in6 *) (rtm + 1);
 		memset(sin6, 0, sizeof(struct sockaddr_in6));
+#ifdef SIN6_LEN
 		sin6->sin6_len= sizeof(struct sockaddr_in6);
+#endif
 		sin6->sin6_family= AF_INET6;
 		sin6->sin6_addr= idata->nhaddr;
 
@@ -2850,7 +2849,6 @@ int sel_next_hop(struct iface_data *idata){
 
 		/* The rt_msghdr{} structure is followed by sockaddr structures */
 		sa= (struct sockaddr *) (rtm+1);
-
 
 		for(i=0; i<RTAX_MAX; i++) {
 			if (rtm->rtm_addrs & (1 << i)){
@@ -2878,7 +2876,14 @@ int sel_next_hop(struct iface_data *idata){
 						break;
 				}
 				
+#if defined(sun) || defined(__sun)
+				if(i==RTAX_IFP || i==RTAX_IFA)
+					sa = (struct sockaddr *) ((char *) sa + sizeof(struct sockaddr_dl));
+				else
+					sa = (struct sockaddr *) ((char *) sa + sizeof(struct sockaddr_in6));
+#else
 				sa = (struct sockaddr *) ((char *) sa + SA_SIZE(sa));
+#endif
 			}
 		}
 
@@ -2888,12 +2893,14 @@ int sel_next_hop(struct iface_data *idata){
 	close(sockfd);
 
 	if(idata->nhifindex_f){
+#if defined (__FreeBSD__) || defined(__NetBSD__) || defined (__OpenBSD__) || defined(__APPLE__) || defined(__FreeBSD_kernel__)
 		if(IN6_IS_ADDR_LINKLOCAL(&(idata->nhaddr))){
 			/* BSDs store the interface index in s6_addr16[1], so we must clear it */
 			idata->nhaddr.s6_addr16[1] =0;
 			idata->nhaddr.s6_addr16[2] =0;
 			idata->nhaddr.s6_addr16[3] =0;
 		}
+#endif
 
 #ifdef DEBUG
 	puts("DEBUG: END sel_next_hop() (SUCCESS)");
