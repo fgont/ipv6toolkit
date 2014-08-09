@@ -518,7 +518,7 @@ int main(int argc, char **argv){
 				}
 				else{
 					if( (ntohl(pkt_ns->nd_ns_target.s6_addr32[2]) & 0x0000ffff) != addr_sig || \
-						(ntohl(pkt_ns->nd_ns_target.s6_addr32[3]) & 0x0000ffff) != ( (ntohl(pkt_ns->nd_ns_target.s6_addr32[3])>>16) ^ addr_key)){
+						(ntohl(pkt_ns->nd_ns_target.s6_addr32[3]) & 0x0000ffff) != ( (ntohl(pkt_ns->nd_ns_target.s6_addr32[3])>>16) ^ addr_key))
 						continue;
 
 					if(send_neighbor_advert(&idata, idata.pfd, pktdata) == -1){
