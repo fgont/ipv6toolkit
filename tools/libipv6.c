@@ -709,7 +709,7 @@ int find_ipv6_router_full(pcap_t *pfd, struct iface_data *idata){
 			   Check that the IPv6 Source Address of the Router Advertisement is an IPv6 link-local
 			   address.
 			 */
-			if( (pkt_ipv6->ip6_src.s6_addr16[0] & htons(0xffc0)) != htons(0xfe80))
+			if(!IN6_IS_ADDR_LINKLOCAL(&(pkt_ipv6->ip6_src))
 				continue;
 
 			/* 
@@ -1785,29 +1785,29 @@ void randomize_ether_addr(struct ether_addr *ethaddr){
  */
 
 void randomize_ipv6_addr(struct in6_addr *ipv6addr, struct in6_addr *prefix, uint8_t preflen){
-	uint16_t mask;
+	uint32_t mask;
 	uint8_t startrand;	
 	unsigned int i;
 
-	startrand= preflen/16;
+	startrand= preflen/32;
 
 	for(i=0; i<startrand; i++)
-		ipv6addr->s6_addr16[i]= 0;
+		ipv6addr->s6_addr32[i]= 0;
 
-	for(i=startrand; i<8; i++)
-		ipv6addr->s6_addr16[i]=random();
+	for(i=startrand; i<4; i++)
+		ipv6addr->s6_addr32[i]=random();
 
-	if(preflen%16){
-		mask=0xffff;
+	if(preflen%32){
+		mask=0xffffffff;
 
-		for(i=0; i<(preflen%16); i++)
+		for(i=0; i<(preflen%32); i++)
 			mask= mask>>1;
 
-		ipv6addr->s6_addr16[startrand]= ipv6addr->s6_addr16[startrand] & htons(mask);
+		ipv6addr->s6_addr32[startrand]= ipv6addr->s6_addr32[startrand] & htonl(mask);
 	}
 
-	for(i=0; i<=(preflen/16); i++)
-		ipv6addr->s6_addr16[i]= ipv6addr->s6_addr16[i] | prefix->s6_addr16[i];
+	for(i=0; i<=(preflen/32); i++)
+		ipv6addr->s6_addr32[i]= ipv6addr->s6_addr32[i] | prefix->s6_addr32[i];
 
 }
 
@@ -4408,7 +4408,7 @@ int find_ipv6_router(pcap_t *pfd, struct ether_addr *hsrcaddr, struct in6_addr *
 			   Check that the IPv6 Source Address of the Router Advertisement is an IPv6 link-local
 			   address.
 			 */
-			if( (pkt_ipv6->ip6_src.s6_addr16[0] & htons(0xffc0)) != htons(0xfe80))
+			if(!IN6_IS_ADDR_LINKLOCAL(&(pkt_ipv6->ip6_src))
 				continue;
 
 			/* 
