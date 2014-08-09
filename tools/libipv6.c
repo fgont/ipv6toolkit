@@ -297,7 +297,7 @@ void decode_ipv6_address(struct decode6 *addr){
 			        	         ((addr->ip6.s6_addr32[3] & htonl(0x0000ff00)) == 0 && is_service_port(ntohl(addr->ip6.s6_addr32[3]) >> 16))){
 				addr->iidtype= IID_EMBEDDEDPORTREV;
 			}
-			else if(addr->ip6.s6_addr32[2] == 0 && (addr->ip6.s6_addr16[3] & htonl(0xff000000)) == 0 && (ntohl(addr->ip6.s6_addr32[3]) & 0x0000ffff) != 0){
+			else if(addr->ip6.s6_addr32[2] == 0 && (addr->ip6.s6_addr32[3] & htonl(0xff000000)) == 0 && (ntohl(addr->ip6.s6_addr32[3]) & 0x0000ffff) != 0){
 				addr->iidtype= IID_LOWBYTE;
 			}
 			else if( (ntohl(addr->ip6.s6_addr32[2]) >> 16) <= 0x255 && (ntohl(addr->ip6.s6_addr32[2]) & 0x0000ffff) <= 0x255 && \
