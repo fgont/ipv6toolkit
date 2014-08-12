@@ -1200,7 +1200,7 @@ int send_packet(struct iface_data *idata, struct pcap_pkthdr *pkthdr, const u_ch
 		   option), and the Ethernet is set to that specified by the "-S" option (or randomized).
 		 */
 		if(IN6_IS_ADDR_MULTICAST(pkt_ipv6addr)){
-			if( !idata->srcaddr_f && ((pkt_ns->nd_ns_target.s6_addr16[0] & htons(0xffc0)) == htons(0xfe80)) )
+			if( !idata->srcaddr_f && IN6_IS_ADDR_LINKLOCAL(&(pkt_ns->nd_ns_target)) )
 				ipv6->ip6_src = pkt_ns->nd_ns_target;
 			else
 				ipv6->ip6_src = idata->srcaddr;
@@ -1245,28 +1245,7 @@ int send_packet(struct iface_data *idata, struct pcap_pkthdr *pkthdr, const u_ch
 				   Randomizing the ND Target Address based on the prefix specified by "targetaddr" 
 				   and targetpreflen.
 				 */  
-				startrand= targetpreflen/16;
-
-				for(i=0; i<startrand; i++)
-					na->nd_na_target.s6_addr16[i]= 0;
-
-				for(i=startrand; i<8; i++)
-					na->nd_na_target.s6_addr16[i]=random();
-
-				if(targetpreflen%16){
-					mask=0xffff;
-
-					for(i=0; i<(targetpreflen%16); i++)
-						mask= mask>>1;
-
-					na->nd_na_target.s6_addr16[startrand]= na->nd_na_target.s6_addr16[startrand] \
-													& htons(mask);
-				}
-
-				for(i=0; i<=(targetpreflen/16); i++)
-					na->nd_na_target.s6_addr16[i]= na->nd_na_target.s6_addr16[i] | \
-										targetaddr.s6_addr16[i];
-
+				randomize_ipv6_address(&(na->nd_na_target), &targetaddr, targetpreflen);
 			}
 
 			/*
