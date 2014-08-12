@@ -63,11 +63,11 @@ void				print_attack_info(struct iface_data *);
 void				usage(void);
 void				print_help(void);
 void				frag_and_send(struct iface_data *);
-unsigned int		queue_data(struct queue *, unsigned char *, unsigned int);
-unsigned int		dequeue_data(struct queue *, unsigned char *, unsigned int);
-unsigned int		queue_copy(struct queue *, unsigned char *, unsigned int, unsigned char *, unsigned int);
-unsigned int		queue_remove(struct queue *, unsigned char *, unsigned int);
-void				queue_purge( struct queue *);
+unsigned int		queue_data(struct tcp_queue *, unsigned char *, unsigned int);
+unsigned int		dequeue_data(struct tcp_queue *, unsigned char *, unsigned int);
+unsigned int		queue_copy(struct tcp_queue *, unsigned char *, unsigned int, unsigned char *, unsigned int);
+unsigned int		queue_remove(struct tcp_queue *, unsigned char *, unsigned int);
+void				queue_purge( struct tcp_queue *);
 int					tcp_init(struct tcp *);
 int					tcp_open(struct iface_data *, struct tcp *, unsigned int);
 int					tcp_close(struct iface_data *, struct tcp *);
@@ -2509,7 +2509,7 @@ void print_attack_info(struct iface_data *idata){
  * Puts data into a queue
  */
 
-unsigned int queue_data(struct queue *q, unsigned char *data, unsigned int nbytes){
+unsigned int queue_data(struct tcp_queue *q, unsigned char *data, unsigned int nbytes){
 	unsigned int	fbytes, nleft;
 
 	/*
@@ -2572,7 +2572,7 @@ unsigned int queue_data(struct queue *q, unsigned char *data, unsigned int nbyte
  * Reads data from a queue
  */
 
-unsigned int dequeue_data(struct queue *q, unsigned char *data, unsigned int nbytes){
+unsigned int dequeue_data(struct tcp_queue *q, unsigned char *data, unsigned int nbytes){
 	unsigned int	dbytes, nleft;
 
 	/*
@@ -2640,7 +2640,7 @@ unsigned int dequeue_data(struct queue *q, unsigned char *data, unsigned int nby
  * Copies data from queue, without removing it
  */
 
-unsigned int queue_copy(struct queue *q, unsigned char *org, unsigned int offset, unsigned char *data, unsigned int nbytes){
+unsigned int queue_copy(struct tcp_queue *q, unsigned char *org, unsigned int offset, unsigned char *data, unsigned int nbytes){
 	unsigned int	dbytes, nleft;
 
 	if(org+offset >= (q->data + q->size)){
@@ -2700,7 +2700,7 @@ unsigned int queue_copy(struct queue *q, unsigned char *org, unsigned int offset
  * by the remote TCP endpoint.
  */
 
-unsigned int queue_remove(struct queue *q, unsigned char *data, unsigned int nbytes){
+unsigned int queue_remove(struct tcp_queue *q, unsigned char *data, unsigned int nbytes){
 	unsigned int	dbytes, nleft;
 
 	/*

@@ -53,8 +53,8 @@
 #define TCP_INPUT_BUFFER_SIZE	TCP_BUFFER_SIZE
 #define TCP_OUTPUT_BUFFER_SIZE	TCP_BUFFER_SIZE
 
-/*
-struct queue{
+
+struct tcp_queue{
 	unsigned char	data[TCP_BUFFER_SIZE];
 	unsigned char	*in;
 	unsigned char	*out;
@@ -62,7 +62,7 @@ struct queue{
 	unsigned int	data;
 	unsigned int	free;
 };
-*/
+
 
 struct tcp{
 	struct in6_addr	srcaddr;
@@ -70,11 +70,11 @@ struct tcp{
 	uint16_t		srcport;
 	uint16_t		dstport;
 
-	struct queue	in;
+	struct tcp_queue	in;
 	uint32_t		rcv_nxt;
 	uint32_t		rcv_nxtwnd;	
 
-	struct queue	out;
+	struct tcp_queue	out;
 	unsigned char	*out_una;
 	unsigned char	*out_nxt;    /*  una         nxt  */
 	uint32_t		snd_una;
