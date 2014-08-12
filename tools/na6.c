@@ -875,11 +875,12 @@ int main(int argc, char **argv){
 	   select the random Target Addresses from the link-local unicast prefix (fe80::/64).
 	 */
 	if(floodt_f && !targetprefix_f){
-		targetaddr.s6_addr16[0]= htons(0xfe80); /* Link-local unicast prefix */
+		if ( inet_pton(AF_INET6, "fe80::", &targetaddr) <= 0){
+			puts("inet_pton(): Error when converting address");
+			exit(EXIT_FAILURE);
+		}
 
-		for(i=1;i<8;i++)
-			targetaddr.s6_addr16[i]=0x0000;
-	
+		randomize_ipv6_addr(&targetaddr, &targetaddr, 64);
 		targetpreflen=64;
 	}
 
