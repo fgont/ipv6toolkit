@@ -50,6 +50,7 @@
 	#include <net/route.h>
 #endif
 
+#include <limits.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <errno.h>
