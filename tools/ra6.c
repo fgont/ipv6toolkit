@@ -106,7 +106,7 @@ unsigned long				ul_res, ul_val;
 unsigned int				i, j, startrand, sources, nsources, prefixes, routes, mtus;
 unsigned int				nfloodp, nfloodr, endrand;
 unsigned int				nfloodda, nflooddoa, nsleep;
-uint16_t					mask;
+uint32_t					mask;
 uint8_t					prefixlen[MAX_PREFIX_OPTION];
 uint32_t					prefixvalid[MAX_PREFIX_OPTION];
 uint32_t					prefixpref[MAX_PREFIX_OPTION];
@@ -1587,23 +1587,22 @@ void send_packet(struct iface_data *idata, const u_char *pktdata){
 		    prefixopt->nd_opt_pi_preferred_time = htonl(prefixpref[0]);
 		    prefixopt->nd_opt_pi_reserved2 = 0;
 
-		    endrand= (prefixlen[0]+15)/16;
+		    endrand= (prefixlen[0]+31)/32;
 
 		    for(i=0; i<endrand; i++)
-			prefixopt->nd_opt_pi_prefix.s6_addr16[i]=random();
+			prefixopt->nd_opt_pi_prefix.s6_addr32[i]=random();
 
-		    if(prefixlen[0]%16){
+		    if(prefixlen[0]%32){
 			mask=0;
-			for(i=0; i<(prefixlen[0]%16); i++)
-			    mask= (mask>>1) | 0x8000;
+			for(i=0; i<(prefixlen[0]%32); i++)
+			    mask= (mask>>1) | 0x80000000;
 		    
-			prefixopt->nd_opt_pi_prefix.s6_addr16[endrand-1]= \
-				prefixopt->nd_opt_pi_prefix.s6_addr16[endrand-1] & htons(mask);
+			prefixopt->nd_opt_pi_prefix.s6_addr32[endrand-1]= \
+				prefixopt->nd_opt_pi_prefix.s6_addr32[endrand-1] & htonl(mask);
 		    }
 			
-		    for(i=endrand;i<8;i++)
-			prefixopt->nd_opt_pi_prefix.s6_addr16[i]=0;
-			    
+		    for(i=endrand;i<4;i++)
+			prefixopt->nd_opt_pi_prefix.s6_addr32[i]=0;	    
 		}
 		
 		ptr += sizeof(struct nd_opt_prefix_info);
@@ -1630,22 +1629,22 @@ void send_packet(struct iface_data *idata, const u_char *pktdata){
 		    routeopt->nd_opt_ri_prefix_len= routelen[0];
 		    routeopt->nd_opt_ri_lifetime = htonl(routelife[0]);
 
-		    endrand= (routelen[0]+15)/16;
+		    endrand= (routelen[0]+31)/32;
 
 		    for(i=0; i<endrand; i++)
-			routeopt->nd_opt_ri_prefix.s6_addr16[i]=random();
+			routeopt->nd_opt_ri_prefix.s6_addr32[i]=random();
 
-		    if(routelen[0]%16){
+		    if(routelen[0]%32){
 			mask=0;
-			for(i=0; i<(routelen[0]%16); i++)
-			    mask= (mask>>1) | 0x8000;
+			for(i=0; i<(routelen[0]%32); i++)
+			    mask= (mask>>1) | 0x80000000;
 		    
-			routeopt->nd_opt_ri_prefix.s6_addr16[endrand-1]= \
-				routeopt->nd_opt_ri_prefix.s6_addr16[endrand-1] & htons(mask);
+			routeopt->nd_opt_ri_prefix.s6_addr32[endrand-1]= \
+				routeopt->nd_opt_ri_prefix.s6_addr32[endrand-1] & htonl(mask);
 		    }
 			
-		    for(i=endrand;i<8;i++)
-			routeopt->nd_opt_ri_prefix.s6_addr16[i]=0;	    
+		    for(i=endrand;i<4;i++)
+			routeopt->nd_opt_ri_prefix.s6_addr32[i]=0;
 		}
 		
 		ptr += sizeof(struct nd_opt_route_info_l);
