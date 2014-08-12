@@ -2144,10 +2144,11 @@ void send_packet(struct iface_data *idata, const u_char *pktdata, struct pcap_pk
 			   detect which IPv6 addresses we have used.
 			 */
 			if(listen_f && useaddrkey_f){
-				ipv6->ip6_src.s6_addr16[4]= random();
-				ipv6->ip6_src.s6_addr16[5]= ipv6->ip6_src.s6_addr16[4] ^ addr_key;
-				ipv6->ip6_src.s6_addr16[6]= random();
-				ipv6->ip6_src.s6_addr16[7]= ipv6->ip6_src.s6_addr16[6] ^ addr_key;
+				ipv6->ip6_src.s6_addr32[2]= ntohl(((uint32_t)random() <<16);
+				ipv6->ip6_src.s6_addr32[2]= htonl(ntohl(ipv6->ip6_src.s6_addr32[2]) | ((ntohl(ipv6->ip6_src.s6_addr32[2])>>16) ^ addr_key);
+
+				ipv6->ip6_src.s6_addr32[3]= ntohl(((uint32_t)random() <<16));
+				ipv6->ip6_src.s6_addr32[3]= htonl(ntohl(ipv6->ip6_src.s6_addr32[3]) | (uint32_t)((ntohl(ipv6->ip6_src.s6_addr32[3]) >>16) ^ addr_key));
 			}
 
 			if(idata->type == DLT_EN10MB && !(idata->flags & IFACE_LOOPBACK) && !(idata->hsrcaddr_f)){
