@@ -59,7 +59,7 @@ struct tcp_queue{
 	unsigned char	*in;
 	unsigned char	*out;
 	unsigned int	size;
-	unsigned int	data;
+/*	unsigned int	data; */
 	unsigned int	free;
 };
 
