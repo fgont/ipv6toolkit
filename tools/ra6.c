@@ -40,6 +40,7 @@
 #include <netinet/icmp6.h>
 #include <pcap.h>
 
+#include <limits.h>
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -1046,13 +1047,13 @@ int main(int argc, char **argv){
 		   The KAME implementation discards addresses in which the second high-order 16 bits
 		   (srcaddr.s6_addr16[1] in our case) are not zero.
 		 */  
-		idata.srcaddr.s6_addr16[0]= htons(0xfe80); /* Link-local unicast prefix */
-	
-		for(i=1;i<4;i++)
-			idata.srcaddr.s6_addr16[i]=0x0000;	
-	    
-		for(i=4; i<8; i++)
-			idata.srcaddr.s6_addr16[i]=random();
+
+		if ( inet_pton(AF_INET6, "fe80::", &(idata.srcaddr)) <= 0){
+			puts("inet_pton(): Error when converting address");
+			exit(EXIT_FAILURE);
+		}
+
+		randomize_ipv6_addr(&(idata.srcaddr), &(idata.srcaddr), 64);
 	}
 
 	/*
@@ -1060,11 +1061,12 @@ int main(int argc, char **argv){
 	    select the random Source Addresses from the link-local unicast prefix (fe80::/64).
 	 */
 	if(floods_f && !idata.srcprefix_f){
-		idata.srcaddr.s6_addr16[0]= htons(0xfe80); /* Link-local unicast prefix */
+		if ( inet_pton(AF_INET6, "fe80::", &(idata.srcaddr)) <= 0){
+			puts("inet_pton(): Error when converting address");
+			exit(EXIT_FAILURE);
+		}
 
-		for(i=1;i<8;i++)
-			idata.srcaddr.s6_addr16[i]=0x0000;
-	
+		randomize_ipv6_addr(&(idata.srcaddr), &(idata.srcaddr), 64);
 		idata.srcpreflen=64;
 	}
 
