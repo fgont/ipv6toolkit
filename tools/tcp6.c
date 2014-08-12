@@ -26,29 +26,32 @@
  * Please send any bug reports to Fernando Gont <fgont@si6networks.com>
  */
 
+#include <sys/socket.h>
+#include <sys/types.h>
+#include <sys/param.h>
+#include <sys/select.h>
+
+#include <net/if.h>
+#include <netinet/in.h>
+#include <netinet/ip6.h>
+#include <netinet/icmp6.h>
+#include <arpa/inet.h>
+
+#include <pcap.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <errno.h>
 #include <time.h>
 #include <getopt.h>
+#include <limits.h>
 #include <unistd.h>
 #include <signal.h>
 #include <string.h>
-#include <pcap.h>
-#include <sys/types.h>
-#include <sys/param.h>
 #include <setjmp.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <netinet/ip6.h>
-#include <netinet/icmp6.h>
-#include <sys/socket.h>
 #include <pwd.h>
-#include <net/if.h>
 
-#include <sys/select.h>
-#include "ipv6toolkit.h"
 #include "tcp6.h"
+#include "ipv6toolkit.h"
 #include "libipv6.h"
 
 
@@ -1486,13 +1489,13 @@ int main(int argc, char **argv){
 							}
 
 							if(useaddrkey_f){
-								if(pkt_ipv6->ip6_src.s6_addr16[5] ==  (pkt_ipv6->ip6_src.s6_addr16[4] ^ addr_key) && \
-									pkt_ipv6->ip6_src.s6_addr16[7] ==  (pkt_ipv6->ip6_src.s6_addr16[6] ^ addr_key)){
+								if( (ntohl(pkt_ipv6->ip6_src.s6_addr32[2]) & 0x0000ffff) ==  ( (uint16_t)(ntohl(pkt_ipv6->ip6_src.s6_addr32[2])>>16) ^ addr_key) && \
+									(ntohl(pkt_ipv6->ip6_src.s6_addr32[3]) & 0x0000ffff) ==  ( (uint16_t)(ntohl(pkt_ipv6->ip6_src.s6_addr32[3])>>16) ^ addr_key)){
 									continue;
 								}
 
-								if(pkt_ipv6->ip6_dst.s6_addr16[5] !=  (pkt_ipv6->ip6_dst.s6_addr16[4] ^ addr_key) || \
-									pkt_ipv6->ip6_dst.s6_addr16[7] !=  (pkt_ipv6->ip6_dst.s6_addr16[6] ^ addr_key)){
+								if( (ntohl(pkt_ipv6->ip6_dst.s6_addr32[2]) & 0x0000ffff) !=  ((uint16_t)(ntohl(pkt_ipv6->ip6_dst.s6_addr32[2]) >> 16) ^ addr_key) || \
+									(ntohl(pkt_ipv6->ip6_dst.s6_addr32[3]) & 0x0000ffff) !=  ((uint16_t)(ntohl(pkt_ipv6->ip6_dst.s6_addr32[3])>>16) ^ addr_key)){
 									continue;
 								}
 							}
@@ -1524,8 +1527,8 @@ int main(int argc, char **argv){
 					if(idata.type == DLT_EN10MB && !(idata.flags & IFACE_LOOPBACK)){
 						if(floods_f){
 							if(useaddrkey_f){
-								if(pkt_ns->nd_ns_target.s6_addr16[5] !=  (pkt_ns->nd_ns_target.s6_addr16[4] ^ addr_key) || \
-									pkt_ns->nd_ns_target.s6_addr16[7] !=  (pkt_ns->nd_ns_target.s6_addr16[6] ^ addr_key)){
+								if( (ntohl(pkt_ns->nd_ns_target.s6_addr32[2]) & 0x0000ffff) !=  ( (ntohl(pkt_ns->nd_ns_target.s6_addr32[2]) >>16) ^ addr_key) || \
+									(ntohl(pkt_ns->nd_ns_target.s6_addr32[3]) & 0x0000ffff) !=  ( (ntohl(pkt_ns->nd_ns_target.s6_addr32[3]) >>16) ^ addr_key)){
 									continue;
 								}
 							}
