@@ -2147,7 +2147,7 @@ void send_packet(struct iface_data *idata, const u_char *pktdata, struct pcap_pk
 				ipv6->ip6_src.s6_addr32[2]= ntohl(((uint32_t)random() <<16);
 				ipv6->ip6_src.s6_addr32[2]= htonl(ntohl(ipv6->ip6_src.s6_addr32[2]) | ((ntohl(ipv6->ip6_src.s6_addr32[2])>>16) ^ addr_key));
 
-				ipv6->ip6_src.s6_addr32[3]= ntohl(((uint32_t)random() <<16));
+				ipv6->ip6_src.s6_addr32[3]= ntohl((uint32_t)random() <<16);
 				ipv6->ip6_src.s6_addr32[3]= htonl(ntohl(ipv6->ip6_src.s6_addr32[3]) | (uint32_t)((ntohl(ipv6->ip6_src.s6_addr32[3]) >>16) ^ addr_key));
 			}
 
