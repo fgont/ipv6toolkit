@@ -268,6 +268,16 @@ struct ip6_eh{
     uint8_t  eh_len;		/* length in units of 8 octets.  */
 } __attribute__ ((__packed__));
 
+
+/* Solaris does not define this one */
+#if defined(sun) || defined)__sun)
+	struct  ip6_ext {
+		u_int8_t ip6e_nxt;
+		u_int8_t ip6e_len;
+	} __attribute__ ((__packed__));
+#endif
+
+
 typedef	uint32_t tcp_seq;
 
 
