@@ -272,8 +272,8 @@ struct ip6_eh{
 /* Solaris does not define this one */
 #if defined(sun) || defined(__sun)
 	struct  ip6_ext {
-		u_int8_t ip6e_nxt;
-		u_int8_t ip6e_len;
+		uint8_t ip6e_nxt;
+		uint8_t ip6e_len;
 	} __attribute__ ((__packed__));
 #endif
 
