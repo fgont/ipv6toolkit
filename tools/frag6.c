@@ -973,8 +973,8 @@ int main(int argc, char **argv){
 						 * to Neighbor Solicitations that target those addresses, and accept ICMPv6 Echo Replies
 						 * only if they are destined to those addresses
 						 */
-						idata.srcaddr.s6_addr16[5]= addr_sig;
-						idata.srcaddr.s6_addr16[7] =  idata.srcaddr.s6_addr16[6] ^ addr_key;
+						idata.srcaddr.s6_addr32[2]= htonl((ntohl(idata.srcaddr.s6_addr32[2]) & 0xffff0000) | addr_sig);
+						idata.srcaddr.s6_addr32[3] = idata.srcaddr.s6_addr32[3] | htonl((uint16_t)(ntohl(idata.srcaddr.s6_addr32[3])>>16) ^ addr_key);
 
 						/*
 						 * XXX This trick is innefective with OpenBSD. Hence we don't try to prevent the
@@ -1053,8 +1053,8 @@ int main(int argc, char **argv){
 					}
 				}
 				else if(idata.type == DLT_EN10MB && !(idata.flags & IFACE_LOOPBACK)){
-					if(pkt_ns->nd_ns_target.s6_addr16[5] != addr_sig || \
-						pkt_ns->nd_ns_target.s6_addr16[7] !=  (pkt_ns->nd_ns_target.s6_addr16[6] ^ addr_key))
+					if( (ntohl(pkt_ns->nd_ns_target.s6_addr32[2]) & 0x0000ffff) != addr_sig || \
+						(ntohl(pkt_ns->nd_ns_target.s6_addr32[3]) & 0x0000ffff) != ( (ntohl(pkt_ns->nd_ns_target.s6_addr32[3])>>16) ^ addr_key))
 						continue;
 
 					if(send_neighbor_advert(&idata, idata.pfd, pktdata) == -1){
@@ -1110,8 +1110,8 @@ int main(int argc, char **argv){
 					ntest1++;
 				}
 				else{
-					if(pkt_ipv6->ip6_dst.s6_addr16[5] != addr_sig || \
-						pkt_ipv6->ip6_dst.s6_addr16[7] !=  (pkt_ipv6->ip6_dst.s6_addr16[6] ^ addr_key)){
+					if( (ntohl(pkt_ipv6->ip6_dst.s6_addr32[2]) & 0x0000ffff) != addr_sig || \
+						(ntohl(pkt_ipv6->ip6_dst.s6_addr32[3]) & 0x0000ffff) !=  ( (ntohl(pkt_ipv6->ip6_dst.s6_addr32[3])>>16) ^ addr_key)){
 						continue;
 					}
 
