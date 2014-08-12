@@ -466,15 +466,13 @@ int main(int argc, char **argv){
 		   prefix fe80::/64 (that's what a link-local address looks-like in legitimate cases).
 		   The KAME implementation discards addresses in which the second highe-order 16 bits
 		   (srcaddr.s6_addr16[1] in our case) are not zero.
-		 */  
-		idata.srcaddr.s6_addr16[0]= htons(0xfe80); /* Link-local unicast prefix */
-	
-		for(i=1;i<4;i++)
-			idata.srcaddr.s6_addr16[i]=0x0000;	
-	    
-		for(i=4; i<8; i++)
-			idata.srcaddr.s6_addr16[i]=random();
+		 */
+		if ( inet_pton(AF_INET6, "fe80::", &(idata.srcaddr)) <= 0){
+			puts("inet_pton(): Error when converting address");
+			exit(EXIT_FAILURE);
+		}
 
+		randomize_ipv6_addr(&(idata.srcaddr), &(idata.srcaddr), 64);
     }
 
 
@@ -483,11 +481,12 @@ int main(int argc, char **argv){
        select the random Source Addresses from the link-local unicast prefix (fe80::/64).
      */
 	if(floods_f && !idata.srcprefix_f){
-		idata.srcaddr.s6_addr16[0]= htons(0xfe80); /* Link-local unicast prefix */
+		if ( inet_pton(AF_INET6, "fe80::", &(idata.srcaddr)) <= 0){
+			puts("inet_pton(): Error when converting address");
+			exit(EXIT_FAILURE);
+		}
 
-		for(i=1;i<8;i++)
-			idata.srcaddr.s6_addr16[i]=0x0000;
-	
+		randomize_ipv6_addr(&(idata.srcaddr), &(idata.srcaddr), 64);
 		idata.srcpreflen=64;
     }
 
@@ -499,8 +498,7 @@ int main(int argc, char **argv){
 	}
 
 	if(!idata.hsrcaddr_f)		/* Source link-layer address is randomized by default */
-		for(i=0; i<6; i++)
-			idata.hsrcaddr.a[i]= random();
+		randomize_ether_addr(&(idata.hsrcaddr));
 
 	if(!idata.hdstaddr_f)		/* Destination link-layer address defaults to all-nodes */
 		if(ether_pton(ETHER_ALLROUTERS_LINK_ADDR, &(idata.hdstaddr), sizeof(idata.hdstaddr)) == 0){
@@ -704,41 +702,14 @@ void send_packet(struct iface_data *idata){
 
 	do{
 		if(floods_f){
-		/* 
-		   When randomizing a link-local IPv6 address, select addresses that belong to
-		   the prefix fe80::/64 (that's what a link-local address looks-like in legitimate
-		   cases). The KAME implementation discards addresses in which the second highest-order
-		   16 bits (srcaddr.s6_addr16[1] in our case) are not zero.
-		*/
 		    /* 
 		        Randomize the IPv6 Source address based on the specified prefix and prefix length
 		        (defaults to fe80::/64).
 		     */  
-			startrand= idata->srcpreflen/16;
-
-			for(i=0; i<startrand; i++)
-				ipv6->ip6_src.s6_addr16[i]= 0;
-
-			for(i=startrand; i<8; i++)
-				ipv6->ip6_src.s6_addr16[i]=random();
-
-
-			if(idata->srcpreflen%16){
-				mask=0xffff;
-	    
-				for(i=0; i<(idata->srcpreflen%16); i++)
-					mask= mask>>1;
-
-				ipv6->ip6_src.s6_addr16[startrand]= ipv6->ip6_src.s6_addr16[startrand] & htons(mask);
-		    
-			}
-
-			for(i=0; i<=(idata->srcpreflen/16); i++)
-				ipv6->ip6_src.s6_addr16[i]= ipv6->ip6_src.s6_addr16[i] | idata->srcaddr.s6_addr16[i];
+			randomize_ipv6_addr(&(ipv6->ip6_src), &(idata->srcaddr), idata->srcpreflen);
 
 			if(!idata->hsrcaddr_f){
-				for(i=0; i<6; i++)
-				ethernet->src.a[i]= random();
+				randomize_ether_addr(&(ethernet->src));
 
 				/*
 				   If the source-link layer address must be included, but no value was 
