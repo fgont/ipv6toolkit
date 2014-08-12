@@ -39,6 +39,7 @@
 #include <net/if.h>
 #include <pcap.h>
 
+#include <limits.h>
 #include <netdb.h>
 #include <errno.h>
 #include <stdlib.h>
