@@ -2850,7 +2850,7 @@ int sel_next_hop(struct iface_data *idata){
 			if (rtm->rtm_addrs & (1 << i)){
 				switch(i){
 					case RTAX_GATEWAY:
-						if(sa->sa_family == AF_INET6){
+						if(sa->sa_family == AF_INET6 && rtm->rtm_flags & RTF_GATEWAY){
 							idata->nhaddr= ((struct sockaddr_in6 *) sa)->sin6_addr;
 							idata->nhaddr_f=TRUE;
 						}
