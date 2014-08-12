@@ -104,9 +104,9 @@ unsigned int		i, j, startrand;
 unsigned int		skip;
 unsigned int		sources, nsources, ports, nports, nsleep;
 
-u_int16_t			mask, ip6length;
-u_int32_t			jplength, *jplengthptr, *fjplengthptr, icmp6psize;
-u_int8_t			hoplimit;
+uint16_t			mask, ip6length;
+uint32_t			jplength, *jplengthptr, *fjplengthptr, icmp6psize;
+uint8_t			hoplimit;
 
 char 				plinkaddr[ETHER_ADDR_PLEN];
 char 				psrcaddr[INET6_ADDRSTRLEN], pdstaddr[INET6_ADDRSTRLEN], pv6addr[INET6_ADDRSTRLEN];
@@ -774,7 +774,7 @@ void init_packet_data(struct iface_data *idata){
 	ptr++;
 	*ptr= 4; /* Option length */
 	ptr++;
-	jplengthptr= (u_int32_t *) ptr;
+	jplengthptr= (uint32_t *) ptr;
 	ptr+=4;
 
 
@@ -863,8 +863,8 @@ void init_packet_data(struct iface_data *idata){
 	ptr+= sizeof(struct icmp6_hdr);
 
 	for(i=0; i< (icmp6psize/4); i++){
-		*(u_int32_t *)ptr = random();
-		ptr += sizeof(u_int32_t);
+		*(uint32_t *)ptr = random();
+		ptr += sizeof(uint32_t);
 	}
 
 	icmp6->icmp6_cksum = in_chksum(v6buffer, icmp6, ptr-((unsigned char *)icmp6), IPPROTO_ICMPV6);
@@ -911,7 +911,7 @@ int send_packet(struct iface_data *idata, struct pcap_pkthdr *pkthdr, const u_ch
 		fptr = fragbuffer;
 		fipv6 = (struct ip6_hdr *) (fragbuffer + ETHER_HDR_LEN);
 		fptrend = fptr + ETHER_HDR_LEN+MIN_IPV6_HLEN+MAX_IPV6_PAYLOAD;
-		fjplengthptr= (u_int32_t *) (fptr + sizeof(struct ether_header) + sizeof(struct ip6_hdr) + 3);
+		fjplengthptr= (uint32_t *) (fptr + sizeof(struct ether_header) + sizeof(struct ip6_hdr) + 3);
 		/* We copy everything from the Ethernet header till the end of the Unfragmentable part */
 		memcpy(fptr, buffer, fragpart-buffer);
 		fptr = fptr + (fragpart-buffer);
