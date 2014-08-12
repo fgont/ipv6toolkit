@@ -193,26 +193,6 @@ struct filters{
 #define MULTI_ORIGIN			2
 
 
-/*
- * Definitions required for OSX 10.6.8 with Xcode 3.2.6
- */
-#ifndef __BYTE_ORDER__
-	#ifdef __LITTLE_ENDIAN__
-		#define __BYTE_ORDER__	__LITTLE_ENDIAN__
-	#elif defined(__BIG_ENDIAN__)
-		#define __BYTE_ORDER__ __BIG_ENDIAN__
-	#endif
-#endif
-
-#ifndef __ORDER_LITTLE_ENDIAN__
-	#define __ORDER_LITTLE_ENDIAN__	__LITTLE_ENDIAN__
-#endif
-#ifndef __ORDER_BIG_ENDIAN__
-	#define __ORDER_BIG_ENDIAN__	__BIG_ENDIAN__
-#endif
-
-
-
 struct ether_addr{
   uint8_t a[ETHER_ADDR_LEN];
 } __attribute__ ((__packed__));
@@ -291,10 +271,32 @@ struct ip6_eh{
 typedef	uint32_t tcp_seq;
 
 
+
+/* XXX: To be removed
+ * Definitions required for OSX 10.6.8 with Xcode 3.2.6
+ */
+/*
+#ifndef __BYTE_ORDER__
+	#ifdef __LITTLE_ENDIAN__
+		#define __BYTE_ORDER__	__LITTLE_ENDIAN__
+	#elif defined(__BIG_ENDIAN__)
+		#define __BYTE_ORDER__ __BIG_ENDIAN__
+	#endif
+#endif
+
+#ifndef __ORDER_LITTLE_ENDIAN__
+	#define __ORDER_LITTLE_ENDIAN__	__LITTLE_ENDIAN__
+#endif
+#ifndef __ORDER_BIG_ENDIAN__
+	#define __ORDER_BIG_ENDIAN__	__BIG_ENDIAN__
+#endif
+*/
+
+
 /*
    Different OSes employ different constants fo specifying the byte order.
-   We employ the native Linux one, and if not available, map the BSD or Mac
-   OS into the Linux one.
+   We employ the native Linux one, and if not available, map the BSD, Mac
+   OS, or Solaris into the Linux one.
  */
 #ifndef __BYTE_ORDER
 	#define	__LITTLE_ENDIAN	1234
@@ -314,6 +316,13 @@ typedef	uint32_t tcp_seq;
 			#define __BYTE_ORDER __LITTLE_ENDIAN
 		#elif _BYTE_ORDER == _BIG_ENDIAN
 			#define __BYTE_ORDER __BIG_ENDIAN		
+		#endif
+	/* XXX: Solaris. There should be a better constant on which to check the byte order */
+	#elif defined(sun) || defined (__sun)
+		#if defined(_BIT_FIELDS_LTOH)
+			#define __BYTE_ORDER __LITTLE_ENDIAN
+		#else
+			#define __BYTE_ORDER __IG_ENDIAN
 		#endif
 	#endif
 #endif
