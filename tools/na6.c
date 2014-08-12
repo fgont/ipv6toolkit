@@ -1245,7 +1245,7 @@ int send_packet(struct iface_data *idata, struct pcap_pkthdr *pkthdr, const u_ch
 				   Randomizing the ND Target Address based on the prefix specified by "targetaddr" 
 				   and targetpreflen.
 				 */  
-				randomize_ipv6_address(&(na->nd_na_target), &targetaddr, targetpreflen);
+				randomize_ipv6_addr(&(na->nd_na_target), &targetaddr, targetpreflen);
 			}
 
 			/*
