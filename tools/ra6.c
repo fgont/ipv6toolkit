@@ -1507,7 +1507,7 @@ void send_packet(struct iface_data *idata, const u_char *pktdata){
 	        (defaults to fe80::/64).
 	     */  
 
-		if ( inet_pton(AF_INET6, "fe80::", &(idata.srcaddr)) <= 0){
+		if ( inet_pton(AF_INET6, "fe80::", &(idata->srcaddr)) <= 0){
 			puts("inet_pton(): Error when converting address");
 			exit(EXIT_FAILURE);
 		}
