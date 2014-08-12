@@ -1682,8 +1682,8 @@ void send_packet(struct iface_data *idata, const u_char *pktdata){
 			dnsopt->nd_opt_rdnss_lifetime= htonl(rdnsslife[0]);
 
 			for(i=0; i<smaxaddrs && i<nflooddoa && dnsopts<nrdnss; i++, dnsopts++)
-			    for(j=0; j<8; j++)
-				dnsopt->nd_opt_rdnss_addr[i].s6_addr16[j]=random();
+			    for(j=0; j<16; j++)
+				dnsopt->nd_opt_rdnss_addr[i].s6_addr[j]=random();
 		
 			dnsopt->nd_opt_rdnss_len= (sizeof(struct nd_opt_rdnss_l) + \
 							i * sizeof(struct in6_addr))/8;
