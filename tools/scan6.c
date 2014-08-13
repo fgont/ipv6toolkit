@@ -260,7 +260,8 @@ int main(int argc, char **argv){
 	struct target_ipv6		target;
 	struct timeval			timeout;
 	char					date[DATE_STR_LEN];
-	uint8_t			ulhtype;
+	uint8_t					ulhtype;
+	unsigned int			rot;
 
 	static struct option longopts[] = {
 		{"interface", required_argument, 0, 'i'},
@@ -280,6 +281,7 @@ int main(int argc, char **argv){
 		{"tcp-flags", required_argument, 0, 'X'},
 		{"print-type", required_argument, 0, 'P'},
 		{"port-scan", required_argument, 0, 'j'},
+		{"tcp-scan-type", required_argument, 0, 'G'},
 		{"print-unique", no_argument, 0, 'q'},
 		{"print-link-addr", no_argument, 0, 'e'},
 		{"print-timestamp", no_argument, 0, 't'},
@@ -310,7 +312,7 @@ int main(int argc, char **argv){
 		{0, 0, 0,  0 }
 	};
 
-	char shortopts[]= "i:s:d:u:U:H:y:S:D:Lp:Z:o:a:X:P:j:qetx:O:fFV:bB:gk:K:w:W:m:Q:TNI:r:lz:c:vh";
+	char shortopts[]= "i:s:d:u:U:H:y:S:D:Lp:Z:o:a:X:P:j:G:qetx:O:fFV:bB:gk:K:w:W:m:Q:TNI:r:lz:c:vh";
 
 	char option;
 
@@ -605,14 +607,34 @@ int main(int argc, char **argv){
 						scan_list.target[scan_list.ntarget]->cur= scan_list.target[scan_list.ntarget]->start;
 
 						/* Check whether the start address is smaller than the end address */
-						for(i=0;i<7; i++)
-							if( ntohs(scan_list.target[scan_list.ntarget]->start.s6_addr16[i]) > 
-								ntohs(scan_list.target[scan_list.ntarget]->end.s6_addr16[i])){
+
+						for(i=0; i<=3; i++){
+							rot=16;
+
+							for(j=0;j<2;j++){
+								if(((ntohl(scan_list.target[scan_list.ntarget]->start.s6_addr32[i])>>rot) & 0x0000ffff) > \
+								((ntohl(scan_list.target[scan_list.ntarget]->end.s6_addr32[i])>>rot) & 0x0000ffff)){
+									if(idata.verbose_f)
+										puts("Error in Destination Address range: Start address larger than end address!");
+
+									exit(EXIT_FAILURE);
+								}
+
+								rot= rot-16;
+							}
+						}						
+
+/*
+						for(i=0;i<7; i=i+2)
+							if( scan_list.target[scan_list.ntarget]->start.s6_addr[i] > 
+								ntohl(scan_list.target[scan_list.ntarget]->end.s6_addr32[i])){
+
 								if(idata.verbose_f)
 									puts("Error in Destination Address range: Start address larger than end address!");
 
 								exit(EXIT_FAILURE);
 							}
+*/
 
 						if(IN6_IS_ADDR_MULTICAST(&(scan_list.target[scan_list.ntarget]->start))){
 							if(idata.verbose_f)
@@ -1098,11 +1120,9 @@ int main(int argc, char **argv){
 				}
 
 				if(strncmp(pref, "udp", 3) == 0 || strncmp(pref, "udp", 3) == 0){
-/*					portscanp= IPPROTO_UDP; */
 					port_list= &udp_port_list;
 				}
 				else if(strncmp(pref, "tcp", 3) == 0 || strncmp(pref, "TCP", 3) == 0){
-/*					portscanp= IPPROTO_TCP; */
 					port_list= &tcp_port_list;
 				}
 				else{
@@ -1155,6 +1175,30 @@ int main(int argc, char **argv){
 				}
 
 				portscan_f=TRUE;
+				break;
+
+			case 'G':
+				if(strncmp(optarg, "syn", strlen("syn")) == 0 || strncmp(optarg, "SYN", strlen("SYN")) == 0){
+					tcpflags= TH_SYN;
+					tcpflags_f=TRUE;
+				}
+				else if(strncmp(optarg, "fin", strlen("fin")) == 0 || strncmp(optarg, "FIN", strlen("FIN")) == 0){
+					tcpflags= TH_FIN;
+					tcpflags_f=TRUE;
+				}
+				else if(strncmp(optarg, "null", strlen("null")) == 0 || strncmp(optarg, "NULL", strlen("NULL")) == 0){
+					tcpflags= 0;
+					tcpflags_f=TRUE;
+				}
+				else if(strncmp(optarg, "xmas", strlen("xmas")) == 0 || strncmp(optarg, "XMAS", strlen("XMAS")) == 0){
+					tcpflags= TH_FIN | TH_PUSH | TH_URG;
+					tcpflags_f=TRUE;
+				}
+				else if(strncmp(optarg, "ack", strlen("ack")) == 0 || strncmp(optarg, "ACK", strlen("ACK")) == 0){
+					tcpflags= TH_ACK;
+					tcpflags_f=TRUE;
+				}
+
 				break;
 
 			case 'V':
@@ -1567,7 +1611,7 @@ int main(int argc, char **argv){
 	   in our iface_data structure.
 	 */
 	if(idata.srcaddr_f && !idata.srcprefix_f){
-		if( (idata.srcaddr.s6_addr16[0] & htons(0xffc0)) == htons(0xfe80)){
+		if(IN6_IS_ADDR_LINKLOCAL(&(idata.srcaddr))){
 			idata.ip6_local=idata.srcaddr;
 			idata.ip6_local_flag=TRUE;
 		}
@@ -2654,7 +2698,7 @@ void print_port_scan(struct port_list *port_list, unsigned int *res, int types){
  */
 
 int is_target_in_range(struct scan_list *scan_list){
-	unsigned int i;
+	unsigned int i, j, shift;
 	struct scan_entry	*scan_entry;
 
 	if(scan_list->ctarget >= scan_list->ntarget || scan_list->ctarget >= scan_list->maxtarget){
@@ -2663,12 +2707,18 @@ int is_target_in_range(struct scan_list *scan_list){
 
 	scan_entry= scan_list->target[scan_list->ctarget];
 
-	for(i=0; i<=7; i++){
-		if( ntohs((scan_entry->cur).s6_addr16[i]) < ntohs((scan_entry->start).s6_addr16[i]) || \
-			( ntohs((scan_entry->cur).s6_addr16[i]) > ntohs((scan_entry->end).s6_addr16[i])) ){
+	for(i=0; i<=3; i++){
+		shift=16;
+
+		for(j=0;j<2;j++){
+			if(((ntohl(scan_entry->cur.s6_addr32[i])>>shift) & 0x0000ffff) < ((ntohl(scan_entry->start.s6_addr32[i])>>shift) & 0x0000ffff) || \
+				((ntohl(scan_entry->cur.s6_addr32[i])>>shift) & 0x0000ffff) > ((ntohl(scan_entry->end.s6_addr32[i])>>shift) & 0x0000ffff)){
 				return(0);
 			}
-	}
+
+			shift= shift-16;
+		}
+	}	
 
 	return(1);
 }
@@ -2764,20 +2814,31 @@ int get_next_target(struct scan_list *scan_list){
  */
 
 int print_scan_entries(struct scan_list *scan){
-	unsigned int i, j;
+	unsigned int	i, j, k;
+	uint32_t		shift;
 
 	for(i=0; i< scan->ntarget; i++){
-		for(j=0; j<8; j++){
-			if((scan->target[i])->start.s6_addr16[j] == (scan->target[i])->end.s6_addr16[j])
-				printf("%x", ntohs((scan->target[i])->start.s6_addr16[j]));
-			else
-				printf("%x-%x", ntohs((scan->target[i])->start.s6_addr16[j]), ntohs((scan->target[i])->end.s6_addr16[j]));
+		for(j=0; j<=3; j++){
+			shift=16;
 
-			if(j<7)
-				printf(":");
-			else
-				puts("");
-		}
+			for(k=0;k<2;k++){
+				if(((ntohl(scan_list.target[i]->start.s6_addr32[j])>>shift) & 0x0000ffff) == \
+				((ntohl(scan_list.target[i]->end.s6_addr32[j])>>shift) & 0x0000ffff)){
+					printf("%x", ((ntohl(scan_list.target[i]->start.s6_addr32[j])>>shift) & 0x0000ffff));
+				}
+				else{
+					printf("%x-%x", ((ntohl(scan_list.target[i]->start.s6_addr32[j])>>shift) & 0x0000ffff),\
+									((ntohl(scan_list.target[i]->end.s6_addr32[j])>>shift) & 0x0000ffff));
+				}
+
+				if(j==3 && k==2)
+					puts("");
+				else
+					printf(":");
+
+				shift= shift-16;
+			}
+		}						
 	}
 
 	return(1);
@@ -3218,17 +3279,14 @@ int load_embeddedport_entries(struct scan_list *scan, struct scan_entry *dst){
 			return(0);
 
 		(scan->target[scan->ntarget])->start= dst->start;
-		(scan->target[scan->ntarget])->start.s6_addr16[4]= htons(0);
-		(scan->target[scan->ntarget])->start.s6_addr16[5]= htons(0);
-		(scan->target[scan->ntarget])->start.s6_addr16[6]= htons(0);
-		(scan->target[scan->ntarget])->start.s6_addr16[7]= htons(service_ports_hex[i]);
+		(scan->target[scan->ntarget])->start.s6_addr32[2]= htonl(0);
+		(scan->target[scan->ntarget])->start.s6_addr32[3]= htonl((uint32_t)service_ports_hex[i]);
 		(scan->target[scan->ntarget])->cur= (scan->target[scan->ntarget])->start;
 
 		(scan->target[scan->ntarget])->end= dst->end;
-		(scan->target[scan->ntarget])->end.s6_addr16[4]= htons(0);
-		(scan->target[scan->ntarget])->end.s6_addr16[5]= htons(0);
-		(scan->target[scan->ntarget])->end.s6_addr16[6]= htons(EMBEDDED_PORT_2ND_WORD);
-		(scan->target[scan->ntarget])->end.s6_addr16[7]= htons(service_ports_hex[i]);
+		(scan->target[scan->ntarget])->end.s6_addr32[2]= htonl(0);
+		(scan->target[scan->ntarget])->end.s6_addr32[3]= htonl(((uint32_t)EMBEDDED_PORT_2ND_WORD << 16) | service_ports_hex[i]);
+
 		scan->ntarget++;
 
 		if(scan->ntarget >= scan->maxtarget){
@@ -3239,17 +3297,13 @@ int load_embeddedport_entries(struct scan_list *scan, struct scan_entry *dst){
 			return(0);
 
 		(scan->target[scan->ntarget])->start= dst->start;
-		(scan->target[scan->ntarget])->start.s6_addr16[4]= htons(0);
-		(scan->target[scan->ntarget])->start.s6_addr16[5]= htons(0);
-		(scan->target[scan->ntarget])->start.s6_addr16[6]= htons(service_ports_hex[i]);
-		(scan->target[scan->ntarget])->start.s6_addr16[7]= htons(0);
+		(scan->target[scan->ntarget])->start.s6_addr32[2]= htonl(0);
+		(scan->target[scan->ntarget])->start.s6_addr32[3]= htonl((uint32_t)service_ports_hex[i] << 16);
 		(scan->target[scan->ntarget])->cur= (scan->target[scan->ntarget])->start;
 
 		(scan->target[scan->ntarget])->end= dst->end;
-		(scan->target[scan->ntarget])->end.s6_addr16[4]= htons(0);
-		(scan->target[scan->ntarget])->end.s6_addr16[5]= htons(0);
-		(scan->target[scan->ntarget])->end.s6_addr16[6]= htons(service_ports_hex[i]);
-		(scan->target[scan->ntarget])->end.s6_addr16[7]= htons(EMBEDDED_PORT_2ND_WORD);
+		(scan->target[scan->ntarget])->end.s6_addr32[2]= htonl(0);
+		(scan->target[scan->ntarget])->end.s6_addr32[3]= htonl(((uint32_t)service_ports_hex[i] << 16) | EMBEDDED_PORT_2ND_WORD);
 		scan->ntarget++;
 	}
 
@@ -3308,7 +3362,6 @@ int load_embeddedport_entries(struct scan_list *scan, struct scan_entry *dst){
  */
 
 int load_lowbyte_entries(struct scan_list *scan, struct scan_entry *dst){
-	unsigned int	i;
 
 	if(scan->ntarget >= scan->maxtarget){
 		return(0);
@@ -3318,18 +3371,13 @@ int load_lowbyte_entries(struct scan_list *scan, struct scan_entry *dst){
 		return(0);
 
 	(scan->target[scan->ntarget])->start= dst->start;
-
-	for(i=4; i<=7; i++)
-		(scan->target[scan->ntarget])->start.s6_addr16[i]= htons(0);
+	(scan->target[scan->ntarget])->start.s6_addr32[2]= htonl(0);
+	(scan->target[scan->ntarget])->start.s6_addr32[3]= htonl(0);
 
 	(scan->target[scan->ntarget])->cur= (scan->target[scan->ntarget])->start;
 	(scan->target[scan->ntarget])->end= dst->end;
-
-	for(i=4; i<=5; i++)
-		(scan->target[scan->ntarget])->end.s6_addr16[i]= htons(0);
-
-	(scan->target[scan->ntarget])->end.s6_addr16[6]= htons(LOW_BYTE_2ND_WORD_UPPER);
-	(scan->target[scan->ntarget])->end.s6_addr16[7]= htons(LOW_BYTE_1ST_WORD_UPPER);
+	(scan->target[scan->ntarget])->end.s6_addr32[2]= htonl(0);
+	(scan->target[scan->ntarget])->end.s6_addr32[3]= htonl( ((uint32_t)LOW_BYTE_2ND_WORD_UPPER << 16) | LOW_BYTE_1ST_WORD_UPPER);
 	scan->ntarget++;
 
 	return(1);
@@ -3933,7 +3981,9 @@ void print_help(void){
 	     "  --dst-address, -d           IPv6 Destination Range or Prefix\n"
 	     "  --prefixes-file, -m         Prefixes file\n"
 	     "  --link-src-address, -S      Link-layer Destination Address\n"
-	     "  --probe-type, -p            Probe type {echo, unrec, all}\n"
+	     "  --probe-type, -p            Probe type for host scanning {echo, unrec, all}\n"
+	     "  --port-scan, -j             Port scan type and range {tcp,udp}:port_low[-port_hi]\n"
+	     "  --tcp-scan-type, -G         TCP port-scanning type {syn,fin,null,xmas,ack}\n"
 	     "  --payload-size, -Z          TCP/UDP Payload Size\n"
 	     "  --src-port, -o              TCP/UDP Source Port\n"
 	     "  --dst-port, -a              TCP/UDP Destination Port\n"
