@@ -56,6 +56,8 @@
 #include "ipv6toolkit.h"
 #include "libipv6.h"
 
+/* #define DEBUG */
+
 /* Function prototypes */
 void				init_packet_data(struct iface_data *);
 int					create_candidate_globals(struct iface_data *, struct host_list *, struct host_list *, \
@@ -2393,6 +2395,7 @@ int main(int argc, char **argv){
 				}
 
 				idata.pending_write_f= TRUE;
+				continue;
 			}
 #endif
 
@@ -2403,13 +2406,19 @@ int main(int argc, char **argv){
 #endif
 				error_f=FALSE;
 
+#ifdef DEBUG
+puts("Prior to pcap_next_ex()");
+#endif
+
 				if((result=pcap_next_ex(idata.pfd, &pkthdr, &pktdata)) == -1){
 					if(idata.verbose_f)
 						printf("Error while reading packet in main loop: pcap_next_ex(): %s", pcap_geterr(idata.pfd));
 
 					exit(EXIT_FAILURE);
 				}
-
+#ifdef DEBUG
+puts("After to pcap_next_ex()");
+#endif
 				if(result == 1){
 					pkt_ether = (struct ether_header *) pktdata;
 					pkt_ipv6 = (struct ip6_hdr *)((char *) pkt_ether + idata.linkhsize);
@@ -4237,15 +4246,21 @@ int send_probe_remote(struct iface_data *idata, struct scan_list *scan, struct i
 			break;
 	}
 
+#ifdef DEBUG
+puts("In send_probe_remote(), prior to send");
+#endif
 	if((nw=pcap_inject(idata->pfd, buffer, ptr - buffer)) ==  -1){
-		if(idata->verbose_f>1)
+		if(idata->verbose_f)
 			printf("pcap_inject(): %s\n", pcap_geterr(idata->pfd));
 
 		return(0);
 	}
+#ifdef DEBUG
+puts("In send_probe_remote(), after to send");
+#endif
 
 	if(nw != (ptr-buffer)){
-		if(idata->verbose_f>1)
+		if(idata->verbose_f)
 			printf("pcap_inject(): only wrote %lu bytes (rather than %lu bytes)\n", (LUI) nw, \
 																			(LUI) (ptr-buffer));
 		return(0);
@@ -4442,14 +4457,14 @@ int send_pscan_probe(struct iface_data *idata, struct port_list *port_list, stru
 	}
 
 	if((nw=pcap_inject(idata->pfd, buffer, ptr - buffer)) ==  -1){
-		if(idata->verbose_f>1)
+		if(idata->verbose_f)
 			printf("pcap_inject(): %s\n", pcap_geterr(idata->pfd));
 
 		return(0);
 	}
 
 	if(nw != (ptr-buffer)){
-		if(idata->verbose_f>1)
+		if(idata->verbose_f)
 			printf("pcap_inject(): only wrote %lu bytes (rather than %lu bytes)\n", (LUI) nw, \
 																			(LUI) (ptr-buffer));
 		return(0);
@@ -4514,7 +4529,7 @@ int multi_scan_local(pcap_t *pfd, struct iface_data *idata, struct in6_addr *src
 	switch(type){
 		case PROBE_ICMP6_ECHO:
 			if(pcap_compile(pfd, &pcap_filter, PCAP_ICMPV6_ERNS_FILTER, PCAP_OPT, PCAP_NETMASK_UNKNOWN) == -1){
-				if(idata->verbose_f>1)
+				if(idata->verbose_f)
 					printf("pcap_compile(): %s", pcap_geterr(pfd));
 
 				return(-1);
@@ -4523,7 +4538,7 @@ int multi_scan_local(pcap_t *pfd, struct iface_data *idata, struct in6_addr *src
 
 		case PROBE_UNREC_OPT:
 			if(pcap_compile(pfd, &pcap_filter, PCAP_ICMPV6_ERRORNS_FILTER, PCAP_OPT, PCAP_NETMASK_UNKNOWN) == -1){
-				if(idata->verbose_f>1)
+				if(idata->verbose_f)
 					printf("pcap_compile(): %s", pcap_geterr(pfd));
 
 				return(-1);
@@ -4536,7 +4551,7 @@ int multi_scan_local(pcap_t *pfd, struct iface_data *idata, struct in6_addr *src
 	}
 
 	if(pcap_setfilter(pfd, &pcap_filter) == -1){
-		if(idata->verbose_f>1)
+		if(idata->verbose_f)
 			printf("pcap_setfilter(): %s", pcap_geterr(pfd));
 
 		return(-1);
