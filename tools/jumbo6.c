@@ -596,57 +596,63 @@ int main(int argc, char **argv){
 				}
 			}
 
-			/* Read a packet (Echo Reply, Neighbor Solicitation, or ICMPv6 Error */
-			if((r=pcap_next_ex(idata.pfd, &pkthdr, &pktdata)) == -1){
-				printf("pcap_next_ex(): %s", pcap_geterr(idata.pfd));
-				exit(EXIT_FAILURE);
-			}
-			else if(r == 1){
-				pkt_ether = (struct ether_header *) pktdata;
-				pkt_ipv6 = (struct ip6_hdr *)((char *) pkt_ether + ETHER_HDR_LEN);
-				pkt_icmp6 = (struct icmp6_hdr *) ((char *) pkt_ipv6 + sizeof(struct ip6_hdr));
-				pkt_ns= (struct nd_neighbor_solicit *) pkt_icmp6;
-				pkt_end = (unsigned char *) pktdata + pkthdr->caplen;
+#if defined(sun) || defined(__sun)
+			if(TRUE){
+#else
+			if(sel && FD_ISSET(idata.fd, &rset)){
+#endif
+				/* Read a packet (Echo Reply, Neighbor Solicitation, or ICMPv6 Error */
+				if((r=pcap_next_ex(idata.pfd, &pkthdr, &pktdata)) == -1){
+					printf("pcap_next_ex(): %s", pcap_geterr(idata.pfd));
+					exit(EXIT_FAILURE);
+				}
+				else if(r == 1){
+					pkt_ether = (struct ether_header *) pktdata;
+					pkt_ipv6 = (struct ip6_hdr *)((char *) pkt_ether + ETHER_HDR_LEN);
+					pkt_icmp6 = (struct icmp6_hdr *) ((char *) pkt_ipv6 + sizeof(struct ip6_hdr));
+					pkt_ns= (struct nd_neighbor_solicit *) pkt_icmp6;
+					pkt_end = (unsigned char *) pktdata + pkthdr->caplen;
 
-				if( (pkt_end -  pktdata) < (ETHER_HDR_LEN + MIN_IPV6_HLEN))
-					continue;
+					if( (pkt_end -  pktdata) < (ETHER_HDR_LEN + MIN_IPV6_HLEN))
+						continue;
 
-				if(pkt_ipv6->ip6_nxt == IPPROTO_ICMPV6){
-					if(pkt_icmp6->icmp6_type == ND_NEIGHBOR_SOLICIT){
-						if( (pkt_end - (unsigned char *) pkt_ns) < sizeof(struct nd_neighbor_solicit))
-							continue;
-						/* 
-							If the addresses that we're using are not actually configured on the local system
-							(i.e., they are "spoofed", we must check whether it is a Neighbor Solicitation for 
-							one of our addresses, and respond with a Neighbor Advertisement. Otherwise, the kernel
-							will take care of that.
-						 */
-						if(!localaddr_f && is_eq_in6_addr(&(pkt_ns->nd_ns_target), &idata.srcaddr)){
-								if(send_neighbor_advert(&idata, idata.pfd, pktdata) == -1){
-									puts("Error sending Neighbor Advertisement");
-									exit(EXIT_FAILURE);
-								}
+					if(pkt_ipv6->ip6_nxt == IPPROTO_ICMPV6){
+						if(pkt_icmp6->icmp6_type == ND_NEIGHBOR_SOLICIT){
+							if( (pkt_end - (unsigned char *) pkt_ns) < sizeof(struct nd_neighbor_solicit))
+								continue;
+							/* 
+								If the addresses that we're using are not actually configured on the local system
+								(i.e., they are "spoofed", we must check whether it is a Neighbor Solicitation for 
+								one of our addresses, and respond with a Neighbor Advertisement. Otherwise, the kernel
+								will take care of that.
+							 */
+							if(!localaddr_f && is_eq_in6_addr(&(pkt_ns->nd_ns_target), &idata.srcaddr)){
+									if(send_neighbor_advert(&idata, idata.pfd, pktdata) == -1){
+										puts("Error sending Neighbor Advertisement");
+										exit(EXIT_FAILURE);
+									}
+							}
 						}
-					}
-					else if( (pkt_icmp6->icmp6_type == ICMP6_ECHO_REPLY) || (pkt_icmp6->icmp6_type == ICMP6_PARAM_PROB)){
-						if( (pkt_end - (unsigned char *) pkt_icmp6) < sizeof(struct icmp6_hdr))
-							continue;
-						/*
-						   Do a preliminar validation check on the ICMPv6 packet (packet size, Source Address,
-						   and Destination Address).
-						 */
-						if(!valid_icmp6_response(&idata, pkthdr, pktdata)){
-							continue;
-						}
+						else if( (pkt_icmp6->icmp6_type == ICMP6_ECHO_REPLY) || (pkt_icmp6->icmp6_type == ICMP6_PARAM_PROB)){
+							if( (pkt_end - (unsigned char *) pkt_icmp6) < sizeof(struct icmp6_hdr))
+								continue;
+							/*
+							   Do a preliminar validation check on the ICMPv6 packet (packet size, Source Address,
+							   and Destination Address).
+							 */
+							if(!valid_icmp6_response(&idata, pkthdr, pktdata)){
+								continue;
+							}
 
-						switch(pkt_icmp6->icmp6_type){
-							case ICMP6_ECHO_REPLY:
-								print_icmp6_echo(&idata, pkthdr, pktdata);
-								break;
+							switch(pkt_icmp6->icmp6_type){
+								case ICMP6_ECHO_REPLY:
+									print_icmp6_echo(&idata, pkthdr, pktdata);
+									break;
 
-							case ICMP6_PARAM_PROB:
-								print_icmp6_error(&idata, pkthdr, pktdata);
-								break;
+								case ICMP6_PARAM_PROB:
+									print_icmp6_error(&idata, pkthdr, pktdata);
+									break;
+							}
 						}
 					}
 				}

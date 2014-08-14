@@ -56,6 +56,7 @@
 #include "ipv6toolkit.h"
 #include "libipv6.h"
 
+#define DEBUG
 
 /* Function prototypes */
 int					predict_frag_id(uint32_t *, unsigned int, uint32_t *, unsigned int);
@@ -816,51 +817,57 @@ int main(int argc, char **argv){
 				}
 			}
 
-			/* Read a packet (Echo Reply, ICMPv6 Error, or Neighbor Solicitation) */
-			if((r=pcap_next_ex(idata.pfd, &pkthdr, &pktdata)) == -1){
-				printf("pcap_next_ex(): %s", pcap_geterr(idata.pfd));
-				exit(EXIT_FAILURE);
-			}
-			else if(r == 1){
-				pkt_ether = (struct ether_header *) pktdata;
-				pkt_ipv6 = (struct ip6_hdr *)((char *) pkt_ether + idata.linkhsize);
-				pkt_icmp6 = (struct icmp6_hdr *) ((char *) pkt_ipv6 + sizeof(struct ip6_hdr));
-				pkt_ns= (struct nd_neighbor_solicit *) pkt_icmp6;
-				pkt_end = (unsigned char *) pktdata + pkthdr->caplen;
+#if defined(sun) || defined(__sun)
+			if(TRUE){
+#else
+			if(sel && FD_ISSET(idata.fd, &rset)){
+#endif
+				/* Read a packet (Echo Reply, ICMPv6 Error, or Neighbor Solicitation) */
+				if((r=pcap_next_ex(idata.pfd, &pkthdr, &pktdata)) == -1){
+					printf("pcap_next_ex(): %s", pcap_geterr(idata.pfd));
+					exit(EXIT_FAILURE);
+				}
+				else if(r == 1){
+					pkt_ether = (struct ether_header *) pktdata;
+					pkt_ipv6 = (struct ip6_hdr *)((char *) pkt_ether + idata.linkhsize);
+					pkt_icmp6 = (struct icmp6_hdr *) ((char *) pkt_ipv6 + sizeof(struct ip6_hdr));
+					pkt_ns= (struct nd_neighbor_solicit *) pkt_icmp6;
+					pkt_end = (unsigned char *) pktdata + pkthdr->caplen;
 
-				if( (pkt_end -  pktdata) < (idata.linkhsize + MIN_IPV6_HLEN))
-					continue;
+					if( (pkt_end -  pktdata) < (idata.linkhsize + MIN_IPV6_HLEN))
+						continue;
 
-				if(pkt_ipv6->ip6_nxt == IPPROTO_ICMPV6){
-					if(idata.type == DLT_EN10MB && !(idata.flags & IFACE_LOOPBACK) && pkt_icmp6->icmp6_type == ND_NEIGHBOR_SOLICIT){
-						if( (pkt_end - (unsigned char *) pkt_ns) < sizeof(struct nd_neighbor_solicit))
-							continue;
-						/* 
-							If the addresses that we're using are not actually configured on the local system
-							(i.e., they are "spoofed", we must check whether it is a Neighbor Solicitation for 
-							one of our addresses, and respond with a Neighbor Advertisement. Otherwise, the kernel
-							will take care of that.
-						 */
-						if(idata.type == DLT_EN10MB && !(idata.flags & IFACE_LOOPBACK) && !localaddr_f && \
-										is_eq_in6_addr(&(pkt_ns->nd_ns_target), &idata.srcaddr)){
-								if(send_neighbor_advert(&idata, idata.pfd, pktdata) == -1){
-									puts("Error sending Neighbor Advertisement");
-									exit(EXIT_FAILURE);
-								}
+					if(pkt_ipv6->ip6_nxt == IPPROTO_ICMPV6){
+						if(idata.type == DLT_EN10MB && !(idata.flags & IFACE_LOOPBACK) && pkt_icmp6->icmp6_type == ND_NEIGHBOR_SOLICIT){
+							if( (pkt_end - (unsigned char *) pkt_ns) < sizeof(struct nd_neighbor_solicit))
+								continue;
+							/* 
+								If the addresses that we're using are not actually configured on the local system
+								(i.e., they are "spoofed", we must check whether it is a Neighbor Solicitation for 
+								one of our addresses, and respond with a Neighbor Advertisement. Otherwise, the kernel
+								will take care of that.
+							 */
+							if(idata.type == DLT_EN10MB && !(idata.flags & IFACE_LOOPBACK) && !localaddr_f && \
+											is_eq_in6_addr(&(pkt_ns->nd_ns_target), &idata.srcaddr)){
+									if(send_neighbor_advert(&idata, idata.pfd, pktdata) == -1){
+										puts("Error sending Neighbor Advertisement");
+										exit(EXIT_FAILURE);
+									}
+							}
 						}
-					}
-					else if( (pkt_icmp6->icmp6_type == ICMP6_ECHO_REPLY) || (pkt_icmp6->icmp6_type == ICMP6_TIME_EXCEEDED)){
-						if( (pkt_end - (unsigned char *) pkt_icmp6) < sizeof(struct icmp6_hdr))
-							continue;
+						else if( (pkt_icmp6->icmp6_type == ICMP6_ECHO_REPLY) || (pkt_icmp6->icmp6_type == ICMP6_TIME_EXCEEDED)){
+							if( (pkt_end - (unsigned char *) pkt_icmp6) < sizeof(struct icmp6_hdr))
+								continue;
 
-						switch(pkt_icmp6->icmp6_type){
-							case ICMP6_ECHO_REPLY:
-								process_icmp6_echo(&idata, pkthdr, pktdata, test, &responses);
-								break;
+							switch(pkt_icmp6->icmp6_type){
+								case ICMP6_ECHO_REPLY:
+									process_icmp6_echo(&idata, pkthdr, pktdata, test, &responses);
+									break;
 
-							case ICMP6_TIME_EXCEEDED:
-								process_icmp6_timed(&idata, pkthdr, pktdata, test);
-								break;
+								case ICMP6_TIME_EXCEEDED:
+									process_icmp6_timed(&idata, pkthdr, pktdata, test);
+									break;
+							}
 						}
 					}
 				}
@@ -976,7 +983,8 @@ int main(int argc, char **argv){
 						 * only if they are destined to those addresses
 						 */
 						idata.srcaddr.s6_addr32[2]= htonl((ntohl(idata.srcaddr.s6_addr32[2]) & 0xffff0000) | addr_sig);
-						idata.srcaddr.s6_addr32[3] = idata.srcaddr.s6_addr32[3] | htonl((uint16_t)(ntohl(idata.srcaddr.s6_addr32[3])>>16) ^ addr_key);
+						idata.srcaddr.s6_addr32[3]= htonl((ntohl(idata.srcaddr.s6_addr32[3]) & 0xffff0000) | \
+						                            ((uint16_t)(ntohl(idata.srcaddr.s6_addr32[3])>>16) ^ addr_key));
 
 						/*
 						 * XXX This trick is innefective with OpenBSD. Hence we don't try to prevent the
@@ -1018,116 +1026,123 @@ int main(int argc, char **argv){
 				}
 			}
 
-			/* Read a packet (Echo Reply, or Neighbor Solicitation) */
-			if((r=pcap_next_ex(idata.pfd, &pkthdr, &pktdata)) == -1){
-				printf("pcap_next_ex(): %s", pcap_geterr(idata.pfd));
-				exit(EXIT_FAILURE);
-			}
-			else if(r == 1){
-				pkt_ether = (struct ether_header *) pktdata;
-				pkt_ipv6 = (struct ip6_hdr *)((char *) pkt_ether + idata.linkhsize);
-				pkt_icmp6 = (struct icmp6_hdr *) ((char *) pkt_ipv6 + sizeof(struct ip6_hdr));
-				pkt_end = (unsigned char *) pktdata + pkthdr->caplen;
+#if defined(sun) || defined(__sun)
+			if(TRUE){
+#else
+			if(sel && FD_ISSET(idata.fd, &rset)){
+#endif
+				/* Read a packet (Echo Reply, or Neighbor Solicitation) */
+				if((r=pcap_next_ex(idata.pfd, &pkthdr, &pktdata)) == -1){
+					printf("pcap_next_ex(): %s", pcap_geterr(idata.pfd));
+					exit(EXIT_FAILURE);
+				}
+				else if(r == 1){
+					pkt_ether = (struct ether_header *) pktdata;
+					pkt_ipv6 = (struct ip6_hdr *)((char *) pkt_ether + idata.linkhsize);
+					pkt_icmp6 = (struct icmp6_hdr *) ((char *) pkt_ipv6 + sizeof(struct ip6_hdr));
+					pkt_end = (unsigned char *) pktdata + pkthdr->caplen;
 
-				if( (pkt_end -  pktdata) < (idata.linkhsize + MIN_IPV6_HLEN))
-					continue;
-
-				if(idata.type == DLT_EN10MB && !(idata.flags & IFACE_LOOPBACK) && \
-								pkt_ipv6->ip6_nxt == IPPROTO_ICMPV6 && pkt_icmp6->icmp6_type == ND_NEIGHBOR_SOLICIT){
-					pkt_ns= (struct nd_neighbor_solicit *) pkt_icmp6;
-
-					if( (pkt_end - (unsigned char *) pkt_ns) < sizeof(struct nd_neighbor_solicit))
+					if( (pkt_end -  pktdata) < (idata.linkhsize + MIN_IPV6_HLEN))
 						continue;
-					/* 
-						If the addresses that we're using are not actually configured on the local system
-						(i.e., they are "spoofed", we must check whether it is a Neighbor Solicitation for 
-						one of our addresses, and respond with a Neighbor Advertisement. Otherwise, the kernel
-						will take care of that.
-					 */
-					if(testtype==FIXED_ORIGIN){
-						if(idata.type == DLT_EN10MB && !(idata.flags & IFACE_LOOPBACK) && \
-								 !localaddr_f && is_eq_in6_addr(&(pkt_ns->nd_ns_target), &(idata.srcaddr))){
+
+					if(idata.type == DLT_EN10MB && !(idata.flags & IFACE_LOOPBACK) && \
+									pkt_ipv6->ip6_nxt == IPPROTO_ICMPV6 && pkt_icmp6->icmp6_type == ND_NEIGHBOR_SOLICIT){
+						pkt_ns= (struct nd_neighbor_solicit *) pkt_icmp6;
+
+						if( (pkt_end - (unsigned char *) pkt_ns) < sizeof(struct nd_neighbor_solicit))
+							continue;
+						/* 
+							If the addresses that we're using are not actually configured on the local system
+							(i.e., they are "spoofed", we must check whether it is a Neighbor Solicitation for 
+							one of our addresses, and respond with a Neighbor Advertisement. Otherwise, the kernel
+							will take care of that.
+						 */
+						if(testtype==FIXED_ORIGIN){
+							if(idata.type == DLT_EN10MB && !(idata.flags & IFACE_LOOPBACK) && \
+									 !localaddr_f && is_eq_in6_addr(&(pkt_ns->nd_ns_target), &(idata.srcaddr))){
+								if(send_neighbor_advert(&idata, idata.pfd, pktdata) == -1){
+									puts("Error sending Neighbor Advertisement");
+									exit(EXIT_FAILURE);
+								}
+							}
+						}
+						else if(idata.type == DLT_EN10MB && !(idata.flags & IFACE_LOOPBACK)){
+							if( (ntohl(pkt_ns->nd_ns_target.s6_addr32[2]) & 0x0000ffff) != addr_sig || \
+								(ntohl(pkt_ns->nd_ns_target.s6_addr32[3]) & 0x0000ffff) != ( (ntohl(pkt_ns->nd_ns_target.s6_addr32[3])>>16) ^ addr_key)){
+								continue;
+							}
+
 							if(send_neighbor_advert(&idata, idata.pfd, pktdata) == -1){
 								puts("Error sending Neighbor Advertisement");
 								exit(EXIT_FAILURE);
 							}
-						}
+						}				
 					}
-					else if(idata.type == DLT_EN10MB && !(idata.flags & IFACE_LOOPBACK)){
-						if( (ntohl(pkt_ns->nd_ns_target.s6_addr32[2]) & 0x0000ffff) != addr_sig || \
-							(ntohl(pkt_ns->nd_ns_target.s6_addr32[3]) & 0x0000ffff) != ( (ntohl(pkt_ns->nd_ns_target.s6_addr32[3])>>16) ^ addr_key))
+					else if(pkt_ipv6->ip6_nxt == IPPROTO_FRAGMENT){
+						if( (pkt_end - (unsigned char *) pkt_ipv6) < \
+							(sizeof(struct ip6_hdr) + sizeof(struct ip6_frag) + sizeof(struct icmp6_hdr) + sizeof(uint32_t)))
 							continue;
 
-						if(send_neighbor_advert(&idata, idata.pfd, pktdata) == -1){
-							puts("Error sending Neighbor Advertisement");
-							exit(EXIT_FAILURE);
-						}
-					}				
-				}
-				else if(pkt_ipv6->ip6_nxt == IPPROTO_FRAGMENT){
-					if( (pkt_end - (unsigned char *) pkt_ipv6) < \
-						(sizeof(struct ip6_hdr) + sizeof(struct ip6_frag) + sizeof(struct icmp6_hdr) + sizeof(uint32_t)))
-						continue;
+						pkt_fh= (struct ip6_frag *) ( (unsigned char *)pkt_ipv6 + sizeof(struct ip6_hdr));
 
-					pkt_fh= (struct ip6_frag *) ( (unsigned char *)pkt_ipv6 + sizeof(struct ip6_hdr));
-
-					if(pkt_fh->ip6f_nxt != IPPROTO_ICMPV6)
-						continue;
-
-					/* XXX We only sample non-first fragments (see below) */
-					if(!(pkt_fh->ip6f_offlg & IP6F_OFF_MASK))
-						continue;
-
-					/*
-					 * XXX These checks were removed, since when assessing some implementations on a local
-					 * network, we never get the first fragment because it is discarded when it triggers ND.
-					 */
-					if(!(pkt_fh->ip6f_offlg & IP6F_OFF_MASK)){
-						pkt_icmp6= (struct icmp6_hdr *) ((unsigned char *)pkt_fh + sizeof(struct ip6_frag));
-
-						if(pkt_icmp6->icmp6_type != ICMP6_ECHO_REPLY)
+						if(pkt_fh->ip6f_nxt != IPPROTO_ICMPV6)
 							continue;
 
-						if(ntohs(pkt_icmp6->icmp6_data16[0]) != getpid() )
+						/* XXX We only sample non-first fragments (see below) */
+						if(!(pkt_fh->ip6f_offlg & IP6F_OFF_MASK))
 							continue;
-					}
 
-					if(testtype==FIXED_ORIGIN){
-						if(!is_eq_in6_addr(&(pkt_ipv6->ip6_dst), &(idata.srcaddr))){
-							continue;
-						}
-
-						/* XXX Not used when sampling non-first fragments */
+						/*
+						 * XXX These checks were removed, since when assessing some implementations on a local
+						 * network, we never get the first fragment because it is discarded when it triggers ND.
+						 */
 						if(!(pkt_fh->ip6f_offlg & IP6F_OFF_MASK)){
-							if( *(uint32_t *)((unsigned char *)pkt_icmp6+ sizeof(struct icmp6_hdr)) != icmp6_sig){
+							pkt_icmp6= (struct icmp6_hdr *) ((unsigned char *)pkt_fh + sizeof(struct ip6_frag));
+
+							if(pkt_icmp6->icmp6_type != ICMP6_ECHO_REPLY)
+								continue;
+
+							if(ntohs(pkt_icmp6->icmp6_data16[0]) != getpid() )
+								continue;
+						}
+
+						if(testtype==FIXED_ORIGIN){
+							if(!is_eq_in6_addr(&(pkt_ipv6->ip6_dst), &(idata.srcaddr))){
 								continue;
 							}
+
+							/* XXX Not used when sampling non-first fragments */
+							if(!(pkt_fh->ip6f_offlg & IP6F_OFF_MASK)){
+								if( *(uint32_t *)((unsigned char *)pkt_icmp6+ sizeof(struct icmp6_hdr)) != icmp6_sig){
+									continue;
+								}
+							}
+
+							if(ntest1 >= NSAMPLES)
+								continue;
+
+							test1[ntest1]= ntohl(pkt_fh->ip6f_ident);
+							ntest1++;
 						}
-
-						if(ntest1 >= NSAMPLES)
-							continue;
-
-						test1[ntest1]= ntohl(pkt_fh->ip6f_ident);
-						ntest1++;
-					}
-					else{
-						if( (ntohl(pkt_ipv6->ip6_dst.s6_addr32[2]) & 0x0000ffff) != addr_sig || \
-							(ntohl(pkt_ipv6->ip6_dst.s6_addr32[3]) & 0x0000ffff) !=  ( (ntohl(pkt_ipv6->ip6_dst.s6_addr32[3])>>16) ^ addr_key)){
-							continue;
-						}
-
-						/* XXX Not used when sampling non-first fragments */
-						if(!(pkt_fh->ip6f_offlg & IP6F_OFF_MASK)){
-							if( *(uint32_t *)((unsigned char *)pkt_icmp6+ sizeof(struct icmp6_hdr)) != icmp6_sig){
+						else{
+							if( (ntohl(pkt_ipv6->ip6_dst.s6_addr32[2]) & 0x0000ffff) != addr_sig || \
+								(ntohl(pkt_ipv6->ip6_dst.s6_addr32[3]) & 0x0000ffff) !=  ( (ntohl(pkt_ipv6->ip6_dst.s6_addr32[3])>>16) ^ addr_key)){
 								continue;
 							}
+
+							/* XXX Not used when sampling non-first fragments */
+							if(!(pkt_fh->ip6f_offlg & IP6F_OFF_MASK)){
+								if( *(uint32_t *)((unsigned char *)pkt_icmp6+ sizeof(struct icmp6_hdr)) != icmp6_sig){
+									continue;
+								}
+							}
+
+							if(ntest2 >= NSAMPLES)
+								continue;
+
+							test2[ntest2]= ntohl(pkt_fh->ip6f_ident);
+							ntest2++;
 						}
-
-						if(ntest2 >= NSAMPLES)
-							continue;
-
-						test2[ntest2]= ntohl(pkt_fh->ip6f_ident);
-						ntest2++;
 					}
 				}
 			}
@@ -1294,62 +1309,68 @@ int main(int argc, char **argv){
 				}
 			}
 
-			/* Read a packet (Echo Reply, ICMPv6 Error, or Neighbor Solicitation) */
-			if((r=pcap_next_ex(idata.pfd, &pkthdr, &pktdata)) == -1){
-				printf("pcap_next_ex(): %s", pcap_geterr(idata.pfd));
-				exit(EXIT_FAILURE);
-			}
-			else if(r == 1){
-				pkt_ether = (struct ether_header *) pktdata;
-				pkt_ipv6 = (struct ip6_hdr *)((char *) pkt_ether + idata.linkhsize);
-				pkt_icmp6 = (struct icmp6_hdr *) ((char *) pkt_ipv6 + sizeof(struct ip6_hdr));
-				pkt_ns= (struct nd_neighbor_solicit *) pkt_icmp6;
-				pkt_end = (unsigned char *) pktdata + pkthdr->caplen;
+#if defined(sun) || defined(__sun)
+			if(TRUE){
+#else
+			if(sel && FD_ISSET(idata.fd, &rset)){
+#endif
+				/* Read a packet (Echo Reply, ICMPv6 Error, or Neighbor Solicitation) */
+				if((r=pcap_next_ex(idata.pfd, &pkthdr, &pktdata)) == -1){
+					printf("pcap_next_ex(): %s", pcap_geterr(idata.pfd));
+					exit(EXIT_FAILURE);
+				}
+				else if(r == 1){
+					pkt_ether = (struct ether_header *) pktdata;
+					pkt_ipv6 = (struct ip6_hdr *)((char *) pkt_ether + idata.linkhsize);
+					pkt_icmp6 = (struct icmp6_hdr *) ((char *) pkt_ipv6 + sizeof(struct ip6_hdr));
+					pkt_ns= (struct nd_neighbor_solicit *) pkt_icmp6;
+					pkt_end = (unsigned char *) pktdata + pkthdr->caplen;
 
-				if( (pkt_end -  pktdata) < (idata.linkhsize + MIN_IPV6_HLEN))
-					continue;
+					if( (pkt_end -  pktdata) < (idata.linkhsize + MIN_IPV6_HLEN))
+						continue;
 
-				if(pkt_ipv6->ip6_nxt == IPPROTO_ICMPV6){
-					if(idata.type == DLT_EN10MB && !(idata.flags & IFACE_LOOPBACK) && pkt_icmp6->icmp6_type == ND_NEIGHBOR_SOLICIT){
-						if( (pkt_end - (unsigned char *) pkt_ns) < sizeof(struct nd_neighbor_solicit))
-							continue;
-						/* 
-							If the addresses that we're using are not actually configured on the local system
-							(i.e., they are "spoofed", we must check whether it is a Neighbor Solicitation for 
-							one of our addresses, and respond with a Neighbor Advertisement. Otherwise, the kernel
-							will take care of that.
-						 */
-						if(idata.type == DLT_EN10MB && !(idata.flags & IFACE_LOOPBACK) && !localaddr_f && \
-										is_eq_in6_addr(&(pkt_ns->nd_ns_target), &(idata.srcaddr))){
-								if(send_neighbor_advert(&idata, idata.pfd, pktdata) == -1){
-									puts("Error sending Neighbor Advertisement");
-									exit(EXIT_FAILURE);
-								}
+					if(pkt_ipv6->ip6_nxt == IPPROTO_ICMPV6){
+						if(idata.type == DLT_EN10MB && !(idata.flags & IFACE_LOOPBACK) && pkt_icmp6->icmp6_type == ND_NEIGHBOR_SOLICIT){
+							if( (pkt_end - (unsigned char *) pkt_ns) < sizeof(struct nd_neighbor_solicit))
+								continue;
+							/* 
+								If the addresses that we're using are not actually configured on the local system
+								(i.e., they are "spoofed", we must check whether it is a Neighbor Solicitation for 
+								one of our addresses, and respond with a Neighbor Advertisement. Otherwise, the kernel
+								will take care of that.
+							 */
+							if(idata.type == DLT_EN10MB && !(idata.flags & IFACE_LOOPBACK) && !localaddr_f && \
+											is_eq_in6_addr(&(pkt_ns->nd_ns_target), &(idata.srcaddr))){
+									if(send_neighbor_advert(&idata, idata.pfd, pktdata) == -1){
+										puts("Error sending Neighbor Advertisement");
+										exit(EXIT_FAILURE);
+									}
+							}
 						}
-					}
-					else if( (pkt_icmp6->icmp6_type == ICMP6_ECHO_REPLY) || (pkt_icmp6->icmp6_type == ICMP6_TIME_EXCEEDED)){
-						if( (pkt_end - (unsigned char *) pkt_icmp6) < sizeof(struct icmp6_hdr))
-							continue;
-						/*
-						   Do a preliminar validation check on the ICMPv6 packet (packet size, Source Address,
-						   and Destination Address).
-						 */
-						if(!valid_icmp6_response(&idata, pkthdr, pktdata)){
-							continue;
-						}
+						else if( (pkt_icmp6->icmp6_type == ICMP6_ECHO_REPLY) || (pkt_icmp6->icmp6_type == ICMP6_TIME_EXCEEDED)){
+							if( (pkt_end - (unsigned char *) pkt_icmp6) < sizeof(struct icmp6_hdr))
+								continue;
+							/*
+							   Do a preliminar validation check on the ICMPv6 packet (packet size, Source Address,
+							   and Destination Address).
+							 */
+							if(!valid_icmp6_response(&idata, pkthdr, pktdata)){
+								continue;
+							}
 
-						switch(pkt_icmp6->icmp6_type){
-							case ICMP6_ECHO_REPLY:
-								if(resp_f)
-									print_icmp6_echo(&idata, pkthdr, pktdata);
+							switch(pkt_icmp6->icmp6_type){
+								case ICMP6_ECHO_REPLY:
+									if(resp_f)
+										print_icmp6_echo(&idata, pkthdr, pktdata);
 
-								break;
+									break;
 
-							case ICMP6_TIME_EXCEEDED:
-								if(resp_f)
-									print_icmp6_timed(&idata, pkthdr, pktdata);
+								case ICMP6_TIME_EXCEEDED:
+									if(resp_f)
+										print_icmp6_timed(&idata, pkthdr, pktdata);
 
-								break;
+									break;
+							}
 						}
 					}
 				}

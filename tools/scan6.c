@@ -1894,7 +1894,7 @@ int main(int argc, char **argv){
 #if defined(sun) || defined(__sun)
 				if(TRUE){
 #else
-				if(FD_ISSET(idata.fd, &rset)){
+				if(sel && FD_ISSET(idata.fd, &rset)){
 #endif
 					/* Must rocess incoming packet */
 					error_f=FALSE;
@@ -2399,7 +2399,7 @@ int main(int argc, char **argv){
 #if defined(sun) || defined(__sun)
 			if(TRUE){
 #else
-			if(FD_ISSET(idata.fd, &rset)){
+			if(sel && FD_ISSET(idata.fd, &rset)){
 #endif
 				error_f=FALSE;
 

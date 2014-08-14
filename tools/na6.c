@@ -967,7 +967,7 @@ int main(int argc, char **argv){
 #if defined(sun) || defined(__sun)
 			if(TRUE){
 #else
-			if(FD_ISSET(idata.fd, &rset)){
+			if(sel && FD_ISSET(idata.fd, &rset)){
 #endif
 				/* Read a Neighbor Solicitation message */
 				if((r=pcap_next_ex(idata.pfd, &pkthdr, &pktdata)) == -1){

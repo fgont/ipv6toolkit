@@ -1142,7 +1142,7 @@ int main(int argc, char **argv){
 #if defined(sun) || defined(__sun)
 			if(TRUE){
 #else
-			if(FD_ISSET(idata.fd, &rset)){
+			if(sel && FD_ISSET(idata.fd, &rset)){
 #endif
 				if((r=pcap_next_ex(idata.pfd, &pkthdr, &pktdata)) == -1){
 					printf("pcap_next_ex(): %s", pcap_geterr(idata.pfd));
@@ -1215,102 +1215,107 @@ int main(int argc, char **argv){
 					exit(EXIT_FAILURE);
 				}
 			}
-
-			/* Read a Neighbor Solicitation message */
-			if((r=pcap_next_ex(idata.pfd, &pkthdr, &pktdata)) == -1){
-				printf("pcap_next_ex(): %s", pcap_geterr(idata.pfd));
-				exit(EXIT_FAILURE);
-			}
-			else if(r == 1){
-				pkt_ether = (struct ether_header *) pktdata;
-				pkt_ipv6 = (struct ip6_hdr *)((char *) pkt_ether + idata.linkhsize);
-				pkt_ni= (struct icmp6_nodeinfo *) ( (unsigned char *) pkt_ipv6 + sizeof(struct ip6_hdr));
-
-				accepted_f=0;
-
-				if(pkt_ni->ni_type != ICMP6_NI_QUERY){
-					continue;
+#if defined(sun) || defined(__sun)
+			if(TRUE){
+#else
+			if(sel && FD_ISSET(idata.fd, &rset)){
+#endif
+				/* Read a Neighbor Solicitation message */
+				if((r=pcap_next_ex(idata.pfd, &pkthdr, &pktdata)) == -1){
+					printf("pcap_next_ex(): %s", pcap_geterr(idata.pfd));
+					exit(EXIT_FAILURE);
 				}
+				else if(r == 1){
+					pkt_ether = (struct ether_header *) pktdata;
+					pkt_ipv6 = (struct ip6_hdr *)((char *) pkt_ether + idata.linkhsize);
+					pkt_ni= (struct icmp6_nodeinfo *) ( (unsigned char *) pkt_ipv6 + sizeof(struct ip6_hdr));
 
-				if(pkt_ni->ni_qtype != htons(qtype)){
-					continue;
-				}
+					accepted_f=0;
 
-				if(!rand_src_f){
-					if(!IN6_IS_ADDR_MC_LINKLOCAL(&(pkt_ipv6->ip6_dst)) && \
-						!is_ip6_in_address_list(&(idata.ip6_global), &(pkt_ipv6->ip6_dst)) && \
-							!is_eq_in6_addr(&(pkt_ipv6->ip6_dst), &(idata.ip6_local)))
-						continue;
-				}
-
-				if(filters.nblocklinksrc){
-					if(match_ether(filters.blocklinksrc, filters.nblocklinksrc, &(pkt_ether->src))){
-						if(idata.verbose_f > 1)
-							print_filter_result(&idata, pktdata, BLOCKED);
-		
+					if(pkt_ni->ni_type != ICMP6_NI_QUERY){
 						continue;
 					}
-				}
 
-				if(filters.nblocklinkdst){
-					if(match_ether(filters.blocklinkdst, filters.nblocklinkdst, &(pkt_ether->dst))){
-						if(idata.verbose_f > 1)
-							print_filter_result(&idata, pktdata, BLOCKED);
-		
+					if(pkt_ni->ni_qtype != htons(qtype)){
 						continue;
 					}
-				}
+
+					if(!rand_src_f){
+						if(!IN6_IS_ADDR_MC_LINKLOCAL(&(pkt_ipv6->ip6_dst)) && \
+							!is_ip6_in_address_list(&(idata.ip6_global), &(pkt_ipv6->ip6_dst)) && \
+								!is_eq_in6_addr(&(pkt_ipv6->ip6_dst), &(idata.ip6_local)))
+							continue;
+					}
+
+					if(filters.nblocklinksrc){
+						if(match_ether(filters.blocklinksrc, filters.nblocklinksrc, &(pkt_ether->src))){
+							if(idata.verbose_f > 1)
+								print_filter_result(&idata, pktdata, BLOCKED);
+		
+							continue;
+						}
+					}
+
+					if(filters.nblocklinkdst){
+						if(match_ether(filters.blocklinkdst, filters.nblocklinkdst, &(pkt_ether->dst))){
+							if(idata.verbose_f > 1)
+								print_filter_result(&idata, pktdata, BLOCKED);
+		
+							continue;
+						}
+					}
 	
-				if(filters.nblocksrc){
-					if(match_ipv6(filters.blocksrc, filters.blocksrclen, filters.nblocksrc, &(pkt_ipv6->ip6_src))){
+					if(filters.nblocksrc){
+						if(match_ipv6(filters.blocksrc, filters.blocksrclen, filters.nblocksrc, &(pkt_ipv6->ip6_src))){
+							if(idata.verbose_f > 1)
+								print_filter_result(&idata, pktdata, BLOCKED);
+		
+							continue;
+						}
+					}
+	
+					if(filters.nblockdst){
+						if(match_ipv6(filters.blockdst, filters.blockdstlen, filters.nblockdst, &(pkt_ipv6->ip6_dst))){
+							if(idata.verbose_f > 1)
+								print_filter_result(&idata, pktdata, BLOCKED);
+		
+							continue;
+						}
+					}
+	
+					if(filters.nacceptlinksrc){
+						if(match_ether(filters.acceptlinksrc, filters.nacceptlinksrc, &(pkt_ether->src)))
+							accepted_f=1;
+					}
+
+					if(filters.nacceptlinkdst && !accepted_f){
+						if(match_ether(filters.acceptlinkdst, filters.nacceptlinkdst, &(pkt_ether->dst)))
+							accepted_f= 1;
+					}
+
+					if(filters.nacceptsrc && !accepted_f){
+						if(match_ipv6(filters.acceptsrc, filters.acceptsrclen, filters.nacceptsrc, &(pkt_ipv6->ip6_src)))
+							accepted_f= 1;
+					}
+
+					if(filters.nacceptdst && !accepted_f){
+						if(match_ipv6(filters.acceptdst, filters.acceptdstlen, filters.nacceptdst, &(pkt_ipv6->ip6_dst)))
+							accepted_f=1;
+					}
+	
+					if(filters.acceptfilters_f && !accepted_f){
 						if(idata.verbose_f > 1)
 							print_filter_result(&idata, pktdata, BLOCKED);
-		
+
 						continue;
 					}
-				}
-	
-				if(filters.nblockdst){
-					if(match_ipv6(filters.blockdst, filters.blockdstlen, filters.nblockdst, &(pkt_ipv6->ip6_dst))){
-						if(idata.verbose_f > 1)
-							print_filter_result(&idata, pktdata, BLOCKED);
-		
-						continue;
-					}
-				}
-	
-				if(filters.nacceptlinksrc){
-					if(match_ether(filters.acceptlinksrc, filters.nacceptlinksrc, &(pkt_ether->src)))
-						accepted_f=1;
-				}
 
-				if(filters.nacceptlinkdst && !accepted_f){
-					if(match_ether(filters.acceptlinkdst, filters.nacceptlinkdst, &(pkt_ether->dst)))
-						accepted_f= 1;
+					if(idata.verbose_f)
+						print_filter_result(&idata, pktdata, ACCEPTED);
+
+					/* Send a Neighbor Advertisement */
+					send_packet(&idata, pktdata, pkthdr);
 				}
-
-				if(filters.nacceptsrc && !accepted_f){
-					if(match_ipv6(filters.acceptsrc, filters.acceptsrclen, filters.nacceptsrc, &(pkt_ipv6->ip6_src)))
-						accepted_f= 1;
-				}
-
-				if(filters.nacceptdst && !accepted_f){
-					if(match_ipv6(filters.acceptdst, filters.acceptdstlen, filters.nacceptdst, &(pkt_ipv6->ip6_dst)))
-						accepted_f=1;
-				}
-	
-				if(filters.acceptfilters_f && !accepted_f){
-					if(idata.verbose_f > 1)
-						print_filter_result(&idata, pktdata, BLOCKED);
-
-					continue;
-				}
-
-				if(idata.verbose_f)
-					print_filter_result(&idata, pktdata, ACCEPTED);
-
-				/* Send a Neighbor Advertisement */
-				send_packet(&idata, pktdata, pkthdr);
 			}
 		}
     

@@ -3275,7 +3275,7 @@ struct iface_entry *find_matching_address(struct iface_data *idata, struct iface
  * Finds the mask that two IPv6 addresses have in common
  */
 unsigned int ip6_longest_match(struct in6_addr *addr1, struct in6_addr *addr2){
-	unsigned int mask, step=8;
+	unsigned int mask, step=1, match=0;
 	struct in6_addr a1, a2;
 
 	for(mask=0; mask <= 64; mask=mask+step){
@@ -3285,7 +3285,9 @@ unsigned int ip6_longest_match(struct in6_addr *addr1, struct in6_addr *addr2){
 		sanitize_ipv6_prefix(&a2, mask);
 
 		if(!is_eq_in6_addr(&a1, &a2))
-			return(mask - step);
+			return(match);
+		else
+			match=mask;
 	}
 
 	return(64);
