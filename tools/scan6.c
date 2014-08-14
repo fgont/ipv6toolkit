@@ -2338,7 +2338,11 @@ puts("Prior to select()");
 				Check for readability and exceptions. We only check for writeability if there is pending data
 				to send (the pcap descriptor will usually be writeable!).
 			 */
+#if defined(sun) || defined(__sun)
+			if((sel=select(0, NULL, NULL, NULL, &timeout)) == -1){
+#else
 			if((sel=select(idata.fd+1, &rset, (idata.pending_write_f?&wset:NULL), &eset, &timeout)) == -1){
+#endif
 				if(errno == EINTR){
 					continue;
 				}
