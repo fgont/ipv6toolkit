@@ -2382,7 +2382,10 @@ puts("After select()");
 			   If we didn't check for writeability in the previous call to select(), we must do it now. Otherwise, we might
 			   block when trying to send a packet.
 			 */
-#if !defined(sun) && !defined(__sun)
+#if !(defined(sun) || defined(__sun))
+#ifdef DEBUG
+puts("Prior secondary select()");
+#endif
 			if(!donesending_f && !idata.pending_write_f){
 				wset= sset;
 
@@ -2402,6 +2405,9 @@ puts("After select()");
 				idata.pending_write_f= TRUE;
 				continue;
 			}
+#ifdef DEBUG
+puts("After secondary select()");
+#endif
 #endif
 
 #if defined(sun) || defined(__sun)
