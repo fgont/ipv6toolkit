@@ -72,9 +72,9 @@ union my6_addr{
 
 /* Stores one remote target to scan */
 struct scan_entry{
-	struct my6_addr		start;
-	struct my6_addr		end;
-	struct my6_addr		cur;
+	union my6_addr		start;
+	union my6_addr		end;
+	union my6_addr		cur;
 };
 
 /* Store the list of remote targets to scan */
