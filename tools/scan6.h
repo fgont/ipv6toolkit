@@ -62,12 +62,11 @@
 
 
 union my6_addr{
-	struct in6_addr	in6_addr;
-	uint16_t	s6_addr16[8];
 	uint8_t		s6_addr[16];
-	uint32_t	s6_addr[32];
+	uint16_t	s6_addr16[8];
+	uint32_t	s6_addr32[4];
+	struct in6_addr	in6_addr;
 };
-
 
 
 /* Stores one remote target to scan */
