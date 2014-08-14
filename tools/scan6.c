@@ -2408,6 +2408,8 @@ puts("Internal select()");
 						exit(EXIT_FAILURE);
 					}
 				}
+
+				idata.pending_write_f= TRUE;
 			}
 #endif
 
@@ -2594,21 +2596,20 @@ puts("XXX: Valid packet");
 				}
 			}
 
-#if !defined(sun) && !defined(__sun)
+
 			if(!donesending_f && !idata.pending_write_f && is_time_elapsed(&curtime, &lastprobe, pktinterval)){
 				idata.pending_write_f=TRUE;
 				continue;
 			}
-#endif
 
 #ifdef DEBUG
 puts("************ Going to chcck writability *******");
 #endif
 
 #if defined(sun) || defined(__sun)
-			if(!donesending_f){
+			if(!donesending_f && idata.pending_write_f){
 #else
-			if(!donesending_f && FD_ISSET(idata.fd, &wset)){
+			if(!donesending_f && idata.pending_write_f && FD_ISSET(idata.fd, &wset)){
 #endif
 
 
