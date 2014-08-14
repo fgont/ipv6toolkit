@@ -1343,7 +1343,7 @@ int main(int argc, char **argv){
 #else
 			timeout.tv_usec=10000;
 			timeout.tv_sec= 0;
-			if((sel=select(idata.fd+1, &rset, NULL, NULL, &timeout) == -1){
+			if((sel=select(idata.fd+1, &rset, NULL, NULL, &timeout)) == -1){
 #endif
 				if(errno == EINTR){
 					continue;
