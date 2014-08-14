@@ -56,8 +56,6 @@
 #include "ipv6toolkit.h"
 #include "libipv6.h"
 
-/* #define DEBUG */
-
 /* Function prototypes */
 void				init_packet_data(struct iface_data *);
 int					create_candidate_globals(struct iface_data *, struct host_list *, struct host_list *, \
@@ -1454,9 +1452,6 @@ int main(int argc, char **argv){
 		}
 	}
 
-#ifdef DEBUG
-puts("Already loaded the corresponding dest");
-#endif
 	release_privileges();
 
 	/* This loads prefixes, but not scan entries */
@@ -1833,8 +1828,13 @@ puts("Already loaded the corresponding dest");
 					timeout.tv_usec= pktinterval % 1000000;
 				}
 				else{
+#if defined(sun) || defined(__sun)
+					timeout.tv_sec= pktinterval / 1000000 ;	
+					timeout.tv_usec= pktinterval % 1000000;
+#else
 					timeout.tv_usec=0;
 					timeout.tv_sec= PSCAN_TIMEOUT;
+#endif
 				}
 
 				/*
@@ -1865,6 +1865,7 @@ puts("Already loaded the corresponding dest");
 					}
 				}
 
+#if !defined(sun) && !defined(__sun)
 				/*
 				   If we didn't check for writeability in the previous call to select(), we must do it now. Otherwise, we might
 				   block when trying to send a packet.
@@ -1884,7 +1885,10 @@ puts("Already loaded the corresponding dest");
 							exit(EXIT_FAILURE);
 						}
 					}
+
+					idata.pending_write_f= TRUE;
 				}
+#endif
 
 #if defined(sun) || defined(__sun)
 				if(TRUE){
@@ -1899,12 +1903,6 @@ puts("Already loaded the corresponding dest");
 							printf("Error while reading packet in main loop: pcap_next_ex(): %s", pcap_geterr(idata.pfd));
 
 						exit(EXIT_FAILURE);
-					}
-					else if(result == 0){
-#ifdef DEBUG
-puts("Timeout en pcap_next_ex()");
-#endif
-						continue;
 					}
 
 					if(result == 1){
@@ -2072,9 +2070,9 @@ puts("Timeout en pcap_next_ex()");
 				}
 
 #if defined(sun) || defined(__sun)
-				if(!donesending_f){
+				if(!donesending_f && idata.pending_write_f){
 #else
-				if(!donesending_f && FD_ISSET(idata.fd, &wset)){
+				if(!donesending_f && idata.pending_write_f && FD_ISSET(idata.fd, &wset)){
 #endif
 					idata.pending_write_f=FALSE;
 
@@ -2146,10 +2144,6 @@ puts("Timeout en pcap_next_ex()");
 	}
 	/* Remote scan */
 	else{
-#ifdef DEBUG
-puts("ABout to do a remote scan");
-#endif
-
 		/* Smart entries are the first ones to be included */
 		if(smart_list.ntarget){
 			if(!load_smart_entries(&scan_list, &smart_list)){
@@ -2316,9 +2310,6 @@ puts("ABout to do a remote scan");
 		idata.pending_write_f=TRUE;	
 
 		while(!end_f){
-#ifdef DEBUG
-puts("Got into main loop");
-#endif
 			rset= sset;
 			wset= sset;
 			eset= sset;
@@ -2337,9 +2328,6 @@ puts("Got into main loop");
 #endif
 			}
 
-#ifdef DEBUG
-puts("Gonna enter select()");
-#endif
 			/*
 				Check for readability and exceptions. We only check for writeability if there is pending data
 				to send (the pcap descriptor will usually be writeable!).
@@ -2354,9 +2342,6 @@ puts("Gonna enter select()");
 				}
 			}
 
-#ifdef DEBUG
-puts("Left select()");
-#endif
 			if(gettimeofday(&curtime, NULL) == -1){
 				if(idata.verbose_f)
 					perror("scan6");
@@ -2391,9 +2376,6 @@ puts("Left select()");
 			 */
 #if !defined(sun) && !defined(__sun)
 			if(!donesending_f && !idata.pending_write_f){
-#ifdef DEBUG
-puts("Internal select()");
-#endif
 				wset= sset;
 
 				timeout.tv_usec=0;
@@ -2413,39 +2395,21 @@ puts("Internal select()");
 			}
 #endif
 
-#ifdef DEBUG
-puts("Going to check descriptors");
-#endif
-
 #if defined(sun) || defined(__sun)
-			if(1){
+			if(TRUE){
 #else
 			if(FD_ISSET(idata.fd, &rset)){
 #endif
 				error_f=FALSE;
 
-#ifdef DEBUG
-puts("****************  About to do pcap_next_ex  ************");
-#endif
 				if((result=pcap_next_ex(idata.pfd, &pkthdr, &pktdata)) == -1){
 					if(idata.verbose_f)
 						printf("Error while reading packet in main loop: pcap_next_ex(): %s", pcap_geterr(idata.pfd));
 
 					exit(EXIT_FAILURE);
 				}
-				else if(result == 0){
-#ifdef DEBUG
-puts("Timeout en pcap_next_ex()");
-#endif
-/*					continue;*/
-				}
-#ifdef DEBUG
-puts("Got out of pcap_next_ex()");
-#endif
+
 				if(result == 1){
-#ifdef DEBUG
-puts("Read packet");
-#endif
 					pkt_ether = (struct ether_header *) pktdata;
 					pkt_ipv6 = (struct ip6_hdr *)((char *) pkt_ether + idata.linkhsize);
 					pkt_icmp6 = (struct icmp6_hdr *) ((char *) pkt_ipv6 + sizeof(struct ip6_hdr));
@@ -2457,16 +2421,7 @@ puts("Read packet");
 						continue;
 
 					if(pkt_ipv6->ip6_nxt == IPPROTO_ICMPV6){
-#ifdef DEBUG
-puts("XXX: Packet was ICMPv6");
-
-printf("Type: %u (echo: %u)\n", pkt_icmp6->icmp6_type, ICMP6_ECHO_REPLY);
-#endif
 						if( idata.type == DLT_EN10MB && !(idata.flags & IFACE_LOOPBACK) && pkt_icmp6->icmp6_type == ND_NEIGHBOR_SOLICIT){
-#ifdef DEBUG
-puts("XXX: Packet was NS");
-#endif
-
 							if( (pkt_end - (unsigned char *) pkt_ns) < sizeof(struct nd_neighbor_solicit))
 								continue;
 
@@ -2488,23 +2443,13 @@ puts("XXX: Packet was NS");
 						}
 						else if( (probetype == PROBE_ICMP6_ECHO && pkt_icmp6->icmp6_type == ICMP6_ECHO_REPLY) ||\
 								 (probetype == PROBE_UNREC_OPT && pkt_icmp6->icmp6_type == ICMP6_PARAM_PROB)){
-#ifdef DEBUG
-puts("XXX: Going to check if in scan list");
-#endif
 							if(!is_ip6_in_scan_list(&scan_list, &(pkt_ipv6->ip6_src)))
 								continue;
 
 							if( (pkt_end - (unsigned char *) pkt_icmp6) < sizeof(struct icmp6_hdr))
 								continue;
 
-#ifdef DEBUG
-puts("XXX: Done basic sanity checks");
-#endif
-
 							if(valid_icmp6_response_remote(&idata, &scan_list, probetype, pkthdr, pktdata, buffer)){
-#ifdef DEBUG
-puts("XXX: Valid packet");
-#endif
 								/* Print the Source Address of the incoming packet */
 								if(inet_ntop(AF_INET6, &(pkt_ipv6->ip6_src), pv6addr, sizeof(pv6addr)) == NULL){
 									if(idata.verbose_f>1)
@@ -2602,19 +2547,10 @@ puts("XXX: Valid packet");
 				continue;
 			}
 
-#ifdef DEBUG
-puts("************ Going to chcck writability *******");
-#endif
-
 #if defined(sun) || defined(__sun)
 			if(!donesending_f && idata.pending_write_f){
 #else
 			if(!donesending_f && idata.pending_write_f && FD_ISSET(idata.fd, &wset)){
-#endif
-
-
-#ifdef DEBUG
-puts("************ WAS WRITEABLE *******");
 #endif
 
 				idata.pending_write_f=FALSE;
@@ -2634,16 +2570,10 @@ puts("************ WAS WRITEABLE *******");
 					}
 				}
 
-#ifdef DEBUG
-puts("Going to send probe to remote node");
-#endif
 				if(!send_probe_remote(&idata, &scan_list, &(idata.srcaddr), probetype)){
 						exit(EXIT_FAILURE);
 				}
 
-#ifdef DEBUG
-puts("Probe sent");
-#endif
 				if(gettimeofday(&lastprobe, NULL) == -1){
 					if(idata.verbose_f)
 						perror("scan6");
