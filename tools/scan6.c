@@ -462,14 +462,14 @@ int main(int argc, char **argv){
 
 								prefix_to_scan(&prefix, smart_list.target[smart_list.ntarget]);
 
-								if(IN6_IS_ADDR_MULTICAST(&(smart_list.target[smart_list.ntarget]->start))){
+								if(IN6_IS_ADDR_MULTICAST(&(smart_list.target[smart_list.ntarget]->start.in6_addr))){
 									if(idata.verbose_f)
 										puts("scan6: Remote scan cannot target a multicast address");
 
 									exit(EXIT_FAILURE);
 								}
 
-								if(IN6_IS_ADDR_MULTICAST(&(smart_list.target[smart_list.ntarget]->end))){
+								if(IN6_IS_ADDR_MULTICAST(&(smart_list.target[smart_list.ntarget]->end.in6_addr))){
 									if(idata.verbose_f)
 										puts("scan6: Remote scan cannot target a multicast address");
 
@@ -504,14 +504,14 @@ int main(int argc, char **argv){
 
 								prefix_to_scan(&prefix, prefix_list.target[prefix_list.ntarget]);
 
-								if(IN6_IS_ADDR_MULTICAST(&(prefix_list.target[prefix_list.ntarget]->start))){
+								if(IN6_IS_ADDR_MULTICAST(&(prefix_list.target[prefix_list.ntarget]->start.in6_addr))){
 									if(idata.verbose_f)
 										puts("scan6: Remote scan cannot target a multicast address");
 
 									exit(EXIT_FAILURE);
 								}
 
-								if(IN6_IS_ADDR_MULTICAST(&(prefix_list.target[prefix_list.ntarget]->end))){
+								if(IN6_IS_ADDR_MULTICAST(&(prefix_list.target[prefix_list.ntarget]->end.in6_addr))){
 									if(idata.verbose_f)
 										puts("scan6: Remote scan cannot target a multicast address");
 
@@ -704,14 +704,14 @@ int main(int argc, char **argv){
 
 							prefix_to_scan(&prefix, smart_list.target[smart_list.ntarget]);
 
-							if(IN6_IS_ADDR_MULTICAST(&(smart_list.target[smart_list.ntarget]->start))){
+							if(IN6_IS_ADDR_MULTICAST(&(smart_list.target[smart_list.ntarget]->start.in6_addr))){
 								if(idata.verbose_f)
 									puts("scan6: Remote scan cannot target a multicast address");
 
 								exit(EXIT_FAILURE);
 							}
 
-							if(IN6_IS_ADDR_MULTICAST(&(smart_list.target[smart_list.ntarget]->end))){
+							if(IN6_IS_ADDR_MULTICAST(&(smart_list.target[smart_list.ntarget]->end.in6_addr))){
 								if(idata.verbose_f)
 									puts("scan6: Remote scan cannot target a multicast address");
 
@@ -743,14 +743,14 @@ int main(int argc, char **argv){
 
 							prefix_to_scan(&prefix, prefix_list.target[prefix_list.ntarget]);
 
-							if(IN6_IS_ADDR_MULTICAST(&(prefix_list.target[prefix_list.ntarget]->start))){
+							if(IN6_IS_ADDR_MULTICAST(&(prefix_list.target[prefix_list.ntarget]->start.in6_addr))){
 								if(idata.verbose_f)
 									puts("scan6: Remote scan cannot target a multicast address");
 
 								exit(EXIT_FAILURE);
 							}
 
-							if(IN6_IS_ADDR_MULTICAST(&(prefix_list.target[prefix_list.ntarget]->end))){
+							if(IN6_IS_ADDR_MULTICAST(&(prefix_list.target[prefix_list.ntarget]->end.in6_addr))){
 								if(idata.verbose_f)
 									puts("scan6: Remote scan cannot target a multicast address");
 
@@ -2994,14 +2994,14 @@ int load_knownprefix_entries(struct scan_list *scan_list, struct scan_list *pref
 							return(0);
 						}
 
-					if(IN6_IS_ADDR_MULTICAST(&((scan_list->target[scan_list->ntarget])->start))){
+					if(IN6_IS_ADDR_MULTICAST(&((scan_list->target[scan_list->ntarget])->start.in6_addr))){
 						if(verbose_f > 1)
 							puts("scan6: Remote scan cannot target a multicast address");
 
 						return(0);
 					}
 
-					if(IN6_IS_ADDR_MULTICAST(&((scan_list->target[scan_list->ntarget])->end))){
+					if(IN6_IS_ADDR_MULTICAST(&((scan_list->target[scan_list->ntarget])->end.in6_addr))){
 						if(verbose_f > 1)
 							puts("scan6: Remote scan cannot target a multicast address");
 
@@ -3085,14 +3085,14 @@ int load_knownprefix_entries(struct scan_list *scan_list, struct scan_list *pref
 
 					prefix_to_scan(&prefix, prefix_list->target[prefix_list->ntarget]);
 
-					if(IN6_IS_ADDR_MULTICAST(&((prefix_list->target[prefix_list->ntarget])->start))){
+					if(IN6_IS_ADDR_MULTICAST(&((prefix_list->target[prefix_list->ntarget])->start.in6_addr))){
 						if(verbose_f > 1)
 							puts("scan6: Remote scan cannot target a multicast address");
 
 						return(0);
 					}
 
-					if(IN6_IS_ADDR_MULTICAST(&((prefix_list->target[prefix_list->ntarget])->end))){
+					if(IN6_IS_ADDR_MULTICAST(&((prefix_list->target[prefix_list->ntarget])->end.in6_addr))){
 						if(verbose_f > 1)
 							puts("scan6: Remote scan cannot target a multicast address");
 
