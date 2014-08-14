@@ -2331,6 +2331,9 @@ int main(int argc, char **argv){
 #endif
 			}
 
+#ifdef DEBUG
+puts("Prior to select()");
+#endif
 			/*
 				Check for readability and exceptions. We only check for writeability if there is pending data
 				to send (the pcap descriptor will usually be writeable!).
@@ -2344,7 +2347,9 @@ int main(int argc, char **argv){
 					exit(EXIT_FAILURE);
 				}
 			}
-
+#ifdef DEBUG
+puts("After select()");
+#endif
 			if(gettimeofday(&curtime, NULL) == -1){
 				if(idata.verbose_f)
 					perror("scan6");
@@ -2443,12 +2448,18 @@ puts("After to pcap_next_ex()");
 							 */
 							if(is_ip6_in_address_list(&(idata.ip6_global), &(pkt_ns->nd_ns_target)) || \
 								is_eq_in6_addr(&(pkt_ns->nd_ns_target), &(idata.ip6_local))){
+#ifdef DEBUG
+puts("Prior to send_neighbor_advert()");
+#endif
 									if(send_neighbor_advert(&idata, idata.pfd, pktdata) == -1){
 										if(idata.verbose_f)
 											puts("Error sending Neighbor Advertisement message");
 
 										exit(EXIT_FAILURE);
 									}
+#ifdef DEBUG
+puts("After to send_neighbor_advert()");
+#endif
 							}
 						}
 						else if( (probetype == PROBE_ICMP6_ECHO && pkt_icmp6->icmp6_type == ICMP6_ECHO_REPLY) ||\
@@ -2598,12 +2609,18 @@ puts("After to pcap_next_ex()");
 
 			}
 
+#ifdef DEBUG
+puts("Prior to checking eset");
+#endif
 			if(FD_ISSET(idata.fd, &eset)){
 				if(idata.verbose_f)
 					puts("scan6: Found exception on libpcap descriptor");
 
 				exit(EXIT_FAILURE);
 			}
+#ifdef DEBUG
+puts("After checking eset");
+#endif
 		}
 	}
 
