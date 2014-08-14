@@ -2622,12 +2622,14 @@ puts("After to send_neighbor_advert()");
 #ifdef DEBUG
 puts("Prior to checking eset");
 #endif
+#if !(defined(sun) || defined(__sun))
 			if(FD_ISSET(idata.fd, &eset)){
 				if(idata.verbose_f)
 					puts("scan6: Found exception on libpcap descriptor");
 
 				exit(EXIT_FAILURE);
 			}
+#endif
 #ifdef DEBUG
 puts("After checking eset");
 #endif
