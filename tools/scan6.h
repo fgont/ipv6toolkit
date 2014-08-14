@@ -61,11 +61,20 @@
 #define MAX_FILENAME_SIZE		250
 
 
+union my6_addr{
+	struct in6_addr	in6_addr;
+	uint16_t	s6_addr16[8];
+	uint8_t		s6_addr[16];
+	uint32_t	s6_addr[32];
+};
+
+
+
 /* Stores one remote target to scan */
 struct scan_entry{
-	struct in6_addr		start;
-	struct in6_addr		end;
-	struct in6_addr		cur;
+	struct my6_addr		start;
+	struct my6_addr		end;
+	struct my6_addr		cur;
 };
 
 /* Store the list of remote targets to scan */
