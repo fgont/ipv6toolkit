@@ -1306,6 +1306,7 @@ struct in6_addr solicited_node(const struct in6_addr *ipv6addr){
 	struct in6_addr solicited;
 
 	solicited.s6_addr32[0]= htonl(0xff020000);
+	solicited.s6_addr32[1]= htonl(0);
 	solicited.s6_addr32[2]= htonl(0x00000001);
 	solicited.s6_addr32[3]= htonl(0xff000000) | ipv6addr->s6_addr32[3];
 
