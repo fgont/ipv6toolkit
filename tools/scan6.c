@@ -1886,7 +1886,11 @@ puts("Already loaded the corresponding dest");
 					}
 				}
 
+#if defined(sun) || defined(__sun)
+				if(TRUE){
+#else
 				if(FD_ISSET(idata.fd, &rset)){
+#endif
 					/* Must rocess incoming packet */
 					error_f=FALSE;
 
@@ -1895,6 +1899,12 @@ puts("Already loaded the corresponding dest");
 							printf("Error while reading packet in main loop: pcap_next_ex(): %s", pcap_geterr(idata.pfd));
 
 						exit(EXIT_FAILURE);
+					}
+					else if(result == 0){
+#ifdef DEBUG
+puts("Timeout en pcap_next_ex()");
+#endif
+						continue;
 					}
 
 					if(result == 1){
@@ -2397,7 +2407,12 @@ puts("Internal select()");
 #ifdef DEBUG
 puts("Going to check descriptors");
 #endif
+
+#if defined(sun) || defined(__sun)
+			if(1){
+#else
 			if(FD_ISSET(idata.fd, &rset)){
+#endif
 				error_f=FALSE;
 
 #ifdef DEBUG
