@@ -56,6 +56,7 @@
 #include "ipv6toolkit.h"
 #include "libipv6.h"
 
+/* #define DEBUG */
 
 /* Function prototypes */
 void				init_packet_data(struct iface_data *);
@@ -1453,6 +1454,9 @@ int main(int argc, char **argv){
 		}
 	}
 
+#ifdef DEBUG
+puts("Already loaded the corresponding dest");
+#endif
 	release_privileges();
 
 	/* This loads prefixes, but not scan entries */
@@ -2128,6 +2132,10 @@ int main(int argc, char **argv){
 	}
 	/* Remote scan */
 	else{
+#ifdef DEBUG
+puts("ABout to do a remote scan");
+#endif
+
 		/* Smart entries are the first ones to be included */
 		if(smart_list.ntarget){
 			if(!load_smart_entries(&scan_list, &smart_list)){
@@ -2294,6 +2302,9 @@ int main(int argc, char **argv){
 		idata.pending_write_f=TRUE;	
 
 		while(!end_f){
+#ifdef DEBUG
+puts("Got into main loop");
+#endif
 			rset= sset;
 			wset= sset;
 			eset= sset;
@@ -2307,6 +2318,9 @@ int main(int argc, char **argv){
 				timeout.tv_sec= SELECT_TIMEOUT;
 			}
 
+#ifdef DEBUG
+puts("Gonna enter select()");
+#endif
 			/*
 				Check for readability and exceptions. We only check for writeability if there is pending data
 				to send (the pcap descriptor will usually be writeable!).
@@ -2321,6 +2335,9 @@ int main(int argc, char **argv){
 				}
 			}
 
+#ifdef DEBUG
+puts("Left select()");
+#endif
 			if(gettimeofday(&curtime, NULL) == -1){
 				if(idata.verbose_f)
 					perror("scan6");
@@ -2373,13 +2390,18 @@ int main(int argc, char **argv){
 			if(FD_ISSET(idata.fd, &rset)){
 				error_f=FALSE;
 
+#ifdef DEBUG
+puts("About to do pcap_next_ex");
+#endif
 				if((result=pcap_next_ex(idata.pfd, &pkthdr, &pktdata)) == -1){
 					if(idata.verbose_f)
 						printf("Error while reading packet in main loop: pcap_next_ex(): %s", pcap_geterr(idata.pfd));
 
 					exit(EXIT_FAILURE);
 				}
-
+#ifdef DEBUG
+puts("Got out of pcap_next_ex()");
+#endif
 				if(result == 1){
 					pkt_ether = (struct ether_header *) pktdata;
 					pkt_ipv6 = (struct ip6_hdr *)((char *) pkt_ether + idata.linkhsize);
@@ -2535,10 +2557,16 @@ int main(int argc, char **argv){
 					}
 				}
 
+#ifdef DEBUG
+puts("Going to send probe to remote node");
+#endif
 				if(!send_probe_remote(&idata, &scan_list, &(idata.srcaddr), probetype)){
 						exit(EXIT_FAILURE);
 				}
 
+#ifdef DEBUG
+puts("Probe sent");
+#endif
 				if(gettimeofday(&lastprobe, NULL) == -1){
 					if(idata.verbose_f)
 						perror("scan6");
