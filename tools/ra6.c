@@ -156,6 +156,9 @@ int main(int argc, char **argv){
 	extern char		*optarg;	
 	int				r, sel;
 	fd_set			sset, rset;
+#if defined(sun) || defined(__sun)
+	struct timeval		timeout;
+#endif
 
 	static struct option longopts[] = {
 		{"interface", required_argument, 0, 'i'},
@@ -1177,8 +1180,13 @@ int main(int argc, char **argv){
 
 		while(listen_f){
 			rset= sset;
-
+#if defined(sun) || defined(__sun)
+			timeout.tv_usec=10000;
+			timeout.tv_sec= 0;
+			if((sel=select(idata.fd+1, &rset, NULL, NULL, &timeout)) == -1){
+#else
 			if((sel=select(idata.fd+1, &rset, NULL, NULL, NULL)) == -1){
+#endif
 				if(errno == EINTR){
 					continue;
 				}
@@ -1188,94 +1196,98 @@ int main(int argc, char **argv){
 				}
 			}
 
-			/* Read a Router Solicitation message */
-			if((r=pcap_next_ex(idata.pfd, &pkthdr, &pktdata)) == -1){
-				printf("pcap_next_ex(): %s", pcap_geterr(idata.pfd));
-				exit(EXIT_FAILURE);
-			}
-			else if(r == 0){
-				continue; /* Should never happen */
-			}
+#if defined(sun) || defined(__sun)
+			if(TRUE){
+#else
+			if(FD_ISSET(idata.fd, &rset)){
+#endif
+				/* Read a Router Solicitation message */
+				if((r=pcap_next_ex(idata.pfd, &pkthdr, &pktdata)) == -1){
+					printf("pcap_next_ex(): %s", pcap_geterr(idata.pfd));
+					exit(EXIT_FAILURE);
+				}
+				else if(r == 1){
+					pkt_ether = (struct ether_header *) pktdata;
+					pkt_ipv6 = (struct ip6_hdr *)((char *) pkt_ether + ETHER_HDR_LEN);
+					pkt_rs = (struct nd_router_solicit *) ((char *) pkt_ipv6 + MIN_IPV6_HLEN);
 
-			pkt_ether = (struct ether_header *) pktdata;
-			pkt_ipv6 = (struct ip6_hdr *)((char *) pkt_ether + ETHER_HDR_LEN);
-			pkt_rs = (struct nd_router_solicit *) ((char *) pkt_ipv6 + MIN_IPV6_HLEN);
+					accepted_f=0;
 
-			accepted_f=0;
+					if(idata.type == DLT_EN10MB && !(idata.flags & IFACE_LOOPBACK)){
+						if(filters.nblocklinksrc){
+							if(match_ether(filters.blocklinksrc, filters.nblocklinksrc, &(pkt_ether->src))){
+								if(idata.verbose_f>1)
+									print_filter_result(&idata, pktdata, BLOCKED);
+		
+								continue;
+							}
+						}
 
-			if(idata.type == DLT_EN10MB && !(idata.flags & IFACE_LOOPBACK)){
-				if(filters.nblocklinksrc){
-					if(match_ether(filters.blocklinksrc, filters.nblocklinksrc, &(pkt_ether->src))){
+						if(filters.nblocklinkdst){
+							if(match_ether(filters.blocklinkdst, filters.nblocklinkdst, &(pkt_ether->dst))){
+								if(idata.verbose_f>1)
+									print_filter_result(&idata, pktdata, BLOCKED);
+		
+								continue;
+							}
+						}
+					}
+	
+					if(filters.nblocksrc){
+						if(match_ipv6(filters.blocksrc, filters.blocksrclen, filters.nblocksrc, &(pkt_ipv6->ip6_src))){
+							if(idata.verbose_f>1)
+								print_filter_result(&idata, pktdata, BLOCKED);
+		
+							continue;
+						}
+					}
+	
+					if(filters.nblockdst){
+						if(match_ipv6(filters.blockdst, filters.blockdstlen, filters.nblockdst, &(pkt_ipv6->ip6_dst))){
+							if(idata.verbose_f>1)
+								print_filter_result(&idata, pktdata, BLOCKED);
+		
+							continue;
+						}
+					}
+
+					if(idata.type == DLT_EN10MB && !(idata.flags & IFACE_LOOPBACK)){	
+						if(filters.nacceptlinksrc){
+							if(match_ether(filters.acceptlinksrc, filters.nacceptlinksrc, &(pkt_ether->src)))
+								accepted_f=1;
+						}
+
+						if(filters.nacceptlinkdst && !accepted_f){
+							if(match_ether(filters.acceptlinkdst, filters.nacceptlinkdst, &(pkt_ether->dst)))
+								accepted_f= 1;
+						}
+					}
+
+					if(filters.nacceptsrc && !accepted_f){
+						if(match_ipv6(filters.acceptsrc, filters.acceptsrclen, filters.nacceptsrc, &(pkt_ipv6->ip6_src)))
+							accepted_f= 1;
+					}
+
+					if(filters.nacceptdst && !accepted_f){
+						if(match_ipv6(filters.acceptdst, filters.acceptdstlen, filters.nacceptdst, &(pkt_ipv6->ip6_dst)))
+							accepted_f=1;
+					}
+	
+					if(filters.acceptfilters_f && !accepted_f){
 						if(idata.verbose_f>1)
 							print_filter_result(&idata, pktdata, BLOCKED);
-		
-						continue;
+
+							continue;
 					}
-				}
 
-				if(filters.nblocklinkdst){
-					if(match_ether(filters.blocklinkdst, filters.nblocklinkdst, &(pkt_ether->dst))){
-						if(idata.verbose_f>1)
-							print_filter_result(&idata, pktdata, BLOCKED);
-		
-						continue;
-					}
-				}
-			}
-	
-			if(filters.nblocksrc){
-				if(match_ipv6(filters.blocksrc, filters.blocksrclen, filters.nblocksrc, &(pkt_ipv6->ip6_src))){
 					if(idata.verbose_f>1)
-						print_filter_result(&idata, pktdata, BLOCKED);
-		
-					continue;
+						print_filter_result(&idata, pktdata, ACCEPTED);
+
+
+					/* Send a Router Advertisement */
+					send_packet(&idata, pktdata);
 				}
 			}
-	
-			if(filters.nblockdst){
-				if(match_ipv6(filters.blockdst, filters.blockdstlen, filters.nblockdst, &(pkt_ipv6->ip6_dst))){
-					if(idata.verbose_f>1)
-						print_filter_result(&idata, pktdata, BLOCKED);
-		
-					continue;
-				}
-			}
-
-			if(idata.type == DLT_EN10MB && !(idata.flags & IFACE_LOOPBACK)){	
-				if(filters.nacceptlinksrc){
-					if(match_ether(filters.acceptlinksrc, filters.nacceptlinksrc, &(pkt_ether->src)))
-						accepted_f=1;
-				}
-
-				if(filters.nacceptlinkdst && !accepted_f){
-					if(match_ether(filters.acceptlinkdst, filters.nacceptlinkdst, &(pkt_ether->dst)))
-						accepted_f= 1;
-				}
-			}
-
-			if(filters.nacceptsrc && !accepted_f){
-				if(match_ipv6(filters.acceptsrc, filters.acceptsrclen, filters.nacceptsrc, &(pkt_ipv6->ip6_src)))
-					accepted_f= 1;
-			}
-
-			if(filters.nacceptdst && !accepted_f){
-				if(match_ipv6(filters.acceptdst, filters.acceptdstlen, filters.nacceptdst, &(pkt_ipv6->ip6_dst)))
-					accepted_f=1;
-			}
-	
-			if(filters.acceptfilters_f && !accepted_f){
-				if(idata.verbose_f>1)
-					print_filter_result(&idata, pktdata, BLOCKED);
-
-					continue;
-			}
-
-			if(idata.verbose_f>1)
-				print_filter_result(&idata, pktdata, ACCEPTED);
-
-
-			/* Send a Router Advertisement */
-			send_packet(&idata, pktdata);
 		}
 	}
 
@@ -1502,16 +1514,10 @@ void send_packet(struct iface_data *idata, const u_char *pktdata){
 
     do{
 	if(floods_f && (pktdata==NULL || (pktdata != NULL && multicastdst_f))){
-	    /* 
+	    /*
 	        Randomize the IPv6 Source address based on the specified prefix and prefix length
 	        (defaults to fe80::/64).
 	     */  
-
-		if ( inet_pton(AF_INET6, "fe80::", &(idata->srcaddr)) <= 0){
-			puts("inet_pton(): Error when converting address");
-			exit(EXIT_FAILURE);
-		}
-
 		randomize_ipv6_addr(&(ipv6->ip6_src), &(idata->srcaddr), idata->srcpreflen);
 
 	    if(!idata->hsrcaddr_f){

@@ -844,337 +844,333 @@ int main(int argc, char **argv){
 			}
 		}
 
-
-		/*
-		   If select() returned because of the timeout, go back to the beginning of the loop (i.e.,
-		   check whether there are packets to be sent
-		 */
-		if(sel == 0)
-			continue;
-
-		/* Read a packet (Echo Reply, ICMPv6 Error, or Neighbor Solicitation) */
-		if((r=pcap_next_ex(idata.pfd, &pkthdr, &pktdata)) == -1){
-			printf("pcap_next_ex(): %s", pcap_geterr(idata.pfd));
-			exit(EXIT_FAILURE);
-		}
-		else if(r == 0){
-			continue; /* Should never happen */
-		}
-
-		pkt_ether = (struct ether_header *) pktdata;
-		pkt_ipv6 = (struct ip6_hdr *)((char *) pkt_ether + idata.linkhsize);
-		pkt_end = (unsigned char *) pktdata + pkthdr->caplen;
-
-		if( (pkt_end -  pktdata) < (idata.linkhsize + MIN_IPV6_HLEN))
-			continue;
-
-		/*
-		   We currently handle two cases: In the first case, there are extension headers, and hence we need to walk through
-		   the extension header chain. In the other, the upper layer protocol is right after the fixed IPv6 header
-		 */
-		if(pkt_ipv6->ip6_nxt != IPPROTO_ICMPV6 && pkt_ipv6->ip6_nxt != IPPROTO_TCP && pkt_ipv6->ip6_nxt != IPPROTO_UDP){
-			pkt_eh= (struct ip6_eh *) ((char *) pkt_ipv6 + sizeof(struct ip6_hdr));
-
-			while( ( (unsigned char *) pkt_eh + MIN_EXT_HLEN) <= pkt_end && (pkt_eh->eh_nxt != IPPROTO_ICMPV6 && \
-				pkt_eh->eh_nxt != IPPROTO_TCP && pkt_eh->eh_nxt != IPPROTO_UDP)){
-				pkt_eh= (struct ip6_eh *) ( (char *) pkt_eh + (pkt_eh->eh_len + 1) * 8);
+#if defined(sun) || defined(__sun)
+		if(TRUE){
+#else
+		if(FD_ISSET(idata.fd, &rset)){
+#endif
+			/* Read a packet (Echo Reply, ICMPv6 Error, or Neighbor Solicitation) */
+			if((r=pcap_next_ex(idata.pfd, &pkthdr, &pktdata)) == -1){
+				printf("pcap_next_ex(): %s", pcap_geterr(idata.pfd));
+				exit(EXIT_FAILURE);
 			}
+			else if(r == 1){
+				pkt_ether = (struct ether_header *) pktdata;
+				pkt_ipv6 = (struct ip6_hdr *)((char *) pkt_ether + idata.linkhsize);
+				pkt_end = (unsigned char *) pktdata + pkthdr->caplen;
 
-			if( (unsigned char *)pkt_eh >= pkt_end){
-				continue;
-			}
-			else{
-				ulhtype= pkt_eh->eh_nxt;
-				pkt_icmp6= (struct icmp6_hdr *) ( (char *) pkt_eh + (pkt_eh->eh_len + 1) * 8);
-				pkt_udp= (struct udp_hdr *) ( (char *) pkt_eh + (pkt_eh->eh_len + 1) * 8);
-				pkt_icmp6 = (struct icmp6_hdr *) ( (char *) pkt_eh + (pkt_eh->eh_len + 1) * 8);
-				pkt_tcp = (struct tcp_hdr *) ( (char *) pkt_eh + (pkt_eh->eh_len + 1) * 8);
-				pkt_ns= (struct nd_neighbor_solicit *) ( (char *) pkt_eh + (pkt_eh->eh_len + 1) * 8);
-			}
-		}
-		else{
-			ulhtype= pkt_ipv6->ip6_nxt;
-			pkt_icmp6 = (struct icmp6_hdr *) ((char *) pkt_ipv6 + sizeof(struct ip6_hdr));
-			pkt_ns= (struct nd_neighbor_solicit *) pkt_icmp6;
-			pkt_tcp= (struct tcp_hdr *) pkt_icmp6;
-			pkt_udp= (struct udp_hdr *) pkt_icmp6;
-		}
-
-		/*
-		   XXX: We employ the ts member (struct timeval) in struct pcap_pkthdr. That way we don't  need to
-		   hurry up to process the received packets, and can e.g. do DNS resolutions without screwing up the
-		   measured RTTs.
-         */
-
-		if(ulhtype == IPPROTO_ICMPV6 && probetype == PROBE_UDP && pkt_icmp6->icmp6_type == 1 && pkt_icmp6->icmp6_code == 4){
-			nsrc= pkt_ipv6->ip6_src;
-
-			pkt_ipv6=  (struct ip6_hdr *) ((char *) pkt_icmp6 + sizeof(struct icmp6_hdr));
-
-			if( ((unsigned char *)pkt_ipv6 + sizeof(struct ip6_hdr)) > pkt_end)
-				continue;
-
-			if(pkt_ipv6->ip6_nxt != IPPROTO_ICMPV6 && pkt_ipv6->ip6_nxt != IPPROTO_TCP && pkt_ipv6->ip6_nxt != IPPROTO_UDP){
-				pkt_eh=  (struct ip6_eh *) ((char *) pkt_ipv6 + sizeof(struct ip6_hdr));
-
-				while( ( (unsigned char *)pkt_eh+ MIN_EXT_HLEN) <= pkt_end && pkt_eh->eh_nxt != IPPROTO_ICMPV6 && \
-						pkt_eh->eh_nxt != IPPROTO_TCP && pkt_eh->eh_nxt != IPPROTO_UDP){
-					pkt_eh= (struct ip6_eh *) ( (char *) pkt_eh + (pkt_eh->eh_len + 1) * 8);
-				}
-
-				if( (unsigned char *)pkt_eh >= pkt_end){
-					continue;
-				}
-				else{
-					ulhtype= pkt_eh->eh_nxt;
-					pkt_icmp6= (struct icmp6_hdr *) ( (char *) pkt_eh + (pkt_eh->eh_len + 1) * 8);
-					pkt_udp= (struct udp_hdr *) ( (char *) pkt_eh + (pkt_eh->eh_len + 1) * 8);
-					pkt_icmp6 = (struct icmp6_hdr *) ( (char *) pkt_eh + (pkt_eh->eh_len + 1) * 8);
-				}
-			}
-			else{
-				ulhtype= pkt_ipv6->ip6_nxt;
-				pkt_icmp6 = (struct icmp6_hdr *) ((char *) pkt_ipv6 + sizeof(struct ip6_hdr));
-				pkt_tcp= (struct tcp_hdr *) pkt_icmp6;
-				pkt_udp= (struct udp_hdr *) pkt_icmp6;
-			}
-
-
-			if(probetype == PROBE_UDP && ulhtype == IPPROTO_UDP){
-				/* Must still verify the UDP checksum */
-				if( (pkt_end - (unsigned char *) pkt_udp) < sizeof(struct udp_hdr))
+				if( (pkt_end -  pktdata) < (idata.linkhsize + MIN_IPV6_HLEN))
 					continue;
 
-				if(ntohs(pkt_udp->uh_ulen) < sizeof(struct udp_hdr))
-					continue;
-
-				if(ntohs(pkt_udp->uh_dport) != dstport)
-					continue;
-
-				nhop= (ntohs(pkt_udp->uh_sport) >> 8) - PROBE_PORT_OFFSET;
-				nprobe= ntohs(pkt_udp->uh_sport) & 0xff;
-				endhost_f=1;
-			}
-			else{
-				continue;
-			}
-		}
-		else if(ulhtype == IPPROTO_ICMPV6){
-			if(idata.type == DLT_EN10MB && !(idata.flags & IFACE_LOOPBACK) && pkt_icmp6->icmp6_type == ND_NEIGHBOR_SOLICIT){
-				if( (pkt_end - (unsigned char *) pkt_ns) < sizeof(struct nd_neighbor_solicit))
-					continue;
-				/* 
-				    If the addresses that we're using are not actually configured on the local system
-				    (i.e., they are "spoofed", we must check whether it is a Neighbor Solicitation for 
-				    one of our addresses, and respond with a Neighbor Advertisement. Otherwise, the kernel
-				    will take care of that.
+				/*
+				   We currently handle two cases: In the first case, there are extension headers, and hence we need to walk through
+				   the extension header chain. In the other, the upper layer protocol is right after the fixed IPv6 header
 				 */
-				if(idata.type == DLT_EN10MB && !(idata.flags & IFACE_LOOPBACK) && !localaddr_f && \
-								is_eq_in6_addr(&(pkt_ns->nd_ns_target), &idata.srcaddr)){
-						if(send_neighbor_advert(&idata, idata.pfd, pktdata) == -1){
-							puts("Error sending Neighbor Advertisement");
-							exit(EXIT_FAILURE);
-						}
-				}
+				if(pkt_ipv6->ip6_nxt != IPPROTO_ICMPV6 && pkt_ipv6->ip6_nxt != IPPROTO_TCP && pkt_ipv6->ip6_nxt != IPPROTO_UDP){
+					pkt_eh= (struct ip6_eh *) ((char *) pkt_ipv6 + sizeof(struct ip6_hdr));
 
-				continue;
-			}
-			else if( probetype == PROBE_ICMP6_ECHO && (pkt_icmp6->icmp6_type == ICMP6_ECHO_REPLY)){
-				if( (pkt_end - (unsigned char *) pkt_icmp6) < sizeof(struct icmp6_hdr))
-					continue;
-
-				if(ntohs(pkt_icmp6->icmp6_data16[0]) != getpid() )
-					continue;
-
-				nhop= ntohs(pkt_icmp6->icmp6_data16[1]) >> 8;
-				nprobe= ntohs(pkt_icmp6->icmp6_data16[1]) & 0xff;
-
-				if(nhop >= maxhops)
-					continue;
-
-				if(!is_eq_in6_addr(&(pkt_ipv6->ip6_src), &(idata.dstaddr)))
-					continue;
-
-				nsrc= pkt_ipv6->ip6_src;
-				endhost_f=1;
-			}
-			else if(pkt_icmp6->icmp6_type == ICMP6_TIME_EXCEEDED && pkt_icmp6->icmp6_code == ICMP6_TIME_EXCEED_TRANSIT){
-				/* Record the source address of the error message */
-				nsrc= pkt_ipv6->ip6_src;
-
-				if(inet_ntop(AF_INET6, &(nsrc), psrcaddr, sizeof(psrcaddr)) == NULL){
-					puts("inet_ntop(): Error converting IPv6 Source Address to presentation format");
-					exit(EXIT_FAILURE);
-				}
-
-				pkt_ipv6=  (struct ip6_hdr *) ((char *) pkt_icmp6 + sizeof(struct icmp6_hdr));
-
-				if( ((unsigned char *)pkt_ipv6 + sizeof(struct ip6_hdr)) > pkt_end)
-					continue;
-
-				if(!is_eq_in6_addr(&(pkt_ipv6->ip6_dst), &(idata.dstaddr)))
-					continue;
-
-				ulhtype= pkt_ipv6->ip6_nxt;
-				pkt_eh= (struct ip6_eh *)  ((char *) pkt_ipv6 + sizeof(struct ip6_hdr));
-
-				droppacket_f= FALSE;
-
-				while(ulhtype != IPPROTO_ICMPV6 && ulhtype != IPPROTO_TCP && ulhtype != IPPROTO_UDP && !droppacket_f){
-					if(ulhtype == IPPROTO_FRAGMENT){
-						if( ((unsigned char *)pkt_eh + sizeof(struct ip6_frag)) > pkt_end){
-							droppacket_f= TRUE;
-							break;
-						}
-
-						fh= (struct ip6_frag *)	((char *) pkt_eh);
-
-						if(fh->ip6f_offlg & IP6F_OFF_MASK){
-							droppacket_f= TRUE;
-							break;
-						}
-
-						ulhtype= fh->ip6f_nxt;
-						pkt_eh = (struct ip6_eh *) ((char *) fh + sizeof(struct ip6_frag));
-					}
-					else{
-						if( ((unsigned char *)pkt_eh + sizeof(struct ip6_eh)) > pkt_end){
-							droppacket_f=TRUE;
-							break;
-						}
-
-						ulhtype= pkt_eh->eh_nxt;
+					while( ( (unsigned char *) pkt_eh + MIN_EXT_HLEN) <= pkt_end && (pkt_eh->eh_nxt != IPPROTO_ICMPV6 && \
+						pkt_eh->eh_nxt != IPPROTO_TCP && pkt_eh->eh_nxt != IPPROTO_UDP)){
 						pkt_eh= (struct ip6_eh *) ( (char *) pkt_eh + (pkt_eh->eh_len + 1) * 8);
 					}
 
 					if( (unsigned char *)pkt_eh >= pkt_end){
-						droppacket_f= TRUE;
-						break;
+						continue;
+					}
+					else{
+						ulhtype= pkt_eh->eh_nxt;
+						pkt_icmp6= (struct icmp6_hdr *) ( (char *) pkt_eh + (pkt_eh->eh_len + 1) * 8);
+						pkt_udp= (struct udp_hdr *) ( (char *) pkt_eh + (pkt_eh->eh_len + 1) * 8);
+						pkt_icmp6 = (struct icmp6_hdr *) ( (char *) pkt_eh + (pkt_eh->eh_len + 1) * 8);
+						pkt_tcp = (struct tcp_hdr *) ( (char *) pkt_eh + (pkt_eh->eh_len + 1) * 8);
+						pkt_ns= (struct nd_neighbor_solicit *) ( (char *) pkt_eh + (pkt_eh->eh_len + 1) * 8);
 					}
 				}
-
-				if(droppacket_f){
-					continue;
+				else{
+					ulhtype= pkt_ipv6->ip6_nxt;
+					pkt_icmp6 = (struct icmp6_hdr *) ((char *) pkt_ipv6 + sizeof(struct ip6_hdr));
+					pkt_ns= (struct nd_neighbor_solicit *) pkt_icmp6;
+					pkt_tcp= (struct tcp_hdr *) pkt_icmp6;
+					pkt_udp= (struct udp_hdr *) pkt_icmp6;
 				}
 
-				pkt_icmp6 = (struct icmp6_hdr *) ((char *) pkt_eh);
-				pkt_tcp= (struct tcp_hdr *) ((char *) pkt_eh);
-				pkt_udp= (struct udp_hdr *) ((char *) pkt_eh);
+				/*
+				   XXX: We employ the ts member (struct timeval) in struct pcap_pkthdr. That way we don't  need to
+				   hurry up to process the received packets, and can e.g. do DNS resolutions without screwing up the
+				   measured RTTs.
+				 */
 
-				if(ulhtype == IPPROTO_ICMPV6 && pkt_icmp6->icmp6_type == ICMP6_ECHO_REQUEST){
-					if( (pkt_end - (unsigned char *) pkt_icmp6) < sizeof(struct icmp6_hdr))
+				if(ulhtype == IPPROTO_ICMPV6 && probetype == PROBE_UDP && pkt_icmp6->icmp6_type == 1 && pkt_icmp6->icmp6_code == 4){
+					nsrc= pkt_ipv6->ip6_src;
+
+					pkt_ipv6=  (struct ip6_hdr *) ((char *) pkt_icmp6 + sizeof(struct icmp6_hdr));
+
+					if( ((unsigned char *)pkt_ipv6 + sizeof(struct ip6_hdr)) > pkt_end)
 						continue;
 
-					if(ntohs(pkt_icmp6->icmp6_data16[0]) != getpid() )
-						continue;
+					if(pkt_ipv6->ip6_nxt != IPPROTO_ICMPV6 && pkt_ipv6->ip6_nxt != IPPROTO_TCP && pkt_ipv6->ip6_nxt != IPPROTO_UDP){
+						pkt_eh=  (struct ip6_eh *) ((char *) pkt_ipv6 + sizeof(struct ip6_hdr));
 
-					nhop= ntohs(pkt_icmp6->icmp6_data16[1]) >> 8;
-					nprobe= ntohs(pkt_icmp6->icmp6_data16[1]) & 0xff;
+						while( ( (unsigned char *)pkt_eh+ MIN_EXT_HLEN) <= pkt_end && pkt_eh->eh_nxt != IPPROTO_ICMPV6 && \
+								pkt_eh->eh_nxt != IPPROTO_TCP && pkt_eh->eh_nxt != IPPROTO_UDP){
+							pkt_eh= (struct ip6_eh *) ( (char *) pkt_eh + (pkt_eh->eh_len + 1) * 8);
+						}
+
+						if( (unsigned char *)pkt_eh >= pkt_end){
+							continue;
+						}
+						else{
+							ulhtype= pkt_eh->eh_nxt;
+							pkt_icmp6= (struct icmp6_hdr *) ( (char *) pkt_eh + (pkt_eh->eh_len + 1) * 8);
+							pkt_udp= (struct udp_hdr *) ( (char *) pkt_eh + (pkt_eh->eh_len + 1) * 8);
+							pkt_icmp6 = (struct icmp6_hdr *) ( (char *) pkt_eh + (pkt_eh->eh_len + 1) * 8);
+						}
+					}
+					else{
+						ulhtype= pkt_ipv6->ip6_nxt;
+						pkt_icmp6 = (struct icmp6_hdr *) ((char *) pkt_ipv6 + sizeof(struct ip6_hdr));
+						pkt_tcp= (struct tcp_hdr *) pkt_icmp6;
+						pkt_udp= (struct udp_hdr *) pkt_icmp6;
+					}
+
+
+					if(probetype == PROBE_UDP && ulhtype == IPPROTO_UDP){
+						/* Must still verify the UDP checksum */
+						if( (pkt_end - (unsigned char *) pkt_udp) < sizeof(struct udp_hdr))
+							continue;
+
+						if(ntohs(pkt_udp->uh_ulen) < sizeof(struct udp_hdr))
+							continue;
+
+						if(ntohs(pkt_udp->uh_dport) != dstport)
+							continue;
+
+						nhop= (ntohs(pkt_udp->uh_sport) >> 8) - PROBE_PORT_OFFSET;
+						nprobe= ntohs(pkt_udp->uh_sport) & 0xff;
+						endhost_f=1;
+					}
+					else{
+						continue;
+					}
+				}
+				else if(ulhtype == IPPROTO_ICMPV6){
+					if(idata.type == DLT_EN10MB && !(idata.flags & IFACE_LOOPBACK) && pkt_icmp6->icmp6_type == ND_NEIGHBOR_SOLICIT){
+						if( (pkt_end - (unsigned char *) pkt_ns) < sizeof(struct nd_neighbor_solicit))
+							continue;
+						/* 
+							If the addresses that we're using are not actually configured on the local system
+							(i.e., they are "spoofed", we must check whether it is a Neighbor Solicitation for 
+							one of our addresses, and respond with a Neighbor Advertisement. Otherwise, the kernel
+							will take care of that.
+						 */
+						if(idata.type == DLT_EN10MB && !(idata.flags & IFACE_LOOPBACK) && !localaddr_f && \
+										is_eq_in6_addr(&(pkt_ns->nd_ns_target), &idata.srcaddr)){
+								if(send_neighbor_advert(&idata, idata.pfd, pktdata) == -1){
+									puts("Error sending Neighbor Advertisement");
+									exit(EXIT_FAILURE);
+								}
+						}
+
+						continue;
+					}
+					else if( probetype == PROBE_ICMP6_ECHO && (pkt_icmp6->icmp6_type == ICMP6_ECHO_REPLY)){
+						if( (pkt_end - (unsigned char *) pkt_icmp6) < sizeof(struct icmp6_hdr))
+							continue;
+
+						if(ntohs(pkt_icmp6->icmp6_data16[0]) != getpid() )
+							continue;
+
+						nhop= ntohs(pkt_icmp6->icmp6_data16[1]) >> 8;
+						nprobe= ntohs(pkt_icmp6->icmp6_data16[1]) & 0xff;
+
+						if(nhop >= maxhops)
+							continue;
+
+						if(!is_eq_in6_addr(&(pkt_ipv6->ip6_src), &(idata.dstaddr)))
+							continue;
+
+						nsrc= pkt_ipv6->ip6_src;
+						endhost_f=1;
+					}
+					else if(pkt_icmp6->icmp6_type == ICMP6_TIME_EXCEEDED && pkt_icmp6->icmp6_code == ICMP6_TIME_EXCEED_TRANSIT){
+						/* Record the source address of the error message */
+						nsrc= pkt_ipv6->ip6_src;
+
+						if(inet_ntop(AF_INET6, &(nsrc), psrcaddr, sizeof(psrcaddr)) == NULL){
+							puts("inet_ntop(): Error converting IPv6 Source Address to presentation format");
+							exit(EXIT_FAILURE);
+						}
+
+						pkt_ipv6=  (struct ip6_hdr *) ((char *) pkt_icmp6 + sizeof(struct icmp6_hdr));
+
+						if( ((unsigned char *)pkt_ipv6 + sizeof(struct ip6_hdr)) > pkt_end)
+							continue;
+
+						if(!is_eq_in6_addr(&(pkt_ipv6->ip6_dst), &(idata.dstaddr)))
+							continue;
+
+						ulhtype= pkt_ipv6->ip6_nxt;
+						pkt_eh= (struct ip6_eh *)  ((char *) pkt_ipv6 + sizeof(struct ip6_hdr));
+
+						droppacket_f= FALSE;
+
+						while(ulhtype != IPPROTO_ICMPV6 && ulhtype != IPPROTO_TCP && ulhtype != IPPROTO_UDP && !droppacket_f){
+							if(ulhtype == IPPROTO_FRAGMENT){
+								if( ((unsigned char *)pkt_eh + sizeof(struct ip6_frag)) > pkt_end){
+									droppacket_f= TRUE;
+									break;
+								}
+
+								fh= (struct ip6_frag *)	((char *) pkt_eh);
+
+								if(fh->ip6f_offlg & IP6F_OFF_MASK){
+									droppacket_f= TRUE;
+									break;
+								}
+
+								ulhtype= fh->ip6f_nxt;
+								pkt_eh = (struct ip6_eh *) ((char *) fh + sizeof(struct ip6_frag));
+							}
+							else{
+								if( ((unsigned char *)pkt_eh + sizeof(struct ip6_eh)) > pkt_end){
+									droppacket_f=TRUE;
+									break;
+								}
+
+								ulhtype= pkt_eh->eh_nxt;
+								pkt_eh= (struct ip6_eh *) ( (char *) pkt_eh + (pkt_eh->eh_len + 1) * 8);
+							}
+
+							if( (unsigned char *)pkt_eh >= pkt_end){
+								droppacket_f= TRUE;
+								break;
+							}
+						}
+
+						if(droppacket_f){
+							continue;
+						}
+
+						pkt_icmp6 = (struct icmp6_hdr *) ((char *) pkt_eh);
+						pkt_tcp= (struct tcp_hdr *) ((char *) pkt_eh);
+						pkt_udp= (struct udp_hdr *) ((char *) pkt_eh);
+
+						if(ulhtype == IPPROTO_ICMPV6 && pkt_icmp6->icmp6_type == ICMP6_ECHO_REQUEST){
+							if( (pkt_end - (unsigned char *) pkt_icmp6) < sizeof(struct icmp6_hdr))
+								continue;
+
+							if(ntohs(pkt_icmp6->icmp6_data16[0]) != getpid() )
+								continue;
+
+							nhop= ntohs(pkt_icmp6->icmp6_data16[1]) >> 8;
+							nprobe= ntohs(pkt_icmp6->icmp6_data16[1]) & 0xff;
+						}
+						else if(probetype == PROBE_TCP && ulhtype == IPPROTO_TCP){
+							/* Must still verify the TCP checksum */
+
+							if( (pkt_end - (unsigned char *) pkt_tcp) < sizeof(struct tcp_hdr))
+								continue;
+
+							if( ntohl(pkt_tcp->th_seq) != tcpseq)
+								continue;
+
+							nhop= (ntohs(pkt_tcp->th_sport) >> 8) - PROBE_PORT_OFFSET;
+							nprobe= ntohs(pkt_tcp->th_sport) & 0xff;
+						}
+						else if(probetype == PROBE_UDP && ulhtype == IPPROTO_UDP){
+							/* Must still verify the UDP checksum */
+							if( (pkt_end - (unsigned char *) pkt_udp) < sizeof(struct udp_hdr))
+								continue;
+
+							if(ntohs(pkt_udp->uh_ulen) < sizeof(struct udp_hdr))
+								continue;
+
+							nhop= (ntohs(pkt_udp->uh_sport) >> 8) - PROBE_PORT_OFFSET;
+							nprobe= ntohs(pkt_udp->uh_sport) & 0xff;
+						}
+					}
+
+					else{
+						continue;
+					}
 				}
 				else if(probetype == PROBE_TCP && ulhtype == IPPROTO_TCP){
 					/* Must still verify the TCP checksum */
-
 					if( (pkt_end - (unsigned char *) pkt_tcp) < sizeof(struct tcp_hdr))
 						continue;
 
-					if( ntohl(pkt_tcp->th_seq) != tcpseq)
+					if(!is_eq_in6_addr(&(pkt_ipv6->ip6_src), &(idata.dstaddr))){
 						continue;
+					}
 
-					nhop= (ntohs(pkt_tcp->th_sport) >> 8) - PROBE_PORT_OFFSET;
-					nprobe= ntohs(pkt_tcp->th_sport) & 0xff;
+
+					/* XXX: This check should really take into account the payload size */
+					if( ntohl(pkt_tcp->th_ack) < tcpseq || ntohl(pkt_tcp->th_ack) > (tcpseq+100000)){
+						continue;
+					}
+
+					if(ntohs(pkt_tcp->th_sport) != dstport){
+						continue;
+					}
+
+					nhop= (ntohs(pkt_tcp->th_dport) >> 8) - PROBE_PORT_OFFSET;
+					nprobe= ntohs(pkt_tcp->th_dport) & 0xff;
+
+					nsrc= pkt_ipv6->ip6_src;
+					endhost_f=1;
 				}
 				else if(probetype == PROBE_UDP && ulhtype == IPPROTO_UDP){
 					/* Must still verify the UDP checksum */
 					if( (pkt_end - (unsigned char *) pkt_udp) < sizeof(struct udp_hdr))
 						continue;
 
-					if(ntohs(pkt_udp->uh_ulen) < sizeof(struct udp_hdr))
+					if(ntohs(pkt_udp->uh_sport) != dstport){
 						continue;
+					}
 
-					nhop= (ntohs(pkt_udp->uh_sport) >> 8) - PROBE_PORT_OFFSET;
-					nprobe= ntohs(pkt_udp->uh_sport) & 0xff;
+					nprobe= (ntohs(pkt_udp->uh_sport) >> 8) - PROBE_PORT_OFFSET;
+					nhop= ntohs(pkt_udp->uh_sport) & 0x00ff;
+
+					nsrc= pkt_ipv6->ip6_src;
+					endhost_f=1;
 				}
-			}
+				else{
+					continue;
+				}
 
-			else{
-				continue;
+				if(nprobe >= maxprobes)
+					continue;
+
+				if(nhop >= maxhops)
+					continue;
+
+				if(test[nhop][nprobe].received)
+					continue;
+
+				if(test[nhop][nprobe].sent == FALSE)
+					continue;
+
+				test[nhop][nprobe].received= TRUE;
+
+				/* Record the receive time from the pkthdr timestamp */
+				test[nhop][nprobe].rtstamp.tv_sec= (pkthdr->ts).tv_sec;
+				test[nhop][nprobe].rtstamp.tv_usec= (pkthdr->ts).tv_usec;
+				test[nhop][nprobe].srcaddr= nsrc;
+
+				/* If we got a response to a probe packet, allow for an additional probe to be sent */
+				send_f= TRUE;
+
+				/*
+				   If we received a response from the end host, we artificially change maxhops such that we do not 
+				   send probes for larger Hop Limits
+				 */
+
+				if(endhost_f && nhop < maxhops && phop <= nhop)
+					maxhops=nhop+1;
+
+				endhost_f=0;
 			}
 		}
-		else if(probetype == PROBE_TCP && ulhtype == IPPROTO_TCP){
-			/* Must still verify the TCP checksum */
-			if( (pkt_end - (unsigned char *) pkt_tcp) < sizeof(struct tcp_hdr))
-				continue;
-
-			if(!is_eq_in6_addr(&(pkt_ipv6->ip6_src), &(idata.dstaddr))){
-				continue;
-			}
-
-
-			/* XXX: This check should really take into account the payload size */
-			if( ntohl(pkt_tcp->th_ack) < tcpseq || ntohl(pkt_tcp->th_ack) > (tcpseq+100000)){
-				continue;
-			}
-
-			if(ntohs(pkt_tcp->th_sport) != dstport){
-				continue;
-			}
-
-			nhop= (ntohs(pkt_tcp->th_dport) >> 8) - PROBE_PORT_OFFSET;
-			nprobe= ntohs(pkt_tcp->th_dport) & 0xff;
-
-			nsrc= pkt_ipv6->ip6_src;
-			endhost_f=1;
-		}
-		else if(probetype == PROBE_UDP && ulhtype == IPPROTO_UDP){
-			/* Must still verify the UDP checksum */
-			if( (pkt_end - (unsigned char *) pkt_udp) < sizeof(struct udp_hdr))
-				continue;
-
-			if(ntohs(pkt_udp->uh_sport) != dstport){
-				continue;
-			}
-
-			nprobe= (ntohs(pkt_udp->uh_sport) >> 8) - PROBE_PORT_OFFSET;
-			nhop= ntohs(pkt_udp->uh_sport) & 0x00ff;
-
-			nsrc= pkt_ipv6->ip6_src;
-			endhost_f=1;
-		}
-		else{
-			continue;
-		}
-
-		if(nprobe >= maxprobes)
-			continue;
-
-		if(nhop >= maxhops)
-			continue;
-
-		if(test[nhop][nprobe].received)
-			continue;
-
-		if(test[nhop][nprobe].sent == FALSE)
-			continue;
-
-		test[nhop][nprobe].received= TRUE;
-
-		/* Record the receive time from the pkthdr timestamp */
-		test[nhop][nprobe].rtstamp.tv_sec= (pkthdr->ts).tv_sec;
-		test[nhop][nprobe].rtstamp.tv_usec= (pkthdr->ts).tv_usec;
-		test[nhop][nprobe].srcaddr= nsrc;
-
-		/* If we got a response to a probe packet, allow for an additional probe to be sent */
-		send_f= TRUE;
-
-		/*
-		   If we received a response from the end host, we artificially change maxhops such that we do not 
-		   send probes for larger Hop Limits
-		 */
-
-		if(endhost_f && nhop < maxhops && phop <= nhop)
-			maxhops=nhop+1;
-
-		endhost_f=0;
 	}
 
 	exit(EXIT_SUCCESS);

@@ -162,6 +162,9 @@ int main(int argc, char **argv){
 	char				*endptr; /* Used by strtoul() */
 	int					r, sel;
 	fd_set				sset, rset;
+#if defined(sun) || defined(__sun)
+	struct timeval		timeout;
+#endif
 	struct target_ipv6	targetipv6;
 
 	static struct option longopts[] = {
@@ -1249,7 +1252,13 @@ int main(int argc, char **argv){
 		while(idata.listen_f){
 			rset= sset;
 
+#if defined(sun) || defined(__sun)
+			timeout.tv_usec=10000;
+			timeout.tv_sec= 0;
+			if((sel=select(idata.fd+1, &rset, NULL, NULL, &timeout)) == -1){
+#else
 			if((sel=select(idata.fd+1, &rset, NULL, NULL, NULL)) == -1){
+#endif
 				if(errno == EINTR){
 					continue;
 				}
@@ -1259,92 +1268,96 @@ int main(int argc, char **argv){
 				}
 			}
 
-			/* Read an IPv6 packet */
-			if((r=pcap_next_ex(idata.pfd, &pkthdr, &pktdata)) == -1){
-				printf("pcap_next_ex(): %s", pcap_geterr(idata.pfd));
-				exit(EXIT_FAILURE);
-			}
-			else if(r == 0){
-				continue; /* Should never happen */
-			}
+#if defined(sun) || defined(__sun)
+			if(TRUE){
+#else
+			if(FD_ISSET(idata.fd, &rset)){
+#endif
+				/* Read an IPv6 packet */
+				if((r=pcap_next_ex(idata.pfd, &pkthdr, &pktdata)) == -1){
+					printf("pcap_next_ex(): %s", pcap_geterr(idata.pfd));
+					exit(EXIT_FAILURE);
+				}
+				else if(r == 1){
+					pkt_ether = (struct ether_header *) pktdata;
+					pkt_ipv6 = (struct ip6_hdr *)((char *) pkt_ether + ETHER_HDR_LEN);
 
-			pkt_ether = (struct ether_header *) pktdata;
-			pkt_ipv6 = (struct ip6_hdr *)((char *) pkt_ether + ETHER_HDR_LEN);
+					accepted_f=0;
 
-			accepted_f=0;
+					if(idata.type == DLT_EN10MB && !(idata.flags & IFACE_LOOPBACK)){
+						if(filters.nblocklinksrc){
+							if(match_ether(filters.blocklinksrc, filters.nblocklinksrc, &(pkt_ether->src))){
+								if(idata.verbose_f>1)
+									print_filter_result(&idata, pktdata, BLOCKED);
+		
+								continue;
+							}
+						}
 
-			if(idata.type == DLT_EN10MB && !(idata.flags & IFACE_LOOPBACK)){
-				if(filters.nblocklinksrc){
-					if(match_ether(filters.blocklinksrc, filters.nblocklinksrc, &(pkt_ether->src))){
+						if(filters.nblocklinkdst){
+							if(match_ether(filters.blocklinkdst, filters.nblocklinkdst, &(pkt_ether->dst))){
+								if(idata.verbose_f>1)
+									print_filter_result(&idata, pktdata, BLOCKED);
+		
+								continue;
+							}
+						}
+					}
+	
+					if(filters.nblocksrc){
+						if(match_ipv6(filters.blocksrc, filters.blocksrclen, filters.nblocksrc, &(pkt_ipv6->ip6_src))){
+							if(idata.verbose_f>1)
+								print_filter_result(&idata, pktdata, BLOCKED);
+		
+							continue;
+						}
+					}
+	
+					if(filters.nblockdst){
+						if(match_ipv6(filters.blockdst, filters.blockdstlen, filters.nblockdst, &(pkt_ipv6->ip6_dst))){
+							if(idata.verbose_f>1)
+								print_filter_result(&idata, pktdata, BLOCKED);
+		
+							continue;
+						}
+					}
+
+					if(idata.type == DLT_EN10MB && !(idata.flags & IFACE_LOOPBACK)){	
+						if(filters.nacceptlinksrc){
+							if(match_ether(filters.acceptlinksrc, filters.nacceptlinksrc, &(pkt_ether->src)))
+								accepted_f=1;
+						}
+
+						if(filters.nacceptlinkdst && !accepted_f){
+							if(match_ether(filters.acceptlinkdst, filters.nacceptlinkdst, &(pkt_ether->dst)))
+								accepted_f= 1;
+						}
+					}
+
+					if(filters.nacceptsrc && !accepted_f){
+						if(match_ipv6(filters.acceptsrc, filters.acceptsrclen, filters.nacceptsrc, &(pkt_ipv6->ip6_src)))
+							accepted_f= 1;
+					}
+
+					if(filters.nacceptdst && !accepted_f){
+						if(match_ipv6(filters.acceptdst, filters.acceptdstlen, filters.nacceptdst, &(pkt_ipv6->ip6_dst)))
+							accepted_f=1;
+					}
+	
+					if(filters.acceptfilters_f && !accepted_f){
 						if(idata.verbose_f>1)
 							print_filter_result(&idata, pktdata, BLOCKED);
-		
+
 						continue;
 					}
-				}
 
-				if(filters.nblocklinkdst){
-					if(match_ether(filters.blocklinkdst, filters.nblocklinkdst, &(pkt_ether->dst))){
-						if(idata.verbose_f>1)
-							print_filter_result(&idata, pktdata, BLOCKED);
-		
-						continue;
-					}
-				}
-			}
-	
-			if(filters.nblocksrc){
-				if(match_ipv6(filters.blocksrc, filters.blocksrclen, filters.nblocksrc, &(pkt_ipv6->ip6_src))){
 					if(idata.verbose_f>1)
-						print_filter_result(&idata, pktdata, BLOCKED);
-		
-					continue;
+						print_filter_result(&idata, pktdata, ACCEPTED);
+
+					/* Send a Redirect message */
+					send_packet(&idata, pktdata, pkthdr);
 				}
 			}
-	
-			if(filters.nblockdst){
-				if(match_ipv6(filters.blockdst, filters.blockdstlen, filters.nblockdst, &(pkt_ipv6->ip6_dst))){
-					if(idata.verbose_f>1)
-						print_filter_result(&idata, pktdata, BLOCKED);
-		
-					continue;
-				}
-			}
-
-			if(idata.type == DLT_EN10MB && !(idata.flags & IFACE_LOOPBACK)){	
-				if(filters.nacceptlinksrc){
-					if(match_ether(filters.acceptlinksrc, filters.nacceptlinksrc, &(pkt_ether->src)))
-						accepted_f=1;
-				}
-
-				if(filters.nacceptlinkdst && !accepted_f){
-					if(match_ether(filters.acceptlinkdst, filters.nacceptlinkdst, &(pkt_ether->dst)))
-						accepted_f= 1;
-				}
-			}
-
-			if(filters.nacceptsrc && !accepted_f){
-				if(match_ipv6(filters.acceptsrc, filters.acceptsrclen, filters.nacceptsrc, &(pkt_ipv6->ip6_src)))
-					accepted_f= 1;
-			}
-
-			if(filters.nacceptdst && !accepted_f){
-				if(match_ipv6(filters.acceptdst, filters.acceptdstlen, filters.nacceptdst, &(pkt_ipv6->ip6_dst)))
-					accepted_f=1;
-			}
-	
-			if(filters.acceptfilters_f && !accepted_f){
-				if(idata.verbose_f>1)
-					print_filter_result(&idata, pktdata, BLOCKED);
-
-				continue;
-			}
-
-			if(idata.verbose_f>1)
-				print_filter_result(&idata, pktdata, ACCEPTED);
-
-			/* Send a Redirect message */
-			send_packet(&idata, pktdata, pkthdr);
 		}
     
 		exit(EXIT_SUCCESS);

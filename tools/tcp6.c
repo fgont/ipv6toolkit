@@ -1239,18 +1239,18 @@ int main(int argc, char **argv){
 				}
 			}
 
-			if(sel){
-				if(FD_ISSET(idata.fd, &rset)){
-					/* Read a packet */
+#if !defined(sun) && !defined(__sun)
+			if(sel && FD_ISSET(idata.fd, &rset)){
+#else
+			if(TRUE){
+#endif
+				/* Read a packet */
 
-					if((r=pcap_next_ex(idata.pfd, &pkthdr, &pktdata)) == -1){
-						printf("pcap_next_ex(): %s", pcap_geterr(idata.pfd));
-						exit(EXIT_FAILURE);
-					}
-					else if(r == 0){
-						continue; /* Should never happen */
-					}
-
+				if((r=pcap_next_ex(idata.pfd, &pkthdr, &pktdata)) == -1){
+					printf("pcap_next_ex(): %s", pcap_geterr(idata.pfd));
+					exit(EXIT_FAILURE);
+				}
+				else if(r == 1){
 					pkt_ether = (struct ether_header *) pktdata;
 					pkt_ipv6 = (struct ip6_hdr *)((char *) pkt_ether + idata.linkhsize);
 					pkt_tcp= (struct tcp_hdr *) ( (char *) pkt_ipv6 + MIN_IPV6_HLEN);
@@ -1338,7 +1338,13 @@ int main(int argc, char **argv){
 
 			timeout= stimeout;
 
+#if !defined(sun) && !defined(__sun)
 			if((sel=select(idata.fd+1, &rset, NULL, NULL, ((floods_f || floodp_f) && !donesending_f)?(&timeout):NULL)) == -1){
+#else
+			timeout.tv_usec=10000;
+			timeout.tv_sec= 0;
+			if((sel=select(idata.fd+1, &rset, NULL, NULL, &timeout) == -1){
+#endif
 				if(errno == EINTR){
 					continue;
 				}
@@ -1349,7 +1355,11 @@ int main(int argc, char **argv){
 			}
 
 			/* If there are some bits set, we need to check whether it's time to send packets */
+#if !defined(sun) && !defined(__sun)
 			if(sel){
+#else
+			if(TRUE){
+#endif
 				if(gettimeofday(&curtime, NULL) == -1){
 					if(idata.verbose_f)
 						perror("tcp6");
@@ -1373,185 +1383,188 @@ int main(int argc, char **argv){
 				}
 			}
 
-			if(FD_ISSET(idata.fd, &rset)){
+#if !defined(sun) && !defined(__sun)
+			if(sel && FD_ISSET(idata.fd, &rset)){
+#else
+			if(TRUE)
+#endif
 				/* Read a packet */
 				if((r=pcap_next_ex(idata.pfd, &pkthdr, &pktdata)) == -1){
 					printf("pcap_next_ex(): %s", pcap_geterr(idata.pfd));
 					exit(EXIT_FAILURE);
 				}
-				else if(r == 0){
-					continue; /* Should never happen */
-				}
+				else if(r == 1){
+					pkt_ether = (struct ether_header *) pktdata;
+					pkt_ipv6 = (struct ip6_hdr *)((char *) pkt_ether + idata.linkhsize);
+					pkt_tcp= (struct tcp_hdr *) ( (char *) pkt_ipv6 + MIN_IPV6_HLEN);
+					pkt_ns= (struct nd_neighbor_solicit *) ( (char *) pkt_ipv6 + MIN_IPV6_HLEN);
+					pkt_end = (unsigned char *) pktdata + pkthdr->caplen;
 
-				pkt_ether = (struct ether_header *) pktdata;
-				pkt_ipv6 = (struct ip6_hdr *)((char *) pkt_ether + idata.linkhsize);
-				pkt_tcp= (struct tcp_hdr *) ( (char *) pkt_ipv6 + MIN_IPV6_HLEN);
-				pkt_ns= (struct nd_neighbor_solicit *) ( (char *) pkt_ipv6 + MIN_IPV6_HLEN);
-				pkt_end = (unsigned char *) pktdata + pkthdr->caplen;
-
-				/* Check that we are able to look into the IPv6 header */
-				if( (pkt_end -  pktdata) < (idata.linkhsize + MIN_IPV6_HLEN))
-					continue;
-
-				accepted_f=0;
-
-				if(idata.type == DLT_EN10MB && !(idata.flags & IFACE_LOOPBACK)){
-					if(filters.nblocklinksrc){
-						if(match_ether(filters.blocklinksrc, filters.nblocklinksrc, &(pkt_ether->src))){
-							if(idata.verbose_f>1)
-								print_filter_result(&idata, pktdata, BLOCKED);
-		
-							continue;
-						}
-					}
-
-					if(filters.nblocklinkdst){
-						if(match_ether(filters.blocklinkdst, filters.nblocklinkdst, &(pkt_ether->dst))){
-							if(idata.verbose_f>1)
-								print_filter_result(&idata, pktdata, BLOCKED);
-		
-							continue;
-						}
-					}
-				}
-	
-				if(filters.nblocksrc){
-					if(match_ipv6(filters.blocksrc, filters.blocksrclen, filters.nblocksrc, &(pkt_ipv6->ip6_src))){
-						if(idata.verbose_f>1)
-							print_filter_result(&idata, pktdata, BLOCKED);
-		
+					/* Check that we are able to look into the IPv6 header */
+					if( (pkt_end -  pktdata) < (idata.linkhsize + MIN_IPV6_HLEN))
 						continue;
-					}
-				}
-	
-				if(filters.nblockdst){
-					if(match_ipv6(filters.blockdst, filters.blockdstlen, filters.nblockdst, &(pkt_ipv6->ip6_dst))){
-						if(idata.verbose_f>1)
-							print_filter_result(&idata, pktdata, BLOCKED);
-		
-						continue;
-					}
-				}
 
-				if(idata.type == DLT_EN10MB && !(idata.flags & IFACE_LOOPBACK)){	
-					if(filters.nacceptlinksrc){
-						if(match_ether(filters.acceptlinksrc, filters.nacceptlinksrc, &(pkt_ether->src)))
-							accepted_f=1;
-					}
-
-					if(filters.nacceptlinkdst && !accepted_f){
-						if(match_ether(filters.acceptlinkdst, filters.nacceptlinkdst, &(pkt_ether->dst)))
-							accepted_f= 1;
-					}
-				}
-
-				if(filters.nacceptsrc && !accepted_f){
-					if(match_ipv6(filters.acceptsrc, filters.acceptsrclen, filters.nacceptsrc, &(pkt_ipv6->ip6_src)))
-						accepted_f= 1;
-				}
-
-				if(filters.nacceptdst && !accepted_f){
-					if(match_ipv6(filters.acceptdst, filters.acceptdstlen, filters.nacceptdst, &(pkt_ipv6->ip6_dst)))
-						accepted_f=1;
-				}
-	
-				if(filters.acceptfilters_f && !accepted_f){
-					if(idata.verbose_f>1)
-						print_filter_result(&idata, pktdata, BLOCKED);
-
-					continue;
-				}
-
-				if(idata.verbose_f>1)
-					print_filter_result(&idata, pktdata, ACCEPTED);
-
-				if(pkt_ipv6->ip6_nxt == IPPROTO_TCP){
-					/* Check that we are able to look into the TCP header */
-					if( (pkt_end -  pktdata) < (idata.linkhsize + MIN_IPV6_HLEN + sizeof(struct tcp_hdr))){
-						continue;
-					}
-
-					if(idata.dstaddr_f){
-						if(!floods_f){
-							/* Discard our own packets */
-							if(is_eq_in6_addr(&(pkt_ipv6->ip6_src), &(idata.srcaddr))){
-								continue;
-							}
-
-							if(!is_eq_in6_addr(&(pkt_ipv6->ip6_dst), &(idata.srcaddr))){
-								continue;
-							}
-						}
-						else{
-							/* Discard our own packets */
-							if(!is_eq_in6_addr(&(pkt_ipv6->ip6_src), &(idata.dstaddr))){
-								continue;
-							}
-
-							if(useaddrkey_f){
-								if( (ntohl(pkt_ipv6->ip6_src.s6_addr32[2]) & 0x0000ffff) ==  ( (uint16_t)(ntohl(pkt_ipv6->ip6_src.s6_addr32[2])>>16) ^ addr_key) && \
-									(ntohl(pkt_ipv6->ip6_src.s6_addr32[3]) & 0x0000ffff) ==  ( (uint16_t)(ntohl(pkt_ipv6->ip6_src.s6_addr32[3])>>16) ^ addr_key)){
-									continue;
-								}
-
-								if( (ntohl(pkt_ipv6->ip6_dst.s6_addr32[2]) & 0x0000ffff) !=  ((uint16_t)(ntohl(pkt_ipv6->ip6_dst.s6_addr32[2]) >> 16) ^ addr_key) || \
-									(ntohl(pkt_ipv6->ip6_dst.s6_addr32[3]) & 0x0000ffff) !=  ((uint16_t)(ntohl(pkt_ipv6->ip6_dst.s6_addr32[3])>>16) ^ addr_key)){
-									continue;
-								}
-							}
-						}
-
-						/* The TCP checksum must be valid */
-						if(in_chksum(pkt_ipv6, pkt_tcp, pkt_end-((unsigned char *)pkt_tcp), IPPROTO_TCP) != 0)
-							continue;
-
-						if(pkt_tcp->th_sport != htons(dstport)){
-							continue;
-						}
-
-						if(!floodp_f && pkt_tcp->th_dport != htons(srcport)){
-							continue;
-						}
-					}
-
-					/* Send a TCP segment */
-					send_packet(&idata, pktdata, pkthdr);
-				}
-				else if(pkt_ipv6->ip6_nxt == IPPROTO_ICMPV6){
-
-					/* Check that we are able to look into the NS header */
-					if( (pkt_end -  pktdata) < (idata.linkhsize + MIN_IPV6_HLEN + sizeof(struct nd_neighbor_solicit))){
-						continue;
-					}
+					accepted_f=0;
 
 					if(idata.type == DLT_EN10MB && !(idata.flags & IFACE_LOOPBACK)){
-						if(floods_f){
-							if(useaddrkey_f){
-								if( (ntohl(pkt_ns->nd_ns_target.s6_addr32[2]) & 0x0000ffff) !=  ( (ntohl(pkt_ns->nd_ns_target.s6_addr32[2]) >>16) ^ addr_key) || \
-									(ntohl(pkt_ns->nd_ns_target.s6_addr32[3]) & 0x0000ffff) !=  ( (ntohl(pkt_ns->nd_ns_target.s6_addr32[3]) >>16) ^ addr_key)){
+						if(filters.nblocklinksrc){
+							if(match_ether(filters.blocklinksrc, filters.nblocklinksrc, &(pkt_ether->src))){
+								if(idata.verbose_f>1)
+									print_filter_result(&idata, pktdata, BLOCKED);
+		
+								continue;
+							}
+						}
+
+						if(filters.nblocklinkdst){
+							if(match_ether(filters.blocklinkdst, filters.nblocklinkdst, &(pkt_ether->dst))){
+								if(idata.verbose_f>1)
+									print_filter_result(&idata, pktdata, BLOCKED);
+		
+								continue;
+							}
+						}
+					}
+	
+					if(filters.nblocksrc){
+						if(match_ipv6(filters.blocksrc, filters.blocksrclen, filters.nblocksrc, &(pkt_ipv6->ip6_src))){
+							if(idata.verbose_f>1)
+								print_filter_result(&idata, pktdata, BLOCKED);
+		
+							continue;
+						}
+					}
+	
+					if(filters.nblockdst){
+						if(match_ipv6(filters.blockdst, filters.blockdstlen, filters.nblockdst, &(pkt_ipv6->ip6_dst))){
+							if(idata.verbose_f>1)
+								print_filter_result(&idata, pktdata, BLOCKED);
+		
+							continue;
+						}
+					}
+
+					if(idata.type == DLT_EN10MB && !(idata.flags & IFACE_LOOPBACK)){	
+						if(filters.nacceptlinksrc){
+							if(match_ether(filters.acceptlinksrc, filters.nacceptlinksrc, &(pkt_ether->src)))
+								accepted_f=1;
+						}
+
+						if(filters.nacceptlinkdst && !accepted_f){
+							if(match_ether(filters.acceptlinkdst, filters.nacceptlinkdst, &(pkt_ether->dst)))
+								accepted_f= 1;
+						}
+					}
+
+					if(filters.nacceptsrc && !accepted_f){
+						if(match_ipv6(filters.acceptsrc, filters.acceptsrclen, filters.nacceptsrc, &(pkt_ipv6->ip6_src)))
+							accepted_f= 1;
+					}
+
+					if(filters.nacceptdst && !accepted_f){
+						if(match_ipv6(filters.acceptdst, filters.acceptdstlen, filters.nacceptdst, &(pkt_ipv6->ip6_dst)))
+							accepted_f=1;
+					}
+	
+					if(filters.acceptfilters_f && !accepted_f){
+						if(idata.verbose_f>1)
+							print_filter_result(&idata, pktdata, BLOCKED);
+
+						continue;
+					}
+
+					if(idata.verbose_f>1)
+						print_filter_result(&idata, pktdata, ACCEPTED);
+
+					if(pkt_ipv6->ip6_nxt == IPPROTO_TCP){
+						/* Check that we are able to look into the TCP header */
+						if( (pkt_end -  pktdata) < (idata.linkhsize + MIN_IPV6_HLEN + sizeof(struct tcp_hdr))){
+							continue;
+						}
+
+						if(idata.dstaddr_f){
+							if(!floods_f){
+								/* Discard our own packets */
+								if(is_eq_in6_addr(&(pkt_ipv6->ip6_src), &(idata.srcaddr))){
+									continue;
+								}
+
+								if(!is_eq_in6_addr(&(pkt_ipv6->ip6_dst), &(idata.srcaddr))){
+									continue;
+								}
+							}
+							else{
+								/* Discard our own packets */
+								if(!is_eq_in6_addr(&(pkt_ipv6->ip6_src), &(idata.dstaddr))){
+									continue;
+								}
+
+								if(useaddrkey_f){
+									if( (ntohl(pkt_ipv6->ip6_src.s6_addr32[2]) & 0x0000ffff) ==  ( (uint16_t)(ntohl(pkt_ipv6->ip6_src.s6_addr32[2])>>16) ^ addr_key) && \
+										(ntohl(pkt_ipv6->ip6_src.s6_addr32[3]) & 0x0000ffff) ==  ( (uint16_t)(ntohl(pkt_ipv6->ip6_src.s6_addr32[3])>>16) ^ addr_key)){
+										continue;
+									}
+
+									if( (ntohl(pkt_ipv6->ip6_dst.s6_addr32[2]) & 0x0000ffff) !=  ((uint16_t)(ntohl(pkt_ipv6->ip6_dst.s6_addr32[2]) >> 16) ^ addr_key) || \
+										(ntohl(pkt_ipv6->ip6_dst.s6_addr32[3]) & 0x0000ffff) !=  ((uint16_t)(ntohl(pkt_ipv6->ip6_dst.s6_addr32[3])>>16) ^ addr_key)){
+										continue;
+									}
+								}
+							}
+
+							/* The TCP checksum must be valid */
+							if(in_chksum(pkt_ipv6, pkt_tcp, pkt_end-((unsigned char *)pkt_tcp), IPPROTO_TCP) != 0)
+								continue;
+
+							if(pkt_tcp->th_sport != htons(dstport)){
+								continue;
+							}
+
+							if(!floodp_f && pkt_tcp->th_dport != htons(srcport)){
+								continue;
+							}
+						}
+
+						/* Send a TCP segment */
+						send_packet(&idata, pktdata, pkthdr);
+					}
+					else if(pkt_ipv6->ip6_nxt == IPPROTO_ICMPV6){
+
+						/* Check that we are able to look into the NS header */
+						if( (pkt_end -  pktdata) < (idata.linkhsize + MIN_IPV6_HLEN + sizeof(struct nd_neighbor_solicit))){
+							continue;
+						}
+
+						if(idata.type == DLT_EN10MB && !(idata.flags & IFACE_LOOPBACK)){
+							if(floods_f){
+								if(useaddrkey_f){
+									if( (ntohl(pkt_ns->nd_ns_target.s6_addr32[2]) & 0x0000ffff) !=  ( (ntohl(pkt_ns->nd_ns_target.s6_addr32[2]) >>16) ^ addr_key) || \
+										(ntohl(pkt_ns->nd_ns_target.s6_addr32[3]) & 0x0000ffff) !=  ( (ntohl(pkt_ns->nd_ns_target.s6_addr32[3]) >>16) ^ addr_key)){
+										continue;
+									}
+								}
+
+								/* Check that the target address belongs to the prefix from which we are sending packets */
+								if(!match_ipv6(&(idata.srcaddr), &idata.srcpreflen, 1, &(pkt_ns->nd_ns_target))){
+									continue;
+								}
+							}
+							else{
+								if(!is_eq_in6_addr( &(pkt_ns->nd_ns_target), &(idata.srcaddr)) ){
 									continue;
 								}
 							}
 
-							/* Check that the target address belongs to the prefix from which we are sending packets */
-							if(!match_ipv6(&(idata.srcaddr), &idata.srcpreflen, 1, &(pkt_ns->nd_ns_target))){
-								continue;
+							if(send_neighbor_advert(&idata, idata.pfd, pktdata) == -1){
+								puts("Error sending Neighbor Advertisement");
+								exit(EXIT_FAILURE);
 							}
-						}
-						else{
-							if(!is_eq_in6_addr( &(pkt_ns->nd_ns_target), &(idata.srcaddr)) ){
-								continue;
-							}
-						}
-
-						if(send_neighbor_advert(&idata, idata.pfd, pktdata) == -1){
-							puts("Error sending Neighbor Advertisement");
-							exit(EXIT_FAILURE);
 						}
 					}
 				}
 			}
-			if((!sel || is_time_elapsed(&curtime, &lastprobe, pktinterval)) && !donesending_f){
+
+			if(!donesending_f && is_time_elapsed(&curtime, &lastprobe, pktinterval)){
 				lastprobe= curtime;
 				send_packet(&idata, NULL, NULL);
 			}

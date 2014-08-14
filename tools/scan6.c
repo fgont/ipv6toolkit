@@ -1890,14 +1890,12 @@ int main(int argc, char **argv){
 				}
 #endif
 
-/*
+
 #if defined(sun) || defined(__sun)
 				if(TRUE){
 #else
 				if(FD_ISSET(idata.fd, &rset)){
 #endif
-*/
-				if(FD_ISSET(idata.fd, &rset)){
 					/* Must rocess incoming packet */
 					error_f=FALSE;
 
