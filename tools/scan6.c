@@ -2061,7 +2061,11 @@ puts("Already loaded the corresponding dest");
 					continue;
 				}
 
+#if defined(sun) || defined(__sun)
+				if(!donesending_f){
+#else
 				if(!donesending_f && FD_ISSET(idata.fd, &wset)){
+#endif
 					idata.pending_write_f=FALSE;
 
 					/* Check whether the current scan_entry is within range. Otherwise, get the next target */
@@ -2551,7 +2555,14 @@ puts("Read packet");
 #ifdef DEBUG
 puts("************ Going to chcck writability *******");
 #endif
+
+#if defined(sun) || defined(__sun)
+			if(!donesending_f){
+#else
 			if(!donesending_f && FD_ISSET(idata.fd, &wset)){
+#endif
+
+
 #ifdef DEBUG
 puts("************ WAS WRITEABLE *******");
 #endif
