@@ -2371,6 +2371,9 @@ puts("Left select()");
 			   block when trying to send a packet.
 			 */
 			if(!donesending_f && !idata.pending_write_f){
+#ifdef DEBUG
+puts("Internal select()");
+#endif
 				wset= sset;
 
 				timeout.tv_usec=0;
@@ -2387,11 +2390,14 @@ puts("Left select()");
 				}
 			}
 
+#ifdef DEBUG
+puts("Going to check descriptors");
+#endif
 			if(FD_ISSET(idata.fd, &rset)){
 				error_f=FALSE;
 
 #ifdef DEBUG
-puts("About to do pcap_next_ex");
+puts("****************  About to do pcap_next_ex  ************");
 #endif
 				if((result=pcap_next_ex(idata.pfd, &pkthdr, &pktdata)) == -1){
 					if(idata.verbose_f)
@@ -2403,6 +2409,9 @@ puts("About to do pcap_next_ex");
 puts("Got out of pcap_next_ex()");
 #endif
 				if(result == 1){
+#ifdef DEBUG
+puts("Read packet");
+#endif
 					pkt_ether = (struct ether_header *) pktdata;
 					pkt_ipv6 = (struct ip6_hdr *)((char *) pkt_ether + idata.linkhsize);
 					pkt_icmp6 = (struct icmp6_hdr *) ((char *) pkt_ipv6 + sizeof(struct ip6_hdr));
@@ -2539,7 +2548,14 @@ puts("Got out of pcap_next_ex()");
 				continue;
 			}
 
+#ifdef DEBUG
+puts("************ Going to chcck writability *******");
+#endif
 			if(!donesending_f && FD_ISSET(idata.fd, &wset)){
+#ifdef DEBUG
+puts("************ WAS WRITEABLE *******");
+#endif
+
 				idata.pending_write_f=FALSE;
 
 				/* Check whether the current scan_entry is within range. Otherwise, get the next target */
