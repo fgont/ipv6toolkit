@@ -2328,8 +2328,13 @@ puts("Got into main loop");
 				timeout.tv_usec= pktinterval % 1000000;
 			}
 			else{
+#if defined(sun) || defined(__sun)
+				timeout.tv_sec= pktinterval / 1000000 ;	
+				timeout.tv_usec= pktinterval % 1000000;
+#else
 				timeout.tv_usec=0;
 				timeout.tv_sec= SELECT_TIMEOUT;
+#endif
 			}
 
 #ifdef DEBUG
