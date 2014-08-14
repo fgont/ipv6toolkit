@@ -2389,6 +2389,7 @@ puts("Left select()");
 			   If we didn't check for writeability in the previous call to select(), we must do it now. Otherwise, we might
 			   block when trying to send a packet.
 			 */
+#if !defined(sun) && !defined(__sun)
 			if(!donesending_f && !idata.pending_write_f){
 #ifdef DEBUG
 puts("Internal select()");
@@ -2408,6 +2409,7 @@ puts("Internal select()");
 					}
 				}
 			}
+#endif
 
 #ifdef DEBUG
 puts("Going to check descriptors");
@@ -2433,7 +2435,7 @@ puts("****************  About to do pcap_next_ex  ************");
 #ifdef DEBUG
 puts("Timeout en pcap_next_ex()");
 #endif
-					continue;
+/*					continue;*/
 				}
 #ifdef DEBUG
 puts("Got out of pcap_next_ex()");
@@ -2592,10 +2594,12 @@ puts("XXX: Valid packet");
 				}
 			}
 
+#if !defined(sun) && !defined(__sun)
 			if(!donesending_f && !idata.pending_write_f && is_time_elapsed(&curtime, &lastprobe, pktinterval)){
 				idata.pending_write_f=TRUE;
 				continue;
 			}
+#endif
 
 #ifdef DEBUG
 puts("************ Going to chcck writability *******");
