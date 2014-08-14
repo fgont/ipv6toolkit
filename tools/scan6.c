@@ -2448,6 +2448,9 @@ puts("Read packet");
 						continue;
 
 					if(pkt_ipv6->ip6_nxt == IPPROTO_ICMPV6){
+#ifdef DEBUG
+puts("XXX: Packet was ICMPv6")
+#endif
 						if( idata.type == DLT_EN10MB && !(idata.flags & IFACE_LOOPBACK) && pkt_icmp6->icmp6_type == ND_NEIGHBOR_SOLICIT){
 							if( (pkt_end - (unsigned char *) pkt_ns) < sizeof(struct nd_neighbor_solicit))
 								continue;
@@ -2470,13 +2473,23 @@ puts("Read packet");
 						}
 						else if( (probetype == PROBE_ICMP6_ECHO && pkt_icmp6->icmp6_type == ICMP6_ECHO_REPLY) ||\
 								 (probetype == PROBE_UNREC_OPT && pkt_icmp6->icmp6_type == ICMP6_PARAM_PROB)){
+#ifdef DEBUG
+puts("XXX: Going to check if in scan list")
+#endif
 							if(!is_ip6_in_scan_list(&scan_list, &(pkt_ipv6->ip6_src)))
 								continue;
 
 							if( (pkt_end - (unsigned char *) pkt_icmp6) < sizeof(struct icmp6_hdr))
 								continue;
 
+#ifdef DEBUG
+puts("XXX: Done basic sanity checks")
+#endif
+
 							if(valid_icmp6_response_remote(&idata, &scan_list, probetype, pkthdr, pktdata, buffer)){
+#ifdef DEBUG
+puts("XXX: Valid packet")
+#endif
 								/* Print the Source Address of the incoming packet */
 								if(inet_ntop(AF_INET6, &(pkt_ipv6->ip6_src), pv6addr, sizeof(pv6addr)) == NULL){
 									if(idata.verbose_f>1)
