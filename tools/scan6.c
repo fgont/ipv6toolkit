@@ -4138,6 +4138,9 @@ int send_probe_remote(struct iface_data *idata, struct scan_list *scan, struct i
 	ipv6->ip6_src= idata->srcaddr_f?(*srcaddr):*sel_src_addr_ra(idata, &((scan->target[scan->ctarget])->cur.in6_addr));
 	ipv6->ip6_dst= (scan->target[scan->ctarget])->cur.in6_addr;
 
+#ifdef DEBUG
+print_ipv6_address("Direccion actual:", &((scan->target[scan->ctarget])->cur.in6_addr));
+#endif
 	prev_nh = (unsigned char *) &(ipv6->ip6_nxt);
 
 	ptr = (unsigned char *) v6buffer + MIN_IPV6_HLEN;
