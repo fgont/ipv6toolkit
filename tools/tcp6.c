@@ -1386,7 +1386,7 @@ int main(int argc, char **argv){
 #if !defined(sun) && !defined(__sun)
 			if(sel && FD_ISSET(idata.fd, &rset)){
 #else
-			if(TRUE)
+			if(TRUE){
 #endif
 				/* Read a packet */
 				if((r=pcap_next_ex(idata.pfd, &pkthdr, &pktdata)) == -1){
