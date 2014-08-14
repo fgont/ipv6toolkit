@@ -62,9 +62,9 @@
 
 
 union my6_addr{
-	uint8_t		s6_addr[16];
-	uint16_t	s6_addr16[8];
-	uint32_t	s6_addr32[4];
+	uint8_t		s6addr[16];
+	uint16_t	s6addr16[8];
+	uint32_t	s6addr32[4];
 	struct in6_addr	in6_addr;
 };
 

@@ -476,7 +476,7 @@ int main(int argc, char **argv){
 									exit(EXIT_FAILURE);
 								}
 
-								idata.dstaddr= smart_list.target[smart_list.ntarget]->start;
+								idata.dstaddr= smart_list.target[smart_list.ntarget]->start.in6_addr;
 								smart_list.ntarget++;
 							}
 							else{
@@ -518,7 +518,7 @@ int main(int argc, char **argv){
 									exit(EXIT_FAILURE);
 								}
 
-								idata.dstaddr= prefix_list.target[prefix_list.ntarget]->start;
+								idata.dstaddr= prefix_list.target[prefix_list.ntarget]->start.in6_addr;
 								prefix_list.ntarget++;
 							}
 							else{
@@ -607,29 +607,29 @@ int main(int argc, char **argv){
 
 						/* Check whether the start address is smaller than the end address */
 						for(i=0;i<7; i++)
-							if( ntohs(scan_list.target[scan_list.ntarget]->start.s6_addr16[i]) > 
-								ntohs(scan_list.target[scan_list.ntarget]->end.s6_addr16[i])){
+							if( ntohs(scan_list.target[scan_list.ntarget]->start.s6addr16[i]) > 
+								ntohs(scan_list.target[scan_list.ntarget]->end.s6addr16[i])){
 								if(idata.verbose_f)
 									puts("Error in Destination Address range: Start address larger than end address!");
 
 								exit(EXIT_FAILURE);
 							}
 
-						if(IN6_IS_ADDR_MULTICAST(&(scan_list.target[scan_list.ntarget]->start))){
+						if(IN6_IS_ADDR_MULTICAST(&(scan_list.target[scan_list.ntarget]->start.in6_addr))){
 							if(idata.verbose_f)
 								puts("scan6: Remote scan cannot target a multicast address");
 
 							exit(EXIT_FAILURE);
 						}
 
-						if(IN6_IS_ADDR_MULTICAST(&(scan_list.target[scan_list.ntarget]->end))){
+						if(IN6_IS_ADDR_MULTICAST(&(scan_list.target[scan_list.ntarget]->end.in6_addr))){
 							if(idata.verbose_f)
 								puts("scan6: Remote scan cannot target a multicast address");
 
 							exit(EXIT_FAILURE);
 						}
 
-						idata.dstaddr= scan_list.target[scan_list.ntarget]->start;
+						idata.dstaddr= scan_list.target[scan_list.ntarget]->start.in6_addr;
 						scan_list.ntarget++;
 					}
 					else{
@@ -718,7 +718,7 @@ int main(int argc, char **argv){
 								exit(EXIT_FAILURE);
 							}
 
-							idata.dstaddr= smart_list.target[smart_list.ntarget]->start;
+							idata.dstaddr= smart_list.target[smart_list.ntarget]->start.in6_addr;
 							smart_list.ntarget++;
 						}
 						else{
@@ -758,7 +758,7 @@ int main(int argc, char **argv){
 							}
 
 							prefix_list.ntarget++;
-							idata.dstaddr= prefix_list.target[0]->start;
+							idata.dstaddr= prefix_list.target[0]->start.in6_addr;
 						}
 						else{
 							/*
@@ -1590,7 +1590,7 @@ int main(int argc, char **argv){
 	   in our iface_data structure.
 	 */
 	if(idata.srcaddr_f && !idata.srcprefix_f){
-		if( (idata.srcaddr.s6_addr16[0] & htons(0xffc0)) == htons(0xfe80)){
+		if(IN6_IS_ADDR_LINKLOCAL(&(idata.srcaddr))){
 			idata.ip6_local=idata.srcaddr;
 			idata.ip6_local_flag=TRUE;
 		}
@@ -2687,8 +2687,8 @@ int is_target_in_range(struct scan_list *scan_list){
 	scan_entry= scan_list->target[scan_list->ctarget];
 
 	for(i=0; i<=7; i++){
-		if( ntohs((scan_entry->cur).s6_addr16[i]) < ntohs((scan_entry->start).s6_addr16[i]) || \
-			( ntohs((scan_entry->cur).s6_addr16[i]) > ntohs((scan_entry->end).s6_addr16[i])) ){
+		if( ntohs((scan_entry->cur).s6addr16[i]) < ntohs((scan_entry->start).s6addr16[i]) || \
+			( ntohs((scan_entry->cur).s6addr16[i]) > ntohs((scan_entry->end).s6addr16[i])) ){
 				return(0);
 			}
 	}
@@ -2713,8 +2713,8 @@ int get_next_target(struct scan_list *scan_list){
 			Increment scan_entry according to scan_entry->start and scan_entry->end, starting with the low-order word
 		 */
 
-		if( ntohs((scan_list->target[scan_list->ctarget])->cur.s6_addr16[i]) >= \
-								ntohs((scan_list->target[scan_list->ctarget])->end.s6_addr16[i])){
+		if( ntohs((scan_list->target[scan_list->ctarget])->cur.s6addr16[i]) >= \
+								ntohs((scan_list->target[scan_list->ctarget])->end.s6addr16[i])){
 			if(i==0){
 				scan_list->ctarget++;
 
@@ -2726,7 +2726,7 @@ int get_next_target(struct scan_list *scan_list){
 				}
 			}
 
-			(scan_list->target[scan_list->ctarget])->cur.s6_addr16[i]= (scan_list->target[scan_list->ctarget])->start.s6_addr16[i];
+			(scan_list->target[scan_list->ctarget])->cur.s6addr16[i]= (scan_list->target[scan_list->ctarget])->start.s6addr16[i];
 
 		}
 		else{
@@ -2738,23 +2738,23 @@ int get_next_target(struct scan_list *scan_list){
 				If we're incrementing the lowest-order word, and the scan range is larger than MIN_INC_RANGE, we increment
 				the word by scan_list->inc. Otherwise, we increment the word by 1.
 			 */
-			if(i==7 && ( ntohs((scan_list->target[cind])->end.s6_addr16[7]) - ntohs( (scan_list->target[cind])->start.s6_addr16[7]) ) \
+			if(i==7 && ( ntohs((scan_list->target[cind])->end.s6addr16[7]) - ntohs( (scan_list->target[cind])->start.s6addr16[7]) ) \
 																	>= MIN_INC_RANGE ){
 
 				/* If the increment would exceed scan_entry->end, we make it "wrap around" */
-				if( ((unsigned int) ntohs((scan_list->target[cind])->cur.s6_addr16[7]) + scan_list->inc) > \
-							ntohs((scan_list->target[scan_list->ctarget])->end.s6_addr16[7]) ){
+				if( ((unsigned int) ntohs((scan_list->target[cind])->cur.s6addr16[7]) + scan_list->inc) > \
+							ntohs((scan_list->target[scan_list->ctarget])->end.s6addr16[7]) ){
 
-						(scan_list->target[cind])->cur.s6_addr16[i]= htons((uint16_t)((unsigned int)
-																ntohs((scan_list->target[cind])->start.s6_addr16[i]) + \
-																( (unsigned int) ntohs((scan_list->target[cind])->cur.s6_addr16[i]) + \
-																 scan_list->inc - ntohs((scan_list->target[cind])->start.s6_addr16[i])) % \
-																( ntohs((scan_list->target[cind])->end.s6_addr16[i]) - \
-																ntohs((scan_list->target[cind])->start.s6_addr16[i]))));
+						(scan_list->target[cind])->cur.s6addr16[i]= htons((uint16_t)((unsigned int)
+																ntohs((scan_list->target[cind])->start.s6addr16[i]) + \
+																( (unsigned int) ntohs((scan_list->target[cind])->cur.s6addr16[i]) + \
+																 scan_list->inc - ntohs((scan_list->target[cind])->start.s6addr16[i])) % \
+																( ntohs((scan_list->target[cind])->end.s6addr16[i]) - \
+																ntohs((scan_list->target[cind])->start.s6addr16[i]))));
 				}
 				else{
 					/* Otherwise we simply increment the word with scan_list->inc */
-					scan_list->target[cind]->cur.s6_addr16[i] = htons(ntohs(scan_list->target[cind]->cur.s6_addr16[i]) + scan_list->inc);
+					scan_list->target[cind]->cur.s6addr16[i] = htons(ntohs(scan_list->target[cind]->cur.s6addr16[i]) + scan_list->inc);
 					return(1);
 				}
 			}
@@ -2764,11 +2764,11 @@ int get_next_target(struct scan_list *scan_list){
 				   we try to increment in by 1. If this would exceed scan_entry->end, we set it to scan_entry->start and cause the
 				   next word to be incremented
 				 */
-				if( ((unsigned int) ntohs((scan_list->target[cind])->cur.s6_addr16[i]) + 1) > ntohs(scan_list->target[cind]->end.s6_addr16[i])){
-					(scan_list->target[cind])->cur.s6_addr16[i]= (scan_list->target[cind])->start.s6_addr16[i];
+				if( ((unsigned int) ntohs((scan_list->target[cind])->cur.s6addr16[i]) + 1) > ntohs(scan_list->target[cind]->end.s6addr16[i])){
+					(scan_list->target[cind])->cur.s6addr16[i]= (scan_list->target[cind])->start.s6addr16[i];
 				}
 				else{
-					scan_list->target[cind]->cur.s6_addr16[i] = htons(ntohs(scan_list->target[cind]->cur.s6_addr16[i]) + 1);
+					scan_list->target[cind]->cur.s6addr16[i] = htons(ntohs(scan_list->target[cind]->cur.s6addr16[i]) + 1);
 					return(1);
 				}
 			}
@@ -2791,10 +2791,10 @@ int print_scan_entries(struct scan_list *scan){
 
 	for(i=0; i< scan->ntarget; i++){
 		for(j=0; j<8; j++){
-			if((scan->target[i])->start.s6_addr16[j] == (scan->target[i])->end.s6_addr16[j])
-				printf("%x", ntohs((scan->target[i])->start.s6_addr16[j]));
+			if((scan->target[i])->start.s6addr16[j] == (scan->target[i])->end.s6addr16[j])
+				printf("%x", ntohs((scan->target[i])->start.s6addr16[j]));
 			else
-				printf("%x-%x", ntohs((scan->target[i])->start.s6_addr16[j]), ntohs((scan->target[i])->end.s6_addr16[j]));
+				printf("%x-%x", ntohs((scan->target[i])->start.s6addr16[j]), ntohs((scan->target[i])->end.s6addr16[j]));
 
 			if(j<7)
 				printf(":");
@@ -2827,16 +2827,16 @@ int load_ipv4mapped32_entries(struct scan_list *scan, struct scan_entry *dst, st
 	(scan->target[scan->ntarget])->start= dst->start;
 
 	for(i=4; i<=5; i++)
-		(scan->target[scan->ntarget])->start.s6_addr16[i]= htons(0);
+		(scan->target[scan->ntarget])->start.s6addr16[i]= htons(0);
 
-	(scan->target[scan->ntarget])->start.s6_addr16[6]= htons( (uint16_t) (ntohl(v4host->ip.s_addr) >> 16));
-	(scan->target[scan->ntarget])->start.s6_addr16[7]= htons( (uint16_t) (ntohl(v4host->ip.s_addr) & 0x0000ffff));
+	(scan->target[scan->ntarget])->start.s6addr16[6]= htons( (uint16_t) (ntohl(v4host->ip.s_addr) >> 16));
+	(scan->target[scan->ntarget])->start.s6addr16[7]= htons( (uint16_t) (ntohl(v4host->ip.s_addr) & 0x0000ffff));
 	(scan->target[scan->ntarget])->cur= (scan->target[scan->ntarget])->start;
 
 	(scan->target[scan->ntarget])->end= dst->end;
 
 	for(i=4; i<=7; i++)
-		(scan->target[scan->ntarget])->end.s6_addr16[i]= (scan->target[scan->ntarget])->start.s6_addr16[i];
+		(scan->target[scan->ntarget])->end.s6addr16[i]= (scan->target[scan->ntarget])->start.s6addr16[i];
 
 	mask32= 0xffffffff;
 
@@ -2846,8 +2846,8 @@ int load_ipv4mapped32_entries(struct scan_list *scan, struct scan_entry *dst, st
 	for(i=0; i< v4host->len; i++)
 		mask32=mask32>>1;
 
-	(scan->target[scan->ntarget])->end.s6_addr16[6]= (scan->target[scan->ntarget])->end.s6_addr16[6] | htons( (uint16_t)(mask32>>16));
-	(scan->target[scan->ntarget])->end.s6_addr16[7]= (scan->target[scan->ntarget])->end.s6_addr16[7] | htons((uint16_t)(mask32 & 0x0000ffff));
+	(scan->target[scan->ntarget])->end.s6addr16[6]= (scan->target[scan->ntarget])->end.s6addr16[6] | htons( (uint16_t)(mask32>>16));
+	(scan->target[scan->ntarget])->end.s6addr16[7]= (scan->target[scan->ntarget])->end.s6addr16[7] | htons((uint16_t)(mask32 & 0x0000ffff));
 
 	scan->ntarget++;
 
@@ -2874,16 +2874,16 @@ int load_ipv4mapped64_entries(struct scan_list *scan, struct scan_entry *dst, st
 
 	(scan->target[scan->ntarget])->start= dst->start;
 
-	(scan->target[scan->ntarget])->start.s6_addr16[4]= htons( (uint16_t) (ntohl(v4host->ip.s_addr) >> 24));
-	(scan->target[scan->ntarget])->start.s6_addr16[5]= htons( ((uint16_t) (ntohl(v4host->ip.s_addr) >> 16)) & 0x00ff);
-	(scan->target[scan->ntarget])->start.s6_addr16[6]= htons( (uint16_t) ((ntohl(v4host->ip.s_addr) >> 8) & 0x000000ff));
-	(scan->target[scan->ntarget])->start.s6_addr16[7]= htons( (uint16_t) (ntohl(v4host->ip.s_addr) & 0x000000ff));
+	(scan->target[scan->ntarget])->start.s6addr16[4]= htons( (uint16_t) (ntohl(v4host->ip.s_addr) >> 24));
+	(scan->target[scan->ntarget])->start.s6addr16[5]= htons( ((uint16_t) (ntohl(v4host->ip.s_addr) >> 16)) & 0x00ff);
+	(scan->target[scan->ntarget])->start.s6addr16[6]= htons( (uint16_t) ((ntohl(v4host->ip.s_addr) >> 8) & 0x000000ff));
+	(scan->target[scan->ntarget])->start.s6addr16[7]= htons( (uint16_t) (ntohl(v4host->ip.s_addr) & 0x000000ff));
 	(scan->target[scan->ntarget])->cur= (scan->target[scan->ntarget])->start;
 
 	(scan->target[scan->ntarget])->end= dst->end;
 
 	for(i=4; i<=7; i++)
-		(scan->target[scan->ntarget])->end.s6_addr16[i]= (scan->target[scan->ntarget])->start.s6_addr16[i];
+		(scan->target[scan->ntarget])->end.s6addr16[i]= (scan->target[scan->ntarget])->start.s6addr16[i];
 
 	mask32= 0xffffffff;
 
@@ -2893,14 +2893,14 @@ int load_ipv4mapped64_entries(struct scan_list *scan, struct scan_entry *dst, st
 	for(i=0; i< v4host->len; i++)
 		mask32=mask32>>1;
 
-	(scan->target[scan->ntarget])->end.s6_addr16[4]= (scan->target[scan->ntarget])->end.s6_addr16[4] | htons( (uint16_t)(mask32>>24));
-	(scan->target[scan->ntarget])->end.s6_addr16[5]= (scan->target[scan->ntarget])->end.s6_addr16[5] | htons( (uint16_t)(mask32>>16 & 0x000000ff));
-	(scan->target[scan->ntarget])->end.s6_addr16[6]= (scan->target[scan->ntarget])->end.s6_addr16[6] | htons( (uint16_t)(mask32>>8 & 0x000000ff));
-	(scan->target[scan->ntarget])->end.s6_addr16[7]= (scan->target[scan->ntarget])->end.s6_addr16[7] | htons((uint16_t)(mask32 & 0x000000ff));
+	(scan->target[scan->ntarget])->end.s6addr16[4]= (scan->target[scan->ntarget])->end.s6addr16[4] | htons( (uint16_t)(mask32>>24));
+	(scan->target[scan->ntarget])->end.s6addr16[5]= (scan->target[scan->ntarget])->end.s6addr16[5] | htons( (uint16_t)(mask32>>16 & 0x000000ff));
+	(scan->target[scan->ntarget])->end.s6addr16[6]= (scan->target[scan->ntarget])->end.s6addr16[6] | htons( (uint16_t)(mask32>>8 & 0x000000ff));
+	(scan->target[scan->ntarget])->end.s6addr16[7]= (scan->target[scan->ntarget])->end.s6addr16[7] | htons((uint16_t)(mask32 & 0x000000ff));
 
 	for(i=4; i<=7; i++){
-		(scan->target[scan->ntarget])->start.s6_addr16[i]= htons( dec_to_hex(ntohs((scan->target[scan->ntarget])->start.s6_addr16[i])));
-		(scan->target[scan->ntarget])->end.s6_addr16[i]= htons( dec_to_hex(ntohs((scan->target[scan->ntarget])->end.s6_addr16[i])));
+		(scan->target[scan->ntarget])->start.s6addr16[i]= htons( dec_to_hex(ntohs((scan->target[scan->ntarget])->start.s6addr16[i])));
+		(scan->target[scan->ntarget])->end.s6addr16[i]= htons( dec_to_hex(ntohs((scan->target[scan->ntarget])->end.s6addr16[i])));
 	}
 
 	scan->ntarget++;
@@ -2986,8 +2986,8 @@ int load_knownprefix_entries(struct scan_list *scan_list, struct scan_list *pref
 
 					/* Check whether the start address is smaller than the end address */
 					for(i=0;i<7; i++)
-						if( ntohs((scan_list->target[scan_list->ntarget])->start.s6_addr16[i]) > 
-							ntohs((scan_list->target[scan_list->ntarget])->end.s6_addr16[i])){
+						if( ntohs((scan_list->target[scan_list->ntarget])->start.s6addr16[i]) > 
+							ntohs((scan_list->target[scan_list->ntarget])->end.s6addr16[i])){
 							if(verbose_f > 1)
 								puts("Error in Destination Address range: Start address larger than end address!");
 
@@ -3149,15 +3149,15 @@ int load_knowniid_entries(struct scan_list *scan, struct scan_list *prefix, stru
 
 			(scan->target[scan->ntarget])->start= (prefix->target[j])->start;
 
-			for(k=4; k<=7; k++)
-				(scan->target[scan->ntarget])->start.s6_addr16[k]= (iid->prefix[i])->ip6.s6_addr16[k];
+			for(k=2; k<=3; k++)
+				(scan->target[scan->ntarget])->start.in6_addr.s6_addr32[k]= (iid->prefix[i])->ip6.s6_addr32[k];
 
 			(scan->target[scan->ntarget])->cur= (scan->target[scan->ntarget])->start;
 
 			(scan->target[scan->ntarget])->end= (prefix->target[j])->end;
 
-			for(k=4; k<=7; k++)
-				(scan->target[scan->ntarget])->end.s6_addr16[k]= (iid->prefix[i])->ip6.s6_addr16[k];
+			for(k=2; k<=3; k++)
+				(scan->target[scan->ntarget])->end.in6_addr.s6_addr32[k]= (iid->prefix[i])->ip6.s6_addr32[k];
 
 			scan->ntarget++;
 		}
@@ -3194,15 +3194,15 @@ int load_knowniidfile_entries(struct scan_list *scan, struct scan_list *prefix, 
 
 				(scan->target[scan->ntarget])->start= (prefix->target[i])->start;
 
-				for(j=4; j<=7; j++)
-					(scan->target[scan->ntarget])->start.s6_addr16[j]= iid.s6_addr16[j];
+				for(j=2; j<=3; j++)
+					(scan->target[scan->ntarget])->start.in6_addr.s6_addr32[j]= iid.s6_addr32[j];
 
 				(scan->target[scan->ntarget])->cur= (scan->target[scan->ntarget])->start;
 
 				(scan->target[scan->ntarget])->end= (prefix->target[i])->end;
 
-				for(j=4; j<=7; j++)
-					(scan->target[scan->ntarget])->end.s6_addr16[j]= iid.s6_addr16[j];
+				for(j=2; j<=3; j++)
+					(scan->target[scan->ntarget])->end.in6_addr.s6_addr32[j]= iid.s6_addr32[j];
 
 				scan->ntarget++;
 			}
@@ -3241,17 +3241,17 @@ int load_embeddedport_entries(struct scan_list *scan, struct scan_entry *dst){
 			return(0);
 
 		(scan->target[scan->ntarget])->start= dst->start;
-		(scan->target[scan->ntarget])->start.s6_addr16[4]= htons(0);
-		(scan->target[scan->ntarget])->start.s6_addr16[5]= htons(0);
-		(scan->target[scan->ntarget])->start.s6_addr16[6]= htons(0);
-		(scan->target[scan->ntarget])->start.s6_addr16[7]= htons(service_ports_hex[i]);
+		(scan->target[scan->ntarget])->start.s6addr16[4]= htons(0);
+		(scan->target[scan->ntarget])->start.s6addr16[5]= htons(0);
+		(scan->target[scan->ntarget])->start.s6addr16[6]= htons(0);
+		(scan->target[scan->ntarget])->start.s6addr16[7]= htons(service_ports_hex[i]);
 		(scan->target[scan->ntarget])->cur= (scan->target[scan->ntarget])->start;
 
 		(scan->target[scan->ntarget])->end= dst->end;
-		(scan->target[scan->ntarget])->end.s6_addr16[4]= htons(0);
-		(scan->target[scan->ntarget])->end.s6_addr16[5]= htons(0);
-		(scan->target[scan->ntarget])->end.s6_addr16[6]= htons(EMBEDDED_PORT_2ND_WORD);
-		(scan->target[scan->ntarget])->end.s6_addr16[7]= htons(service_ports_hex[i]);
+		(scan->target[scan->ntarget])->end.s6addr16[4]= htons(0);
+		(scan->target[scan->ntarget])->end.s6addr16[5]= htons(0);
+		(scan->target[scan->ntarget])->end.s6addr16[6]= htons(EMBEDDED_PORT_2ND_WORD);
+		(scan->target[scan->ntarget])->end.s6addr16[7]= htons(service_ports_hex[i]);
 		scan->ntarget++;
 
 		if(scan->ntarget >= scan->maxtarget){
@@ -3262,17 +3262,17 @@ int load_embeddedport_entries(struct scan_list *scan, struct scan_entry *dst){
 			return(0);
 
 		(scan->target[scan->ntarget])->start= dst->start;
-		(scan->target[scan->ntarget])->start.s6_addr16[4]= htons(0);
-		(scan->target[scan->ntarget])->start.s6_addr16[5]= htons(0);
-		(scan->target[scan->ntarget])->start.s6_addr16[6]= htons(service_ports_hex[i]);
-		(scan->target[scan->ntarget])->start.s6_addr16[7]= htons(0);
+		(scan->target[scan->ntarget])->start.s6addr16[4]= htons(0);
+		(scan->target[scan->ntarget])->start.s6addr16[5]= htons(0);
+		(scan->target[scan->ntarget])->start.s6addr16[6]= htons(service_ports_hex[i]);
+		(scan->target[scan->ntarget])->start.s6addr16[7]= htons(0);
 		(scan->target[scan->ntarget])->cur= (scan->target[scan->ntarget])->start;
 
 		(scan->target[scan->ntarget])->end= dst->end;
-		(scan->target[scan->ntarget])->end.s6_addr16[4]= htons(0);
-		(scan->target[scan->ntarget])->end.s6_addr16[5]= htons(0);
-		(scan->target[scan->ntarget])->end.s6_addr16[6]= htons(service_ports_hex[i]);
-		(scan->target[scan->ntarget])->end.s6_addr16[7]= htons(EMBEDDED_PORT_2ND_WORD);
+		(scan->target[scan->ntarget])->end.s6addr16[4]= htons(0);
+		(scan->target[scan->ntarget])->end.s6addr16[5]= htons(0);
+		(scan->target[scan->ntarget])->end.s6addr16[6]= htons(service_ports_hex[i]);
+		(scan->target[scan->ntarget])->end.s6addr16[7]= htons(EMBEDDED_PORT_2ND_WORD);
 		scan->ntarget++;
 	}
 
@@ -3285,17 +3285,17 @@ int load_embeddedport_entries(struct scan_list *scan, struct scan_entry *dst){
 			return(0);
 
 		(scan->target[scan->ntarget])->start= dst->start;
-		(scan->target[scan->ntarget])->start.s6_addr16[4]= htons(0);
-		(scan->target[scan->ntarget])->start.s6_addr16[5]= htons(0);
-		(scan->target[scan->ntarget])->start.s6_addr16[6]= htons(0);
-		(scan->target[scan->ntarget])->start.s6_addr16[7]= htons(service_ports_dec[i]);
+		(scan->target[scan->ntarget])->start.s6addr16[4]= htons(0);
+		(scan->target[scan->ntarget])->start.s6addr16[5]= htons(0);
+		(scan->target[scan->ntarget])->start.s6addr16[6]= htons(0);
+		(scan->target[scan->ntarget])->start.s6addr16[7]= htons(service_ports_dec[i]);
 		(scan->target[scan->ntarget])->cur= (scan->target[scan->ntarget])->start;
 
 		(scan->target[scan->ntarget])->end= dst->end;
-		(scan->target[scan->ntarget])->end.s6_addr16[4]= htons(0);
-		(scan->target[scan->ntarget])->end.s6_addr16[5]= htons(0);
-		(scan->target[scan->ntarget])->end.s6_addr16[6]= htons(EMBEDDED_PORT_2ND_WORD);
-		(scan->target[scan->ntarget])->end.s6_addr16[7]= htons(service_ports_dec[i]);
+		(scan->target[scan->ntarget])->end.s6addr16[4]= htons(0);
+		(scan->target[scan->ntarget])->end.s6addr16[5]= htons(0);
+		(scan->target[scan->ntarget])->end.s6addr16[6]= htons(EMBEDDED_PORT_2ND_WORD);
+		(scan->target[scan->ntarget])->end.s6addr16[7]= htons(service_ports_dec[i]);
 		scan->ntarget++;
 
 		if(scan->ntarget >= scan->maxtarget){
@@ -3306,17 +3306,17 @@ int load_embeddedport_entries(struct scan_list *scan, struct scan_entry *dst){
 			return(0);
 
 		(scan->target[scan->ntarget])->start= dst->start;
-		(scan->target[scan->ntarget])->start.s6_addr16[4]= htons(0);
-		(scan->target[scan->ntarget])->start.s6_addr16[5]= htons(0);
-		(scan->target[scan->ntarget])->start.s6_addr16[6]= htons(service_ports_dec[i]);
-		(scan->target[scan->ntarget])->start.s6_addr16[7]= htons(0);
+		(scan->target[scan->ntarget])->start.s6addr16[4]= htons(0);
+		(scan->target[scan->ntarget])->start.s6addr16[5]= htons(0);
+		(scan->target[scan->ntarget])->start.s6addr16[6]= htons(service_ports_dec[i]);
+		(scan->target[scan->ntarget])->start.s6addr16[7]= htons(0);
 		(scan->target[scan->ntarget])->cur= (scan->target[scan->ntarget])->start;
 
 		(scan->target[scan->ntarget])->end= dst->end;
-		(scan->target[scan->ntarget])->end.s6_addr16[4]= htons(0);
-		(scan->target[scan->ntarget])->end.s6_addr16[5]= htons(0);
-		(scan->target[scan->ntarget])->end.s6_addr16[6]= htons(service_ports_dec[i]);
-		(scan->target[scan->ntarget])->end.s6_addr16[7]= htons(EMBEDDED_PORT_2ND_WORD);
+		(scan->target[scan->ntarget])->end.s6addr16[4]= htons(0);
+		(scan->target[scan->ntarget])->end.s6addr16[5]= htons(0);
+		(scan->target[scan->ntarget])->end.s6addr16[6]= htons(service_ports_dec[i]);
+		(scan->target[scan->ntarget])->end.s6addr16[7]= htons(EMBEDDED_PORT_2ND_WORD);
 		scan->ntarget++;
 	}
 
@@ -3343,16 +3343,16 @@ int load_lowbyte_entries(struct scan_list *scan, struct scan_entry *dst){
 	(scan->target[scan->ntarget])->start= dst->start;
 
 	for(i=4; i<=7; i++)
-		(scan->target[scan->ntarget])->start.s6_addr16[i]= htons(0);
+		(scan->target[scan->ntarget])->start.s6addr16[i]= htons(0);
 
 	(scan->target[scan->ntarget])->cur= (scan->target[scan->ntarget])->start;
 	(scan->target[scan->ntarget])->end= dst->end;
 
 	for(i=4; i<=5; i++)
-		(scan->target[scan->ntarget])->end.s6_addr16[i]= htons(0);
+		(scan->target[scan->ntarget])->end.s6addr16[i]= htons(0);
 
-	(scan->target[scan->ntarget])->end.s6_addr16[6]= htons(LOW_BYTE_2ND_WORD_UPPER);
-	(scan->target[scan->ntarget])->end.s6_addr16[7]= htons(LOW_BYTE_1ST_WORD_UPPER);
+	(scan->target[scan->ntarget])->end.s6addr16[6]= htons(LOW_BYTE_2ND_WORD_UPPER);
+	(scan->target[scan->ntarget])->end.s6addr16[7]= htons(LOW_BYTE_1ST_WORD_UPPER);
 	scan->ntarget++;
 
 	return(1);
@@ -3378,20 +3378,20 @@ int load_oui_entries(struct scan_list *scan, struct scan_entry *dst, struct ethe
 		return(0);
 	}
 
-	generate_slaac_address(&(dst->start), oui, &((scan->target[scan->ntarget])->start));
+	generate_slaac_address(&(dst->start.in6_addr), oui, &((scan->target[scan->ntarget])->start.in6_addr));
 	(scan->target[scan->ntarget])->cur= (scan->target[scan->ntarget])->start;
 
 	for(i=0; i<4; i++)
-		(scan->target[scan->ntarget])->end.s6_addr16[i]= dst->end.s6_addr16[i];
+		(scan->target[scan->ntarget])->end.s6addr16[i]= dst->end.s6addr16[i];
 
 	for(i=4; i<=7; i++)
-		(scan->target[scan->ntarget])->end.s6_addr16[i]= (scan->target[scan->ntarget])->start.s6_addr16[i];
+		(scan->target[scan->ntarget])->end.s6addr16[i]= (scan->target[scan->ntarget])->start.s6addr16[i];
 
 	/*
 	   The three low-order bytes must vary from 0x000000 to 0xffffff
 	 */
-	(scan->target[scan->ntarget])->end.s6_addr16[6]= (scan->target[scan->ntarget])->end.s6_addr16[6] | htons(0x00ff);
-	(scan->target[scan->ntarget])->end.s6_addr16[7]= (scan->target[scan->ntarget])->end.s6_addr16[7] | htons(0xffff);
+	(scan->target[scan->ntarget])->end.s6addr16[6]= (scan->target[scan->ntarget])->end.s6addr16[6] | htons(0x00ff);
+	(scan->target[scan->ntarget])->end.s6addr16[7]= (scan->target[scan->ntarget])->end.s6addr16[7] | htons(0xffff);
 
 	scan->ntarget++;
 	return(1);
@@ -3428,18 +3428,18 @@ int load_vm_entries(struct scan_list *scan, struct scan_entry *dst, struct prefi
 			return(0);
 		}
 
-		generate_slaac_address(&(dst->start), &ether, &((scan->target[scan->ntarget])->start));
+		generate_slaac_address(&(dst->start.in6_addr), &ether, &((scan->target[scan->ntarget])->start.in6_addr));
 		(scan->target[scan->ntarget])->cur= (scan->target[scan->ntarget])->start;
 		(scan->target[scan->ntarget])->end= dst->end;
 
 		for(i=4; i<=7; i++)
-			(scan->target[scan->ntarget])->end.s6_addr16[i]= (scan->target[scan->ntarget])->start.s6_addr16[i];
+			(scan->target[scan->ntarget])->end.s6addr16[i]= (scan->target[scan->ntarget])->start.s6addr16[i];
 
 		/*
 		   The three low-order bytes must vary from 0x000000 to 0xffffff
 		 */
-		(scan->target[scan->ntarget])->end.s6_addr16[6]= (scan->target[scan->ntarget])->end.s6_addr16[6] | htons(0x00ff);
-		(scan->target[scan->ntarget])->end.s6_addr16[7]= (scan->target[scan->ntarget])->end.s6_addr16[7] | htons(0xffff);
+		(scan->target[scan->ntarget])->end.s6addr16[6]= (scan->target[scan->ntarget])->end.s6addr16[6] | htons(0x00ff);
+		(scan->target[scan->ntarget])->end.s6addr16[7]= (scan->target[scan->ntarget])->end.s6addr16[7] | htons(0xffff);
 		scan->ntarget++;
 	}
 
@@ -3461,12 +3461,12 @@ int load_vm_entries(struct scan_list *scan, struct scan_entry *dst, struct prefi
 			return(0);
 		}
 
-		generate_slaac_address(&(dst->start), &ether, &((scan->target[scan->ntarget])->start));
+		generate_slaac_address(&(dst->start.in6_addr), &ether, &((scan->target[scan->ntarget])->start.in6_addr));
 		(scan->target[scan->ntarget])->cur= (scan->target[scan->ntarget])->start;
 		(scan->target[scan->ntarget])->end= dst->end;
 
 		for(i=4; i<=7; i++)
-			(scan->target[scan->ntarget])->end.s6_addr16[i]= (scan->target[scan->ntarget])->start.s6_addr16[i];
+			(scan->target[scan->ntarget])->end.s6addr16[i]= (scan->target[scan->ntarget])->start.s6addr16[i];
 
 
 		/*
@@ -3484,21 +3484,21 @@ int load_vm_entries(struct scan_list *scan, struct scan_entry *dst, struct prefi
 				mask32= 0;
 			}
 
-			(scan->target[scan->ntarget])->start.s6_addr16[6]= (scan->target[scan->ntarget])->start.s6_addr16[6] | \
+			(scan->target[scan->ntarget])->start.s6addr16[6]= (scan->target[scan->ntarget])->start.s6addr16[6] | \
 															htons((ntohl(v4host->ip.s_addr) & 0x0000ff00)>>8);
-			(scan->target[scan->ntarget])->start.s6_addr16[7]= (scan->target[scan->ntarget])->start.s6_addr16[7] | \
+			(scan->target[scan->ntarget])->start.s6addr16[7]= (scan->target[scan->ntarget])->start.s6addr16[7] | \
 															htons((ntohl(v4host->ip.s_addr) & 0x000000ff)<<8);
 
-			(scan->target[scan->ntarget])->end.s6_addr16[6]= (scan->target[scan->ntarget])->end.s6_addr16[6] | \
+			(scan->target[scan->ntarget])->end.s6addr16[6]= (scan->target[scan->ntarget])->end.s6addr16[6] | \
 															htons((ntohl(v4host->ip.s_addr) & 0x0000ff00)>>8) | \
 															htonl((mask32 & 0x0000ff00)>>8);
-			(scan->target[scan->ntarget])->end.s6_addr16[7]= (scan->target[scan->ntarget])->end.s6_addr16[7] | \
+			(scan->target[scan->ntarget])->end.s6addr16[7]= (scan->target[scan->ntarget])->end.s6addr16[7] | \
 															htons((ntohl(v4host->ip.s_addr) & 0x000000ff)<<8) | \
 															htonl((mask32 & 0x000000ff)<<8) | htons(0x00ff);
 		}
 		else{
-			(scan->target[scan->ntarget])->end.s6_addr16[6]= (scan->target[scan->ntarget])->end.s6_addr16[6] | htons(0x00ff);
-			(scan->target[scan->ntarget])->end.s6_addr16[7]= (scan->target[scan->ntarget])->end.s6_addr16[7] | htons(0xffff);
+			(scan->target[scan->ntarget])->end.s6addr16[6]= (scan->target[scan->ntarget])->end.s6addr16[6] | htons(0x00ff);
+			(scan->target[scan->ntarget])->end.s6addr16[7]= (scan->target[scan->ntarget])->end.s6addr16[7] | htons(0xffff);
 		}
 
 		scan->ntarget++;
@@ -3522,18 +3522,18 @@ int load_vm_entries(struct scan_list *scan, struct scan_entry *dst, struct prefi
 			return(0);
 		}
 
-		generate_slaac_address(&(dst->start), &ether, &((scan->target[scan->ntarget])->start));
+		generate_slaac_address(&(dst->start.in6_addr), &ether, &((scan->target[scan->ntarget])->start.in6_addr));
 		(scan->target[scan->ntarget])->cur= (scan->target[scan->ntarget])->start;
 		(scan->target[scan->ntarget])->end= dst->end;
 
 		for(i=4; i<=7; i++)
-			(scan->target[scan->ntarget])->end.s6_addr16[i]= (scan->target[scan->ntarget])->start.s6_addr16[i];
+			(scan->target[scan->ntarget])->end.s6addr16[i]= (scan->target[scan->ntarget])->start.s6addr16[i];
 
 		/*
 		   The three low-order bytes must vary from 0x000000 to 0x3fffff
 		 */
-		(scan->target[scan->ntarget])->end.s6_addr16[6]= (scan->target[scan->ntarget])->end.s6_addr16[6] | htons(0x003f);
-		(scan->target[scan->ntarget])->end.s6_addr16[7]= (scan->target[scan->ntarget])->end.s6_addr16[6] | htons(0xffff);
+		(scan->target[scan->ntarget])->end.s6addr16[6]= (scan->target[scan->ntarget])->end.s6addr16[6] | htons(0x003f);
+		(scan->target[scan->ntarget])->end.s6addr16[7]= (scan->target[scan->ntarget])->end.s6addr16[6] | htons(0xffff);
 
 		scan->ntarget++;
 	}
@@ -3678,15 +3678,15 @@ int load_vendor_entries(struct scan_list *scan, struct scan_entry *dst, char *ve
 			return(0);
 		}
 
-		generate_slaac_address(&(dst->start), &oui_list[i], &((scan->target[scan->ntarget])->start));
+		generate_slaac_address(&(dst->start.in6_addr), &oui_list[i], &((scan->target[scan->ntarget])->start.in6_addr));
 		(scan->target[scan->ntarget])->cur= (scan->target[scan->ntarget])->start;
-		generate_slaac_address(&(dst->end), &oui_list[i], &((scan->target[scan->ntarget])->end));
+		generate_slaac_address(&(dst->end.in6_addr), &oui_list[i], &((scan->target[scan->ntarget])->end.in6_addr));
 
 		/*
 		   The three low-order bytes must vary from 0x000000 to 0xffffff
 		 */
-		(scan->target[scan->ntarget])->end.s6_addr16[6]= (scan->target[scan->ntarget])->end.s6_addr16[6] | htons(0x00ff);
-		(scan->target[scan->ntarget])->end.s6_addr16[7]= (scan->target[scan->ntarget])->end.s6_addr16[6] | htons(0xffff);
+		(scan->target[scan->ntarget])->end.s6addr16[6]= (scan->target[scan->ntarget])->end.s6addr16[6] | htons(0x00ff);
+		(scan->target[scan->ntarget])->end.s6addr16[7]= (scan->target[scan->ntarget])->end.s6addr16[6] | htons(0xffff);
 
 		scan->ntarget++;
 	}
@@ -3765,7 +3765,7 @@ int load_smart_entries(struct scan_list *scan, struct scan_list *smart){
 	unsigned int		i, j;
 
 	for(i=0; i < smart->ntarget; i++){
-		decode.ip6= (smart->target[i])->start;
+		decode.ip6= (smart->target[i])->start.in6_addr;
 		decode_ipv6_address(&decode);
 
 		if(scan->ntarget >= scan->maxtarget)
@@ -3782,17 +3782,17 @@ int load_smart_entries(struct scan_list *scan, struct scan_list *smart){
 
 		switch(decode.iidtype){
 			case IID_MACDERIVED:
-				(scan->target[scan->ntarget])->start.s6_addr32[3]= (scan->target[scan->ntarget])->start.s6_addr32[3] & htonl(0xff000000);
+				(scan->target[scan->ntarget])->start.s6addr32[3]= (scan->target[scan->ntarget])->start.s6addr32[3] & htonl(0xff000000);
 				(scan->target[scan->ntarget])->end= (scan->target[scan->ntarget])->start;
-				(scan->target[scan->ntarget])->end.s6_addr32[3]= (scan->target[scan->ntarget])->end.s6_addr32[3] | htonl(0x00ffffff);
+				(scan->target[scan->ntarget])->end.s6addr32[3]= (scan->target[scan->ntarget])->end.s6addr32[3] | htonl(0x00ffffff);
 				(scan->target[scan->ntarget])->cur= (scan->target[scan->ntarget])->start;
 				scan->ntarget++;
 				break;
 
 			case IID_ISATAP:
-				(scan->target[scan->ntarget])->start.s6_addr32[3]= (scan->target[scan->ntarget])->start.s6_addr32[3] & htonl(0xffff0000);
+				(scan->target[scan->ntarget])->start.s6addr32[3]= (scan->target[scan->ntarget])->start.s6addr32[3] & htonl(0xffff0000);
 				(scan->target[scan->ntarget])->end= (scan->target[scan->ntarget])->start;
-				(scan->target[scan->ntarget])->end.s6_addr32[3]= (scan->target[scan->ntarget])->end.s6_addr32[3] | htonl(0x0000ffff);
+				(scan->target[scan->ntarget])->end.s6addr32[3]= (scan->target[scan->ntarget])->end.s6addr32[3] | htonl(0x0000ffff);
 				(scan->target[scan->ntarget])->cur= (scan->target[scan->ntarget])->start;
 				scan->ntarget++;
 				break;
@@ -3808,11 +3808,11 @@ int load_smart_entries(struct scan_list *scan, struct scan_list *smart){
 				 */
 
 				for(j=4; j<=7; j++)
-					(scan->target[scan->ntarget])->start.s6_addr16[j]= 0;
+					(scan->target[scan->ntarget])->start.s6addr16[j]= 0;
 
 				(scan->target[scan->ntarget])->end= (scan->target[scan->ntarget])->start;
-				(scan->target[scan->ntarget])->end.s6_addr16[6]= htons(LOW_BYTE_2ND_WORD_UPPER);
-				(scan->target[scan->ntarget])->end.s6_addr16[7]= htons(LOW_BYTE_1ST_WORD_UPPER);
+				(scan->target[scan->ntarget])->end.s6addr16[6]= htons(LOW_BYTE_2ND_WORD_UPPER);
+				(scan->target[scan->ntarget])->end.s6addr16[7]= htons(LOW_BYTE_1ST_WORD_UPPER);
 				(scan->target[scan->ntarget])->cur= (scan->target[scan->ntarget])->start;
 				scan->ntarget++;
 				break;
@@ -3820,19 +3820,19 @@ int load_smart_entries(struct scan_list *scan, struct scan_list *smart){
 			case IID_EMBEDDEDIPV4:
 				switch(decode.iidsubtype){
 					case IID_EMBEDDEDIPV4_32:
-						(scan->target[scan->ntarget])->start.s6_addr32[2]= htonl(0x00000000);
-						(scan->target[scan->ntarget])->start.s6_addr32[3]= (scan->target[scan->ntarget])->start.s6_addr32[3] & htonl(0xffff0000);
+						(scan->target[scan->ntarget])->start.s6addr32[2]= htonl(0x00000000);
+						(scan->target[scan->ntarget])->start.s6addr32[3]= (scan->target[scan->ntarget])->start.s6addr32[3] & htonl(0xffff0000);
 						(scan->target[scan->ntarget])->end= (scan->target[scan->ntarget])->start;
-						(scan->target[scan->ntarget])->end.s6_addr32[3]= (scan->target[scan->ntarget])->end.s6_addr32[3] | htonl(0x0000ffff);
+						(scan->target[scan->ntarget])->end.s6addr32[3]= (scan->target[scan->ntarget])->end.s6addr32[3] | htonl(0x0000ffff);
 						(scan->target[scan->ntarget])->cur= (scan->target[scan->ntarget])->start;
 						scan->ntarget++;
 						break;
 
 					case IID_EMBEDDEDIPV4_64:
-						(scan->target[scan->ntarget])->start.s6_addr32[2]= (scan->target[scan->ntarget])->start.s6_addr32[2] & htonl(0x00ff00ff);
-						(scan->target[scan->ntarget])->start.s6_addr32[3]= htonl(0x00000000);
+						(scan->target[scan->ntarget])->start.s6addr32[2]= (scan->target[scan->ntarget])->start.s6addr32[2] & htonl(0x00ff00ff);
+						(scan->target[scan->ntarget])->start.s6addr32[3]= htonl(0x00000000);
 						(scan->target[scan->ntarget])->end= (scan->target[scan->ntarget])->start;
-						(scan->target[scan->ntarget])->end.s6_addr32[3]= (scan->target[scan->ntarget])->end.s6_addr32[3] | htonl(0x00ff00ff);
+						(scan->target[scan->ntarget])->end.s6addr32[3]= (scan->target[scan->ntarget])->end.s6addr32[3] | htonl(0x00ff00ff);
 						(scan->target[scan->ntarget])->cur= (scan->target[scan->ntarget])->start;
 						scan->ntarget++;
 						break;
@@ -3844,10 +3844,10 @@ int load_smart_entries(struct scan_list *scan, struct scan_list *smart){
 				(scan->target[scan->ntarget])->end= (scan->target[scan->ntarget])->start;
 
 				for(j=8; j<=16; j++)
-					(scan->target[scan->ntarget])->end.s6_addr[j]= ((scan->target[scan->ntarget])->start.s6_addr[j])?0xff:0x00;
+					(scan->target[scan->ntarget])->end.s6addr[j]= ((scan->target[scan->ntarget])->start.s6addr[j])?0xff:0x00;
 
 				for(j=8; j<=16; j++)
-					(scan->target[scan->ntarget])->start.s6_addr[j]= 0x00;
+					(scan->target[scan->ntarget])->start.s6addr[j]= 0x00;
 
 				(scan->target[scan->ntarget])->cur= (scan->target[scan->ntarget])->start;
 				scan->ntarget++;
@@ -3857,14 +3857,14 @@ int load_smart_entries(struct scan_list *scan, struct scan_list *smart){
 			case IID_TEREDO_RFC4380:
 			case IID_TEREDO_UNKNOWN:
 				for(j=8; j<=11; j++)
-					(scan->target[scan->ntarget])->start.s6_addr[j]= 0x00;
+					(scan->target[scan->ntarget])->start.s6addr[j]= 0x00;
 
 				(scan->target[scan->ntarget])->end= (scan->target[scan->ntarget])->start;
 
-				(scan->target[scan->ntarget])->start.s6_addr[8]= 0xbc;
+				(scan->target[scan->ntarget])->start.s6addr[8]= 0xbc;
 
 				for(j=9; j<=11; j++)
-					(scan->target[scan->ntarget])->start.s6_addr[8]= 0xff;
+					(scan->target[scan->ntarget])->start.s6addr[8]= 0xff;
 
 				(scan->target[scan->ntarget])->cur= (scan->target[scan->ntarget])->start;
 				scan->ntarget++;
@@ -3873,10 +3873,10 @@ int load_smart_entries(struct scan_list *scan, struct scan_list *smart){
 			default:
 				/* By default we scan for low-byte-addresses (same code as above) */
 				for(j=8; j<=16; j++)
-					(scan->target[scan->ntarget])->start.s6_addr[j]= 0x00;
+					(scan->target[scan->ntarget])->start.s6addr[j]= 0x00;
 
 				for(j=8; j<=16; j++)
-					(scan->target[scan->ntarget])->end.s6_addr[j]= 0xff;
+					(scan->target[scan->ntarget])->end.s6addr[j]= 0xff;
 
 				(scan->target[scan->ntarget])->cur= (scan->target[scan->ntarget])->start;
 				scan->ntarget++;
@@ -3895,28 +3895,28 @@ int load_smart_entries(struct scan_list *scan, struct scan_list *smart){
  */
 
 void prefix_to_scan(struct prefix_entry *pref, struct scan_entry *scan){
-	uint16_t mask;
+	uint32_t mask;
 	uint8_t words;	
 	unsigned int i;
 
-	scan->start= pref->ip6;
-	scan->cur= pref->ip6;
-	words= pref->len/16;
+	scan->start.in6_addr= pref->ip6;
+	scan->cur.in6_addr= pref->ip6;
+	words= pref->len/32;
 
 	for(i=0; i< words; i++)
-		(scan->end).s6_addr16[i]= (pref->ip6).s6_addr16[i];
+		(scan->end).in6_addr.s6_addr32[i]= (pref->ip6).s6_addr32[i];
 
-	for(i= (words+1); i<8; i++){
-		(scan->end).s6_addr16[i]= htons(0xffff);
+	for(i= (words+1); i<4; i++){
+		(scan->end).in6_addr.s6_addr32[i]= htonl(0xffffffff);
 	}
 
-	mask=0xffff;
+	mask=0xffffffff;
 
-	for(i=0; i< (pref->len % 16); i++)
+	for(i=0; i< (pref->len % 32); i++)
 		mask= mask>>1;
 
-	if(pref->len % 16)
-		(scan->end).s6_addr16[words]= (scan->start).s6_addr16[words] | htons(mask);
+	if(pref->len % 32)
+		(scan->end).in6_addr.s6_addr32[words]= (scan->start).in6_addr.s6_addr32[words] | htonl(mask);
 }
 
 
@@ -4035,7 +4035,7 @@ int send_probe_remote(struct iface_data *idata, struct scan_list *scan, struct i
 			if(!onlink_f){
 				ether->dst = idata->nhhaddr;
 			}else{
-				if(ipv6_to_ether(idata->pfd, idata, &(scan->target[scan->ctarget])->cur, &(idata->hdstaddr)) != 1){
+				if(ipv6_to_ether(idata->pfd, idata, &(scan->target[scan->ctarget])->cur.in6_addr, &(idata->hdstaddr)) != 1){
 					return(1);
 				}
 			}
@@ -4061,8 +4061,8 @@ int send_probe_remote(struct iface_data *idata, struct scan_list *scan, struct i
 	ipv6->ip6_vfc= 0x60;
 	ipv6->ip6_hlim= 255;
 
-	ipv6->ip6_src= idata->srcaddr_f?(*srcaddr):*sel_src_addr_ra(idata, &((scan->target[scan->ctarget])->cur));
-	ipv6->ip6_dst= (scan->target[scan->ctarget])->cur;
+	ipv6->ip6_src= idata->srcaddr_f?(*srcaddr):*sel_src_addr_ra(idata, &((scan->target[scan->ctarget])->cur.in6_addr));
+	ipv6->ip6_dst= (scan->target[scan->ctarget])->cur.in6_addr;
 
 	prev_nh = (unsigned char *) &(ipv6->ip6_nxt);
 
@@ -5142,17 +5142,17 @@ int create_candidate_globals(struct iface_data *idata, struct host_list *local, 
 
 	for(i=0; (i < local->nhosts) && (candidate->nhosts < candidate->maxhosts); i++){
 
-		/* Global Address present in "local" list -- shouldn't happen, though */
-		if((local->host[i])->ip6.s6_addr16[0] == htons(0xfe80)){
+		/* Avoid global Address present in "local" list -- shouldn't happen, though */
+		if(IN6_IS_ADDR_LINKLOCAL(&((local->host[i])->ip6)) ){
 			/* We create one candidate address with the Interface-ID of the link-local address,
 			   for each of the autoconf prefixes
 			 */
 			for(j=0; (j < idata->prefix_ac.nprefix) && (candidate->nhosts < candidate->maxhosts); j++){
-				for(k=0; k<4; k++)
-					caddr.s6_addr16[k] = (idata->prefix_ac.prefix[j])->ip6.s6_addr16[k];
+				for(k=0; k<2; k++)
+					caddr.s6_addr32[k] = (idata->prefix_ac.prefix[j])->ip6.s6_addr32[k];
 
-				for(k=4; k<8; k++)
-					caddr.s6_addr16[k] = local->host[i]->ip6.s6_addr16[k];
+				for(k=2; k<4; k++)
+					caddr.s6_addr32[k] = local->host[i]->ip6.s6_addr32[k];
 
 				/* We discard the candidate address if it is already present in the "global" list */
 				if(is_ip6_in_list(&caddr, global))
@@ -5498,12 +5498,15 @@ int process_config_file(const char *path){
  * Check whether an IPv6 address belongs to one of our scan ranges
  */
 int	is_ip6_in_scan_list(struct scan_list *scan, struct in6_addr *ip6){
-	unsigned int i, j;
+	unsigned int	i, j;
+	union my6_addr	myip6;
+
+	myip6.in6_addr= *ip6;
 
 	for(i=0; i< scan->ntarget; i++){
 		for(j=0; j<8; j++){
-			if( (ntohs(ip6->s6_addr16[j]) < ntohs((scan->target[i])->start.s6_addr16[j])) || \
-					(ntohs(ip6->s6_addr16[j]) > ntohs((scan->target[i])->end.s6_addr16[j]))){
+			if( (ntohs(myip6.s6addr16[j]) < ntohs((scan->target[i])->start.s6addr16[j])) || \
+					(ntohs(myip6.s6addr16[j]) > ntohs((scan->target[i])->end.s6addr16[j]))){
 				break;
 			}
 		}
