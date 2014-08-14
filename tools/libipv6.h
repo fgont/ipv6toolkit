@@ -123,7 +123,7 @@ struct filters{
 	#define PCAP_NETMASK_UNKNOWN	0xffffffff
 #endif
 
-#if defined (__FreeBSD__) || defined(__NetBSD__) || defined (__OpenBSD__) || defined(__APPLE__) || defined(__FreeBSD_kernel__)
+#if defined (__FreeBSD__) || defined(__NetBSD__) || defined (__OpenBSD__) || defined(__APPLE__) || defined(__FreeBSD_kernel__) || defined(__sun) || defined (sun)
 	#define	PCAP_TIMEOUT			1
 #else
 	#define	PCAP_TIMEOUT			0
