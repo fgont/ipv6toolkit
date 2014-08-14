@@ -2424,6 +2424,12 @@ puts("****************  About to do pcap_next_ex  ************");
 
 					exit(EXIT_FAILURE);
 				}
+				else if(result == 0){
+#ifdef DEBUG
+puts("Timeout en pcap_next_ex()");
+#endif
+					continue;
+				}
 #ifdef DEBUG
 puts("Got out of pcap_next_ex()");
 #endif
