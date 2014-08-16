@@ -5,11 +5,16 @@
 
 sub GetASN{
 	@revname=`addr6 -a $_[0] -r`;
-	chomp($revname[0]);
-	$queryname= $revname[0] . ".origin6.asn.cymru.com.";
-	@reverse=`host -t TXT $queryname`;
-	$reverse[0] =~ m/\"\s*((\d+)\s*)\s+|"/;
-	return($2);
+
+	if($? == 0){
+		chomp($revname[0]);
+		$queryname= $revname[0] . ".origin6.asn.cymru.com.";
+		@reverse=`host -t TXT $queryname`;
+		$reverse[0] =~ m/\"\s*((\d+)\s*)\s+|"/;
+		return($2);
+	}
+
+	return("");
 }
 
 
@@ -175,30 +180,77 @@ elsif($ARGV[0] eq "get-ns"){
 }
 elsif($ARGV[0] eq "get-asn" || $ARGV[0] eq "get-asn6"){
 	@revname=`addr6 -a $ARGV[1] -r`;
+
+	if($? != 0){
+		print "Error in specified IPv6 address";
+		exit(1);
+	}
+
 	chomp($revname[0]);
 	$queryname= $revname[0] . ".origin6.asn.cymru.com.";
-
 	@reverse=`host -t TXT $queryname`;
+
+	if($? != 0){
+		print "Error when trying to obtain ASN information\n";
+		exit(1);
+	}
+
 	$reverse[0] =~ m/\"\s*((\d+)\s*)\s+|"/;
+
+	if($1 eq ""){
+		print "ASN unknown";
+		exit(1);
+	}
+
 	print "$1\n";
+	exit(0);
 }
 elsif($ARGV[0] eq "get-as" || $ARGV[0] eq "get-as6"){
 	@revname=`addr6 -a $ARGV[1] -r`;
+
+	if($? != 0){
+		print "Error in specified IPv6 address\n";
+		exit(1);
+	}
+
 	chomp($revname[0]);
 	$queryname= $revname[0] . ".origin6.asn.cymru.com.";
-
 	@reverse=`host -t TXT $queryname`;
+
+	if($? != 0){
+		print "Error when trying to obtain origin AS\n";
+		exit(1);
+	}
+
 	$reverse[0] =~ m/\"(.*)\"/;
-	print "$1\n";
+
+	if($1 eq ""){
+		print "Origin ASN unknown\n";
+	}
+	else{
+		print "$1\n";
+	}
 
 	$reverse[0] =~ m/"\s*(\d+).*"/;
 	$asn=$1;
 	$querystring="host -t TXT AS".$asn.".asn.cymru.com";
-
 	@asinfo= `$querystring`;
+
+	if($? != 0){
+		print "Error when trying to obtain ASN information\n";
+		exit(1);
+	}
+
 	$asinfo[0] =~ m/\"(.*)\"/;
-	print "$1\n";
-	exit 0;
+
+	if($1 eq ""){
+		print "Error when trying to obtain AS information";
+	}
+	else{
+		print "$1\n";
+	}
+
+	exit(0);
 }
 elsif($ARGV[0] eq "get-trace-stats" || $ARGV[0] eq "get-trace6-stats" || $ARGV[0] eq "get-trace-results"){
 	$valid=0;
@@ -307,7 +359,7 @@ elsif($ARGV[0] eq "get-trace-stats" || $ARGV[0] eq "get-trace6-stats" || $ARGV[0
 
 				$asiporig= GetASN($iporig);
 
-				if($asiporig eq ""){
+				if($retval==0 || $asiporig eq ""){
 					$unknownas2++;
 					$unknownas++;
 					$unknowniporigas++;
@@ -355,7 +407,7 @@ elsif($ARGV[0] eq "get-trace-stats" || $ARGV[0] eq "get-trace6-stats" || $ARGV[0
 
 	}
 
-	print "SI6 Networks IPv6 Toolkit v2.0\n";
+	print "SI6 Networks IPv6 Toolkit v2.0 (Guille)\n";
 	print "script6: A tool to make complex IPv6 tasks easy\n";
 	print "[Computing stats....]\n\n";
 
@@ -548,7 +600,7 @@ elsif($ARGV[0] eq "get-trace-stats-old" || $ARGV[0] eq "get-trace6-stats-old"){
 
 	}
 
-	print "SI6 Networks IPv6 Toolkit v2.0\n";
+	print "SI6 Networks IPv6 Toolkit v2.0 (Guille)\n";
 	print "script6: A tool to make complex IPv6 tasks easy\n\n";
 
 #	print "Total entries: $total\t Valid entries: $valid\n";
@@ -672,832 +724,6 @@ elsif($ARGV[0] eq "get-alexa-domains"){
 		}
 	}
 }
-elsif($ARGV[0] eq "trace-do8-tcp"){
-	$total=0;
-	$response=0;
-	$timeout=0;
-
-	while($fline=<STDIN>){
-		chomp($fline);
-
-		if($fline =~ m/([^\x0d]+)/){
-			$fline= $1;
-		}
-
-		# Check whether this line is just a comment -- if so, skip it
-		if($fline =~ m/^((\s)*#)/){
-			next;
-		}
-
-		# Skip blanck lines 
-		if($fline =~ m/^(\s)*$/){
-			next;
-		}
-
-		# Remove all items from the array of IP addresses
-		undef @ipsfree;
-		undef @tcp;
-
-		$maxhopsfree=0;
-		$maxhopsfreeip="";
-		@tcp=`path6 -p tcp -a 80 -d $fline --tcp-flags S --rate-limit 20pps`;
-		foreach $line (@tcp){
-			# Discard lines that do not contain a "probe" line
-			if($line =~ m/\s+(\d+)\s+\((\S*)\)/){
-				if($1 > $maxhopsfree){
-					if($2 ne ""){
-						$maxhopsfree=$1;
-						$maxhopsfreeip=$2;
-					}
-
-					# We store the IPv6 addresses of all hops
-					push(@ipsfree, $2);
-				}
-			}
-		}
-
-		$maxhopstrouble=0;
-		$maxhopstroubleip="";
-		undef @tcp;
-
-		@tcp=`path6 -p tcp -a 80 -u 8 -d $fline --tcp-flags S --rate-limit 20pps`;
-		foreach $line (@tcp){
-			# Discard lines that do not contain a "probe" line
-			if($line =~ m/\s+(\d+)\s+\((\S*)\)/){
-				if($1 > $maxhopstrouble){
-					if($2 ne ""){
-						$maxhopstrouble=$1;
-						$maxhopstroubleip= $2;
-					}
-				}
-			}
-		}
-
-
-		for($i=0; $i<= $#ipsfree; $i++){
-			if($ipsfree[$i] eq $maxhopstroubleip){
-				if($i == $#ipsfree){
-					$dropip= $ipsfree[$i];
-					last;
-				}
-				else{
-					$dropip= $ipsfree[$i+1];
-					last;
-				}
-			}
-		}
-
-		print "$fline#$maxhopsfreeip#$maxhopsfree#$maxhopstroubleip#$maxhopstrouble#$dropip\n";
-	}
-}
-elsif($ARGV[0] eq "trace-do8-icmp"){
-	if($> != 0){
-		print "Error: This script requires superuser privileges\n";
-		exit 1;
-	}
-
-	$total=0;
-	$response=0;
-	$timeout=0;
-
-	#print "Voy a empezar";
-
-	while($fline=<STDIN>){
-		chomp($fline);
-
-		if($fline =~ m/([^\x0d]+)/){
-			$fline= $1;
-		}
-
-		# Check whether this line is just a comment -- if so, skip it
-		if($fline =~ m/^((\s)*#)/){
-			next;
-		}
-
-		# Skip blanck lines 
-		if($fline =~ m/^(\s)*$/){
-			next;
-		}
-
-		# Remove all items from the array of IP addresses
-		undef @ipsfree;
-		undef @tcp;
-
-		$maxhopsfree=0;
-		$maxhopsfreeip="";
-		@tcp=`path6 -p icmp -d $fline --rate-limit 20pps`;
-		foreach $line (@tcp){
-			# Discard lines that do not contain a "probe" line
-			if($line =~ m/\s+(\d+)\s+\((\S*)\)/){
-				if($1 > $maxhopsfree){
-					if($2 ne ""){
-						$maxhopsfree=$1;
-						$maxhopsfreeip=$2;
-					}
-
-					# We store the IPv6 addresses of all hops
-					push(@ipsfree, $2);
-				}
-			}
-		}
-
-		$maxhopstrouble=0;
-		$maxhopstroubleip="";
-		undef @tcp;
-
-		@tcp=`path6 -p icmp -u 8 -d $fline --rate-limit 20pps`;
-		foreach $line (@tcp){
-			# Discard lines that do not contain a "probe" line
-			if($line =~ m/\s+(\d+)\s+\((\S*)\)/){
-				if($1 > $maxhopstrouble){
-					if($2 ne ""){
-						$maxhopstrouble=$1;
-						$maxhopstroubleip= $2;
-					}
-				}
-			}
-		}
-
-		for($i=0; $i<= $#ipsfree; $i++){
-			if($ipsfree[$i] eq $maxhopstroubleip){
-				if($i == $#ipsfree){
-					$dropip= $ipsfree[$i];
-					last;
-				}
-				else{
-					$dropip= $ipsfree[$i+1];
-					last;
-				}
-			}
-		}
-
-#		if($i > $#ipsfree){
-#			next;
-#		}
-
-		print "$fline#$maxhopsfreeip#$maxhopsfree#$maxhopstroubleip#$maxhopstrouble#$dropip\n";
-	}
-}
-elsif($ARGV[0] eq "trace-do256-tcp"){
-	if($> != 0){
-		print "Error: This script requires superuser privileges\n";
-		exit 1;
-	}
-
-	$total=0;
-	$response=0;
-	$timeout=0;
-
-	while($fline=<STDIN>){
-		chomp($fline);
-
-		if($fline =~ m/([^\x0d]+)/){
-			$fline= $1;
-		}
-
-		# Check whether this line is just a comment -- if so, skip it
-		if($fline =~ m/^((\s)*#)/){
-			next;
-		}
-
-		# Skip blanck lines 
-		if($fline =~ m/^(\s)*$/){
-			next;
-		}
-
-		# Remove all items from the array of IP addresses
-		undef @ipsfree;
-		undef @tcp;
-
-		$maxhopsfree=0;
-		$maxhopsfreeip="";
-		@tcp=`path6 -p tcp -a 80 -d $fline --tcp-flags S --rate-limit 20pps`;
-		foreach $line (@tcp){
-			# Discard lines that do not contain a "probe" line
-			if($line =~ m/\s+(\d+)\s+\((\S*)\)/){
-				if($1 > $maxhopsfree){
-					if($2 ne ""){
-						$maxhopsfree=$1;
-						$maxhopsfreeip=$2;
-					}
-
-					# We store the IPv6 addresses of all hops
-					push(@ipsfree, $2);
-				}
-			}
-		}
-
-		$maxhopstrouble=0;
-		$maxhopstroubleip="";
-		undef @tcp;
-		@tcp=`path6 -p tcp -a 80 -u 256 -d $fline --tcp-flags S --rate-limit 20pps`;
-		foreach $line (@tcp){
-			# Discard lines that do not contain a "probe" line
-			if($line =~ m/\s+(\d+)\s+\((\S*)\)/){
-				if($1 > $maxhopstrouble){
-					if($2 ne ""){
-						$maxhopstrouble=$1;
-						$maxhopstroubleip= $2;
-					}
-				}
-			}
-		}
-
-		for($i=0; $i<= $#ipsfree; $i++){
-			if($ipsfree[$i] eq $maxhopstroubleip){
-				if($i == $#ipsfree){
-					$dropip= $ipsfree[$i];
-					last;
-				}
-				else{
-					$dropip= $ipsfree[$i+1];
-					last;
-				}
-			}
-		}
-
-#		if($i > $#ipsfree){
-#			next;
-#		}
-
-		print "$fline#$maxhopsfreeip#$maxhopsfree#$maxhopstroubleip#$maxhopstrouble#$dropip\n";
-	}
-}
-elsif($ARGV[0] eq "trace-do256-icmp"){
-	if($> != 0){
-		print "Error: This script requires superuser privileges\n";
-		exit 1;
-	}
-
-	$total=0;
-	$response=0;
-	$timeout=0;
-
-
-	while($fline=<STDIN>){
-		chomp($fline);
-
-		if($fline =~ m/([^\x0d]+)/){
-			$fline= $1;
-		}
-
-		# Check whether this line is just a comment -- if so, skip it
-		if($fline =~ m/^((\s)*#)/){
-			next;
-		}
-
-		# Skip blanck lines 
-		if($fline =~ m/^(\s)*$/){
-			next;
-		}
-
-		# Remove all items from the array of IP addresses
-		undef @ipsfree;
-		undef @tcp;
-
-		$maxhopsfree=0;
-		$maxhopsfreeip="";
-		@tcp=`path6 -p icmp -d $fline --rate-limit 20pps`;
-		foreach $line (@tcp){
-			# Discard lines that do not contain a "probe" line
-			if($line =~ m/\s+(\d+)\s+\((\S*)\)/){
-				if($1 > $maxhopsfree){
-					if($2 ne ""){
-						$maxhopsfree=$1;
-						$maxhopsfreeip=$2;
-					}
-
-					# We store the IPv6 addresses of all hops
-					push(@ipsfree, $2);
-				}
-			}
-		}
-
-		$maxhopstrouble=0;
-		$maxhopstroubleip="";
-		undef @tcp;
-
-		@tcp=`path6 -p icmp -u 256 -d $fline --rate-limit 20pps`;
-		foreach $line (@tcp){
-			# Discard lines that do not contain a "probe" line
-			if($line =~ m/\s+(\d+)\s+\((\S*)\)/){
-				if($1 > $maxhopstrouble){
-					if($2 ne ""){
-						$maxhopstrouble=$1;
-						$maxhopstroubleip= $2;
-					}
-				}
-			}
-		}
-
-		for($i=0; $i<= $#ipsfree; $i++){
-			if($ipsfree[$i] eq $maxhopstroubleip){
-				if($i == $#ipsfree){
-					$dropip= $ipsfree[$i];
-					last;
-				}
-				else{
-					$dropip= $ipsfree[$i+1];
-					last;
-				}
-			}
-		}
-
-		print "$fline#$maxhopsfreeip#$maxhopsfree#$maxhopstroubleip#$maxhopstrouble#$dropip\n";
-	}
-}
-elsif($ARGV[0] eq "trace-hbh8-tcp"){
-	if($> != 0){
-		print "Error: This script requires superuser privileges\n";
-		exit 1;
-	}
-
-	$total=0;
-	$response=0;
-	$timeout=0;
-
-	while($fline=<STDIN>){
-		chomp($fline);
-
-		if($fline =~ m/([^\x0d]+)/){
-			$fline= $1;
-		}
-
-		# Check whether this line is just a comment -- if so, skip it
-		if($fline =~ m/^((\s)*#)/){
-			next;
-		}
-
-		# Skip blanck lines 
-		if($fline =~ m/^(\s)*$/){
-			next;
-		}
-
-		# Remove all items from the array of IP addresses
-		undef @ipsfree;
-		undef @tcp;
-
-		$maxhopsfree=0;
-		$maxhopsfreeip="";
-		@tcp=`path6 -p tcp -a 80 -d $fline --tcp-flags S --rate-limit 20pps`;
-		foreach $line (@tcp){
-			# Discard lines that do not contain a "probe" line
-			if($line =~ m/\s+(\d+)\s+\((\S*)\)/){
-				if($1 > $maxhopsfree){
-					if($2 ne ""){
-						$maxhopsfree=$1;
-						$maxhopsfreeip=$2;
-					}
-
-					# We store the IPv6 addresses of all hops
-					push(@ipsfree, $2);
-				}
-			}
-		}
-
-		$maxhopstrouble=0;
-		$maxhopstroubleip="";
-		undef @tcp;
-		@tcp=`path6 -p tcp -a 80 -H 8 -d $fline --tcp-flags S --rate-limit 20pps`;
-		foreach $line (@tcp){
-			# Discard lines that do not contain a "probe" line
-			if($line =~ m/\s+(\d+)\s+\((\S*)\)/){
-				if($1 > $maxhopstrouble){
-					if($2 ne ""){
-						$maxhopstrouble=$1;
-						$maxhopstroubleip= $2;
-					}
-				}
-			}
-		}
-
-		for($i=0; $i<= $#ipsfree; $i++){
-			if($ipsfree[$i] eq $maxhopstroubleip){
-				if($i == $#ipsfree){
-					$dropip= $ipsfree[$i];
-					last;
-				}
-				else{
-					$dropip= $ipsfree[$i+1];
-					last;
-				}
-			}
-		}
-
-		print "$fline#$maxhopsfreeip#$maxhopsfree#$maxhopstroubleip#$maxhopstrouble#$dropip\n";
-	}
-}
-elsif($ARGV[0] eq "trace-hbh8-icmp"){
-	if($> != 0){
-		print "Error: This script requires superuser privileges\n";
-		exit 1;
-	}
-
-	$total=0;
-	$response=0;
-	$timeout=0;
-
-	while($fline=<STDIN>){
-		chomp($fline);
-
-		if($fline =~ m/([^\x0d]+)/){
-			$fline= $1;
-		}
-
-		# Check whether this line is just a comment -- if so, skip it
-		if($fline =~ m/^((\s)*#)/){
-			next;
-		}
-
-		# Skip blanck lines 
-		if($fline =~ m/^(\s)*$/){
-			next;
-		}
-
-		# Remove all items from the array of IP addresses
-		undef @ipsfree;
-		undef @tcp;
-
-		$maxhopsfree=0;
-		$maxhopsfreeip="";
-		@tcp=`path6 -p icmp -d $fline --rate-limit 20pps`;
-		foreach $line (@tcp){
-			# Discard lines that do not contain a "probe" line
-			if($line =~ m/\s+(\d+)\s+\((\S*)\)/){
-				if($1 > $maxhopsfree){
-					if($2 ne ""){
-						$maxhopsfree=$1;
-						$maxhopsfreeip=$2;
-					}
-
-					# We store the IPv6 addresses of all hops
-					push(@ipsfree, $2);
-				}
-			}
-		}
-
-		$maxhopstrouble=0;
-		$maxhopstroubleip="";
-		undef @tcp;
-		@tcp=`path6 -p icmp -H 8 -d $fline --rate-limit 20pps`;
-		foreach $line (@tcp){
-			# Discard lines that do not contain a "probe" line
-			if($line =~ m/\s+(\d+)\s+\((\S*)\)/){
-				if($1 > $maxhopstrouble){
-					if($2 ne ""){
-						$maxhopstrouble=$1;
-						$maxhopstroubleip= $2;
-					}
-				}
-			}
-		}
-
-		for($i=0; $i<= $#ipsfree; $i++){
-			if($ipsfree[$i] eq $maxhopstroubleip){
-				if($i == $#ipsfree){
-					$dropip= $ipsfree[$i];
-					last;
-				}
-				else{
-					$dropip= $ipsfree[$i+1];
-					last;
-				}
-			}
-		}
-
-
-		print "$fline#$maxhopsfreeip#$maxhopsfree#$maxhopstroubleip#$maxhopstrouble#$dropip\n";
-	}
-}
-elsif($ARGV[0] eq "trace-hbh256-tcp"){
-	if($> != 0){
-		print "Error: This script requires superuser privileges\n";
-		exit 1;
-	}
-
-	$total=0;
-	$response=0;
-	$timeout=0;
-
-	while($fline=<STDIN>){
-		chomp($fline);
-
-		if($fline =~ m/([^\x0d]+)/){
-			$fline= $1;
-		}
-
-		# Check whether this line is just a comment -- if so, skip it
-		if($fline =~ m/^((\s)*#)/){
-			next;
-		}
-
-		# Skip blanck lines 
-		if($fline =~ m/^(\s)*$/){
-			next;
-		}
-
-		# Remove all items from the array of IP addresses
-		undef @ipsfree;
-		undef @tcp;
-
-		$maxhopsfree=0;
-		$maxhopsfreeip="";
-		@tcp=`path6 -p tcp -a 80 -d $fline --tcp-flags S --rate-limit 20pps`;
-		foreach $line (@tcp){
-			# Discard lines that do not contain a "probe" line
-			if($line =~ m/\s+(\d+)\s+\((\S*)\)/){
-				if($1 > $maxhopsfree){
-					if($2 ne ""){
-						$maxhopsfree=$1;
-						$maxhopsfreeip=$2;
-					}
-
-					# We store the IPv6 addresses of all hops
-					push(@ipsfree, $2);
-				}
-			}
-		}
-
-		$maxhopstrouble=0;
-		$maxhopstroubleip="";
-		undef @tcp;
-
-		@tcp=`path6 -p tcp -a 80 -H 256 -d $fline --tcp-flags S --rate-limit 20pps`;
-		foreach $line (@tcp){
-			# Discard lines that do not contain a "probe" line
-			if($line =~ m/\s+(\d+)\s+\((\S*)\)/){
-				if($1 > $maxhopstrouble){
-					if($2 ne ""){
-						$maxhopstrouble=$1;
-						$maxhopstroubleip= $2;
-					}
-				}
-			}
-		}
-
-		for($i=0; $i<= $#ipsfree; $i++){
-			if($ipsfree[$i] eq $maxhopstroubleip){
-				if($i == $#ipsfree){
-					$dropip= $ipsfree[$i];
-					last;
-				}
-				else{
-					$dropip= $ipsfree[$i+1];
-					last;
-				}
-			}
-		}
-
-		print "$fline#$maxhopsfreeip#$maxhopsfree#$maxhopstroubleip#$maxhopstrouble#$dropip\n";
-	}
-}
-elsif($ARGV[0] eq "trace-hbh256-icmp"){
-	if($> != 0){
-		print "Error: This script requires superuser privileges\n";
-		exit 1;
-	}
-
-	$total=0;
-	$response=0;
-	$timeout=0;
-
-	#print "Voy a empezar";
-
-	while($fline=<STDIN>){
-		chomp($fline);
-
-		if($fline =~ m/([^\x0d]+)/){
-			$fline= $1;
-		}
-
-		# Check whether this line is just a comment -- if so, skip it
-		if($fline =~ m/^((\s)*#)/){
-			next;
-		}
-
-		# Skip blanck lines 
-		if($fline =~ m/^(\s)*$/){
-			next;
-		}
-
-		# Remove all items from the array of IP addresses
-		undef @ipsfree;
-		undef @tcp;
-
-		$maxhopsfree=0;
-		$maxhopsfreeip="";
-		@tcp=`path6 -p icmp -d $fline --rate-limit 20pps`;
-		foreach $line (@tcp){
-			# Discard lines that do not contain a "probe" line
-			if($line =~ m/\s+(\d+)\s+\((\S*)\)/){
-				if($1 > $maxhopsfree){
-					if($2 ne ""){
-						$maxhopsfree=$1;
-						$maxhopsfreeip=$2;
-					}
-
-					# We store the IPv6 addresses of all hops
-					push(@ipsfree, $2);
-				}
-			}
-		}
-
-		$maxhopstrouble=0;
-		$maxhopstroubleip="";
-		undef @tcp;
-		@tcp=`path6 -p icmp -H 256 -d $fline --rate-limit 20pps`;
-		foreach $line (@tcp){
-			# Discard lines that do not contain a "probe" line
-			if($line =~ m/\s+(\d+)\s+\((\S*)\)/){
-				if($1 > $maxhopstrouble){
-					if($2 ne ""){
-						$maxhopstrouble=$1;
-						$maxhopstroubleip= $2;
-					}
-				}
-			}
-		}
-
-		for($i=0; $i<= $#ipsfree; $i++){
-			if($ipsfree[$i] eq $maxhopstroubleip){
-				if($i == $#ipsfree){
-					$dropip= $ipsfree[$i];
-					last;
-				}
-				else{
-					$dropip= $ipsfree[$i+1];
-					last;
-				}
-			}
-		}
-
-		print "$fline#$maxhopsfreeip#$maxhopsfree#$maxhopstroubleip#$maxhopstrouble#$dropip\n";
-	}
-}
-elsif($ARGV[0] eq "trace-fh256-tcp"){
-	if($> != 0){
-		print "Error: This script requires superuser privileges\n";
-		exit 1;
-	}
-
-	$total=0;
-	$response=0;
-	$timeout=0;
-
-	while($fline=<STDIN>){
-		chomp($fline);
-
-		if($fline =~ m/([^\x0d]+)/){
-			$fline= $1;
-		}
-
-		# Check whether this line is just a comment -- if so, skip it
-		if($fline =~ m/^((\s)*#)/){
-			next;
-		}
-
-		# Skip blanck lines 
-		if($fline =~ m/^(\s)*$/){
-			next;
-		}
-
-		# Remove all items from the array of IP addresses
-		undef @ipsfree;
-		undef @tcp;
-
-		$maxhopsfree=0;
-		$maxhopsfreeip="";
-		@tcp=`path6 -p tcp -a 80 --tcp-flags S -P 450 -d $fline --rate-limit 20pps`;
-		foreach $line (@tcp){
-			# Discard lines that do not contain a "probe" line
-			if($line =~ m/\s+(\d+)\s+\((\S*)\)/){
-				if($1 > $maxhopsfree){
-					if($2 ne ""){
-						$maxhopsfree=$1;
-						$maxhopsfreeip=$2;
-					}
-
-					# We store the IPv6 addresses of all hops
-					push(@ipsfree, $2);
-				}
-			}
-		}
-
-		$maxhopstrouble=0;
-		$maxhopstroubleip="";
-		undef @tcp;
-		@tcp=`path6 -p tcp -a 80 --tcp-flags S -P 450 -y 256 -d $fline --rate-limit 20pps`;
-		foreach $line (@tcp){
-			# Discard lines that do not contain a "probe" line
-			if($line =~ m/\s+(\d+)\s+\((\S*)\)/){
-				if($1 > $maxhopstrouble){
-					if($2 ne ""){
-						$maxhopstrouble=$1;
-						$maxhopstroubleip= $2;
-					}
-				}
-			}
-		}
-
-		$dropip="";
-		for($i=0; $i<= $#ipsfree; $i++){
-			if($ipsfree[$i] eq $maxhopstroubleip){
-				if($i == $#ipsfree){
-					$dropip= $ipsfree[$i];
-					last;
-				}
-				else{
-					$dropip= $ipsfree[$i+1];
-					last;
-				}
-			}
-		}
-
-		print "$fline#$maxhopsfreeip#$maxhopsfree#$maxhopstroubleip#$maxhopstrouble#$dropip\n";
-	}
-}
-elsif($ARGV[0] eq "trace-fh256-icmp"){
-	if($> != 0){
-		print "Error: This script requires superuser privileges\n";
-		exit 1;
-	}
-
-	$total=0;
-	$response=0;
-	$timeout=0;
-
-	while($fline=<STDIN>){
-		chomp($fline);
-
-		if($fline =~ m/([^\x0d]+)/){
-			$fline= $1;
-		}
-
-		# Check whether this line is just a comment -- if so, skip it
-		if($fline =~ m/^((\s)*#)/){
-			next;
-		}
-
-		# Skip blanck lines 
-		if($fline =~ m/^(\s)*$/){
-			next;
-		}
-
-		# Remove all items from the array of IP addresses
-		undef @ipsfree;
-		undef @tcp;
-
-		$maxhopsfree=0;
-		$maxhopsfreeip="";
-		@tcp=`path6 -p icmp -P 450 -d $fline --rate-limit 20pps`;
-		foreach $line (@tcp){
-			# Discard lines that do not contain a "probe" line
-			if($line =~ m/\s+(\d+)\s+\((\S*)\)/){
-				if($1 > $maxhopsfree){
-					if($2 ne ""){
-						$maxhopsfree=$1;
-						$maxhopsfreeip=$2;
-					}
-
-					# We store the IPv6 addresses of all hops
-					push(@ipsfree, $2);
-				}
-			}
-		}
-
-		$maxhopstrouble=0;
-		$maxhopstroubleip="";
-		undef @tcp;
-		@tcp=`path6 -p icmp -P 450 -y 256 -d $fline --rate-limit 20pps`;
-		foreach $line (@tcp){
-			# Discard lines that do not contain a "probe" line
-			if($line =~ m/\s+(\d+)\s+\((\S*)\)/){
-				if($1 > $maxhopstrouble){
-					if($2 ne ""){
-						$maxhopstrouble=$1;
-						$maxhopstroubleip= $2;
-					}
-				}
-			}
-		}
-
-		$dropip="";
-		for($i=0; $i<= $#ipsfree; $i++){
-			if($ipsfree[$i] eq $maxhopstroubleip){
-				if($i == $#ipsfree){
-					$dropip= $ipsfree[$i];
-					last;
-				}
-				else{
-					$dropip= $ipsfree[$i+1];
-					last;
-				}
-			}
-		}
-
-		print "$fline#$maxhopsfreeip#$maxhopsfree#$maxhopstroubleip#$maxhopstrouble#$dropip\n";
-	}
-}
 elsif($ARGV[0] eq "trace" || $ARGV[0] eq "trace6"){
 	if($> != 0){
 		print "Error: This script requires superuser privileges\n";
@@ -1597,6 +823,11 @@ elsif($ARGV[0] eq "trace" || $ARGV[0] eq "trace6"){
 		$maxhopsfree=0;
 		$maxhopsfreeip="";
 		@tcp=`path6 -d $fline -p $prototype $protoopt --rate-limit 25pps`;
+
+		if($? != 0){
+			next;
+		}
+
 		foreach $line (@tcp){
 			# Discard lines that do not contain a "probe" line
 			if($line =~ m/\s+(\d+)\s+\((\S*)\)/){
@@ -1616,6 +847,11 @@ elsif($ARGV[0] eq "trace" || $ARGV[0] eq "trace6"){
 		$maxhopstrouble=0;
 		$maxhopstroubleip="";
 		@tcp=`path6 -d $fline -p $prototype $protoopt $eh --rate-limit 25pps`;
+
+		if($? != 0){
+			next;
+		}
+
 		foreach $line (@tcp){
 			# Discard lines that do not contain a "probe" line
 			if($line =~ m/\s+(\d+)\s+\((\S*)\)/){
@@ -1659,6 +895,6 @@ elsif($ARGV[0] eq "trace" || $ARGV[0] eq "trace6"){
 	}
 }
 else{
-	print "SI6 Networks IPv6 Toolkit v2.0\n";
+	print "SI6 Networks IPv6 Toolkit v2.0 (Guille)\n";
 	print "script6: A tool to make complex IPv6 tasks easy\n";
 }
