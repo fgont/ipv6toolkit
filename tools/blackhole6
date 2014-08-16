@@ -11,7 +11,7 @@ $response=0;
 $timeout=0;
 
 sub usage{
-	print "usage: blackhole6 DESTINATION [EH_TYPE[:EHSIZE]] [PROTOCOL [PORT]]]\n";
+	print "usage: blackhole6 DESTINATION [EHTYPE[EHSIZE]] [PROTOCOL [PORT]]]\n";
 }
 
 
@@ -58,7 +58,7 @@ sub GetORG{
 # Remove all items from the array of IP addresses
 undef @ipsfree;
 
-print "SI6 Networks IPv6 Toolkit v2.0\n";
+print "SI6 Networks IPv6 Toolkit v2.0 (Guille)\n";
 print "blackhole6: A tool to find IPv6 blackholes\n";
 
 if($> != 0){
