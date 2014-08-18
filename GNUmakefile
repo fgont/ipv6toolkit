@@ -146,27 +146,27 @@ else
 	# Install the binaries
 	install -m 0755 -d $(BINPATH)
 	install -m 0755 -d $(SBINPATH)
-	install -m 0755 -f $(BINTOOLS) $(BINPATH)
-	install -m 0755 -f $(SBINTOOLS) $(SBINPATH)
+	install -m 0755 -f $(BINPATH) $(BINTOOLS) 
+	install -m 0755 -f $(SBINPATH) $(SBINTOOLS)
 
 	# Install the configuration file
 	install -m 0755 -d $(ETCPATH)
-	install -m 0644 -f data/ipv6toolkit.conf $(ETCPATH)
+	install -m 0644 -f $(ETCPATH) data/ipv6toolkit.conf
 
 	# Install the IEEE OUI database
 	install -m 0755 -d $(DATAPATH)
-	install -m 0644 -f data/oui.txt $(DATAPATH)
+	install -m 0644 -f $(DATAPATH) data/oui.txt
 
 	# Install the port numbers database
-	install -m 0644 -f data/service-names-port-numbers.csv $(DATAPATH)
+	install -m 0644 -f $(DATAPATH) data/service-names-port-numbers.csv
 
 	# Install the manual pages
 	install -m 0755 -d $(MANPATH)/man1
-	install -m 0644 -f manuals/*.1 $(MANPATH)/man1
+	install -m 0644 -f $(MANPATH)/man1 manuals/*.1
 	install -m 0755 -d $(MANPATH)/man5
-	install -m 0644 -f manuals/*.5 $(MANPATH)/man5
+	install -m 0644 -f $(MANPATH)/man5 manuals/*.5
 	install -m 0755 -d $(MANPATH)/man7
-	install -m 0644 -f manuals/*.7 $(MANPATH)/man7
+	install -m 0644 -f $(MANPATH)/man7 manuals/*.7
 endif
 
 
