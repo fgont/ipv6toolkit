@@ -24,6 +24,7 @@ LDFLAGS+= -lpcap -lm
 
 ifeq ($(shell uname),SunOS)
   LDFLAGS+=-lsocket -lnsl
+  OS=SunOS
 endif
 
 ifndef PREFIX
@@ -116,6 +117,7 @@ clean:
 	rm -f data/ipv6toolkit.conf
 
 install: all
+ifneq ($(OS),SunOS)
 	# Install the binaries
 	install -m0755 -d $(BINPATH)
 	install -m0755 -d $(SBINPATH)
@@ -140,6 +142,33 @@ install: all
 	install -m0644 manuals/*.5 $(MANPATH)/man5
 	install -m0755 -d $(MANPATH)/man7
 	install -m0644 manuals/*.7 $(MANPATH)/man7
+else
+	# Install the binaries
+	install -m 0755 -d $(BINPATH)
+	install -m 0755 -d $(SBINPATH)
+	install -m 0755 -f $(BINTOOLS) $(BINPATH)
+	install -m 0755 -f $(SBINTOOLS) $(SBINPATH)
+
+	# Install the configuration file
+	install -m 0755 -d $(ETCPATH)
+	install -m 0644 -f data/ipv6toolkit.conf $(ETCPATH)
+
+	# Install the IEEE OUI database
+	install -m 0755 -d $(DATAPATH)
+	install -m 0644 -f data/oui.txt $(DATAPATH)
+
+	# Install the port numbers database
+	install -m 0644 -f data/service-names-port-numbers.csv $(DATAPATH)
+
+	# Install the manual pages
+	install -m 0755 -d $(MANPATH)/man1
+	install -m 0644 -f manuals/*.1 $(MANPATH)/man1
+	install -m 0755 -d $(MANPATH)/man5
+	install -m 0644 -f manuals/*.5 $(MANPATH)/man5
+	install -m 0755 -d $(MANPATH)/man7
+	install -m 0644 -f manuals/*.7 $(MANPATH)/man7
+endif
+
 
 uninstall:
 	# Remove the binaries
