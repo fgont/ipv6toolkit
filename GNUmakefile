@@ -22,6 +22,10 @@ CC= gcc
 CFLAGS+= -Wall
 LDFLAGS+= -lpcap -lm
 
+ifeq ($(shell uname),SunOS)
+  LDFLAGS+=-lsocket -lnsl
+endif
+
 ifndef PREFIX
 PREFIX=/usr/local
 ifndef MANPREFIX
@@ -159,7 +163,7 @@ uninstall:
 	# Remove the configuration file
 	rm -f $(ETCPATH)/ipv6toolkit.conf
 
-	# Remove the IEEE OUI database
+	# Remove the IEEE OUI database and port number database
 	rm -rf $(DATAPATH)
 
 	# Remove the manual pages
