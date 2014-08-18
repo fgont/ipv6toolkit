@@ -27,16 +27,18 @@ ifeq ($(shell uname),SunOS)
   OS=SunOS
 endif
 
+
 ifndef PREFIX
-PREFIX=/usr/local
-ifndef MANPREFIX
-MANPREFIX=/usr/local
-endif
+	PREFIX=/usr/local
+	ifndef MANPREFIX
+		MANPREFIX=/usr/local
+	endif
 else
-ifndef MANPREFIX
-MANPREFIX=/usr/share
+	ifndef MANPREFIX
+		MANPREFIX=/usr/share
+	endif
 endif
-endif 
+
 
 ETCPATH= $(DESTDIR)/etc
 MANPATH= $(DESTDIR)$(MANPREFIX)/man
@@ -146,8 +148,23 @@ else
 	# Install the binaries
 	install -m 0755 -d $(BINPATH)
 	install -m 0755 -d $(SBINPATH)
-	install -m 0755 -f $(BINPATH) $(BINTOOLS) 
-	install -m 0755 -f $(SBINPATH) $(SBINTOOLS)
+
+	install -m 0755 -f $(BINPATH) addr6 
+	install -m 0755 -f $(SBINPATH) blackhole6
+	install -m 0755 -f $(SBINPATH) flow6
+	install -m 0755 -f $(SBINPATH) frag6
+	install -m 0755 -f $(SBINPATH) icmp6
+	install -m 0755 -f $(SBINPATH) jumbo6
+	install -m 0755 -f $(SBINPATH) script6
+	install -m 0755 -f $(SBINPATH) na6
+	install -m 0755 -f $(SBINPATH) ni6
+	install -m 0755 -f $(SBINPATH) ns6
+	install -m 0755 -f $(SBINPATH) path6
+	install -m 0755 -f $(SBINPATH) ra6
+	install -m 0755 -f $(SBINPATH) rd6
+	install -m 0755 -f $(SBINPATH) rs6
+	install -m 0755 -f $(SBINPATH) scan6
+	install -m 0755 -f $(SBINPATH) tcp6
 
 	# Install the configuration file
 	install -m 0755 -d $(ETCPATH)
@@ -162,11 +179,26 @@ else
 
 	# Install the manual pages
 	install -m 0755 -d $(MANPATH)/man1
-	install -m 0644 -f $(MANPATH)/man1 manuals/*.1
+	install -m 0644 -f $(MANPATH)/man1 manuals/addr6.1
+	install -m 0644 -f $(MANPATH)/man1 manuals/blackhole6.1
+	install -m 0644 -f $(MANPATH)/man1 manuals/flow6.1
+	install -m 0644 -f $(MANPATH)/man1 manuals/frag6.1
+	install -m 0644 -f $(MANPATH)/man1 manuals/icmp6.1
+	install -m 0644 -f $(MANPATH)/man1 manuals/jumbo6.1
+	install -m 0644 -f $(MANPATH)/man1 manuals/na6.1
+	install -m 0644 -f $(MANPATH)/man1 manuals/ni6.1
+	install -m 0644 -f $(MANPATH)/man1 manuals/ns6.1
+	install -m 0644 -f $(MANPATH)/man1 manuals/path6.1
+	install -m 0644 -f $(MANPATH)/man1 manuals/ra6.1
+	install -m 0644 -f $(MANPATH)/man1 manuals/rd6.1
+	install -m 0644 -f $(MANPATH)/man1 manuals/rs6.1
+	install -m 0644 -f $(MANPATH)/man1 manuals/scan6.1
+	install -m 0644 -f $(MANPATH)/man1 manuals/script6.1
+	install -m 0644 -f $(MANPATH)/man1 manuals/tcp6.1
 	install -m 0755 -d $(MANPATH)/man5
-	install -m 0644 -f $(MANPATH)/man5 manuals/*.5
+	install -m 0644 -f $(MANPATH)/man5 manuals/ipv6toolkit.conf.5
 	install -m 0755 -d $(MANPATH)/man7
-	install -m 0644 -f $(MANPATH)/man7 manuals/*.7
+	install -m 0644 -f $(MANPATH)/man7 manuals/ipv6toolkit.7
 endif
 
 
