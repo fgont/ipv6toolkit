@@ -1789,9 +1789,6 @@ void randomize_ipv6_addr(struct in6_addr *ipv6addr, struct in6_addr *prefix, uin
 
 	startrand= preflen/32;
 
-	for(i=0; i<startrand; i++)
-		ipv6addr->s6_addr32[i]= 0;
-
 	for(i=startrand; i<4; i++)
 		ipv6addr->s6_addr32[i]=random();
 
@@ -1808,6 +1805,7 @@ void randomize_ipv6_addr(struct in6_addr *ipv6addr, struct in6_addr *prefix, uin
 		ipv6addr->s6_addr32[i]= ipv6addr->s6_addr32[i] | prefix->s6_addr32[i];
 
 }
+
 
 
 /*

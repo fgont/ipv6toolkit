@@ -380,6 +380,62 @@ struct udp_hdr{
 } __attribute__ ((__packed__));
 
 
+
+/* Definition of the Authentication Header
+     0                   1                   2                   3
+     0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   | Next Header   |  Payload Len  |          RESERVED             |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |                 Security Parameters Index (SPI)               |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |                    Sequence Number Field                      |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |                                                               |
+   +                Integrity Check Value-ICV (variable)           |
+   |                                                               |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ */
+struct ah_hdr{
+	uint8_t ah_nxt;		/* Next Header */
+	uint8_t ah_len;		/* Payload length */
+	uint16_t ah_rsvd;	/* Reserved */
+	uint32_t ah_spi;	/* Reserved */
+	uint32_t ah_seq;	/* Reserved */
+	uint32_t ah_icv;	/* Integrity Check Value - ICV */
+} __attribute__ ((__packed__));
+
+
+/* Definition of the Encapsulating Security Payload
+
+  0                   1                   2                   3
+  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+ +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ ----
+ |               Security Parameters Index (SPI)                 | ^Int.
+ +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ |Cov-
+ |                      Sequence Number                          | |ered
+ +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ | ----
+ |                    Payload Data* (variable)                   | |   ^
+ ~                                                               ~ |   |
+ |                                                               | |Conf.
+ +               +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ |Cov-
+ |               |     Padding (0-255 bytes)                     | |ered*
+ +-+-+-+-+-+-+-+-+               +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ |   |
+ |                               |  Pad Length   | Next Header   | v   v
+ +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ ------
+ |         Integrity Check Value-ICV   (variable)                |
+ ~                                                               ~
+ |                                                               |
+ +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ */
+struct esp_hdr{
+	uint32_t esp_spi;	/* Reserved */
+	uint32_t esp_seq;	/* Reserved */
+	uint32_t ah_payload;	/* Integrity Check Value - ICV */
+} __attribute__ ((__packed__));
+
+
+
 #define	ARP_REQUEST		1
 #define ARP_REPLY		2
 #define RARP_REQUEST	3
