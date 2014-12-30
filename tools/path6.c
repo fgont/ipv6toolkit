@@ -1393,8 +1393,6 @@ void print_attack_info(struct iface_data *idata){
 
 	printf("IPv6 Destination Address: %s\n", pdstaddr);
 
-	printf("IPv6 Hop Limit: %u%s\n", hoplimit, (hoplimit_f)?"":" (randomized)");
-
 	for(i=0; i<ndstoptuhdr; i++)
 		printf("Destination Options Header (Unfragmentable part): %u bytes\n", dstoptuhdrlen[i]);
 
