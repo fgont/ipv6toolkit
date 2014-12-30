@@ -3828,8 +3828,9 @@ puts("Encontre loopback y voy a sobreeescribir la info de destino");
 	if(!(idata->hsrcaddr_f)){
 		if(idata->ether_flag)
 			idata->hsrcaddr=idata->ether;
-		else
+		else{
 			randomize_ether_addr(&(idata->hsrcaddr));
+		}
 	}
 
 	if(!idata->ip6_local_flag){

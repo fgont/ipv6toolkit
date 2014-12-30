@@ -1016,13 +1016,10 @@ int main(int argc, char **argv){
 		exit(EXIT_FAILURE);
 	}
 
-printf("saddr: %s\n", idata.srcaddr_f?"1":"0");
-
 	if(load_dst_and_pcap(&idata, LOAD_PCAP_ONLY) == FAILURE){
 		puts("Error while learning Souce Address and Next Hop");
 		exit(EXIT_FAILURE);
 	}
-printf("saddr: %s\n", idata.srcaddr_f?"1":"0");
 
 	release_privileges();
 
@@ -1048,15 +1045,12 @@ printf("saddr: %s\n", idata.srcaddr_f?"1":"0");
 	   not been specified, select a random link-local unicast address.
 	 */
 
-printf("saddr: %s\n", idata.srcaddr_f?"1":"0");
-
 	if(!(idata.srcaddr_f) && !floods_f){
 		/* When randomizing a link-local IPv6 address, select addresses that belong to the
 		   prefix fe80::/64 (that's what a link-local address looks-like in legitimate cases).
 		   The KAME implementation discards addresses in which the second high-order 16 bits
 		   (srcaddr.s6_addr16[1] in our case) are not zero.
 		 */  
-puts("Cambio");
 
 		if(idata.ip6_local_flag){
 			idata.srcaddr= idata.ip6_local;
@@ -1071,7 +1065,6 @@ puts("Cambio");
 		}
 	}
 
-puts("Hello");
 	/*
 	   If the flood option ("-F") has been specified, but no prefix has been specified,
 	    select the random Source Addresses from the link-local unicast prefix (fe80::/64).
