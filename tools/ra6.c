@@ -1058,12 +1058,17 @@ printf("saddr: %s\n", idata.srcaddr_f?"1":"0");
 		 */  
 puts("Cambio");
 
-		if ( inet_pton(AF_INET6, "fe80::", &(idata.srcaddr)) <= 0){
-			puts("inet_pton(): Error when converting address");
-			exit(EXIT_FAILURE);
+		if(idata.ip6_local_flag){
+			idata.srcaddr= idata.ip6_local;
 		}
+		else{
+			if ( inet_pton(AF_INET6, "fe80::", &(idata.srcaddr)) <= 0){
+				puts("inet_pton(): Error when converting address");
+				exit(EXIT_FAILURE);
+			}
 
-		randomize_ipv6_addr(&(idata.srcaddr), &(idata.srcaddr), 64);
+			randomize_ipv6_addr(&(idata.srcaddr), &(idata.srcaddr), 64);
+		}
 	}
 
 puts("Hello");
@@ -1087,9 +1092,12 @@ puts("Hello");
 		    exit(EXIT_FAILURE);
 		}
 
-	if(!idata.hsrcaddr_f)		/* Source link-layer address is randomized by default */
+	/* Source link-layer address is randomized by default */
+	/*
+	if(!idata.hsrcaddr_f)
 		for(i=0; i<6; i++)
 	 		idata.hsrcaddr.a[i]= random();
+	*/
 
 	if(!idata.hdstaddr_f)		/* Destination link-layer address defaults to all-nodes */
 		if(ether_pton(ETHER_ALLNODES_LINK_ADDR, &(idata.hdstaddr), sizeof(idata.hdstaddr)) == 0){
@@ -1878,48 +1886,47 @@ void print_help(void){
  */
 
 void print_attack_info(struct iface_data *idata){
-    if(!floods_f){
-	if(ether_ntop(&(idata->hsrcaddr), plinkaddr, sizeof(plinkaddr)) == 0){
-	    puts("ether_ntop(): Error converting address");
-	    exit(EXIT_FAILURE);
-	}
+	if(!floods_f){
+		if(ether_ntop(&(idata->hsrcaddr), plinkaddr, sizeof(plinkaddr)) == 0){
+			puts("ether_ntop(): Error converting address");
+			exit(EXIT_FAILURE);
+		}
 
-	printf("Ethernet Source Address: %s%s\n", plinkaddr, ((!idata->hsrcaddr_f)?" (randomized)":""));
-    }
-    else{
-	if(idata->hsrcaddr_f){
-	    if(ether_ntop(&(idata->hsrcaddr), plinkaddr, sizeof(plinkaddr)) == 0){
-		puts("ether_ntop(): Error converting address");
-		exit(EXIT_FAILURE);
-	    }
-
-	    printf("Ethernet Source Address: %s\n", plinkaddr);
+		printf("Ethernet Source Address: %s%s\n", plinkaddr, ((!idata->hsrcaddr_f)?" (automatically-selected)":""));
 	}
-	else
-	    puts("Ethernet Source Address: randomized for each packet");
-    }
+	else{
+		if(idata->hsrcaddr_f){
+			if(ether_ntop(&(idata->hsrcaddr), plinkaddr, sizeof(plinkaddr)) == 0){
+				puts("ether_ntop(): Error converting address");
+				exit(EXIT_FAILURE);
+			}
+
+			printf("Ethernet Source Address: %s\n", plinkaddr);
+		}
+		else
+			puts("Ethernet Source Address: automatically-selected");
+	}
 
     /* Ethernet Destination Address only used if a target IPv6 address or a target Ethernet
      * address were specified
      */
-    if(idata->dstaddr_f || idata->hdstaddr_f){
-	if(ether_ntop(&(idata->hdstaddr), phdstaddr, sizeof(phdstaddr)) == 0){
-	    puts("ether_ntop(): Error converting address");
-	    exit(EXIT_FAILURE);
-	}
+	if(idata->dstaddr_f || idata->hdstaddr_f){
+		if(ether_ntop(&(idata->hdstaddr), phdstaddr, sizeof(phdstaddr)) == 0){
+			puts("ether_ntop(): Error converting address");
+			exit(EXIT_FAILURE);
+		}
 
-	printf("Ethernet Destination Address: %s%s\n", phdstaddr, \
+		printf("Ethernet Destination Address: %s%s\n", phdstaddr, \
 					((!idata->hdstaddr_f)?" (all-nodes multicast)":""));
     }
-
 
 	if(inet_ntop(AF_INET6, &(idata->srcaddr), psrcaddr, sizeof(psrcaddr)) == NULL){
 		puts("inet_ntop(): Error converting IPv6 Source Address to presentation format");
 		exit(EXIT_FAILURE);
 	}
 
-    if(!floods_f){
-	printf("IPv6 Source Address: %s%s\n", psrcaddr, ((!idata->srcaddr_f)?" (randomized)":""));
+    if(!floods_f && !(idata->srcprefix_f)){
+		printf("IPv6 Source Address: %s%s\n", psrcaddr, ((!idata->srcaddr_f)?" (automatically-selected)":""));
     }
     else{
     	printf("IPv6 Source Address: randomized, from the %s/%u prefix%s\n", psrcaddr, idata->srcpreflen, \
