@@ -858,7 +858,7 @@ int main(int argc, char **argv){
 			}
 		}
 
-#if defined(sun) || defined(__sun)
+#if defined(sun) || defined(__sun) || defined(__linux__)
 		if(TRUE){
 #else
 		if(FD_ISSET(idata.fd, &rset)){

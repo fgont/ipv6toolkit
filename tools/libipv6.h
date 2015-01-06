@@ -126,7 +126,7 @@ struct filters{
 #if defined (__FreeBSD__) || defined(__NetBSD__) || defined (__OpenBSD__) || defined(__APPLE__) || defined(__FreeBSD_kernel__) || defined(sun) || defined(__sun)
 	#define	PCAP_TIMEOUT			1
 #else
-	#define	PCAP_TIMEOUT			0
+	#define	PCAP_TIMEOUT			1
 #endif
 
 
@@ -135,7 +135,12 @@ struct filters{
 #define PCAP_UDPV6_FILTER		"ip6 and udp"
 #define PCAP_ICMPV6_FILTER		"icmp6"
 #define PCAP_ICMPV6_NA_FILTER	"icmp6 and ip6[7]==255 and ip6[40]==136 and ip6[41]==0"
+
+/* XXX: Should check the na6 code: we fail to receive packets (Ubuntu, at least) when this filter is set
 #define PCAP_ICMPV6_NS_FILTER  "icmp6 and ((ip6[7]==255 and ip6[40]==135 and ip6[41]==0) or ip6[40]==4)"
+*/
+
+#define PCAP_ICMPV6_NS_FILTER  "ip6"
 #define PCAP_ICMPV6_RA_FILTER "icmp6 and ip6[7]==255 and ip6[40]==134 and ip6[41]==0"
 #define PCAP_ICMPV6_RANS_FILTER	"icmp6 and ip6[7]==255 and ((ip6[40]==134 and ip6[41]==0) or (ip6[40]==135 and ip6[41]==0))"
 #define PCAP_TCPIPV6_NS_FILTER	"ip6 and (tcp or (icmp6 and ip6[7]==255 and ip6[40]==135 and ip6[41]==0))"
@@ -158,6 +163,19 @@ struct filters{
 */
 
 #define PCAP_TCPIPV6_FILTER "ip6 and tcp"
+
+/* Originally from scan6.h */
+#define PCAP_ICMPV6_NA_FILTER		"icmp6 and ip6[7]==255 and ip6[40]==136 and ip6[41]==0"
+#define PCAP_ICMPV6_RANS_FILTER		"icmp6 and ip6[7]==255 and ((ip6[40]==134 and ip6[41]==0) or (ip6[40]==135 and ip6[41]==0))"
+#define PCAP_ICMPV6_ERNS_FILTER		"icmp6 and ((ip6[40]==129 and ip6[41]==0) or (ip6[40]==135 and ip6[41]==0))"
+#define PCAP_ICMPV6_ERRORNS_FILTER	"icmp6 and ((ip6[40]==4) or (ip6[40]==135 and ip6[41]==0))"
+
+#define PCAP_ICMPV6_ERQNSNA_FILTER	"icmp6 and ((ip6[40]==129 and ip6[41]==0) or ((ip6[40]==135 or ip6[40]==136) and ip6[41]==0 and ip6[7]==255))"
+#define PCAP_ICMPV6_ERRORNSNA_FILTER	"icmp6 and ((ip6[40]==4) or ((ip6[7]==255 and ip6[41]==0) and (ip6[40]==135 or ip6[40]==136)))"
+#define PCAP_TCP_NSNA_FILTER		"(ip6 and tcp) or (icmp6 and ip6[7]==255 and ip6[41]==0 and (ip6[40]==135 or ip6[40]==136))"
+#define PCAP_UDP_NSNA_FILTER		"(ip6 and (udp or icmp6)) or (icmp6 and ip6[7]==255 and ip6[41]==0 and (ip6[40]==135 or ip6[40]==136))"
+#define PCAP_TCP_UDP_NSNA_FILTER	"(ip6 and (tcp or udp or icmp6)) or (icmp6 and ip6[7]==255 and ip6[41]==0 and (ip6[40]==135 or ip6[40]==136))"
+
 
 
 

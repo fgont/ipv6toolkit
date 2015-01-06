@@ -1830,7 +1830,7 @@ int main(int argc, char **argv){
 					timeout.tv_usec= pktinterval % 1000000;
 				}
 				else{
-#if defined(sun) || defined(__sun)
+#if defined(sun) || defined(__sun) || defined(__linux__)
 					timeout.tv_sec= pktinterval / 1000000 ;	
 					timeout.tv_usec= pktinterval % 1000000;
 #else
@@ -1867,7 +1867,7 @@ int main(int argc, char **argv){
 					}
 				}
 
-#if !defined(sun) && !defined(__sun)
+#if !defined(sun) && !defined(__sun) && !defined(__linux__)
 				/*
 				   If we didn't check for writeability in the previous call to select(), we must do it now. Otherwise, we might
 				   block when trying to send a packet.
@@ -1893,7 +1893,7 @@ int main(int argc, char **argv){
 #endif
 
 
-#if defined(sun) || defined(__sun)
+#if defined(sun) || defined(__sun) || defined(__linux__)
 				if(TRUE){
 #else
 				if(sel && FD_ISSET(idata.fd, &rset)){
@@ -2072,7 +2072,7 @@ int main(int argc, char **argv){
 					continue;
 				}
 
-#if defined(sun) || defined(__sun)
+#if defined(sun) || defined(__sun) || defined(__linux__)
 				if(!donesending_f && idata.pending_write_f){
 #else
 				if(!donesending_f && idata.pending_write_f && FD_ISSET(idata.fd, &wset)){
@@ -2322,7 +2322,7 @@ int main(int argc, char **argv){
 				timeout.tv_usec= pktinterval % 1000000;
 			}
 			else{
-#if defined(sun) || defined(__sun)
+#if defined(sun) || defined(__sun) || defined(__linux__)
 				timeout.tv_sec= pktinterval / 1000000 ;	
 				timeout.tv_usec= pktinterval % 1000000;
 #else
@@ -2338,7 +2338,7 @@ puts("Prior to select()");
 				Check for readability and exceptions. We only check for writeability if there is pending data
 				to send (the pcap descriptor will usually be writeable!).
 			 */
-#if defined(sun) || defined(__sun)
+#if defined(sun) || defined(__sun) || defined(__linux__)
 			if((sel=select(0, NULL, NULL, NULL, &timeout)) == -1){
 #else
 			if((sel=select(idata.fd+1, &rset, (idata.pending_write_f?&wset:NULL), &eset, &timeout)) == -1){
@@ -2386,7 +2386,7 @@ puts("After select()");
 			   If we didn't check for writeability in the previous call to select(), we must do it now. Otherwise, we might
 			   block when trying to send a packet.
 			 */
-#if !(defined(sun) || defined(__sun))
+#if !(defined(sun) || defined(__sun) || defined(__linux__))
 #ifdef DEBUG
 puts("Prior secondary select()");
 #endif
@@ -2414,7 +2414,7 @@ puts("After secondary select()");
 #endif
 #endif
 
-#if defined(sun) || defined(__sun)
+#if defined(sun) || defined(__sun) || defined(__linux__)
 			if(TRUE){
 #else
 			if(sel && FD_ISSET(idata.fd, &rset)){
@@ -2578,7 +2578,7 @@ puts("After to send_neighbor_advert()");
 				continue;
 			}
 
-#if defined(sun) || defined(__sun)
+#if defined(sun) || defined(__sun) || defined(__linux__)
 			if(!donesending_f && idata.pending_write_f){
 #else
 			if(!donesending_f && idata.pending_write_f && FD_ISSET(idata.fd, &wset)){
@@ -2622,7 +2622,7 @@ puts("After to send_neighbor_advert()");
 #ifdef DEBUG
 puts("Prior to checking eset");
 #endif
-#if !(defined(sun) || defined(__sun))
+#if !(defined(sun) || defined(__sun) || defined(__linux__))
 			if(FD_ISSET(idata.fd, &eset)){
 				if(idata.verbose_f)
 					puts("scan6: Found exception on libpcap descriptor");

@@ -1239,7 +1239,7 @@ int main(int argc, char **argv){
 				}
 			}
 
-#if !defined(sun) && !defined(__sun)
+#if !defined(sun) && !defined(__sun) && !defined(__linux__)
 			if(sel && FD_ISSET(idata.fd, &rset)){
 #else
 			if(TRUE){
@@ -1338,7 +1338,7 @@ int main(int argc, char **argv){
 
 			timeout= stimeout;
 
-#if !defined(sun) && !defined(__sun)
+#if !defined(sun) && !defined(__sun) && !defined(__linux__)
 			if((sel=select(idata.fd+1, &rset, NULL, NULL, ((floods_f || floodp_f) && !donesending_f)?(&timeout):NULL)) == -1){
 #else
 			timeout.tv_usec=10000;
@@ -1355,7 +1355,7 @@ int main(int argc, char **argv){
 			}
 
 			/* If there are some bits set, we need to check whether it's time to send packets */
-#if !defined(sun) && !defined(__sun)
+#if !defined(sun) && !defined(__sun) && !defined(__linux__)
 			if(sel){
 #else
 			if(TRUE){
@@ -1383,7 +1383,7 @@ int main(int argc, char **argv){
 				}
 			}
 
-#if !defined(sun) && !defined(__sun)
+#if !defined(sun) && !defined(__sun) && !defined(__linux__)
 			if(sel && FD_ISSET(idata.fd, &rset)){
 #else
 			if(TRUE){
@@ -2398,8 +2398,12 @@ void print_attack_info(struct iface_data *idata){
 		}
 	}
 	else{
+		printf("IPv6 Source Address: randomized, from the fc00:1::/%u prefix%s\n", idata->srcpreflen, \
+    									(!idata->srcprefix_f)?" (default)":"");
+/*
 		printf("IPv6 Source Address: randomized, from the %s/%u prefix%s\n", psrcaddr, idata->srcpreflen, \
     									(!idata->srcprefix_f)?" (default)":"");
+*/
 	}
 
 	if(idata->dstaddr_f){
@@ -2442,7 +2446,12 @@ void print_attack_info(struct iface_data *idata){
 			printf("SEQ Number: %u%s\t", tcpseq, (tcpseq_f?"":" (randomized)"));
 		}
 
-		printf("ACK Number: %u%s\n", tcpack, (tcpack_f?"":" (randomized)"));
+		if( (floods_f || floodp_f) && (nsources != 1 || nports != 1)){
+			printf("ACK Number: (randomized)\n");
+		}
+		else{
+			printf("ACK Number: %u%s\n", tcpack, (tcpack_f?"":" (randomized)"));
+		}
 
 		if(tcpflags_f){
 			printf("Flags: %s%s%s%s%s%s%s%s\t", ((tcpflags & TH_FIN)?"F":""), ((tcpflags & TH_SYN)?"S":""), \

@@ -1120,12 +1120,12 @@ int main(int argc, char **argv){
 			}
 
 			rset= sset;
-#if !defined(sun) && !defined(__sun)
-			timeout.tv_usec=0;
-			timeout.tv_sec= nsleep;
-#else
+#if defined(sun) || defined(__sun) || defined(__linux__)
 			timeout.tv_usec=10000;
 			timeout.tv_sec= 0;
+#else
+			timeout.tv_usec=0;
+			timeout.tv_sec= nsleep;
 #endif
 
 			if((sel=select(idata.fd+1, &rset, NULL, NULL, &timeout)) == -1){
@@ -1139,7 +1139,7 @@ int main(int argc, char **argv){
 			}
 
 			/* Read a NI Reply packet */
-#if defined(sun) || defined(__sun)
+#if defined(sun) || defined(__sun) || defined(__linux__)
 			if(TRUE){
 #else
 			if(sel && FD_ISSET(idata.fd, &rset)){
@@ -1200,7 +1200,7 @@ int main(int argc, char **argv){
 
 		while(listen_f){
 			rset= sset;
-#if defined(sun) || defined(__sun)
+#if defined(sun) || defined(__sun) || defined(__linux__)
 			timeout.tv_usec=10000;
 			timeout.tv_sec= 0;
 			if((sel=select(idata.fd+1, &rset, NULL, NULL, &timeout)) == -1){
@@ -1215,7 +1215,7 @@ int main(int argc, char **argv){
 					exit(EXIT_FAILURE);
 				}
 			}
-#if defined(sun) || defined(__sun)
+#if defined(sun) || defined(__sun) || defined(__linux__)
 			if(TRUE){
 #else
 			if(sel && FD_ISSET(idata.fd, &rset)){

@@ -156,7 +156,7 @@ int main(int argc, char **argv){
 	extern char		*optarg;	
 	int				r, sel;
 	fd_set			sset, rset;
-#if defined(sun) || defined(__sun)
+#if defined(sun) || defined(__sun) || defined(__linux__)
 	struct timeval		timeout;
 #endif
 
@@ -1085,13 +1085,6 @@ int main(int argc, char **argv){
 		    exit(EXIT_FAILURE);
 		}
 
-	/* Source link-layer address is randomized by default */
-	/*
-	if(!idata.hsrcaddr_f)
-		for(i=0; i<6; i++)
-	 		idata.hsrcaddr.a[i]= random();
-	*/
-
 	if(!idata.hdstaddr_f)		/* Destination link-layer address defaults to all-nodes */
 		if(ether_pton(ETHER_ALLNODES_LINK_ADDR, &(idata.hdstaddr), sizeof(idata.hdstaddr)) == 0){
 			puts("ether_pton(): Error converting all-nodes multicast address");
@@ -1189,7 +1182,7 @@ int main(int argc, char **argv){
 
 		while(listen_f){
 			rset= sset;
-#if defined(sun) || defined(__sun)
+#if defined(sun) || defined(__sun) || defined(__linux__)
 			timeout.tv_usec=10000;
 			timeout.tv_sec= 0;
 			if((sel=select(idata.fd+1, &rset, NULL, NULL, &timeout)) == -1){
@@ -1205,7 +1198,7 @@ int main(int argc, char **argv){
 				}
 			}
 
-#if defined(sun) || defined(__sun)
+#if defined(sun) || defined(__sun) || defined(__linux__)
 			if(TRUE){
 #else
 			if(FD_ISSET(idata.fd, &rset)){

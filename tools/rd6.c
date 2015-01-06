@@ -162,7 +162,7 @@ int main(int argc, char **argv){
 	char				*endptr; /* Used by strtoul() */
 	int					r, sel;
 	fd_set				sset, rset;
-#if defined(sun) || defined(__sun)
+#if defined(sun) || defined(__sun) || defined(__linux__)
 	struct timeval		timeout;
 #endif
 	struct target_ipv6	targetipv6;
@@ -1252,7 +1252,7 @@ int main(int argc, char **argv){
 		while(idata.listen_f){
 			rset= sset;
 
-#if defined(sun) || defined(__sun)
+#if defined(sun) || defined(__sun) || defined(__linux__)
 			timeout.tv_usec=10000;
 			timeout.tv_sec= 0;
 			if((sel=select(idata.fd+1, &rset, NULL, NULL, &timeout)) == -1){
@@ -1268,7 +1268,7 @@ int main(int argc, char **argv){
 				}
 			}
 
-#if defined(sun) || defined(__sun)
+#if defined(sun) || defined(__sun) || defined(__linux__)
 			if(TRUE){
 #else
 			if(FD_ISSET(idata.fd, &rset)){

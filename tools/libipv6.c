@@ -3842,6 +3842,11 @@ puts("Encontre loopback y voy a sobreeescribir la info de destino");
 		return(FAILURE);
 	}
 
+	if (pcap_setnonblock(idata->pfd, 1, errbuf) == -1) {
+		printf("pcap_setnonblock(): %s\n", errbuf);
+		return(FAILURE);
+	}
+
 	if( (idata->fd= pcap_fileno(idata->pfd)) == -1){
 		if(idata->verbose_f)
 			puts("Error obtaining descriptor number for pcap_t");
