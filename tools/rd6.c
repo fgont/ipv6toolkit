@@ -1204,7 +1204,7 @@ int main(int argc, char **argv){
 
 
 	/*
-	   Set filter for IPv6 packets (find_ipv6_router() set its own filter fore receiving RAs)
+	   Set filter for IPv6 packets (find_ipv6_router() set its own filters before receiving RAs)
 	 */
 	if(pcap_compile(idata.pfd, &pcap_filter, PCAP_IPV6_FILTER, PCAP_OPT, PCAP_NETMASK_UNKNOWN) == -1){
 		printf("pcap_compile(): %s", pcap_geterr(idata.pfd));
@@ -1253,7 +1253,7 @@ int main(int argc, char **argv){
 			rset= sset;
 
 #if defined(sun) || defined(__sun) || defined(__linux__)
-			timeout.tv_usec=10000;
+			timeout.tv_usec=1000;
 			timeout.tv_sec= 0;
 			if((sel=select(idata.fd+1, &rset, NULL, NULL, &timeout)) == -1){
 #else
@@ -1608,7 +1608,8 @@ void send_packet(struct iface_data *idata, const u_char *pktdata, struct pcap_pk
 					 */
 					randomize_ipv6_addr(&(rd->nd_rd_target), &targetaddr, targetpreflen);
 				}
-				else if(makeonlink_f && floodr_f){
+				else if(makeonlink_f){
+					/* Code used to check for makeonlink_f && floodr_f */
 					/* The target field contains the address specified by the "-t" option. 
 					   Otherwise (if we must make the address "on-link", the ND target field 
 					   is set to the same value as the RD Destination Address
@@ -1981,8 +1982,6 @@ void print_help(void){
  */
  
 void print_attack_info(struct iface_data *idata){
-	puts( "rd6 version 1.1\nAssessment tool for attack vectors based on Redirect messages\n\n");
-
 	if(makeonlink_f)
 		puts("Making nodes on-link (setting the RD Target Address to the RD Destination Address)");
 
