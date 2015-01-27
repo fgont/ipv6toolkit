@@ -1090,6 +1090,7 @@ int main(int argc, char **argv){
 			timeout.tv_usec=0;
 			timeout.tv_sec= nsleep;
 
+/* XXX Still need to address the issue of select() for Ubuntu, etc. */
 			if((sel=select(idata.fd+1, &rset, NULL, NULL, &timeout)) == -1){
 				if(errno == EINTR){
 					continue;
@@ -1106,7 +1107,7 @@ int main(int argc, char **argv){
 					printf("pcap_next_ex(): %s", pcap_geterr(idata.pfd));
 					exit(EXIT_FAILURE);
 				}
-				else if(r == 0){
+				else if(r == 0 || pktdata == NULL){
 					continue; /* Should never happen */
 				}
 
@@ -1176,7 +1177,7 @@ int main(int argc, char **argv){
 				printf("pcap_next_ex(): %s", pcap_geterr(idata.pfd));
 				exit(EXIT_FAILURE);
 			}
-			else if(r == 0){
+			else if(r == 0 || pktdata == NULL){
 				continue; /* Should never happen */
 			}
 

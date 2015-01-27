@@ -674,7 +674,7 @@ int find_ipv6_router_full(pcap_t *pfd, struct iface_data *idata){
 					error_f=1;
 					break;
 				}
-			}while(result==0);			
+			}while(result == 0 || pktdata == NULL);			
 
 			if(error_f)
 				break;
@@ -1186,7 +1186,7 @@ int ipv6_to_ether(pcap_t *pfd, struct iface_data *idata, struct in6_addr *target
 					error_f=1;
 					break;
 				}
-			}while(result==0);			
+			}while(result == 0 || pktdata == NULL);			
 
 			if(error_f)
 				break;	
@@ -4359,7 +4359,7 @@ int find_ipv6_router(pcap_t *pfd, struct ether_addr *hsrcaddr, struct in6_addr *
 				printf("pcap_next_ex(): %s", pcap_geterr(pfd));
 				exit(EXIT_FAILURE);
 			}
-			else if(r == 0){
+			else if(r == 0 || pktdata == NULL){
 				continue; /* Should never happen */
 			}
 			

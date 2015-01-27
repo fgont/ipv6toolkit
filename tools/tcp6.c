@@ -1,3 +1,5 @@
+#define DEBUG
+
 /*
  * tcp6 : A security assessment tool that exploits potential flaws in the
  *        processing of TCP/IPv6 packets
@@ -1250,7 +1252,7 @@ int main(int argc, char **argv){
 					printf("pcap_next_ex(): %s", pcap_geterr(idata.pfd));
 					exit(EXIT_FAILURE);
 				}
-				else if(r == 1){
+				else if(r == 1 && pktdata != NULL){
 					pkt_ether = (struct ether_header *) pktdata;
 					pkt_ipv6 = (struct ip6_hdr *)((char *) pkt_ether + idata.linkhsize);
 					pkt_tcp= (struct tcp_hdr *) ( (char *) pkt_ipv6 + MIN_IPV6_HLEN);
@@ -1393,7 +1395,7 @@ int main(int argc, char **argv){
 					printf("pcap_next_ex(): %s", pcap_geterr(idata.pfd));
 					exit(EXIT_FAILURE);
 				}
-				else if(r == 1){
+				else if(r == 1 && pktdata != NULL){
 					pkt_ether = (struct ether_header *) pktdata;
 					pkt_ipv6 = (struct ip6_hdr *)((char *) pkt_ether + idata.linkhsize);
 					pkt_tcp= (struct tcp_hdr *) ( (char *) pkt_ipv6 + MIN_IPV6_HLEN);
@@ -1776,6 +1778,12 @@ void send_packet(struct iface_data *idata, const u_char *pktdata, struct pcap_pk
 		tcp->th_sport= pkt_tcp->th_dport;
 		tcp->th_dport= pkt_tcp->th_sport;
 
+#ifdef DEBUG
+	printf("Src port: %u, dst port: %u\n", ntohs(tcp->th_sport), ntohs(tcp->th_dport));
+	dumpex(pkt_tcp, sizeof(struct tcp_hdr));
+	puts("");
+#endif
+
 		if(tcpseq_f)
 			tcp->th_seq= htonl(tcpseq);
 		else
@@ -2030,10 +2038,12 @@ void send_packet(struct iface_data *idata, const u_char *pktdata, struct pcap_pk
 			}
 		}
 
+
 		tcp->th_sum = 0;
 		tcp->th_sum = in_chksum(v6buffer, tcp, ptr-((unsigned char *)tcp), IPPROTO_TCP);
 
 		frag_and_send(idata);
+
 
 		if(senddata_f){
 			tcp->th_seq= htonl( ntohl(tcp->th_seq) + ptr-((unsigned char *)tcp + (tcp->th_off << 2)));

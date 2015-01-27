@@ -1908,7 +1908,7 @@ int main(int argc, char **argv){
 						exit(EXIT_FAILURE);
 					}
 
-					if(result == 1){
+					if(result == 1 && pktdata != NULL){
 						pkt_ether = (struct ether_header *) pktdata;
 						pkt_ipv6 = (struct ip6_hdr *)((char *) pkt_ether + idata.linkhsize);
 						pkt_end = (unsigned char *) pktdata + pkthdr->caplen;
@@ -2434,7 +2434,7 @@ puts("Prior to pcap_next_ex()");
 #ifdef DEBUG
 puts("After to pcap_next_ex()");
 #endif
-				if(result == 1){
+				if(result == 1 && pktdata != NULL){
 					pkt_ether = (struct ether_header *) pktdata;
 					pkt_ipv6 = (struct ip6_hdr *)((char *) pkt_ether + idata.linkhsize);
 					pkt_icmp6 = (struct icmp6_hdr *) ((char *) pkt_ipv6 + sizeof(struct ip6_hdr));
@@ -4724,7 +4724,7 @@ int multi_scan_local(pcap_t *pfd, struct iface_data *idata, struct in6_addr *src
 					error_f=TRUE;
 					break;
 				}
-			}while(result==0);			
+			}while(result == 0 || pktdata == NULL);			
 
 			if(error_f)
 				break;
@@ -5044,7 +5044,7 @@ int host_scan_local(pcap_t *pfd, struct iface_data *idata, struct in6_addr *srca
 					error_f=TRUE;
 					break;
 				}
-			}while(result==0);			
+			}while(result == 0 || pktdata == NULL);			
 
 			if(error_f)
 				break;		
