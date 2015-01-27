@@ -1,5 +1,3 @@
-#define DEBUG
-
 /*
  * tcp6 : A security assessment tool that exploits potential flaws in the
  *        processing of TCP/IPv6 packets
@@ -1566,7 +1564,7 @@ int main(int argc, char **argv){
 				}
 			}
 
-			if(!donesending_f && is_time_elapsed(&curtime, &lastprobe, pktinterval)){
+			if(idata.dstaddr_f && !donesending_f && is_time_elapsed(&curtime, &lastprobe, pktinterval)){
 				lastprobe= curtime;
 				send_packet(&idata, NULL, NULL);
 			}
@@ -1777,12 +1775,6 @@ void send_packet(struct iface_data *idata, const u_char *pktdata, struct pcap_pk
 
 		tcp->th_sport= pkt_tcp->th_dport;
 		tcp->th_dport= pkt_tcp->th_sport;
-
-#ifdef DEBUG
-	printf("Src port: %u, dst port: %u\n", ntohs(tcp->th_sport), ntohs(tcp->th_dport));
-	dumpex(pkt_tcp, sizeof(struct tcp_hdr));
-	puts("");
-#endif
 
 		if(tcpseq_f)
 			tcp->th_seq= htonl(tcpseq);

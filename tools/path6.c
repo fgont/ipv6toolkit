@@ -1722,7 +1722,7 @@ int send_probe(struct iface_data *idata, unsigned int probetype, unsigned char c
 
 		ipv6->ip6_plen = htons((ptr - v6buffer) - MIN_IPV6_HLEN);
 		ah->ah_nxt= IPPROTO_TCP; /* XXX: This should be changed */
-		ah->ah_len= htons( sizeof(struct ah_hdr) / 4); /* XXX: Should be modified if we relax the AH format */
+		ah->ah_len= sizeof(struct ah_hdr) / 4; /* XXX: Should be modified if we relax the AH format */
 	}
 
 	else if(probetype == PROBE_ESP){
