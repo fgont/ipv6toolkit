@@ -190,6 +190,11 @@ elsif($ARGV[0] eq "get-asn" || $ARGV[0] eq "get-asn6"){
 	$queryname= $revname[0] . ".origin6.asn.cymru.com.";
 	@reverse=`host -t TXT $queryname`;
 
+#print "salida";
+#		foreach $line (@reverse){
+#			print "$line";
+#		}
+
 	if($? != 0){
 		print "Error when trying to obtain ASN information\n";
 		exit(1);
@@ -215,6 +220,7 @@ elsif($ARGV[0] eq "get-as" || $ARGV[0] eq "get-as6"){
 
 	chomp($revname[0]);
 	$queryname= $revname[0] . ".origin6.asn.cymru.com.";
+
 	@reverse=`host -t TXT $queryname`;
 
 	if($? != 0){
@@ -791,6 +797,12 @@ elsif($ARGV[0] eq "trace" || $ARGV[0] eq "trace6"){
 	elsif($ehtype eq "do"){
 		$eh= "-u $ehsize";
 	}
+	elsif($ehtype eq "ah"){
+		$eh= "-p ah";
+	}
+	elsif($ehtype eq "esp"){
+		$eh= "-p esp";
+	}
 	else{
 		print "Error: Unknown EH type";
 		exit 1;
@@ -846,7 +858,13 @@ elsif($ARGV[0] eq "trace" || $ARGV[0] eq "trace6"){
 		undef @tcp;
 		$maxhopstrouble=0;
 		$maxhopstroubleip="";
-		@tcp=`path6 -d $fline -p $prototype $protoopt $eh --rate-limit 25pps`;
+
+		# XXX: This is an ugly hack. should be removed. ESP and AH should possibly be handled as EHs, rather than probe types
+		if($ehtype eq "esp" || $ehtype eq "ah"){
+			@tcp=`path6 -d $fline $eh --rate-limit 25pps`;
+		}else{
+			@tcp=`path6 -d $fline -p $prototype $protoopt $eh --rate-limit 25pps`;
+		}
 
 		if($? != 0){
 			next;

@@ -144,6 +144,12 @@ elsif($ehtype eq "hbh"){
 elsif($ehtype eq "do"){
 	$eh= "-u $ehsize";
 }
+elsif($ehtype eq "esp"){
+	$eh= "-p esp";
+}
+elsif($ehtype eq "ah"){
+	$eh= "-p ah";
+}
 else{
 	print "Error: Unknown EH type";
 	exit 1;
@@ -177,7 +183,14 @@ foreach $line (@tcp){
 
 $maxhopstrouble=0;
 $maxhopstroubleip="";
-@tcp=`path6 -d $fline -p $prototype $protoopt $eh --rate-limit 40pps`;
+
+# XXX: This is an ugly hack. should be removed. ESP and AH should possibly be handled as EHs, rather than probe types
+if($ehtype eq "esp" || $ehtype eq "ah"){
+	@tcp=`path6 -d $fline $eh --rate-limit 40pps`;
+}else{
+	@tcp=`path6 -d $fline -p $prototype $protoopt $eh --rate-limit 40pps`;
+}
+
 
 if(($? >> 8) != 0){
 	print "blackhole6: Found issues when running path6 to the specified target\n";
@@ -209,12 +222,14 @@ for($i=0; $i< $#ipsfree; $i++){
 
 $flineasn= GetASN($fline);
 
+# fline holds the destination system
 if($flineasn == -1){
-	print "blackhole6: Error when trying to obtain ASN for $fline\n";
-	exit(1);
+#	print "blackhole6: Error when trying to obtain ASN for $fline\n";
+#	exit(1);
+	$flineasn= " Unknown";
 }
 
-if($flineasn eq ""){
+elsif($flineasn eq ""){
 	$flineasn= " Unknown";
 }
 
@@ -222,22 +237,23 @@ if($flineasn eq ""){
 $maxhopsfreeasn= GetASN($maxhopsfreeip);
 
 if($maxhopsfreeasn == -1){
-	print "blackhole6: Error when trying to obtain ASN for $maxhopsfreeip\n";
-	exit(1);
+#	print "blackhole6: Error when trying to obtain ASN for $maxhopsfreeip\n";
+#	exit(1);
+	$maxhopsfreeasn= " Unknown";
 }
 
-if($maxhopsfreeasn eq ""){
+elsif($maxhopsfreeasn eq ""){
 	$maxhopsfreeasn= " Unknown";
 }
 
 $maxhopstroubleasn= GetASN($maxhopstroubleip);
 
 if($maxhopstroubleasn == -1){
-	print "blackhole6: Error when trying to obtain ASN for $maxhopstroubleip\n";
-	exit(1);
+#	print "blackhole6: Error when trying to obtain ASN for $maxhopstroubleip\n";
+#	exit(1);
+	$maxhopstroubleasn= " Unknown";
 }
-
-if($maxhopstroubleasn eq ""){
+elsif($maxhopstroubleasn eq ""){
 	$maxhopstroubleasn= " Unknown";
 }
 
@@ -245,22 +261,25 @@ $ehtype_uc= uc($ehtype);
 $flineorg= GetORG($flineasn);
 
 if($flineorg == -1){
-	print "blackhole6: Error when trying to obtain organization for AS$flineasn\n";
-	exit(1);
+#	print "blackhole6: Error when trying to obtain organization for AS$flineasn\n";
+#	exit(1);
+	$flineorg= "Unknown organization";
 }
 
 $maxhopsfreeorg= GetORG($maxhopsfreeasn);
 
 if($maxhopsfreeorg == -1){
-	print "blackhole6: Error when trying to obtain organization for AS$maxhopsfreeasn\n";
-	exit(1);
+#	print "blackhole6: Error when trying to obtain organization for AS$maxhopsfreeasn\n";
+#	exit(1);
+	$maxhopsfreeorg= "Unknown organization";
 }
 
 $maxhopstroubleorg= GetORG($maxhopstroubleasn);
 
 if($maxhopstroubleorg == -1){
-	print "blackhole6: Error when trying to obtain organization for AS$maxhopstroubleasn\n";
-	exit(1);
+#	print "blackhole6: Error when trying to obtain organization for AS$maxhopstroubleasn\n";
+#	exit(1);
+	$maxhopstroubleorg=  "Unknown organization";
 }
 
 print "\nDst. IPv6 address: $fline (AS$flineasn - $flineorg)\n";
@@ -274,8 +293,9 @@ if($maxhopsfreeip eq $fline){
 	else{
 		$dropasn= GetASN($dropip);
 		if($dropasn == -1){
-			print "blackhole6: Error when trying to obtain ASN for $dropip\n";
-			exit(1);
+#			print "blackhole6: Error when trying to obtain ASN for $dropip\n";
+#			exit(1);
+			$dropasn="";
 		}
 
 		$droporg= "";
@@ -283,8 +303,9 @@ if($maxhopsfreeip eq $fline){
 		if($dropasn ne ""){
 			$droporg= GetORG($dropasn);
 			if($droporg == -1){
-				print "blackhole6: Error when trying to obtain organization for AS$dropasn\n";
-				exit(1);
+#				print "blackhole6: Error when trying to obtain organization for AS$dropasn\n";
+#				exit(1);
+				$droporg= "";
 			}
 		}
 		
@@ -299,16 +320,19 @@ if($maxhopsfreeip eq $fline){
 		if($dropip2 ne ""){
 			$dropasn2= GetASN($dropip2);
 			if($dropasn2 == -1){
-				print "blackhole6: Error when trying to obtain ASN for $dropip2\n";
-				exit(1);
+#				print "blackhole6: Error when trying to obtain ASN for $dropip2\n";
+#				exit(1);
+				$dropasn2="";
 			}
+
 			$droporg2= "";
 
 			if($dropasn2 ne ""){
 				$droporg2= GetORG($dropasn2);
 				if($droporg2 == -1){
-					print "blackhole6: Error when trying to obtain organization for AS$dropasn2\n";
-					exit(1);
+#					print "blackhole6: Error when trying to obtain organization for AS$dropasn2\n";
+#					exit(1);
+					$droporg2="";
 				}
 			}
 		
