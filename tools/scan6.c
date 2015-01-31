@@ -1212,14 +1212,14 @@ int main(int argc, char **argv){
 				break;
 
 			case 'B':
-				if(strncmp("ipv4-all", optarg, MAX_LINE_SIZE) == 0){
+				if(strncmp("ipv4-all", optarg, MAX_LINE_SIZE) == 0 || strncmp("all", optarg, MAX_LINE_SIZE) == 0){
 					tgt_ipv4mapped32_f=TRUE;
 					tgt_ipv4mapped64_f=TRUE;
 				}
-				else if(strncmp("ipv4-32", optarg, MAX_LINE_SIZE) == 0){
+				else if(strncmp("ipv4-32", optarg, MAX_LINE_SIZE) == 0 || strncmp("32", optarg, MAX_LINE_SIZE) == 0){
 					tgt_ipv4mapped32_f=TRUE;
 				}
-				else if(strncmp("ipv4-64", optarg, MAX_LINE_SIZE) == 0){
+				else if(strncmp("ipv4-64", optarg, MAX_LINE_SIZE) == 0 || strncmp("64", optarg, MAX_LINE_SIZE) == 0){
 					tgt_ipv4mapped64_f=TRUE;
 				}
 				else{
