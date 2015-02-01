@@ -1,4 +1,10 @@
-(upcoming) SI6 Networks IPv6 Toolkit v2.0
+SI6 Networks IPv6 Toolkit v2.0 (Guille)
+   * All: Fix bug when reading packets
+     lipcap "internals" together with select() would cause (at times)
+     delays when reading packets.
+
+   * All: Add support for Solaris
+     Solaris is now a supported platform.
 
    * All: Fix bug in next hop determination
      A bug caused, in some scenarios, the tools to fail with "cannot find
@@ -20,6 +26,27 @@
    * scan6: Fixes bug in address range computation
      Prefixes that were not multiple of 16 resulted in bogus address ranges.
 
+   * scan6: Add support for port scanning
+     scan6 now implements several techniques for TCP and UDP port scanning.
+
+   * scan6: Add support for heuristic host scanning
+     scan6 can now automatically infer the IID type of a target and reduce
+     the search space accordingly (just "-d example.com/64" or 
+     "-d IPV6ADDRESS/64".
+
+   * tcp6: Add TCP probe mode
+     Probe mode allows you to employ tcp6 for simple probing (e.g.,
+     port scanning)
+
+   * tcp6: Add "--open-mode" and "--close-mode" options
+     These two options allow you to cause a TCP connection at a remote
+     node to transition to any specific state (and hene perform e.g.,
+     FIN-WAIT-2 floods)
+
+   * tcp6: Add "--data" option
+     This options allows to set a specific TCP payload from the
+     command-line (e.g., an HTTP "GET" command).
+
    * path6: New tool
      Added a fully-IPv6-capable traceroute tool, named path6.
 
@@ -28,7 +55,10 @@
      a shortcut to other existing tools.
 
    * blackhole6: New tool
-     Added a new tool which helps find IPv6 blackholes.
+     Added a new tool isolates IPv6 blackholes.
+
+   * udp6: New tool
+     Added a new tool that can send arbirary UDP/IPv6 packets.
 
 
 SI6 Networks IPv6 Toolkit v1.5.3
