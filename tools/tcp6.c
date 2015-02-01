@@ -57,7 +57,6 @@
 
 /* Function prototypes */
 void				init_packet_data(struct iface_data *);
-int				is_valid_tcp_segment(struct iface_data *, const u_char *, struct pcap_pkthdr *);
 void				send_packet(struct iface_data *, const u_char *, struct pcap_pkthdr *);
 void				print_attack_info(struct iface_data *);
 void				usage(void);
@@ -236,7 +235,7 @@ int main(int argc, char **argv){
 		{0, 0, 0,  0 }
 	};
 
-	char shortopts[]= "i:s:d:A:c:C:Z:u:U:H:y:S:D:P:o:a:X:q:Q:V:w:W:M:Nnj:k:J:K:b:g:B:G:F:T:fRlr:z:Lp:x:vyh";
+	char shortopts[]= "i:s:d:A:c:C:Z:u:U:H:y:S:D:P:o:a:X:q:Q:V:w:W:M:Nnj:k:J:K:b:g:B:G:F:T:fRlr:z:Lp:x:vh";
 
 	char option;
 
@@ -2354,6 +2353,7 @@ void print_help(void){
  */
  
 void print_attack_info(struct iface_data *idata){
+	puts(SI6_TOOLKIT);
 	puts( "tcp6: Security assessment tool for attack vectors based on TCP/IPv6 packets\n");
 
 	if(floods_f)
