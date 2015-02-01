@@ -1286,13 +1286,13 @@ int main(int argc, char **argv){
 						((pkt_tcp_flags & TH_RST)?"R":""), ((pkt_tcp_flags & TH_PUSH)?"P":""),\
 						((pkt_tcp_flags & TH_ACK)?"A":""), ((pkt_tcp_flags & TH_URG)?"U":""));
 
-					exit(0);
+					exit(EXIT_SUCCESS);
 				}
 			}
 		}
 
 		puts("RESPONSE:TIMEOUT:");
-		exit(0);
+		exit(EXIT_SUCCESS);
 	}
 
 
