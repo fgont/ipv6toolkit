@@ -48,7 +48,7 @@ SBINPATH= $(DESTDIR)$(PREFIX)/sbin
 SRCPATH= tools
 
 
-SBINTOOLS= blackhole6 flow6 frag6 icmp6 jumbo6 na6 ni6 ns6 path6 ra6 rd6 rs6 scan6 script6 tcp6
+SBINTOOLS= blackhole6 flow6 frag6 icmp6 jumbo6 na6 ni6 ns6 path6 ra6 rd6 rs6 scan6 script6 tcp6 udp6
 BINTOOLS= addr6
 TOOLS= $(BINTOOLS) $(SBINTOOLS)
 LIBS= libipv6.o
@@ -102,6 +102,9 @@ script6: $(SRCPATH)/script6
 
 tcp6: $(SRCPATH)/tcp6.c $(SRCPATH)/tcp6.h $(SRCPATH)/ipv6toolkit.h $(LIBS) $(SRCPATH)/libipv6.h
 	$(CC) $(CPPFLAGS) $(CFLAGS) -o tcp6 $(SRCPATH)/tcp6.c $(LIBS) $(LDFLAGS)
+
+udp6: $(SRCPATH)/udp6.c $(SRCPATH)/udp6.h $(SRCPATH)/ipv6toolkit.h $(LIBS) $(SRCPATH)/libipv6.h
+	$(CC) $(CPPFLAGS) $(CFLAGS) -o udp6 $(SRCPATH)/udp6.c $(LIBS) $(LDFLAGS)
 
 libipv6.o: $(SRCPATH)/libipv6.c $(SRCPATH)/libipv6.h
 	$(CC) $(CPPFLAGS) $(CFLAGS) -c -o libipv6.o $(SRCPATH)/libipv6.c
@@ -165,6 +168,7 @@ else
 	install -m 0755 -f $(SBINPATH) rs6
 	install -m 0755 -f $(SBINPATH) scan6
 	install -m 0755 -f $(SBINPATH) tcp6
+	install -m 0755 -f $(SBINPATH) udp6
 
 	# Install the configuration file
 	install -m 0755 -d $(ETCPATH)
@@ -195,6 +199,7 @@ else
 	install -m 0644 -f $(MANPATH)/man1 manuals/scan6.1
 	install -m 0644 -f $(MANPATH)/man1 manuals/script6.1
 	install -m 0644 -f $(MANPATH)/man1 manuals/tcp6.1
+	install -m 0644 -f $(MANPATH)/man1 manuals/udp6.1
 	install -m 0755 -d $(MANPATH)/man5
 	install -m 0644 -f $(MANPATH)/man5 manuals/ipv6toolkit.conf.5
 	install -m 0755 -d $(MANPATH)/man7
@@ -220,6 +225,7 @@ uninstall:
 	rm -f $(SBINPATH)/rs6
 	rm -f $(SBINPATH)/scan6
 	rm -f $(SBINPATH)/tcp6
+	rm -f $(SBINPATH)/udp6
 
 	# Remove the configuration file
 	rm -f $(ETCPATH)/ipv6toolkit.conf
@@ -244,6 +250,7 @@ uninstall:
 	rm -f $(MANPATH)/man1/scan6.1
 	rm -f $(MANPATH)/man1/script6.1
 	rm -f $(MANPATH)/man1/tcp6.1
+	rm -f $(MANPATH)/man1/udp6.1
 	rm -f $(MANPATH)/man5/ipv6toolkit.conf.5
 	rm -f $(MANPATH)/man7/ipv6toolkit.7
 

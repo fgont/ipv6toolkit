@@ -18,7 +18,7 @@
 # typically employed by package developers.
 
 
-CC= gcc
+CC?=gcc
 CFLAGS+= -Wall
 LDFLAGS+= -lpcap -lm
 
@@ -41,7 +41,7 @@ SBINPATH= $(DESTDIR)$(PREFIX)/sbin
 SRCPATH= tools
 
 
-SBINTOOLS= blackhole6 flow6 frag6 icmp6 jumbo6 na6 ni6 ns6 path6 ra6 rd6 rs6 scan6 script6 tcp6
+SBINTOOLS= blackhole6 flow6 frag6 icmp6 jumbo6 na6 ni6 ns6 path6 ra6 rd6 rs6 scan6 script6 tcp6 udp6
 BINTOOLS= addr6
 TOOLS= $(BINTOOLS) $(SBINTOOLS)
 LIBS= libipv6.o
@@ -95,6 +95,9 @@ script6: $(SRCPATH)/script6
 
 tcp6: $(SRCPATH)/tcp6.c $(SRCPATH)/tcp6.h $(SRCPATH)/ipv6toolkit.h $(LIBS) $(SRCPATH)/libipv6.h
 	$(CC) $(CPPFLAGS) $(CFLAGS) -o tcp6 $(SRCPATH)/tcp6.c $(LIBS) $(LDFLAGS)
+
+udp6: $(SRCPATH)/udp6.c $(SRCPATH)/udp6.h $(SRCPATH)/ipv6toolkit.h $(LIBS) $(SRCPATH)/libipv6.h
+	$(CC) $(CPPFLAGS) $(CFLAGS) -o udp6 $(SRCPATH)/udp6.c $(LIBS) $(LDFLAGS)
 
 libipv6.o: $(SRCPATH)/libipv6.c $(SRCPATH)/libipv6.h
 	$(CC) $(CPPFLAGS) $(CFLAGS) -c -o libipv6.o $(SRCPATH)/libipv6.c
@@ -155,6 +158,7 @@ uninstall:
 	rm -f $(SBINPATH)/scan6
 	rm -f $(SBINPATH)/script6
 	rm -f $(SBINPATH)/tcp6
+	rm -f $(SBINPATH)/udp6
 
 	# Remove the configuration file
 	rm -f $(ETCPATH)/ipv6toolkit.conf
@@ -179,6 +183,7 @@ uninstall:
 	rm -f $(MANPATH)/man1/scan6.1
 	rm -f $(MANPATH)/man1/script6.1
 	rm -f $(MANPATH)/man1/tcp6.1
+	rm -f $(MANPATH)/man1/udp6.1
 	rm -f $(MANPATH)/man5/ipv6toolkit.conf.5
 	rm -f $(MANPATH)/man7/ipv6toolkit.7
 
