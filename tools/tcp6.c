@@ -2294,7 +2294,7 @@ void print_help(void){
 	puts(SI6_TOOLKIT);
 	puts( "tcp6: Security assessment tool for attack vectors based on TCP/IPv6 packets\n");
 	usage();
-    
+ 
 	puts("\nOPTIONS:\n"
 	     "  --interface, -i           Network interface\n"
 	     "  --src-address, -s         IPv6 Source Address\n"
@@ -2312,10 +2312,19 @@ void print_help(void){
 	     "  --tcp-flags, -X           TCP Flags\n"
 	     "  --tcp-seq, -q             TCP Sequence Number\n"
 	     "  --tcp-ack, -Q             TCP Acknowledgment Number\n"
-	     "  --tcp-urg, -V             TCP Urgent Pointer\n"
-	     "  --tcp-win, -w             TCP Window\n"
 	     "  --not-ack-data, -N        Do not acknowledge the TCP payload\n"
 	     "  --not-ack-flags, -f       Do not acknowledge the TCP flags\n"
+	     "  --tcp-urg, -V             TCP Urgent Pointer\n"
+	     "  --tcp-win, -w             TCP Window\n"
+	     "  --window-mode, -W         TCP Window mode {close,modulate}\n"
+	     "  --win-modulation, -M      TCP Window modulation (WIN1:TIME1:WIN2:TIME2)\n"
+	     "  --open-mode, -c           Open mode {simultaneous,passive,abort,active}\n"
+	     "  --close-mode, -C          Close mode {simultaneous,passive,abort\n"
+         "                            active,FIN-WAIT-1,FIN-WAIT-2,LAST-ACK}\n"
+	     "  --data, -Z                TCP payload data\n"
+	     "  --rate-limit, -r          Rate limit the address scan to specified rate\n"
+         "  --probe-mode, -p          TCP probe mode {dump,script}\n"
+	     "  --retrans, -x             Set number of TCP retransmissions\n"
 	     "  --block-src, -j           Block IPv6 Source Address prefix\n"
 	     "  --block-dst, -k           Block IPv6 Destination Address prefix\n"
 	     "  --block-link-src, -J      Block Ethernet Source Address\n"
