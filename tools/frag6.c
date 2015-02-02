@@ -125,7 +125,7 @@ char 				plinkaddr[ETHER_ADDR_PLEN];
 char 				psrcaddr[INET6_ADDRSTRLEN], pdstaddr[INET6_ADDRSTRLEN], pv6addr[INET6_ADDRSTRLEN];
 unsigned char 		verbose_f=0;
 unsigned char 		floodf_f=0;
-unsigned char 		loop_f=0, sleep_f=0, localaddr_f=0, tstamp_f=1, pod_f=0;
+unsigned char 		loop_f=0, sleep_f=0, localaddr_f=0, tstamp_f=1, pod_f=0, gotresp_f= FALSE;
 unsigned char		srcprefix_f=0, hoplimit_f=0, ip6length_f=0, icmp6psize_f=0;
 unsigned char		fsize_f=0, forder_f=0, foffset_f=0, fid_f=0, fragp_f=0, fragidp_f=0, resp_f=1;
 
@@ -799,7 +799,7 @@ int main(int argc, char **argv){
 
 			rset= sset;
 
-#if !defined(sun) && !defined(__sun)
+#if !defined(sun) && !defined(__sun) && !defined(__linux__)
 			timeout.tv_usec=0;
 			timeout.tv_sec= 1;
 #else
@@ -817,7 +817,7 @@ int main(int argc, char **argv){
 				}
 			}
 
-#if defined(sun) || defined(__sun)
+#if defined(sun) || defined(__sun) || defined(__linux__)
 			if(TRUE){
 #else
 			if(sel && FD_ISSET(idata.fd, &rset)){
@@ -1008,7 +1008,7 @@ int main(int argc, char **argv){
 			}
 
 			rset= sset;
-#if !defined(sun) && !defined(__sun)
+#if !defined(sun) && !defined(__sun) && !defined(__linux__)
 			timeout.tv_usec=0;
 			timeout.tv_sec= 1;
 #else
@@ -1026,7 +1026,7 @@ int main(int argc, char **argv){
 				}
 			}
 
-#if defined(sun) || defined(__sun)
+#if defined(sun) || defined(__sun) || defined(__linux__)
 			if(TRUE){
 #else
 			if(sel && FD_ISSET(idata.fd, &rset)){
@@ -1263,7 +1263,7 @@ int main(int argc, char **argv){
 		while(1){
 			curtime=time(NULL);
 
-			if(!loop_f && ((curtime - start) >= QUERY_TIMEOUT || (!resp_f && lastfrag != 0))){
+			if(!loop_f && ((curtime - start) >= QUERY_TIMEOUT || (!resp_f && lastfrag != 0) || (resp_f && gotresp_f))){
 				break;
 			}
 
@@ -1296,9 +1296,14 @@ int main(int argc, char **argv){
 			}
 
 			rset= sset;
+
+#if defined(sun) || defined(__sun) || defined(__linux__)
+			timeout.tv_usec=10000;
+			timeout.tv_sec= 0;
+#else
 			timeout.tv_usec=0;
 			timeout.tv_sec= (lastfrag+nsleep)-curtime;
-
+#endif
 			if((sel=select(idata.fd+1, &rset, NULL, NULL, &timeout)) == -1){
 				if(errno == EINTR){
 					continue;
@@ -1309,7 +1314,7 @@ int main(int argc, char **argv){
 				}
 			}
 
-#if defined(sun) || defined(__sun)
+#if defined(sun) || defined(__sun) || defined(__linux__)
 			if(TRUE){
 #else
 			if(sel && FD_ISSET(idata.fd, &rset)){
@@ -1348,8 +1353,9 @@ int main(int argc, char **argv){
 							}
 						}
 						else if( (pkt_icmp6->icmp6_type == ICMP6_ECHO_REPLY) || (pkt_icmp6->icmp6_type == ICMP6_TIME_EXCEEDED)){
-							if( (pkt_end - (unsigned char *) pkt_icmp6) < sizeof(struct icmp6_hdr))
+							if( (pkt_end - (unsigned char *) pkt_icmp6) < sizeof(struct icmp6_hdr)){
 								continue;
+							}
 							/*
 							   Do a preliminar validation check on the ICMPv6 packet (packet size, Source Address,
 							   and Destination Address).
@@ -1360,12 +1366,16 @@ int main(int argc, char **argv){
 
 							switch(pkt_icmp6->icmp6_type){
 								case ICMP6_ECHO_REPLY:
+									gotresp_f= TRUE;
+
 									if(resp_f)
 										print_icmp6_echo(&idata, pkthdr, pktdata);
 
 									break;
 
 								case ICMP6_TIME_EXCEEDED:
+									gotresp_f= TRUE;
+
 									if(resp_f)
 										print_icmp6_timed(&idata, pkthdr, pktdata);
 
@@ -1876,7 +1886,7 @@ int send_fragment2(struct iface_data *idata, uint16_t ip6len, unsigned int id, u
  */
 int send_fragment(struct iface_data *idata, unsigned int id, unsigned int offset, unsigned int fsize, \
                   unsigned int forder, unsigned int tstamp_f){
-	time_t	tstamp;
+	uint32_t	tstamp;
 	unsigned int i;
 
 	ethernet= (struct ether_header *) buffer;
@@ -2023,24 +2033,24 @@ int send_fragment(struct iface_data *idata, unsigned int id, unsigned int offset
 		ptr+= sizeof(struct icmp6_hdr);
 		fsize-= sizeof(struct icmp6_hdr);
 
-		if(tstamp_f && fsize >= (sizeof(time_t)+sizeof(uint32_t))){
-			if((ptr+ (sizeof(time_t) + sizeof(uint32_t))) > (v6buffer+idata->max_packet_size)){
+		if(tstamp_f && fsize >= (sizeof(uint32_t)+sizeof(uint32_t))){
+			if((ptr+ (sizeof(uint32_t) + sizeof(uint32_t))) > (v6buffer+idata->max_packet_size)){
 				puts("Packet too large while inserting timestamp");
 				return(-1);
 			}
 
 			/* We include a timstamp to be able to measure the Fragment Reassembly timeout */
-			tstamp= time(NULL);
-			*(time_t *)ptr= tstamp;
-			ptr+= sizeof(time_t);
+			tstamp= (uint32_t) time(NULL);
+			*(uint32_t *)ptr= tstamp;
+			ptr+= sizeof(uint32_t);
 
 			/* We include a "checksum" such that we can tell the responses we elicit from other packets */
 			*(uint32_t *)ptr= (uint32_t)tstamp ^ 0xabcdabcd;
 			ptr+= sizeof(uint32_t);
 			
 
-			if(fsize > (sizeof(time_t)+sizeof(uint32_t)))
-				fsize-= (sizeof(time_t)+sizeof(uint32_t));
+			if(fsize > (sizeof(uint32_t)+sizeof(uint32_t)))
+				fsize-= (sizeof(uint32_t)+sizeof(uint32_t));
 			else
 				fsize=0;
 		}
@@ -2054,15 +2064,16 @@ int send_fragment(struct iface_data *idata, unsigned int id, unsigned int offset
 		icmp6->icmp6_cksum = in_chksum(v6buffer, icmp6, ptr-((unsigned char *)icmp6), IPPROTO_ICMPV6);
 	}
 	else{
+		/* XXX: Should check */
 		if(tstamp_f){
-			if((ptr+ (sizeof(time_t) + sizeof(uint32_t))) > (v6buffer+idata->max_packet_size)){
+			if((ptr+ (sizeof(uint32_t) + sizeof(uint32_t))) > (v6buffer+idata->max_packet_size)){
 				puts("Packet too large while inserting timestamp");
 				return(-1);
 			}
 
 			/* We include a timstamp to be able to measure the Fragment Reassembly timeout */
-			tstamp= time(NULL);
-			*(time_t *)ptr= tstamp;
+			tstamp= (uint32_t)time(NULL);
+			*(uint32_t *)ptr= tstamp;
 			ptr+= sizeof(time_t);
 
 			/* We include a "checksum" such that we can tell the responses we elicit from other packets */
@@ -2070,8 +2081,8 @@ int send_fragment(struct iface_data *idata, unsigned int id, unsigned int offset
 			ptr+= sizeof(uint32_t);
 			
 
-			if(fsize > (sizeof(time_t)+sizeof(uint32_t)))
-				fsize-= (sizeof(time_t)+sizeof(uint32_t));
+			if(fsize > (sizeof(uint32_t)+sizeof(uint32_t)))
+				fsize-= (sizeof(uint32_t)+sizeof(uint32_t));
 			else
 				fsize=0;
 		}
@@ -2400,7 +2411,8 @@ int valid_icmp6_response(struct iface_data *idata, struct pcap_pkthdr *pkthdr, c
 
 			if(tstamp_f){
 				pkt_ptr= ((unsigned char *) pkt_icmp6+ sizeof(struct icmp6_hdr));
-				if( *(uint32_t *) pkt_ptr != (*(uint32_t *) (pkt_ptr+sizeof(uint32_t)) ^ 0xabcdabcd)){
+
+				if( *((uint32_t *) pkt_ptr) != (*((uint32_t *) (pkt_ptr+sizeof(uint32_t))) ^ 0xabcdabcd)){
 					return 0;
 				}
 			}
