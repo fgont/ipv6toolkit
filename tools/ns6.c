@@ -109,6 +109,7 @@ struct iface_data	idata;
 int main(int argc, char **argv){
 	extern char	*optarg;
 	int			r;
+	struct target_ipv6	targetipv6;
 
 	static struct option longopts[] = {
 		{"interface", required_argument, 0, 'i'},
@@ -186,11 +187,23 @@ int main(int argc, char **argv){
 				break;
 	    
 			case 'd':	/* IPv6 Destination Address */
-				if( inet_pton(AF_INET6, optarg, &(idata.dstaddr)) <= 0){
-					puts("inet_pton(): address not valid");
-					exit(EXIT_FAILURE);
+				strncpy( targetipv6.name, optarg, NI_MAXHOST);
+				targetipv6.name[NI_MAXHOST-1]= 0;
+				targetipv6.flags= AI_CANONNAME;
+
+				if( (r=get_ipv6_target(&targetipv6)) != 0){
+
+					if(r < 0){
+						printf("Unknown Destination: %s\n", gai_strerror(targetipv6.res));
+					}
+					else{
+						puts("Unknown Destination: No IPv6 address found for specified destination");
+					}
+
+					exit(1);
 				}
-		
+
+				idata.dstaddr= targetipv6.ip6;
 				idata.dstaddr_f = 1;
 				break;
 

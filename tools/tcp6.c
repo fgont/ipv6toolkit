@@ -185,6 +185,7 @@ int main(int argc, char **argv){
 	unsigned char		end_f=0;
 	unsigned long	pktinterval=0; /*Add  datasent=0*/
 	unsigned int	retr=0;
+	struct target_ipv6	targetipv6;
 
 	static struct option longopts[] = {
 		{"interface", required_argument, 0, 'i'},
@@ -222,8 +223,6 @@ int main(int argc, char **argv){
 		{"accept-link-dst-addr", required_argument, 0, 'G'},
 		{"flood-sources", required_argument, 0, 'F'},
 		{"flood-ports", required_argument, 0, 'T'},
-		{"rand-src-addr", no_argument, 0, 'f'},
-		{"rand-link-src-addr", no_argument, 0, 'R'},
 		{"loop", no_argument, 0, 'l'},
 		{"rate-limit", required_argument, 0, 'r'},
 		{"sleep", required_argument, 0, 'z'},
@@ -235,7 +234,7 @@ int main(int argc, char **argv){
 		{0, 0, 0,  0 }
 	};
 
-	char shortopts[]= "i:s:d:A:c:C:Z:u:U:H:y:S:D:P:o:a:X:q:Q:V:w:W:M:Nnj:k:J:K:b:g:B:G:F:T:fRlr:z:Lp:x:vh";
+	char shortopts[]= "i:s:d:A:c:C:Z:u:U:H:y:S:D:P:o:a:X:q:Q:V:w:W:M:Nnj:k:J:K:b:g:B:G:F:T:lr:z:Lp:x:vh";
 
 	char option;
 
@@ -307,11 +306,23 @@ int main(int argc, char **argv){
 				break;
 	    
 			case 'd':	/* IPv6 Destination Address */
-				if( inet_pton(AF_INET6, optarg, &(idata.dstaddr)) <= 0){
-					puts("inet_pton(): address not valid");
-					exit(EXIT_FAILURE);
+				strncpy( targetipv6.name, optarg, NI_MAXHOST);
+				targetipv6.name[NI_MAXHOST-1]= 0;
+				targetipv6.flags= AI_CANONNAME;
+
+				if( (r=get_ipv6_target(&targetipv6)) != 0){
+
+					if(r < 0){
+						printf("Unknown Destination: %s\n", gai_strerror(targetipv6.res));
+					}
+					else{
+						puts("Unknown Destination: No IPv6 address found for specified destination");
+					}
+
+					exit(1);
 				}
-		
+
+				idata.dstaddr= targetipv6.ip6;
 				idata.dstaddr_f = 1;
 				break;
 
@@ -901,14 +912,6 @@ int main(int argc, char **argv){
 				floodp_f= 1;
 				break;
 
-			case 'f':
-				rand_src_f=1;
-				break;
-
-			case 'R':
-				rand_link_src_f=1;
-				break;
-
 			case 'l':	/* "Loop mode */
 				loop_f = 1;
 				break;
@@ -963,13 +966,13 @@ int main(int argc, char **argv){
 				probemode_f=1;
 				break;
 
-			case 'v':	/* Be verbose */
-				(idata.verbose_f)++;
-				break;
-
 			case 'x':	/* Number of retrnasmissions */
 				retrans= atoi(optarg);
 				retrans_f=1;
+				break;
+
+			case 'v':	/* Be verbose */
+				(idata.verbose_f)++;
 				break;
 
 			case 'h':	/* Help */
@@ -2010,7 +2013,7 @@ void send_packet(struct iface_data *idata, const u_char *pktdata, struct pcap_pk
 		tcp->th_off= sizeof(struct tcp_hdr) >> 2;
 		ptr+= tcp->th_off << 2;
 
-		if(rhbytes){
+		if(rhbytes_f){
 			if( (ptr + rhbytes) > v6buffer+ idata->max_packet_size){
 				puts("Packet Too Large while inserting TCP segment");
 				exit(EXIT_FAILURE);
@@ -2278,10 +2281,13 @@ void usage(void){
 	 "[-s SRC_ADDR[/LEN]] [-d DST_ADDR] [-A HOP_LIMIT] [-y FRAG_SIZE] [-u DST_OPT_HDR_SIZE] "
 	 "[-U DST_OPT_U_HDR_SIZE] [-H HBH_OPT_HDR_SIZE] [-P PAYLOAD_SIZE] [-o SRC_PORT] "
 	 "[-a DST_PORT] [-X TCP_FLAGS] [-q TCP_SEQ] [-Q TCP_ACK] [-V TCP_URP] [-w TCP_WIN] "
-	 "[-N] [-f] [-j PREFIX[/LEN]] [-k PREFIX[/LEN]] [-J LINK_ADDR] [-K LINK_ADDR] "
+	 "[-c OPEN_MODE] [-C CLOSE_MODE] [-Z DATA] [-P PAYLOAD_SIZE] [-W WIN_MODE]"
+	 "[-M WIN_MOD_MODE] [-r RATE] [-p PROBE_MODE] [-x RETRANS] "
+	 "[-N] [-n] [-j PREFIX[/LEN]] [-k PREFIX[/LEN]] [-J LINK_ADDR] [-K LINK_ADDR] "
 	 "[-b PREFIX[/LEN]] [-g PREFIX[/LEN]] [-B LINK_ADDR] [-G LINK_ADDR] "
 	 "[-F N_SOURCES] [-T N_PORTS] [-L | -l] [-z SECONDS] [-v] [-h]");
 }
+
 
 
 /*
@@ -2312,7 +2318,7 @@ void print_help(void){
 	     "  --tcp-seq, -q             TCP Sequence Number\n"
 	     "  --tcp-ack, -Q             TCP Acknowledgment Number\n"
 	     "  --not-ack-data, -N        Do not acknowledge the TCP payload\n"
-	     "  --not-ack-flags, -f       Do not acknowledge the TCP flags\n"
+	     "  --not-ack-flags, -n       Do not acknowledge the TCP flags\n"
 	     "  --tcp-urg, -V             TCP Urgent Pointer\n"
 	     "  --tcp-win, -w             TCP Window\n"
 	     "  --window-mode, -W         TCP Window mode {close,modulate}\n"
