@@ -144,6 +144,7 @@ struct filters{
 #define PCAP_ICMPV6_RA_FILTER "icmp6 and ip6[7]==255 and ip6[40]==134 and ip6[41]==0"
 #define PCAP_ICMPV6_RANS_FILTER	"icmp6 and ip6[7]==255 and ((ip6[40]==134 and ip6[41]==0) or (ip6[40]==135 and ip6[41]==0))"
 #define PCAP_TCPIPV6_NS_FILTER	"ip6 and (tcp or (icmp6 and ip6[7]==255 and ip6[40]==135 and ip6[41]==0))"
+#define PCAP_UDPIPV6_NS_FILTER	"ip6 and (udp or (icmp6 and ip6[7]==255 and ip6[40]==135 and ip6[41]==0))"
 #define PCAP_ICMPV6_NI_QUERY	"icmp6 and ip6[40]==139"
 #define PCAP_ICMPV6_NI_REPLY	"icmp6 and ip6[40]==140"
 #define PCAP_NOPACKETS_FILTER	"not ip and not ip6 and not arp"
@@ -389,6 +390,21 @@ struct tcp_hdr {
 	uint16_t th_urp;			/* urgent pointer */
 };
 
+/*
+  0      7 8     15 16    23 24    31  
+ +--------+--------+--------+--------+ 
+ |     Source      |   Destination   | 
+ |      Port       |      Port       | 
+ +--------+--------+--------+--------+ 
+ |                 |                 | 
+ |     Length      |    Checksum     | 
+ +--------+--------+--------+--------+ 
+ |                                     
+ |          data octets ...            
+ +---------------- ...                 
+
+     User Datagram Header Format
+*/
 
 struct udp_hdr{
   uint16_t uh_sport;		/* source port */
@@ -400,8 +416,8 @@ struct udp_hdr{
 
 
 /* Definition of the Authentication Header
-     0                   1                   2                   3
-     0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+    0                   1                   2                   3
+    0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
    | Next Header   |  Payload Len  |          RESERVED             |
    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
