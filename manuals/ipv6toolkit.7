@@ -5,9 +5,10 @@ ipv6toolkit \- An IPv6 security assessment and trouble\-shooting toolkit
 .SH DESCRIPTION
 The SI6 Networks' IPv6 Toolkit is a security assessment and trouble\-shooting toolkit for IPv6 networks and implementations. It provides a number of tools to send abitrary IPv6 packets, perform IPv6 address\-scans, analyze IPv6 addresses, etc.
 
-The current version of the toolkit includes the following tools:
+This version of the toolkit (v2.0) includes the following tools:
 
   * addr6
+  * blackhole6
   * flow6
   * frag6
   * icmp6
@@ -20,6 +21,7 @@ The current version of the toolkit includes the following tools:
   * rd6
   * rs6
   * scan6
+  * script6
   * tcp6
   * udp6
 
@@ -29,6 +31,9 @@ is an IPv6 address analysis and manipulation tool. Given a list of IPv6 addresse
 can produce statistics on such addresses, including address scopes, types, and type of IPv6 interface identifier.
 .B addr6
 can also analyze a single address, producing script\-friendly output, such that its analysis can be leveraged by other tools or scripts.
+
+.B blackhole6
+is a troubleshooting tool which can find IPv6 where in the network topology packets with specific IPv6 Extension Headers are being dropped.
 
 .B flow6
 allows the security assessment of the IPv6 Flow Label. Essentially, it can be leveraged to assess the Flow Label generation policy of a terget implementation.
@@ -66,17 +71,21 @@ is a security assessment tool for attack vectors based on ICMPv6 Redirect messag
 is a security assessment tool for attack vectors based on Router Solicitation messages.
 
 .B scan6
-is a full-fledged IPv6 address scanning tool, which can leverage specific IPv6 address patterns to greatly reduce the search space for "alive" nodes.
+is a full\-fledged IPv6 address scanning tool, which can leverage specific IPv6 address patterns to greatly reduce the search space for "alive" nodes.
+
+.B script6
+is set of scripts/commands that make rather complex and frequent tasks easy.
 
 .B tcp6
 is a security assessment tool for attack vectors based on TCP/IPv6 packets. It can be easily employed to launch classic TCP\-based attacks such as SYN-floods, but can also be employed to launch other more complex attacks such as TCP connection floods, etc.
 
-.B tcp6
+.B udp6
 is a tool for sending arbitrary IPv6-based UDP datagrams.
 
 .SH SEE ALSO
 .BR ipv6toolkit.conf (5),
 .BR addr6 (1),
+.BR blackhole6 (1),
 .BR flow6 (1),
 .BR frag6 (1),
 .BR icmp6 (1),
@@ -89,6 +98,7 @@ is a tool for sending arbitrary IPv6-based UDP datagrams.
 .BR rd6 (1),
 .BR rs6 (1),
 .BR scan6 (1),
+.BR script6 (1),
 .BR tcp6 (1),
 .BR udp6 (1)
 
@@ -99,7 +109,7 @@ for SI6 Networks
 .IR <http://www.si6networks.com> .
 
 .SH COPYRIGHT
-Copyright (c) 2011\-2013 Fernando Gont.
+Copyright (c) 2011\-2014 Fernando Gont.
 
 Permission is granted to copy, distribute and/or modify this document under the terms of the GNU Free Documentation License, Version 1.3 or any later version published by the Free Software Foundation; with no Invariant Sections, no Front\-Cover Texts, and no Back\-Cover Texts.  A copy of the license is available at
 .IR <http://www.gnu.org/licenses/fdl.html> .
