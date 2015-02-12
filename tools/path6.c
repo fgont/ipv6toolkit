@@ -1,3 +1,4 @@
+/* #define DEBUG */
 /*
  * path6: A versatile IPv6 traceroute
  *
@@ -915,6 +916,11 @@ int main(int argc, char **argv){
 				}
 
 				/*
+				   At this point, we have skipped IPv6 EHs if there were any, and pkt_* pointers are set
+				   accordingly.
+				 */
+
+				/*
 				   XXX: We employ the ts member (struct timeval) in struct pcap_pkthdr. That way we do not need to
 				   hurry up to process the received packets, and can e.g. do DNS resolutions without screwing up the
 				   measured RTTs.
@@ -932,6 +938,7 @@ int main(int argc, char **argv){
 						continue;
 
 					/* XXX: Should remove the check for TCP -- only UDP can get here */
+					/* Here we walk the embedded packet, which could contain EHs */
 					if(pkt_ipv6->ip6_nxt != IPPROTO_ICMPV6 && pkt_ipv6->ip6_nxt != IPPROTO_TCP && pkt_ipv6->ip6_nxt != IPPROTO_UDP){
 						pkt_eh=  (struct ip6_eh *) ((char *) pkt_ipv6 + sizeof(struct ip6_hdr));
 
@@ -960,18 +967,35 @@ int main(int argc, char **argv){
 
 					if(probetype == PROBE_UDP && ulhtype == IPPROTO_UDP){
 						/* Must still verify the UDP checksum */
-						if( (pkt_end - (unsigned char *) pkt_udp) < sizeof(struct udp_hdr))
+						if( (pkt_end - (unsigned char *) pkt_udp) < sizeof(struct udp_hdr)){
+#ifdef DEBUG
+puts("Descarte port tamanio leido menor a UDP header");
+#endif
 							continue;
+						}
 
-						if(ntohs(pkt_udp->uh_ulen) < sizeof(struct udp_hdr))
+						if(ntohs(pkt_udp->uh_ulen) < sizeof(struct udp_hdr)){
+#ifdef DEBUG
+puts("Descarte port tamanio declarado menor a UDP header");
+#endif
 							continue;
+						}
 
-						if(ntohs(pkt_udp->uh_dport) != dstport)
+						if(ntohs(pkt_udp->uh_dport) != dstport){
+#ifdef DEBUG
+puts("Descarte por puerto destino distinto");
+printf("Puerto destino p: %u, P dest mio: %u\n", ntohs(pkt_udp->uh_dport), dstport);
+#endif
 							continue;
+						}
 
 						nhop= (ntohs(pkt_udp->uh_sport) >> 8) - PROBE_PORT_OFFSET;
 						nprobe= ntohs(pkt_udp->uh_sport) & 0xff;
 						endhost_f=1;
+#ifdef DEBUG
+puts("Port unreachable valido");
+printf("nhop: %u nprobe: %u\n", nhop, nprobe);
+#endif
 					}
 					else{
 						continue;
@@ -1118,6 +1142,9 @@ int main(int argc, char **argv){
 
 							nhop= (ntohs(pkt_udp->uh_sport) >> 8) - PROBE_PORT_OFFSET;
 							nprobe= ntohs(pkt_udp->uh_sport) & 0xff;
+#ifdef DEBUG
+puts("Lei un ICMPv6 Time exceeded");
+#endif
 						}
 
 						else if(probetype == PROBE_ESP && ulhtype == IPPROTO_ESP){
@@ -1131,7 +1158,9 @@ int main(int argc, char **argv){
 							nprobe= ntohl(pkt_esp->esp_seq) & 0x0000ffff;
 						}
 						else if(probetype == PROBE_AH && ulhtype == IPPROTO_AH){
+#ifdef DEBUG
 puts("Got time exceeeded for AH");
+#endif 
 							if( (pkt_end - (unsigned char *) pkt_ah) < sizeof(struct ah_hdr))
 								continue;
 
@@ -1197,12 +1226,16 @@ puts("Got time exceeeded for AH");
 						}
 						else if(probetype == PROBE_AH && ulhtype == IPPROTO_AH){
 							if( (pkt_end - (unsigned char *) pkt_ah) < sizeof(struct ah_hdr)){
+#ifdef DEBUG
 puts("Tam");
+#endif
 								continue;
 							}
 
 							if(pkt_ah->ah_spi != spi){
+#ifdef DEBUG
 puts("SPI");
+#endif
 								continue;
 							}
 
@@ -1263,17 +1296,33 @@ puts("SPI");
 					continue;
 				}
 
-				if(nprobe >= maxprobes)
+				if(nprobe >= maxprobes){
+#ifdef DEBUG
+	printf("Descarte por nprobe mayor o igual que maxprobe (%u >= %u)\n", nprobe, maxprobes);
+#endif
 					continue;
+				}
 
-				if(nhop >= maxhops)
+				if(nhop >= maxhops){
+#ifdef DEBUG
+	printf("Descarte por nhop mayor o igual que maxhops (%u >= %u)\n", nhop, maxhops);
+#endif
 					continue;
+				}
 
-				if(test[nhop][nprobe].received)
+				if(test[nhop][nprobe].received){
+#ifdef DEBUG
+	printf("Descarte por (nhop, nprobe) ya habia sido recibido (%u, %u)\n", nhop, nprobe);
+#endif
 					continue;
+				}
 
-				if(test[nhop][nprobe].sent == FALSE)
+				if(test[nhop][nprobe].sent == FALSE){
+#ifdef DEBUG
+	printf("Descarte por (nhop, nprobe) no habia sido enviado (%u, %u)\n", nhop, nprobe);
+#endif
 					continue;
+				}
 
 				test[nhop][nprobe].received= TRUE;
 
