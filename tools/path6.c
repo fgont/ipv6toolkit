@@ -466,6 +466,11 @@ int main(int argc, char **argv){
 				break;
 
 			case 'X':
+				if(strncmp(optarg, "no", 2) == 0 || strncmp(optarg, "noflags", 7)){
+					tcpflags_f=1;
+					break;
+				}
+
 				charptr = optarg;
 				while(*charptr){
 					switch(*charptr){
@@ -598,6 +603,9 @@ int main(int argc, char **argv){
 	if(probetype == PROBE_TCP){
 		if(!dstport_f)
 			dstport= 80;
+
+		if(!tcpflags_f)
+			tcpflags= TH_SYN;
 
 		tcpseq=random() & 0x7fffffff;
 	}
