@@ -849,6 +849,18 @@ int main(int argc, char **argv){
 		timeout.tv_sec= pktinterval / 1000000 ;	
 		timeout.tv_usec= pktinterval % 1000000;
 
+		/*
+		   Since we cannot count on the pcap_socket being readable, we should wait the smaller of 10ms or
+           the packet rate "timeout"
+		 */
+
+#if defined(sun) || defined(__sun) || defined(__linux__)
+		if(timeout.tv_sec || timeout.tv_usec > 10000){
+			timeout.tv_sec= 0;	
+			timeout.tv_usec= 10000;
+		}
+#endif
+
 		if((sel=select(idata.fd+1, &rset, NULL, NULL, &timeout)) == -1){
 			if(errno == EINTR){
 				continue;
