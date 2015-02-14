@@ -20,6 +20,23 @@ sub GetASN{
 }
 
 
+# Function GetORG()
+#
+# Obtains the organization corresponding to an autonomous system number (ASN)
+#
+sub GetORG{
+	$querystring="host -t TXT AS".$_[0].".asn.cymru.com";
+	@asinfo= `$querystring`;
+
+	if($asinfo[0] =~ m/\"*.\|.*\|.*\|.*\|\s*(.*)\"/){
+		return($1);
+	}
+	else{
+		return("");
+	}
+}
+
+
 if($ARGV[0] eq "get-aaaa"){
 	while($domain=<STDIN>){
 		$aaaa_f=0;
@@ -390,6 +407,11 @@ elsif($ARGV[0] eq "get-trace-stats" || $ARGV[0] eq "get-trace6-stats" || $ARGV[0
 
 						if($destasworst[$asipdrop] == 0){
 							$numdestasworst++;
+							$destasorgworst[$asipdrop]= GetORG($asipdrop);
+
+							if($destasorgworst[$asipdrop] eq ""){
+								$destasorgworst[$asipdrop]="Unknown";
+							}
 						}
 
 						$ndestasworst++;
@@ -400,6 +422,11 @@ elsif($ARGV[0] eq "get-trace-stats" || $ARGV[0] eq "get-trace6-stats" || $ARGV[0
 
 						if($nondestasworst[$asipdrop] == 0){
 							$numnondestasworst++;
+							$nondestasorgworst[$asipdrop]= GetORG($asipdrop);
+
+							if($nondestasorgworst[$asipdrop] eq ""){
+								$nondestasorgworst[$asipdrop]="Unknown";
+							}
 						}
 
 						$nnondestasworst++;
@@ -433,6 +460,12 @@ elsif($ARGV[0] eq "get-trace-stats" || $ARGV[0] eq "get-trace6-stats" || $ARGV[0
 
 					if($destasbest[$asipdrop2] == 0){
 						$numdestasbest++;
+
+						$destasorgbest[$asipdrop2]= GetORG($asipdrop2);
+
+						if($destasorgbest[$asipdrop2] eq ""){
+							$destasorgbest[$asipdrop2]="Unknown";
+						}
 					}
 
 					$ndestasbest++;
@@ -443,6 +476,11 @@ elsif($ARGV[0] eq "get-trace-stats" || $ARGV[0] eq "get-trace6-stats" || $ARGV[0
 
 					if($nondestasbest[$asipdrop2] == 0){
 						$numnondestasbest++;
+						$nondestasorgbest[$asipdrop2]= GetORG($asipdrop2);
+
+						if($nondestasorgbest[$asipdrop2] eq ""){
+							$nondestasorgbest[$asipdrop2]="Unknown";
+						}
 					}
 
 					$nnondestasbest++;
@@ -503,7 +541,7 @@ elsif($ARGV[0] eq "get-trace-stats" || $ARGV[0] eq "get-trace6-stats" || $ARGV[0
 		for($i=0; $i<= $#nondestasbest; $i++){
 			if($nondestasbest[$i] != 0){
 				($nondestasbest[$i] * 100)/$nnondestasbest;
-				printf "AS %5d: %d (%.2f%%)\n", $i, $nondestasbest[$i], ($nondestasbest[$i] * 100)/$nnondestasbest;
+				printf "%6d (%.2f%%): AS %5d (%s)\n", $nondestasbest[$i], ($nondestasbest[$i] * 100)/$nnondestasbest, $i, $nondestasorgbest[$i];
 			}
 		}
 
@@ -516,7 +554,8 @@ elsif($ARGV[0] eq "get-trace-stats" || $ARGV[0] eq "get-trace6-stats" || $ARGV[0
 		for($i=0; $i<= $#destasbest; $i++){
 			if($destasbest[$i] != 0){
 				($destasbest[$i] * 100)/$ndestasbest;
-				printf "AS %5d: %d (%.2f%%)\n", $i, $destasbest[$i], ($destasbest[$i] * 100)/$ndestasbest;
+
+				printf "%6d (%.2f%%): AS %5d (%s)\n", $destasbest[$i], ($destasbest[$i] * 100)/$ndestasbest, $i, $destasorgbest[$i];
 			}
 		}
 
@@ -529,7 +568,7 @@ elsif($ARGV[0] eq "get-trace-stats" || $ARGV[0] eq "get-trace6-stats" || $ARGV[0
 		for($i=0; $i<= $#nondestasworst; $i++){
 			if($nondestasworst[$i] != 0){
 				($nondestasworst[$i] * 100)/$nnondestasworst;
-				printf "AS %5d: %d (%.2f%%)\n", $i, $nondestasworst[$i], ($nondestasworst[$i] * 100)/$nnondestasworst;
+				printf "%6d (%.2f%%): AS %5d (%s)\n", $nondestasworst[$i], ($nondestasworst[$i] * 100)/$nnondestasworst, $i, $nondestasorgworst[$i];
 			}
 		}
 
@@ -542,7 +581,7 @@ elsif($ARGV[0] eq "get-trace-stats" || $ARGV[0] eq "get-trace6-stats" || $ARGV[0
 		for($i=0; $i<= $#destasworst; $i++){
 			if($destasworst[$i] != 0){
 				($destasworst[$i] * 100)/$ndestasworst;
-				printf "AS %5d: %d (%.2f%%)\n", $i, $destasworst[$i], ($destasworst[$i] * 100)/$ndestasworst;
+				printf "%6d (%.2f%%): AS %5d (%s)\n", $destasworst[$i], ($destasworst[$i] * 100)/$ndestasworst, $i, $destasorgworst[$i];
 			}
 		}
 	}
