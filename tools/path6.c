@@ -1,4 +1,4 @@
-/* #define DEBUG */
+#define DEBUG
 /*
  * path6: A versatile IPv6 traceroute
  *
@@ -1741,7 +1741,7 @@ int send_probe(struct iface_data *idata, unsigned int probetype, unsigned char c
 
 		udp->uh_sport= htons(  (((uint16_t) chop + PROBE_PORT_OFFSET) << 8) + cprobe);
 
-		udp->uh_dport= htons(dstport);
+		udp->uh_dport= htons(dstport + (chop*3)+cprobe);
 
 		if(rhbytes){
 			rhleft=rhbytes;

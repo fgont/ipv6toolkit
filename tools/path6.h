@@ -11,7 +11,7 @@
 #define PROBE_ESP				6
 
 #define PROBE_PORT_OFFSET		0x00c4
-#define PROBE_TIMEOUT			2
+#define PROBE_TIMEOUT			4
 
 
 struct probe{
