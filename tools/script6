@@ -924,7 +924,7 @@ elsif($ARGV[0] eq "trace" || $ARGV[0] eq "trace6"){
 
 		$maxhopsfree=0;
 		$maxhopsfreeip="";
-		@tcp=`path6 -d $fline -p $prototype $protoopt --rate-limit 25pps`;
+		@tcp=`path6 -d $fline -p $prototype $protoopt`; # --rate-limit 25pps
 
 		if($? != 0){
 			next;
@@ -951,9 +951,9 @@ elsif($ARGV[0] eq "trace" || $ARGV[0] eq "trace6"){
 
 		# XXX: This is an ugly hack. should be removed. ESP and AH should possibly be handled as EHs, rather than probe types
 		if($ehtype eq "esp" || $ehtype eq "ah"){
-			@tcp=`path6 -d $fline $eh --rate-limit 25pps`;
+			@tcp=`path6 -d $fline $eh`; # --rate-limit 25pps
 		}else{
-			@tcp=`path6 -d $fline -p $prototype $protoopt $eh --rate-limit 25pps`;
+			@tcp=`path6 -d $fline -p $prototype $protoopt $eh`; #  --rate-limit 25pps
 		}
 
 		if($? != 0){
