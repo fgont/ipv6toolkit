@@ -526,7 +526,7 @@ elsif($ARGV[0] eq "get-trace-stats" || $ARGV[0] eq "get-trace6-stats" || $ARGV[0
 			print "(no ASes)\n";
 		}
 
-		for($i=0; $i<= $#nondestworst; $i++){
+		for($i=0; $i<= $#nondestasworst; $i++){
 			if($nondestasworst[$i] != 0){
 				($nondestasworst[$i] * 100)/$nnondestasworst;
 				printf "AS %5d: %d (%.2f%%)\n", $i, $nondestasworst[$i], ($nondestasworst[$i] * 100)/$nnondestasworst;
