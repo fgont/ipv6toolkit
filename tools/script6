@@ -526,7 +526,7 @@ elsif($ARGV[0] eq "get-trace-stats" || $ARGV[0] eq "get-trace6-stats" || $ARGV[0
 		for($i=0; $i<= $#hops; $i++){
 			if($hops[$i] != 0){
 				$dhop= ($hops[$i] * 100)/$dropped;
-				printf "Delta-Hop %d: %d (%.2f%%)\n", $i, $hops[$i], $dhop;
+				printf "Delta-Hop %2d: %6d (%.2f%%)\n", $i, $hops[$i], $dhop;
 			}
 		}
 
