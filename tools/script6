@@ -10,8 +10,10 @@ sub GetASN{
 		chomp($revname[0]);
 		$queryname= $revname[0] . ".origin6.asn.cymru.com.";
 		@reverse=`host -t TXT $queryname`;
-		$reverse[0] =~ m/\"\s*((\d+)\s*)\s+|"/;
-		return($2);
+
+		if($reverse[0] =~ m/\"\s*((\d+)\s*)\s+|"/){
+			return($2);
+		}
 	}
 
 	return("");
@@ -278,6 +280,10 @@ elsif($ARGV[0] eq "get-trace-stats" || $ARGV[0] eq "get-trace6-stats" || $ARGV[0
 	$unknowniporigas=0;
 	$unknownipdropas=0;
 
+	print "SI6 Networks IPv6 Toolkit v2.0 (Guille)\n";
+	print "script6: A tool to make complex IPv6 tasks easy\n";
+	print "[Computing stats....]\n\n";
+
 	while($fline=<STDIN>){
 		chomp($fline);
 
@@ -307,7 +313,7 @@ elsif($ARGV[0] eq "get-trace-stats" || $ARGV[0] eq "get-trace6-stats" || $ARGV[0
 			$ipdrop=$6;
 			$ipdrop2=$7;
 
-			# Discard this line if we did not lear any host address in the normal path6
+			# Discard this line if we did not learn any host address in the non-EH path6
 			if($ipfree eq ""){
 				$unknownipfree++;
 				next;
@@ -347,7 +353,6 @@ elsif($ARGV[0] eq "get-trace-stats" || $ARGV[0] eq "get-trace6-stats" || $ARGV[0
 				next;
 			}
 
-
 			# If the line has passed all the previous checks, we consider it to be valid
 			$valid= $valid+1;
 			$delta= $hopsfree - $hopstrouble;
@@ -365,7 +370,7 @@ elsif($ARGV[0] eq "get-trace-stats" || $ARGV[0] eq "get-trace6-stats" || $ARGV[0
 
 				$asiporig= GetASN($iporig);
 
-				if($retval==0 || $asiporig eq ""){
+				if($asiporig eq ""){
 					$unknownas2++;
 					$unknownas++;
 					$unknowniporigas++;
@@ -376,21 +381,35 @@ elsif($ARGV[0] eq "get-trace-stats" || $ARGV[0] eq "get-trace6-stats" || $ARGV[0
 
 				if($asipdrop eq ""){
 					$unknownas++;
-					$unknownas2++;
 					$unknownipdropas++;
-					next;
-				}
-
-				# Count whether the dropping node is in the same or different ASN as the destination node
-				if($asiporig == $asipdrop){
-					$sameas++;
 				}
 				else{
-					$difas++;
+					# Count whether the dropping node is in the same or different ASN as the destination node (worst-case)
+					if($asiporig == $asipdrop){
+						$sameas++;
+
+						if($destasworst[$asipdrop] == 0){
+							$numdestasworst++;
+						}
+
+						$ndestasworst++;
+						$destasworst[$asipdrop]++;
+					}
+					else{
+						$difas++;
+
+						if($nondestasworst[$asipdrop] == 0){
+							$numnondestasworst++;
+						}
+
+						$nnondestasworst++;
+						$nondestasworst[$asipdrop]++;
+					}
 				}
 
 				if($ipdrop2 ne ""){
 					$asipdrop2= GetASN($ipdrop2);
+
 					if($asipdrop2 eq ""){
 						$unknownas2++;
 						$unknownipdropas2++;
@@ -399,23 +418,39 @@ elsif($ARGV[0] eq "get-trace-stats" || $ARGV[0] eq "get-trace6-stats" || $ARGV[0
 				}
 				else{
 					# If M+2 is "null", we use M+1
-					$asipdrop2= $asipdrop;
+					if($asipdrop ne ""){
+						$asipdrop2= $asipdrop;
+					}
+					else{
+						$unknownas2++;
+						$unknownipdropas2++;
+						next;
+					}
 				}
 
 				if($asiporig == $asipdrop2){
 					$sameas2++;
+
+					if($destasbest[$asipdrop2] == 0){
+						$numdestasbest++;
+					}
+
+					$ndestasbest++;
+					$destasbest[$asipdrop2]++;
 				}
 				else{
 					$difas2++;
+
+					if($nondestasbest[$asipdrop2] == 0){
+						$numnondestasbest++;
+					}
+
+					$nnondestasbest++;
+					$nondestasbest[$asipdrop2]++;
 				}
 			}
 		}
-
 	}
-
-	print "SI6 Networks IPv6 Toolkit v2.0 (Guille)\n";
-	print "script6: A tool to make complex IPv6 tasks easy\n";
-	print "[Computing stats....]\n\n";
 
 #	print "Total entries: $total\t Valid entries: $valid\n";
 
@@ -448,11 +483,66 @@ elsif($ARGV[0] eq "get-trace-stats" || $ARGV[0] eq "get-trace6-stats" || $ARGV[0
 			printf "Worst case:\nSame ASN: %d (%.2f%%)\t Different ASN: %d (%.2f%%)\t Unknown ASN:%d (%.2f%%)\n", $sameas, $sameasp, $difas, $difasp, $unknownas, $unknownasp;
 		}
 
-		print "\nDelta-Hops Distribution\n\n";
+		print "******************************************************************************\n";
+		print "DELTA-HOPS DISTRIBUTION\n\n";
 		for($i=0; $i<= $#hops; $i++){
 			if($hops[$i] != 0){
 				$dhop= ($hops[$i] * 100)/$dropped;
 				printf "Delta-Hop %d: %d (%.2f%%)\n", $i, $hops[$i], $dhop;
+			}
+		}
+
+		print "******************************************************************************\n";
+		print "AUTONOMOUS SYSTEMS DISTRIBUTION\n";
+		printf "\nNon-Destination Dropping AS Distribution (best case): (%u ASes)\n\n", $numnondestasbest;
+
+		if($numnondestasbest == 0){
+			print "(no ASes)\n";
+		}
+
+		for($i=0; $i<= $#nondestasbest; $i++){
+			if($nondestasbest[$i] != 0){
+				($nondestasbest[$i] * 100)/$nnondestasbest;
+				printf "AS %5d: %d (%.2f%%)\n", $i, $nondestasbest[$i], ($nondestasbest[$i] * 100)/$nnondestasbest;
+			}
+		}
+
+		printf "\nDestination Dropping AS Distribution (best case): (%u ASes)\n\n", $numdestasbest;
+
+		if($numdestasbest == 0){
+			print "(no ASes)\n";
+		}
+
+		for($i=0; $i<= $#destasbest; $i++){
+			if($destasbest[$i] != 0){
+				($destasbest[$i] * 100)/$ndestasbest;
+				printf "AS %5d: %d (%.2f%%)\n", $i, $destasbest[$i], ($destasbest[$i] * 100)/$ndestasbest;
+			}
+		}
+
+		printf "\nNon-Destination Dropping AS Distribution (worst case): (%u ASes)\n\n", $numnondestasworst;
+
+		if($numnondestasworst == 0){
+			print "(no ASes)\n";
+		}
+
+		for($i=0; $i<= $#nondestworst; $i++){
+			if($nondestasworst[$i] != 0){
+				($nondestasworst[$i] * 100)/$nnondestasworst;
+				printf "AS %5d: %d (%.2f%%)\n", $i, $nondestasworst[$i], ($nondestasworst[$i] * 100)/$nnondestasworst;
+			}
+		}
+
+		printf "\nDestination Dropping AS Distribution (worst case): (%u ASes)\n\n", $numdestasworst;
+
+		if($numdestasworst == 0){
+			print "(no ASes)\n";
+		}
+
+		for($i=0; $i<= $#destasworst; $i++){
+			if($destasworst[$i] != 0){
+				($destasworst[$i] * 100)/$ndestasworst;
+				printf "AS %5d: %d (%.2f%%)\n", $i, $destasworst[$i], ($destasworst[$i] * 100)/$ndestasworst;
 			}
 		}
 	}
