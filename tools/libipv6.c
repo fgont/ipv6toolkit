@@ -2394,6 +2394,10 @@ int inc_sdev(uint32_t *s, unsigned int n, uint32_t *diff_avg, double *diff_sdev)
 	for(i=0; i<(n-1); i++){
 		diff[i]= s[i+1]-s[i];
 		diff1_avg+= diff[i];
+
+#ifdef DEBUG
+	printf("Diff: %u, diff1_avg: %llu", diff[i], diff1_avg);
+#endif
 	}
 
 	diff1_avg= diff1_avg/(n-1);
