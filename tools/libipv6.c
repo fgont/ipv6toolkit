@@ -2408,7 +2408,7 @@ int inc_sdev(uint32_t *s, unsigned int n, uint32_t *diff_avg, double *diff_sdev)
 	if( (s2=malloc(n * sizeof(uint32_t))) == NULL)
 		return(-1);
 
-	memcpy(s2, s, n* sizeof(uint32_t));
+	memcpy(s2, s, n * sizeof(uint32_t));
 	change_endianness(s2, n);
 
 	diff2_avg= 0;
@@ -2431,11 +2431,11 @@ int inc_sdev(uint32_t *s, unsigned int n, uint32_t *diff_avg, double *diff_sdev)
 	free(s2);
 
 	if(diff1_sdev <= diff2_sdev){
-		*diff_avg= diff1_avg;
+		*diff_avg= (uint32_t) diff1_avg;
 		*diff_sdev= diff1_sdev;
 	}
 	else{
-		*diff_avg= diff2_avg;
+		*diff_avg= (uint32_t) diff2_avg;
 		*diff_sdev= diff2_sdev;
 	}
 
