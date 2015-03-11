@@ -3,7 +3,7 @@
 #endif
 
 #include <netdb.h>
-
+#include <net/if.h>  /* For  IFNAMSIZ */
 
 /* General constants */
 #define SUCCESS		1
@@ -45,7 +45,7 @@
 #define MIN_DST_OPT_HDR_SIZE	8
 #define MAX_SLLA_OPTION			100
 #define MAX_TLLA_OPTION			256
-#define IFACE_LENGTH			255
+#define IFACE_LENGTH			IFNAMSIZ
 #define ALL_NODES_MULTICAST_ADDR	"FF02::1"
 #define ALL_ROUTERS_MULTICAST_ADDR	"FF02::2"
 #define LOOPBACK_ADDR				"::1"

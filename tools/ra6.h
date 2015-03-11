@@ -31,8 +31,3 @@
 #define ND_RA_FLAG_HOME_AGENT	0x20
 #endif
 
-#define IFACE_LENGTH	255
-
-
-
-
