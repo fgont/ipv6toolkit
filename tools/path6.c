@@ -1,8 +1,7 @@
-#define DEBUG
 /*
  * path6: A versatile IPv6 traceroute
  *
- * Copyright (C) 2011-2014 Fernando Gont (fgont@si6networks.com)
+ * Copyright (C) 2011-2015 Fernando Gont (fgont@si6networks.com)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -140,6 +139,7 @@ unsigned int		nfrags, fragsize;
 unsigned char		*prev_nh, *startoffragment;
 
 /* Parameters for the probe packets */
+unsigned char		probetype=PROBE_ICMP6_ECHO;
 unsigned char		dstport_f=0, tcpflags_f=0, pps_f=0, bps_f=0, endhost_f=0, rhbytes_f=0, droppacket_f=FALSE;
 uint16_t			dstport;
 uint8_t				tcpflags=0, cprobe, pprobe, nprobe, maxprobes, chop, phop, nhop, maxhops;
@@ -163,7 +163,6 @@ int main(int argc, char **argv){
 	int				r, sel;
 	struct timeval	curtime, start, lastprobe, sched, timeout;
 	uint8_t			ulhtype;
-	unsigned char	probetype=PROBE_ICMP6_ECHO;
 	struct target_ipv6	targetipv6;
 
 	static struct option longopts[] = {
@@ -584,18 +583,6 @@ int main(int argc, char **argv){
 	if((idata.ip6_local_flag && idata.ip6_global_flag) && !idata.srcaddr_f)
 		localaddr_f=1;
 
-	if(idata.verbose_f){
-		print_attack_info(&idata);
-	}
-
-
-	if(inet_ntop(AF_INET6, &(idata.dstaddr), pv6addr, sizeof(pv6addr)) == NULL){
-		puts("inet_ntop(): Error converting IPv6 Source Address to presentation format");
-		exit(EXIT_FAILURE);
-	}
-
-	printf("Tracing path to %s (%s)...\n\n", targetipv6.name, pv6addr);
-
 	if(!probe_f)
 		probetype= PROBE_ICMP6_ECHO;
 
@@ -653,6 +640,17 @@ int main(int argc, char **argv){
 	/* We Default to 1000 pps */
 	if(!pps_f && !bps_f)
 		pktinterval= 1000;
+
+	if(inet_ntop(AF_INET6, &(idata.dstaddr), pv6addr, sizeof(pv6addr)) == NULL){
+		puts("inet_ntop(): Error converting IPv6 Source Address to presentation format");
+		exit(EXIT_FAILURE);
+	}
+
+	if(idata.verbose_f){
+		print_attack_info(&idata);
+	}
+
+	printf("Tracing path to %s (%s)...\n\n", targetipv6.name, pv6addr);
 
 	/* Set initial contents of the attack packet */
 	init_packet_data(&idata);
@@ -1405,7 +1403,7 @@ void print_help(void){
 	     "  --dst-opt-hdr, -u         Destination Options Header (Fragmentable Part)\n"
 	     "  --dst-opt-u-hdr, -U       Destination Options Header (Unfragmentable Part)\n"
 	     "  --hbh-opt-hdr, -H         Hop by Hop Options Header\n"
-	     "  --probe-type, -p          Probe type {icmp, tcp, udp}\n"
+	     "  --probe-type, -p          Probe type {icmp, tcp, udp, ah, esp}\n"
 	     "  --payload-size, -P        Payload Size\n"
 	     "  --dst-port, -a            Transport-layer Destination Port\n"
 	     "  --tcp-flags, -X           TCP Flags\n"
@@ -1470,6 +1468,45 @@ void print_attack_info(struct iface_data *idata){
 
 	for(i=0; i<ndstopthdr; i++)
 		printf("Destination Options Header: %u bytes\n", dstopthdrlen[i]);
+
+	switch(probetype){
+		case PROBE_ICMP6_ECHO:
+			puts("Probe type: ICMPv6 Echo Request");
+
+			break;
+
+		case PROBE_UDP:
+			puts("Probe type: UDP");
+			printf("Destination Port: %u%s\n", dstport, (dstport_f?"":" (default)"));
+			break;
+
+		case PROBE_TCP:
+			puts("Probe type: TCP");
+			printf("TCP Flags: %s%s%s%s%s%s%s%s\t", ((tcpflags & TH_FIN)?"F":""), ((tcpflags & TH_SYN)?"S":""), \
+						((tcpflags & TH_RST)?"R":""), ((tcpflags & TH_PUSH)?"P":""),\
+						((tcpflags & TH_ACK)?"A":""), ((tcpflags & TH_URG)?"U":""),\
+						((!tcpflags)?"none":""), ((!tcpflags_f)?" (default)":""));
+
+
+			printf("Destination Port: %u%s\n", dstport, (dstport_f?"":" (default)"));
+			break;
+
+		case PROBE_ESP:
+			puts("Probe type: ESP");
+			break;
+
+		case PROBE_AH:
+			puts("Probe type: AH");
+			break;
+
+		default:
+			puts("Probe type: Unknown");  /* Should never get here */
+			break;
+	}
+
+	if(rhbytes_f){
+		printf("Payload size: %u byte%s\n", rhbytes, (rhbytes > 1)?"s":"");
+	}
 }
 
 
