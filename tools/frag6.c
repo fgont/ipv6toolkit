@@ -176,6 +176,7 @@ int main(int argc, char **argv){
 	int					r, sel;
 	time_t				curtime, start, lastfrag=0, lastfrag1=0, lastfrag2=0;
 	time_t				lastfrag3=0, lastfrag4=0, lastfrag5=0;
+	struct timeval		curtimet, startt, lastfrag1t;
 	unsigned int		responses=0, maxsizedchunk;
 
 	/* Array for storing the Fragment reassembly policy test results */
@@ -924,8 +925,17 @@ int main(int argc, char **argv){
 
 		FD_ZERO(&sset);
 		FD_SET(idata.fd, &sset);
-		start= time(NULL);
-		lastfrag1=0;		
+
+		if(gettimeofday(&startt, NULL) == -1){
+			if(idata.verbose_f)
+				perror("frag6");
+
+			exit(EXIT_FAILURE);
+		}
+
+		lastfrag1t.tv_sec=0;
+		lastfrag1t.tv_usec=0;
+
 		ntest1=0;
 		ntest2=0;
 		icmp6_sig= random();
@@ -942,68 +952,69 @@ int main(int argc, char **argv){
 		}
 
 		while(1){
-			curtime=time(NULL);
+			if(gettimeofday(&curtimet, NULL) == -1){
+				if(idata.verbose_f)
+					perror("scan6");
+
+				exit(EXIT_FAILURE);
+			}
 
 			/*
 			    If we were doing tests from a single origin, and we have reached the assessment timeout
 			    or already have enough samples, we must now sample from multiple origins.
 
 			 */
-			if( testtype==FIXED_ORIGIN && ((curtime - start) >= FID_ASSESS_TIMEOUT || ntest1 >= NSAMPLES)){
+			if( testtype==FIXED_ORIGIN && (is_time_elapsed(&curtimet, &startt, FID_ASSESS_TIMEOUT * 1000000) || ntest1 >= NSAMPLES)){
 				testtype= MULTI_ORIGIN;
 				addr_sig= random();
 				addr_key= random();
-				start= curtime;
+				startt= curtimet;
 				continue;
 			}
-			else if( testtype==MULTI_ORIGIN && ((curtime - start) >= FID_ASSESS_TIMEOUT || ntest2 >= NSAMPLES)){
+			else if( testtype==MULTI_ORIGIN && (is_time_elapsed(&curtimet, &startt, FID_ASSESS_TIMEOUT * 1000000) || ntest2 >= NSAMPLES)){
 				break;
 			}
 
 			/*
-			    lastfrag1 contains the timestamp (in seconds) of the last time we sent probe packets.
-			    Hence we will be sending "batches" of probe packets every second.
+			    lastfrag1 contains the time the last time we sent probe packets.
 			 */
-			if((curtime - lastfrag1) >= 1){
+
+			if(is_time_elapsed(&curtimet, &lastfrag1t, FID_ASSESS_DELTA)){
 				if(testtype == FIXED_ORIGIN){
-					for(i=0; i< (NSAMPLES/NBATCHES); i++){
-						if(send_fid_probe(&idata) == -1){
-							puts("Error while sending packet");
-							exit(EXIT_FAILURE);
-						}
+					if(send_fid_probe(&idata) == -1){
+						puts("Error while sending packet");
+						exit(EXIT_FAILURE);
 					}
 				}
 				else{
-					for(i=0; i< (NSAMPLES/NBATCHES); i++){
-						randomize_ipv6_addr(&(idata.srcaddr), &randprefix, randpreflen);
+					randomize_ipv6_addr(&(idata.srcaddr), &randprefix, randpreflen);
 
-						/*
-						 * Two words of the Source IPv6 Address are specially encoded such that we only respond
-						 * to Neighbor Solicitations that target those addresses, and accept ICMPv6 Echo Replies
-						 * only if they are destined to those addresses
-						 */
-						idata.srcaddr.s6_addr32[2]= htonl((ntohl(idata.srcaddr.s6_addr32[2]) & 0xffff0000) | addr_sig);
-						idata.srcaddr.s6_addr32[3]= htonl((ntohl(idata.srcaddr.s6_addr32[3]) & 0xffff0000) | \
-						                            ((uint16_t)(ntohl(idata.srcaddr.s6_addr32[3])>>16) ^ addr_key));
+					/*
+					 * Two words of the Source IPv6 Address are specially encoded such that we only respond
+					 * to Neighbor Solicitations that target those addresses, and accept ICMPv6 Echo Replies
+					 * only if they are destined to those addresses
+					 */
+					idata.srcaddr.s6_addr32[2]= htonl((ntohl(idata.srcaddr.s6_addr32[2]) & 0xffff0000) | addr_sig);
+					idata.srcaddr.s6_addr32[3]= htonl((ntohl(idata.srcaddr.s6_addr32[3]) & 0xffff0000) | \
+					                            ((uint16_t)(ntohl(idata.srcaddr.s6_addr32[3])>>16) ^ addr_key));
 
-						/*
-						 * XXX This trick is innefective with OpenBSD. Hence we don't try to prevent the
-						 * first-fragment of the response packet from being dropped.
+					/*
+					 * XXX This trick is innefective with OpenBSD. Hence we don't try to prevent the
+					 * first-fragment of the response packet from being dropped.
 
-						if(send_neighbor_solicit(&idata) == -1){
-							puts("Error while sending Neighbor Solicitation");
-							exit(EXIT_FAILURE);
-						}
-						*/
+					if(send_neighbor_solicit(&idata) == -1){
+						puts("Error while sending Neighbor Solicitation");
+						exit(EXIT_FAILURE);
+					}
+					*/
 
-						if(send_fid_probe(&idata) == -1){
-							puts("Error while sending packet");
-							exit(EXIT_FAILURE);
-						}
+					if(send_fid_probe(&idata) == -1){
+						puts("Error while sending packet");
+						exit(EXIT_FAILURE);
 					}
 				}
 
-				lastfrag1=curtime;
+				lastfrag1t=curtimet;
 				continue;
 			}
 

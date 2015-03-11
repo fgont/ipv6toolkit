@@ -27,6 +27,7 @@
 
 /* For Fragment ID assessment */
 #define FID_ASSESS_TIMEOUT		(NBATCHES+4)
+#define FID_ASSESS_DELTA		10000   /* Ten milliseconds */
 #define NBATCHES				3
 #define NSAMPLES				40
 #define FIXED_ORIGIN			1

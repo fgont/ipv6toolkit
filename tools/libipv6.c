@@ -2396,7 +2396,7 @@ int inc_sdev(uint32_t *s, unsigned int n, uint32_t *diff_avg, double *diff_sdev)
 		diff1_avg+= diff[i];
 
 #ifdef DEBUG
-	printf("Diff: %u, diff1_avg: %llu", diff[i], diff1_avg);
+	printf("Diff: %u, diff1_avg: %llu\n", diff[i], diff1_avg);
 #endif
 	}
 
