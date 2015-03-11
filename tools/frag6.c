@@ -976,7 +976,11 @@ int main(int argc, char **argv){
 			}
 
 			/*
-			    lastfrag1 contains the time the last time we sent probe packets.
+			    lastfrag1 contains the time the last time we sent probe packets. Probes are sent every
+			    FID_ASSESS_DELTA uses to avoid packet reordering.
+
+			    XXX: Eventually we should infer reordering in the sample data and order the samples if
+			         necessary.
 			 */
 
 			if(is_time_elapsed(&curtimet, &lastfrag1t, FID_ASSESS_DELTA)){

@@ -60,6 +60,9 @@ SI6 Networks IPv6 Toolkit v2.0 (Guille)
    * udp6: New tool
      Added a new tool that can send arbirary UDP/IPv6 packets.
 
+   * frag6: Fix bug in Frag ID assessment
+     Probes are now sent every 10ms rather than in batches, to minimize packet
+     reordering.
 
 SI6 Networks IPv6 Toolkit v1.5.3
 
