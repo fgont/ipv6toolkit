@@ -25,8 +25,6 @@
  * Please send any bug reports to Fernando Gont <fgont@si6networks.com>
  */
 
-/* #define DEBUG */
-
 #include <sys/types.h>
 #include <sys/param.h>
 #include <sys/socket.h>
@@ -912,18 +910,21 @@ unsigned int match_ipv6(struct in6_addr *prefixlist, uint8_t *prefixlen, unsigne
 								struct in6_addr *ipv6addr){
 
 	unsigned int 	i, j;
-	struct in6_addr	dummyipv6;
+	struct in6_addr	dummyipv6_1, dummyipv6_2;
     
 	for(i=0; i<nprefix; i++){
-		dummyipv6 = *ipv6addr;
-		sanitize_ipv6_prefix(&dummyipv6, prefixlen[i]);
-	
+		dummyipv6_1 = *ipv6addr;
+		sanitize_ipv6_prefix(&dummyipv6_1, prefixlen[i]);
+		dummyipv6_2 = prefixlist[i];
+		sanitize_ipv6_prefix(&dummyipv6_2, prefixlen[i]);
+
 		for(j=0; j<4; j++)
-			if(dummyipv6.s6_addr32[j] != prefixlist[i].s6_addr32[j])
+			if(dummyipv6_1.s6_addr32[j] != dummyipv6_2.s6_addr32[j])
 				break;
 
 		if(j==4)
 			return 1;
+
 	}
 
 	return 0;
@@ -2394,10 +2395,6 @@ int inc_sdev(uint32_t *s, unsigned int n, uint32_t *diff_avg, double *diff_sdev)
 	for(i=0; i<(n-1); i++){
 		diff[i]= s[i+1]-s[i];
 		diff1_avg+= diff[i];
-
-#ifdef DEBUG
-	printf("Diff: %u, diff1_avg: %llu\n", diff[i], diff1_avg);
-#endif
 	}
 
 	diff1_avg= diff1_avg/(n-1);
