@@ -2,7 +2,7 @@
  * rd6: A security assessment tool that exploits potential flaws in the
  *      processing of ICMPv6 Redirect messages
  *
- * Copyright (C) 2011-2014 Fernando Gont
+ * Copyright (C) 2011-2015 Fernando Gont
  *
  * Programmed by Fernando Gont for SI6 Networks <http://www.si6networks.com>
  *

@@ -2,7 +2,7 @@
  * frag6: A security assessment tool that exploits potential flaws in the
  *        processing of IPv6 fragments
  *
- * Copyright (C) 2011-2014 Fernando Gont (fgont@si6networks.com)
+ * Copyright (C) 2011-2015 Fernando Gont (fgont@si6networks.com)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by

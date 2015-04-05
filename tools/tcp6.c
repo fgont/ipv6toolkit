@@ -2,7 +2,7 @@
  * tcp6 : A security assessment tool that exploits potential flaws in the
  *        processing of TCP/IPv6 packets
  *
- * Copyright (C) 2011-2014 Fernando Gont <fgont@si6networks.com>
+ * Copyright (C) 2011-2015 Fernando Gont <fgont@si6networks.com>
  *
  * Programmed by Fernando Gont for SI6 Networks <http://www.si6networks.com>
  *
@@ -1140,6 +1140,7 @@ int main(int argc, char **argv){
 	/*
 	   Set filter for IPv6 packets (find_ipv6_router() set its own filter fore receiving RAs)
 	 */
+
 	if(pcap_compile(idata.pfd, &pcap_filter, PCAP_TCPIPV6_NS_FILTER, PCAP_OPT, PCAP_NETMASK_UNKNOWN) == -1){
 		printf("pcap_compile(): %s", pcap_geterr(idata.pfd));
 		exit(EXIT_FAILURE);
@@ -1159,7 +1160,7 @@ int main(int argc, char **argv){
 	if(sleep_f)
 		pktinterval= (nsleep * 1000000)/(nsources * nports);
 
-	timeout.tv_sec=  pktinterval / 1000000 ;	
+	timeout.tv_sec=  pktinterval / 1000000;	
 	timeout.tv_usec= pktinterval % 1000000;
 	stimeout= timeout;
 
@@ -1343,7 +1344,7 @@ int main(int argc, char **argv){
 #if !defined(sun) && !defined(__sun) && !defined(__linux__)
 			if((sel=select(idata.fd+1, &rset, NULL, NULL, ((floods_f || floodp_f) && !donesending_f)?(&timeout):NULL)) == -1){
 #else
-			timeout.tv_usec=10000;
+			timeout.tv_usec=1000;
 			timeout.tv_sec= 0;
 			if((sel=select(idata.fd+1, &rset, NULL, NULL, &timeout)) == -1){
 #endif
@@ -1531,7 +1532,6 @@ int main(int argc, char **argv){
 						send_packet(&idata, pktdata, pkthdr);
 					}
 					else if(pkt_ipv6->ip6_nxt == IPPROTO_ICMPV6){
-
 						/* Check that we are able to look into the NS header */
 						if( (pkt_end -  pktdata) < (idata.linkhsize + MIN_IPV6_HLEN + sizeof(struct nd_neighbor_solicit))){
 							continue;

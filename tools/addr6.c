@@ -1,7 +1,7 @@
 /*
  * addr6: A tool to decode IPv6 addresses
  *
- * Copyright (C) 2013-2014 Fernando Gont (fgont@si6networks.com)
+ * Copyright (C) 2013-2015 Fernando Gont (fgont@si6networks.com)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by

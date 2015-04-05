@@ -2,7 +2,7 @@
  * udp6 : A security assessment tool that exploits potential flaws in the
  *        processing of UDP/IPv6 packets
  *
- * Copyright (C) 2011-2014 Fernando Gont <fgont@si6networks.com>
+ * Copyright (C) 2011-2015 Fernando Gont <fgont@si6networks.com>
  *
  * Programmed by Fernando Gont for SI6 Networks <http://www.si6networks.com>
  *

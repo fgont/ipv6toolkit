@@ -2,7 +2,7 @@
  * flow6: A security assessment tool that determines the Flow Label
  *        generation policy of a target node
  *
- * Copyright (C) 2011-2014 Fernando Gont <fgont@si6networks.com>
+ * Copyright (C) 2011-2015 Fernando Gont <fgont@si6networks.com>
  *
  * Programmed by Fernando Gont for SI6 Networks (www.si6networks.com)
  *

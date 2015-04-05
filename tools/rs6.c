@@ -2,7 +2,7 @@
  * rs6: A security assessment tool for attack vectors based on
  *      ICMPv6 Router Solicitation messages
  *
- * Copyright (C) 2009-2014 Fernando Gont
+ * Copyright (C) 2009-2015 Fernando Gont
  *
  * Programmed by Fernando Gont for SI6 Networks <http://www.si6networks.com>
  *
