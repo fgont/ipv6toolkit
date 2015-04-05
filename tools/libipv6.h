@@ -126,7 +126,7 @@ struct filters{
 #if defined (__FreeBSD__) || defined(__NetBSD__) || defined (__OpenBSD__) || defined(__APPLE__) || defined(__FreeBSD_kernel__) || defined(sun) || defined(__sun)
 	#define	PCAP_TIMEOUT			1
 #else
-	#define	PCAP_TIMEOUT			1
+	#define	PCAP_TIMEOUT			0
 #endif
 
 
@@ -144,6 +144,7 @@ struct filters{
 #define PCAP_ICMPV6_RA_FILTER "icmp6 and ip6[7]==255 and ip6[40]==134 and ip6[41]==0"
 #define PCAP_ICMPV6_RANS_FILTER	"icmp6 and ip6[7]==255 and ((ip6[40]==134 and ip6[41]==0) or (ip6[40]==135 and ip6[41]==0))"
 #define PCAP_TCPIPV6_NS_FILTER	"ip6 and (tcp or (icmp6 and ip6[7]==255 and ip6[40]==135 and ip6[41]==0))"
+/* #define PCAP_TCPIPV6_NS_FILTER	"ip6" */
 #define PCAP_UDPIPV6_NS_FILTER	"ip6 and (udp or (icmp6 and ip6[7]==255 and ip6[40]==135 and ip6[41]==0))"
 #define PCAP_ICMPV6_NI_QUERY	"icmp6 and ip6[40]==139"
 #define PCAP_ICMPV6_NI_REPLY	"icmp6 and ip6[40]==140"

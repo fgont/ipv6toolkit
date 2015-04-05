@@ -1,5 +1,5 @@
 *******************************************************************************
-*                       SI6 Networks IPv6 Toolkit v2.0                        *
+*                   SI6 Networks IPv6 Toolkit v2.0 (Guille)                   *
 *******************************************************************************
 
 Description of each of the files and directories:
@@ -27,11 +27,11 @@ pages by running the following command:
    make install
 
 Note: The libpcap library must be previously installed on the system. The
-coresponding package is typically named "libpcap-dev".
+corresponding package is typically named "libpcap-dev".
 
 All the tools have been tested to build (both with gcc and clang) and run on 
 Debian GNU/Linux 7.0, Debian GNU/kfreebsd 7.0, FreeBSD 9.0, NetBSD 6.1.1, 
-OpenBSD 5.3, Ubuntu 11.10, and Mac 0S 10.8.0.
+OpenBSD 5.3, Ubuntu 14.04 LTS, Mac 0S 10.8.0, and OpenSolaris .
 
 
 Bug reports

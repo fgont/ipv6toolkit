@@ -63,7 +63,6 @@ print "blackhole6: A tool to find IPv6 blackholes\n";
 
 if($> != 0){
 	print "Error: blackhole6 requires superuser privileges\n";
-	usage();
 	exit 1;
 }
 
