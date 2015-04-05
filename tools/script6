@@ -41,13 +41,17 @@ if($ARGV[0] eq "get-aaaa"){
 	while($domain=<STDIN>){
 		$aaaa_f=0;
 		chomp($domain);
-		$domain =~ m/([^\x0d]+)/;
-		$domcmd= $1;
 
-		if( $domcmd =~ m/^\S*#/){
+		if($domain =~ m/(\S+)/){
+			$domcmd= $1;
+		}
+		else{
 			next;
 		}
 
+		if($domcmd =~ m/^\S*#/){
+			next;
+		}
 
 		while(1){
 			undef @dig;
@@ -77,9 +81,9 @@ if($ARGV[0] eq "get-aaaa"){
 						print "$2\n";      # AAAA record
 						$aaaa_f = 1;
 					}
-					else{
-						last;
-					}
+#					else{
+#						last;
+#					}
 				}
 			}
 		 
@@ -95,7 +99,7 @@ if($ARGV[0] eq "get-aaaa"){
 				last;
 			}
 			else{
-				$domcmd= "www.$domain";
+				$domcmd= "www.$domcmd";
 			}
 		}
 	}
@@ -106,10 +110,15 @@ elsif($ARGV[0] eq "get-mx"){
 		$mx_f=0;
 
 		chomp($domain);
-		$domain =~ m/([^\x0d]+)/;
-		$domcmd= $1;
 
-		if( $domcmd =~ m/^\S*#/){
+		if($domain =~ m/(\S+)/){
+			$domcmd= $1;
+		}
+		else{
+			next;
+		}
+
+		if($domcmd =~ m/^\S*#/){
 			next;
 		}
 
@@ -132,7 +141,7 @@ elsif($ARGV[0] eq "get-mx"){
 			elsif($answer_f == 1){
 				# If we are in the answer portion, look for MX records
 				if($line =~ m/^\s*$/){
-					# Empty line masrk end of ANSWER section
+					# Empty line marks end of ANSWER section
 					last;
 				}
 
@@ -145,9 +154,6 @@ elsif($ARGV[0] eq "get-mx"){
 					printf "$2\n";      # MX record
 					$mx_f = 1;
 				}
-				else{
-					last;
-				}
 			}
 		}
 	}
@@ -156,8 +162,17 @@ elsif($ARGV[0] eq "get-ns"){
 	while($domain=<STDIN>){
 		$ns_f=0;
 		chomp($domain);
-		$domain =~ m/([^\x0d]+)/;
-		$domcmd= $1;
+
+		if($domain =~ m/(\S+)/){
+			$domcmd= $1;
+		}
+		else{
+			next;
+		}
+
+		if($domcmd =~ m/^\S*#/){
+			next;
+		}
 
 		if($domcmd =~ m/www\.(\S+)/){
 			$domcmd = $1;
@@ -189,9 +204,6 @@ elsif($ARGV[0] eq "get-ns"){
 
 					printf "$2\n";      # AAAA record
 					$ns_f = 1;
-				}
-				else{
-					last;
 				}
 			}
 		}
@@ -859,7 +871,7 @@ elsif($ARGV[0] eq "get-alexa-domains"){
 		}
 	}
 }
-elsif($ARGV[0] eq "trace" || $ARGV[0] eq "trace6"){
+elsif($ARGV[0] eq "trace" || $ARGV[0] eq "trace6" || $ARGV[0] eq "get-trace" || $ARGV[0] eq "get-trace6"){
 	if($> != 0){
 		print "Error: This script requires superuser privileges\n";
 		exit 1;
