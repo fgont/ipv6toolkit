@@ -1,4 +1,17 @@
 SI6 Networks IPv6 Toolkit v2.0 (Guille)
+   * path6: New tool
+     Added a fully-IPv6-capable traceroute tool, named path6.
+
+   * script6: New tool
+     Added a new tool which incorporates new functionality and also provides
+     a shortcut to other existing tools.
+
+   * blackhole6: New tool
+     Added a new tool isolates IPv6 blackholes.
+
+   * udp6: New tool
+     Added a new tool that can send arbirary UDP/IPv6 packets.
+
    * All: Fix bug when reading packets
      lipcap "internals" together with select() would cause (at times)
      delays when reading packets.
@@ -47,21 +60,8 @@ SI6 Networks IPv6 Toolkit v2.0 (Guille)
      This options allows to set a specific TCP payload from the
      command-line (e.g., an HTTP "GET" command).
 
-   * path6: New tool
-     Added a fully-IPv6-capable traceroute tool, named path6.
-
-   * script6: New tool
-     Added a new tool which incorporates new functionality and also provides
-     a shortcut to other existing tools.
-
    * script6: Fix bug in get-aaaa, get-ns, and get-mx
      Domains that had a CNAME would be skipped.
-
-   * blackhole6: New tool
-     Added a new tool isolates IPv6 blackholes.
-
-   * udp6: New tool
-     Added a new tool that can send arbirary UDP/IPv6 packets.
 
    * frag6: Fix bug in Frag ID assessment
      Probes are now sent every 10ms rather than in batches, to minimize packet
