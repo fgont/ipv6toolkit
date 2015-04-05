@@ -54,6 +54,9 @@ SI6 Networks IPv6 Toolkit v2.0 (Guille)
      Added a new tool which incorporates new functionality and also provides
      a shortcut to other existing tools.
 
+   * script6: Fix bug in get-aaaa, get-ns, and get-mx
+     Domains that had a CNAME would be skipped.
+
    * blackhole6: New tool
      Added a new tool isolates IPv6 blackholes.
 
@@ -63,6 +66,7 @@ SI6 Networks IPv6 Toolkit v2.0 (Guille)
    * frag6: Fix bug in Frag ID assessment
      Probes are now sent every 10ms rather than in batches, to minimize packet
      reordering.
+
 
 SI6 Networks IPv6 Toolkit v1.5.3
 
