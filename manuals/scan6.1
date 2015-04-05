@@ -52,8 +52,8 @@ scan6 \- An IPv6 host scanner
 .RB [\| \-I
 .IR INC_SIZE \|]
 .RB [\| \-c
-.IR CONFIG_FILE \|]
-.RB [\| \-r \|]
+.RB [\| \-r
+.IR LIMIT \|]
 .RB [\| \-l \|]
 .RB [\| \-z
 .IR SECONDS \|]
@@ -189,14 +189,14 @@ Note: Some systems may discard packets when the link\-layer address is forged. T
 
 This option specifies the probe packets to be used for address scanning. For local-network address scans, possible arguments are: "echo" (for ICMPv6 Echo Request), "unrec" (for IPv6 packets with unrecognized IPv6 options of type 10xxxxxx), and "all" (for using both ICMPv6 Echo Requests probes and unrecognized options of type 10xxxxxx). If left unspecified, this option defaults to "all".
 
-For remote-network address scans, possible arguments are: "echo" (for ICMPv6 Echo Request), "unrec" (for IPv6 packets with unrecognized IPv6 options of type 10xxxxxx), and "tcp" (for using TC segments). For remote-network scans, this option defaults to "echo" (if left unspecified).
+For remote-network scans, this option defaults to "echo" (if left unspecified).
 
-Note: For local-network address scans, using unrecognized IPv6 options of type 10xxxxxx enables the discovery of Windows Vista and Windows 7 systems, which otherwise do not respond to ICMPv6 Echo Requests sent to multicast addresses.
 
 .TP
 .BI \-P\  PAYLOAD_SIZE ,\ \-\-payload\-size\  PAYLOAD_SIZE
 
 This option specifies the payload size of the probe packet. It defaults to 0 for TCP (i.e., empty TCP segments), and to 56 for ICMPv6.
+
 
 .TP
 .BI \-o\  SRC_PORT ,\ \-\-src\-port\  SRC_PORT
@@ -207,6 +207,7 @@ This option specifies the TCP/UDP Source Port. If left unspecified, the Source P
 .BI \-a\   DST_PORT ,\ \-\-dst\-port\  DST_PORT
 
 This option specifies the TCP/UDP Destination Port. If left unspecified, the Destination Port is randomized from the range 1\-1024.
+
 
 .TP
 .BI \-X\   TCP_FLAGS ,\ \-\-tcp\-flags\  TCP_FLAGS

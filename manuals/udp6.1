@@ -212,28 +212,17 @@ tool.
 
 \fBExample #1\fR
 
-# udp6 \-i eth0 \-s fc00:1::/64 \-d fc00:1::1 \-a 22 \-X S \-F 100 \-l \-z 1 \-v
+# udp6 -s fc00:1::/64 \-d fc00:1::1 \-a 22 \-F 100 \-l \-z 1 \-v
 
 In this example the 
 .B udp6
-tool is essentially employed to perform a SYN-flood attack against port number 22 of the host fc00:1::1. The tool uses the network interface "eth0" (as specified by the "\-i" option), and sends SYN segments (as specified by the "\-X" option) from the prefix fc00:1::/64 (as specified by the "\-s" option) to port 22 (specified by the "\-a" option) at the destination address fc00:1::1 (specified by the "\-d" option). The tool sends UDP datagrams from 100 different addresses (as specified by the "\-F" option) every one second (as specified by the "\-l" and "\-z" options). The tool will be verbose (as specified by the "\-v" option).
-
-\fBExample #2\fR
-
-# udp6 \-i eth0 \-L \-X RA \-v
-
-In this example, the 
-.B udp6
-tool is employed to perform a UDP connection-reset attack against all  active UDP connections in the local network. The tool listens ("\-L") on the interface eth0 ("\-i eth0"), and responds to any UDP datagrams with a RST packet (with both the RST and ACK bits set). The tool will be verbose.
-
+tool is essentially employed to flood port number 22 of the host fc00:1::1. The tool sends UDP datagrams from the prefix fc00:1::/64 (as specified by the "\-s" option) to port 22 (specified by the "\-a" option) at the destination address fc00:1::1 (specified by the "\-d" option). The tool sends UDP datagrams from 100 different addresses (as specified by the "\-F" option) every one second (as specified by the "\-l" and "\-z" options). The tool will be verbose (as specified by the "\-v" option).
 
 \fBExample #3\fR
 
-# udp6 \-i eth0 \-d fc00:1::1 \-a 80 \-L \-s fc00:1::/112 \-l \-r 1pps \-v \-\-data "GET / HTTP/1.0\\r\\n\\r\\n" \-\-close\-mode last\-ack \-\-flood\-ports 10
+# udp6 \-d fc00:1::1 \-a 80 \-l \-r 1pps \-v \-\-data "GET / HTTP/1.0\\r\\n\\r\\n"
 
-Flood the target system (fc00:1::1) with connections that stay in the LAST\-ACK state (on port 80), sending packets at a rate of one packet per second. For each forged address, 10 different (forged) ports are used. For each connection,
-.B udp6
-will send an HTTP application request. 
+Flood the target system (fc00:1::1) with UDP datagrams at a rate of one packet per second. Each UDP datagram will contain (in the payload) the string specified via the "\-\-data" option.
 
 
 \fBExample #4\fR
