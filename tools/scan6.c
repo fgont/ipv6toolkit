@@ -4232,12 +4232,12 @@ print_ipv6_address("Direccion actual:", &((scan->target[scan->ctarget])->cur.in6
 			if(srcport_f)
 				tcp->th_sport= htons(srcport);
 			else
-				tcp->th_sport= htons(1024+ rand() % 64512);
+				tcp->th_sport= htons(1024+ random() % 64512);
 
 			if(dstport_f)
 				tcp->th_dport= htons(dstport);
 			else
-				tcp->th_dport= htons(1+ rand() % 1024);
+				tcp->th_dport= htons(1+ random() % 1024);
 
 			if(tcpflags_f)
 				tcp->th_flags= tcpflags;
@@ -4245,11 +4245,11 @@ print_ipv6_address("Direccion actual:", &((scan->target[scan->ctarget])->cur.in6
 				tcp->th_flags= TH_ACK;
 
 			if(tcpflags & TH_ACK)
-				tcp->th_ack= htonl(rand());
+				tcp->th_ack= htonl(random());
 			else
 				tcp->th_ack= htonl(0);
 
-			tcp->th_win= htons( 4096 * (rand() % 9 + 1));
+			tcp->th_win= htons( 4096 * (random() % 9 + 1));
 
 			/* Current version of tcp6 does not support sending TCP options */
 			tcp->th_off= sizeof(struct tcp_hdr) >> 2;
@@ -4387,7 +4387,7 @@ int send_pscan_probe(struct iface_data *idata, struct port_list *port_list, stru
 			if(srcport_f)
 				tcp->th_sport= htons(srcport);
 			else
-				tcp->th_sport= htons(1024+ rand() % 64512);
+				tcp->th_sport= htons(1024+ random() % 64512);
 
 			tcp->th_dport= htons((port_list->port[port_list->cport])->cur);
 
@@ -4397,11 +4397,11 @@ int send_pscan_probe(struct iface_data *idata, struct port_list *port_list, stru
 				tcp->th_flags= TH_ACK;
 
 			if(tcpflags & TH_ACK)
-				tcp->th_ack= htonl(rand());
+				tcp->th_ack= htonl(random());
 			else
 				tcp->th_ack= htonl(0);
 
-			tcp->th_win= htons( 4096 * (rand() % 9 + 1));
+			tcp->th_win= htons( 4096 * (random() % 9 + 1));
 
 			/* Current version of tcp6 does not support sending TCP options */
 			tcp->th_off= sizeof(struct tcp_hdr) >> 2;
@@ -4453,7 +4453,7 @@ int send_pscan_probe(struct iface_data *idata, struct port_list *port_list, stru
 			if(srcport_f)
 				udp->uh_sport= htons(srcport);
 			else
-				udp->uh_sport= htons(1024+ rand() % 64512);
+				udp->uh_sport= htons(1024+ random() % 64512);
 
 			udp->uh_dport= htons((port_list->port[port_list->cport])->cur);
 

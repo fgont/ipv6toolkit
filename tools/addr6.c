@@ -1153,8 +1153,8 @@ int init_host_list(struct hashed_host_list *hlist){
 
 	hlist->nhosts= 0;
 	hlist->maxhosts= MAX_HOST_ENTRIES;
-	hlist->key_l= rand();
-	hlist->key_h= rand();
+	hlist->key_l= random();
+	hlist->key_h= random();
 	return(1);
 }
 

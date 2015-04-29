@@ -681,7 +681,7 @@ int send_fid_probe(void){
 		dlt_null->family= PF_INET6;
 	}
 #if defined (__OpenBSD__)
-	else if(idata->type == DLT_LOOP){
+	else if(idata.type == DLT_LOOP){
 		dlt_null->family= htonl(PF_INET6);
 	}
 #endif
