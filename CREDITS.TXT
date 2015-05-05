@@ -55,6 +55,7 @@ up in specific network scenarios.
 The following indviduals provided great help in identifying bugs in the
 toolkit (thus leading to fixes and improvements):
 
+    Alexander Bluhm <bluhm@openbsd.org>
     Stephane Bortzmeyer <stephane@bortzmeyer.org>
     Marc Heuse <mh@mh-sec.de>
     Erik Muller <erikm@buh.org>
