@@ -2171,7 +2171,7 @@ int string_escapes(char *data, unsigned int *datalen, unsigned int maxlen){
 size_t Strnlen(const char *s, size_t maxlen){
 	size_t i=0;
 
-	while(s[i] != 0 && i < maxlen)
+	while(i < maxlen && s[i] != 0)
 		i++;
 
 	if(i < maxlen)
