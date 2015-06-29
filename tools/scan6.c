@@ -3917,10 +3917,10 @@ int load_smart_entries(struct scan_list *scan, struct scan_list *smart){
 			case IID_PATTERN_BYTES:
 				(scan->target[scan->ntarget])->end= (scan->target[scan->ntarget])->start;
 
-				for(j=8; j<=16; j++)
+				for(j=8; j<16; j++)
 					(scan->target[scan->ntarget])->end.s6addr[j]= ((scan->target[scan->ntarget])->start.s6addr[j])?0xff:0x00;
 
-				for(j=8; j<=16; j++)
+				for(j=8; j<16; j++)
 					(scan->target[scan->ntarget])->start.s6addr[j]= 0x00;
 
 				(scan->target[scan->ntarget])->cur= (scan->target[scan->ntarget])->start;
@@ -3946,10 +3946,10 @@ int load_smart_entries(struct scan_list *scan, struct scan_list *smart){
 
 			default:
 				/* By default we scan for low-byte-addresses (same code as above) */
-				for(j=8; j<=16; j++)
+				for(j=8; j<16; j++)
 					(scan->target[scan->ntarget])->start.s6addr[j]= 0x00;
 
-				for(j=8; j<=16; j++)
+				for(j=8; j<16; j++)
 					(scan->target[scan->ntarget])->end.s6addr[j]= 0xff;
 
 				(scan->target[scan->ntarget])->cur= (scan->target[scan->ntarget])->start;
