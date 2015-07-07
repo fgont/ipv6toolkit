@@ -3575,7 +3575,30 @@ int load_dst_and_pcap(struct iface_data *idata, unsigned int mode){
 	unsigned char		randpreflen;
 	char				errbuf[PCAP_ERRBUF_SIZE];
 
-	if(mode != LOAD_PCAP_ONLY){
+	if(mode != LOAD_PCAP_ONLY && IN6_IS_ADDR_LINKLOCAL(&(idata->dstaddr))){
+		/* Special case where the Destination Address is a link-local address */
+		if(!idata->iface_f){
+			puts("Need to specify an interface ('-i' option) when Destination Address is link-local");
+			return(FAILURE);
+		}
+
+		if(!idata->ifindex_f){
+			idata->ifindex= if_nametoindex(idata->iface);
+			idata->ifindex_f= TRUE;
+		}
+
+		idata->nhifindex= idata->ifindex;
+		idata->nhifindex_f= TRUE;
+
+		if(get_if_addrs(idata) == -1){
+			if(idata->verbose_f){
+				puts("Error while obtaining local interface data");
+			}
+
+			return(FAILURE);
+		}
+	}
+	else if(mode != LOAD_PCAP_ONLY){
 		if(idata->srcprefix_f){
 			randprefix= idata->srcaddr;
 			randpreflen= idata->srcpreflen;
@@ -3794,6 +3817,8 @@ puts("Encontre loopback y voy a sobreeescribir la info de destino");
 
 	}
 	else{
+		/* LOAD_PCAP_ONLY */
+
 		if(!idata->iface_f){
 			if(idata->verbose_f){
 				puts("Error opening pcap socket because interface was not specified");
@@ -3899,13 +3924,20 @@ puts("Estoy en load_dst() y voy a imprimir error");
 		return(SUCCESS);
 
 	if(!(idata->flags & IFACE_TUNNEL) && !(idata->flags & IFACE_LOOPBACK)){
-		if(ipv6_to_ether(idata->pfd, idata, &(idata->nhaddr), &(idata->nhhaddr)) != 1){
-			puts("Error while performing Neighbor Discovery for the Destination Address");
-			return(FAILURE);
+		if(!(idata->hdstaddr_f)){
+			if(IN6_IS_ADDR_MULTICAST(&(idata->dstaddr))){
+				idata->nhhaddr= ether_multicast(&(idata->dstaddr));
+			}
+			else{
+				if(ipv6_to_ether(idata->pfd, idata, &(idata->nhaddr), &(idata->nhhaddr)) != 1){
+					puts("Error while performing Neighbor Discovery for the Destination Address");
+					return(FAILURE);
+				}
+			}
+			
+			idata->hdstaddr= idata->nhhaddr;
 		}
 	}
-
-	idata->hdstaddr= idata->nhhaddr;
 
 	return(SUCCESS);
 }
