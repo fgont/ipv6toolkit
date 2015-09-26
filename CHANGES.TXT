@@ -1,3 +1,11 @@
+SI6 Networks IPv6 Toolkit v2.1 (Jan)
+   * scan6: Fix bug in smart scan
+     There was a bug in the generation of low-byte and pattern-byte addresses.
+
+   * scan6: Improve VMWare scans
+     We have now added vSphere and ESX server entries
+
+
 SI6 Networks IPv6 Toolkit v2.0 (Guille)
    * path6: New tool
      Added a fully-IPv6-capable traceroute tool, named path6.

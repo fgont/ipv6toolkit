@@ -267,7 +267,9 @@ This option specifies that the Ethernet Source Address should be randomized.
 .TP
 .BI \-V\  VM_TYPE ,\ \-\-tgt\-virtual\-machines\  VM_TYPE
 
-This option specifies that the target is virtual machines. Possible options are: 'vbox' (VirtualBox), 'vmware' (vmware), and 'all' (both VirtualBox and vmware). When this option is specified, scan6 can narrow dow the search space by targeting only those IEEE OUIs employed by the aforementioned virtualization software. Note: For vmware, the search space can be further reduced if the '\-\-ipv4\-host' option is specified.
+This option specifies that the target is virtual machines. Possible options are: 'vbox' (VirtualBox), 'vmware\-esx' (VMWare ESX Server), 'vmware\-vsphere' (VMWare vSphere), 'vmware\-manual' (VMWare manually\-assigned addresses), 'vmware' (all VMWare addresses), and 'all' (both VirtualBox and all VMWare addresses). When this option is specified, scan6 can narrow dow the search space by targeting only those IEEE OUIs employed by the aforementioned virtualization software. Note: For vmware\-esx, the search space can be further reduced if the '\-\-ipv4\-host' option is specified.
+
+When the 'all' option is set, VirtualBox virtual machines come first in the target list.
 
 .TP
 .BR \-b\| ,\  \-\-tgt\-low\-byte

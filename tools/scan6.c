@@ -218,7 +218,7 @@ uint16_t				portscanl, portscanh, portscanp, portscantemp;
 unsigned char			dst_f=FALSE, tgt_ipv4mapped32_f=FALSE, tgt_ipv4mapped64_f=FALSE, tgt_lowbyte_f=FALSE, tgt_oui_f=FALSE;
 unsigned char			tgt_vendor_f=FALSE, tgt_vm_f=FALSE, tgt_bruteforce_f=FALSE, tgt_range_f=FALSE, tgt_portembedded_f=FALSE;
 unsigned char			tgt_knowniids_f=FALSE, tgt_knowniidsfile_f=FALSE, knownprefixes_f=FALSE;
-unsigned char			vm_vbox_f=FALSE, vm_vmware_f=FALSE, vm_vmwarem_f=FALSE, v4hostaddr_f=FALSE;
+unsigned char			vm_vbox_f=FALSE, vm_vmware_f=FALSE, vm_vmware_esx_f=FALSE, vm_vmware_vsphere_f=FALSE, vm_vmwarem_f=FALSE, v4hostaddr_f=FALSE;
 unsigned char			v4hostprefix_f=FALSE, sort_ouis_f=FALSE, rnd_probes_f=FALSE, inc_f=FALSE, end_f=FALSE, endpscan_f=FALSE;
 unsigned char			donesending_f=FALSE;
 unsigned char			onlink_f=FALSE, pps_f=FALSE, bps_f=FALSE, tcpflags_f=FALSE, rhbytes_f=FALSE, srcport_f=FALSE, dstport_f=FALSE, probetype;
@@ -1182,23 +1182,34 @@ int main(int argc, char **argv){
 				break;
 
 			case 'V':
-				if(strncmp(optarg, "vbox", strlen("vbox")) == 0){
+				if(strncmp(optarg, "vbox", strlen("vbox")) == 0 || strncmp(optarg, "virtualbox", strlen("virtualbox")) == 0){
 					tgt_vm_f=TRUE;
 					vm_vbox_f=TRUE;
 				}
-				else if(strncmp(optarg, "vmware", strlen("vmware")) == 0){
+				else if(strncmp(optarg, "vmware-esx", strlen("vmware-esx")) == 0){
 					tgt_vm_f=TRUE;
-					vm_vmware_f=TRUE;
+					vm_vmware_esx_f=TRUE;
 				}
-				else if(strncmp(optarg, "vmwarem", strlen("vmwarem")) == 0){
+				else if(strncmp(optarg, "vmware-vsphere", strlen("vmware-vsphere")) == 0){
+					tgt_vm_f=TRUE;
+					vm_vmware_vsphere_f=TRUE;
+				}
+				else if(strncmp(optarg, "vmwarem", strlen("vmwarem")) == 0 || strncmp(optarg, "vmware-manual", strlen("vmware-manual")) == 0){
 					tgt_vm_f=TRUE;
 					vm_vmwarem_f=TRUE;
+				}
+				else if(strncmp(optarg, "vmware", strlen("vmware")) == 0){
+					tgt_vm_f=TRUE;
+					vm_vmware_esx_f= TRUE;
+					vm_vmware_vsphere_f= TRUE;
+					vm_vmwarem_f= TRUE;
 				}
 				else if(strncmp(optarg, "all", strlen("all")) == 0){
 					tgt_vm_f=TRUE;
 					vm_vbox_f=TRUE;
-					vm_vmware_f=TRUE;
-					vm_vmwarem_f=TRUE;
+					vm_vmware_esx_f= TRUE;
+					vm_vmware_vsphere_f= TRUE;
+					vm_vmwarem_f= TRUE;
 				}
 				else{
 					puts("Error in '-V' option: Unknown Virtualization Technology");
@@ -3517,7 +3528,88 @@ int load_vm_entries(struct scan_list *scan, struct scan_entry *dst, struct prefi
 		scan->ntarget++;
 	}
 
-	if(vm_vmware_f){
+	if(vm_vmware_vsphere_f){
+		/*
+		   Add scan entry for VMWare vSphere. First, include addresses assigned vy vCenter Server.
+		   Then include addresses assigned by the ESXi host.
+         */
+
+		if(scan->ntarget >= scan->maxtarget)
+			return(0);
+
+		if( (scan->target[scan->ntarget]= malloc(sizeof(struct scan_entry))) == NULL){
+			if(verbose_f)
+				puts("scans: malloc(): Not enough memory");
+
+			return(0);
+		}
+
+		/*
+	       By default, MAC addresses assigned by the vCenter server use the OUI
+	       00:50:56, and have the format 00:50:56:XX:YY:ZZ, where XX is
+	       calculated as (0x80 + vCenter Server ID (in the range 0x00-0x3F)),
+	       and XX and YY are random two-digit hexadecimal numbers.  Thus, the
+	       possible IID range is 00:50:56:80:00:00-00:50:56:BF:FF:FF, and
+	       therefore the search space for the resulting SLAAC addresses will be
+	       24 bits.
+		 */
+
+		if(ether_pton("00:50:56:80:00:00", &ether, sizeof(ether)) == 0){
+			if(verbose_f)
+				puts("scan6: ether_pton(): Error converting Ethernet Address to presentation format");
+
+			return(0);
+		}
+
+		generate_slaac_address(&(dst->start.in6_addr), &ether, &((scan->target[scan->ntarget])->start.in6_addr));
+		(scan->target[scan->ntarget])->cur= (scan->target[scan->ntarget])->start;
+
+
+		if(ether_pton("00:50:56:BF:FF:FF", &ether, sizeof(ether)) == 0){
+			if(verbose_f)
+				puts("scan6: ether_pton(): Error converting Ethernet Address to presentation format");
+
+			return(0);
+		}
+
+		generate_slaac_address(&(dst->end.in6_addr), &ether, &((scan->target[scan->ntarget])->end.in6_addr));
+		scan->ntarget++;
+
+
+		if(scan->ntarget >= scan->maxtarget)
+			return(0);
+
+		if(ether_pton("00:0C:29:00:00:00", &ether, sizeof(ether)) == 0){
+			if(verbose_f)
+				puts("scan6: ether_pton(): Error converting Ethernet Address to presentation format");
+
+			return(0);
+		}
+
+		if( (scan->target[scan->ntarget]= malloc(sizeof(struct scan_entry))) == NULL){
+			if(verbose_f)
+				puts("scans: malloc(): Not enough memory");
+
+			return(0);
+		}
+
+		generate_slaac_address(&(dst->start.in6_addr), &ether, &((scan->target[scan->ntarget])->start.in6_addr));
+		(scan->target[scan->ntarget])->cur= (scan->target[scan->ntarget])->start;
+		(scan->target[scan->ntarget])->end= dst->end;
+
+		for(i=4; i<=7; i++)
+			(scan->target[scan->ntarget])->end.s6addr16[i]= (scan->target[scan->ntarget])->start.s6addr16[i];
+
+		/*
+		   The three low-order bytes must vary from 0x000000 to 0xffffff
+		 */
+		(scan->target[scan->ntarget])->end.s6addr16[6]= (scan->target[scan->ntarget])->end.s6addr16[6] | htons(0x00ff);
+		(scan->target[scan->ntarget])->end.s6addr16[7]= (scan->target[scan->ntarget])->end.s6addr16[7] | htons(0xffff);
+		scan->ntarget++;
+	}
+
+	if(vm_vmware_esx_f){
+		/* Add scan entry for VMWare ESX Server */
 		if(scan->ntarget >= scan->maxtarget)
 			return(0);
 
@@ -3607,7 +3699,7 @@ int load_vm_entries(struct scan_list *scan, struct scan_entry *dst, struct prefi
 		   The three low-order bytes must vary from 0x000000 to 0x3fffff
 		 */
 		(scan->target[scan->ntarget])->end.s6addr16[6]= (scan->target[scan->ntarget])->end.s6addr16[6] | htons(0x003f);
-		(scan->target[scan->ntarget])->end.s6addr16[7]= (scan->target[scan->ntarget])->end.s6addr16[6] | htons(0xffff);
+		(scan->target[scan->ntarget])->end.s6addr16[7]= (scan->target[scan->ntarget])->end.s6addr16[7] | htons(0xffff);
 
 		scan->ntarget++;
 	}
