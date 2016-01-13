@@ -1454,13 +1454,13 @@ int main(int argc, char **argv){
 
 	if(!scan_local_f){
 		if(load_dst_and_pcap(&idata, LOAD_SRC_NXT_HOP) == FAILURE){
-			puts("Error while learning Souce Address and Next Hop");
+			puts("Error while learning Source Address and Next Hop");
 			exit(EXIT_FAILURE);
 		}
 	}
 	else{
 		if(load_dst_and_pcap(&idata, LOAD_PCAP_ONLY) == FAILURE){
-			puts("Error while learning Souce Address and Next Hop");
+			puts("Error while learning Source Address and Next Hop");
 			exit(EXIT_FAILURE);
 		}
 	}

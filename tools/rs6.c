@@ -432,7 +432,7 @@ int main(int argc, char **argv){
 	}
 
 	if(load_dst_and_pcap(&idata, (idata.dstaddr_f?LOAD_SRC_NXT_HOP:LOAD_PCAP_ONLY)) == FAILURE){
-		puts("Error while learning Souce Address and Next Hop");
+		puts("Error while learning Source Address and Next Hop");
 		exit(EXIT_FAILURE);
 	}
 
