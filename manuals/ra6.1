@@ -105,7 +105,7 @@ This option causes the ra6 tool to set the ‘P’ ("ND Proxy") bit in the Route
 .TP
 \-\-preference, \-p
 
-This option specifies the Preference field of the Router Advertisement messages, with "1" meaning "High", "0" meaning "Normal", and "\-1" meaning "low" (the value "\-2" is forbidden). If left unspecified, a Preference value of "1" (High) is selected.
+This option specifies the Preference field of the Router Advertisement messages, with "high" (equivalent to "1"), "medium" (equivalent to "0"), "low" (equivalent to "\-1"), and "resvd" (equivalent to "\-2"). If left unspecified, a Preference value of "1" (High) is selected.
 
 .TP
 .BI \-S\  SRC_LINK_ADDR ,\ \-\-src\-link\-address\  SRC_LINK_ADDR
@@ -139,7 +139,7 @@ This option specifies the contents of a Prefix Information option to be included
 .TP
 \-\-route\-opt, \-R
 
-This option specifies the contents of a Route Information option to be included in Router advertisement messages, with the following format: "\-R prefix/length#preference#lifetime". Where "prefix/length" is a mandatory field that indicates an IPv6 prefix (e.g., "2001::/16"). "preference" is an optional argument that indicates the preference of this prefix (with ‘1’ meaning "high", ‘0’ meaning "normal", ‘\-1’ meaning "low", and ‘\-2’ being an invalid value). If this field is left unspecified, a value of ‘1’ (i.e., "high") is selected. "lifetime" is an optional parameter that specifies the "Route Lifetime" for the specified route (the period of time during which this information can be used for route determination). If left unspecified, a value of 0xffffffff (infinity) is selected. 
+This option specifies the contents of a Route Information option to be included in Router advertisement messages, with the following format: "\-R prefix/length#preference#lifetime". Where "prefix/length" is a mandatory field that indicates an IPv6 prefix (e.g., "2001::/16"). "preference" is an optional argument that indicates the preference of this prefix ("high"/"1", "normal"/"0", "low"/"\-1", or "resvd"/"\-2"). If this field is left unspecified, a value of "1" (i.e., "high") is selected. "lifetime" is an optional parameter that specifies the "Route Lifetime" for the specified route (the period of time during which this information can be used for route determination). If left unspecified, a value of 0xffffffff (infinity) is selected. 
 
 .TP
 \-\-mtu\-opt, \-M
