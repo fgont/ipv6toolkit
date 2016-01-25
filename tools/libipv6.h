@@ -686,6 +686,12 @@ struct	decode6{
 #define MAX_DNS_CLABELS         5
 
 
+/* RFC 4191 Router Advertisement Preference */
+#define RTR_PREF_HIGH			0x01
+#define RTR_PREF_LOW			0x03
+#define RTR_PREF_MED			0x00
+#define RTR_PREF_RSVD			0x02
+
 /* ICMPv6 Types/Codes not defined in some OSes */
 #ifndef ICMP6_DST_UNREACH_FAILEDPOLICY
 	#define ICMP6_DST_UNREACH_FAILEDPOLICY	5

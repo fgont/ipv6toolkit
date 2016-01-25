@@ -2,7 +2,7 @@
  * ra6: A security assessment tool for attack vectors based on 
  *      ICMPv6 Router Advertisement messages
  *
- * Copyright (C) 2009-2015 Fernando Gont
+ * Copyright (C) 2009-2016 Fernando Gont
  *
  * Programmed by Fernando Gont for SI6 Networks <http://www.si6networks.com>
  *
@@ -89,8 +89,8 @@ size_t						nw;
 uint16_t					lifetime;
 uint32_t					reachable;
 uint32_t					retrans;
-uint8_t					curhop, hoplimit;
-char						preference=0, prefbits=0;
+uint8_t						curhop, hoplimit, prefbits=0;
+int							preference=0;
 unsigned int				nprefixes=0, nroutes=0, nfrags=0;
 unsigned int				hdrlen, ndstopthdr=0, nhbhopthdr=0, ndstoptuhdr=0;
 unsigned int				dstopthdrs, dstoptuhdrs, hbhopthdrs;
@@ -143,7 +143,7 @@ char						pv6addr[INET6_ADDRSTRLEN];
 
 
 /* Flags used for option processing */
-unsigned char 				managed_f=0, other_f=0, home_f=0, proxy_f=0;
+uint8_t		 				managed_f=0, other_f=0, home_f=0, proxy_f=0;
 unsigned char 				mtuopt_f=0, sllopt_f=0, sllopta_f=0, prefopt_f=0, hoplimit_f=0;
 unsigned char 				listen_f = 0, floodp_f=0, floods_f=0, floodr_f=0, multicastdst_f=0, floodd_f=0;
 unsigned char				loop_f=0, sleep_f=0, accepted_f=0, newdata_f=0;
@@ -154,7 +154,7 @@ struct filters		filters;
 
 int main(int argc, char **argv){
 	extern char		*optarg;	
-	int				r, sel;
+	int				r, sel, rtepref;
 	fd_set			sset, rset;
 #if defined(sun) || defined(__sun) || defined(__linux__)
 	struct timeval		timeout;
@@ -484,13 +484,50 @@ int main(int argc, char **argv){
 				break;
 
 			case 'p':	/* "Preference" bits */
-				preference= atoi(optarg);
-				if(preference<-2 || preference >1){
-					puts("Error in 'preference' parameter");
-					exit(EXIT_FAILURE);
+				if(strncmp(optarg, "high", strlen("high")) == 0 || strncmp(optarg, "h", strlen("h")) == 0){
+						prefbits= RTR_PREF_HIGH;
 				}
-		
-				prefbits = (preference << 3) & 0x18;
+				else if(strncmp(optarg, "low", strlen("low")) == 0 || strncmp(optarg, "l", strlen("l")) == 0){
+						prefbits= RTR_PREF_LOW;
+				}
+				else if(strncmp(optarg, "med", strlen("med")) == 0 || strncmp(optarg, "medium", strlen("medium")) == 0 || \
+				        strncmp(optarg, "m", strlen("m")) == 0){
+						prefbits= RTR_PREF_MED;
+				}
+				else if(strncmp(optarg, "resvd", strlen("resvd")) == 0 || strncmp(optarg, "reserved", strlen("reserved")) == 0 || \
+				        strncmp(optarg, "r", strlen("r")) == 0){
+						prefbits= RTR_PREF_RSVD;
+				}
+				else{
+					preference= atoi(optarg);
+
+					switch(preference){
+						case -2:
+							prefbits= RTR_PREF_RSVD;
+							break;
+
+						case -1:
+							prefbits= RTR_PREF_LOW;
+							break;
+
+						case 0:
+							prefbits= RTR_PREF_MED;
+							break;
+
+						case 1:
+							prefbits= RTR_PREF_HIGH;
+							break;
+
+						default:
+							puts("Error in 'preference' parameter");
+							exit(EXIT_FAILURE);
+							break;
+					}
+				}
+
+				/* Need to shift the Preference bits to be able to binary-OR them to the RA flags */
+				preference= prefbits;
+				prefbits = prefbits << 3;
 				break;	    	    
 
 		    case 't':	/* Router Lifetime */
@@ -676,9 +713,50 @@ int main(int argc, char **argv){
 					nroutes++;
 					break;
 				}
-		
-				routepref[nroutes]= atoi(rpref);
-				routepref[nroutes] = (routepref[nroutes]<<3) & 0x18;
+
+				if(strncmp(rpref, "high", strlen("high")) == 0 || strncmp(rpref, "h", strlen("h")) == 0){
+						routepref[nroutes]= RTR_PREF_HIGH;
+				}
+				else if(strncmp(rpref, "low", strlen("low")) == 0 || strncmp(rpref, "l", strlen("l")) == 0){
+						routepref[nroutes]= RTR_PREF_LOW;
+				}
+				else if(strncmp(rpref, "med", strlen("med")) == 0 || strncmp(rpref, "medium", strlen("medium")) == 0 || \
+				        strncmp(rpref, "m", strlen("m")) == 0){
+						routepref[nroutes]= RTR_PREF_MED;
+				}
+				else if(strncmp(rpref, "resvd", strlen("resvd")) == 0 || strncmp(rpref, "reserved", strlen("reserved")) == 0 || \
+				        strncmp(rpref, "r", strlen("r")) == 0){
+						routepref[nroutes]= RTR_PREF_RSVD;
+				}
+				else{
+					rtepref= atoi(rpref);
+
+					switch(rtepref){
+						case -2:
+							routepref[nroutes]= RTR_PREF_RSVD;
+							break;
+
+						case -1:
+							routepref[nroutes]= RTR_PREF_LOW;
+							break;
+
+						case 0:
+							routepref[nroutes]= RTR_PREF_MED;
+							break;
+
+						case 1:
+							routepref[nroutes]= RTR_PREF_HIGH;
+							break;
+
+						default:
+							puts("Error in 'preference' parameter");
+							exit(EXIT_FAILURE);
+							break;
+					}
+				}
+
+				/* Need to shift the "Preference" bits to be able to binary-OR them to the reserved bits */
+				routepref[nroutes] = (routepref[nroutes]<<3);
 
 				if((ul_res = strtoul(lasts, &endptr, 0)) == ULONG_MAX){
 					printf("Error in 'lifetime' parameter of Route Information option number %u\n", \
@@ -1885,6 +1963,9 @@ void print_help(void){
  */
 
 void print_attack_info(struct iface_data *idata){
+	char *routestr[]={"medium", "high", "resvd", "low"};
+
+
 	if(!floods_f){
 		if(ether_ntop(&(idata->hsrcaddr), plinkaddr, sizeof(plinkaddr)) == 0){
 			puts("ether_ntop(): Error converting address");
@@ -1959,9 +2040,15 @@ void print_attack_info(struct iface_data *idata){
 
     if(idata->fragh_f)
 	printf("Sending each packet in fragments of %u bytes (plus the Unfragmentable part)\n", nfrags);
-		
-    printf("Cur Hop Limit: %u   Preference: %d   Flags: %s%s%s%s%s   Router Lifetime: %u\n", \
-	    curhop, preference, ((managed_f)?"M":""), ((other_f)?"O":""), ((home_f)?"H":""), \
+
+	/* Should never happen, since we set this one */
+	if(preference > 3){
+	    puts("print_attack_info(): peference value out of range");
+	    exit(EXIT_FAILURE);
+	}
+
+    printf("Cur Hop Limit: %u   Preference: %s   Flags: %s%s%s%s%s   Router Lifetime: %u\n", \
+	    curhop, routestr[preference], ((managed_f)?"M":""), ((other_f)?"O":""), ((home_f)?"H":""), \
 	    ((proxy_f)?"P":""), ((!managed_f && !other_f && !home_f && !proxy_f)?"none":""), \
 	    lifetime);
 		
@@ -2017,8 +2104,14 @@ void print_attack_info(struct iface_data *idata){
 		exit(EXIT_FAILURE);
 	    }
 
-	    printf("Prefix: %s/%u   Preference: %u   Lifetime: %u\n", pprefix, routelen[i], \
-		    (routepref[i]>>3), routelife[i]);
+		/* SHould never happen, since we set this one */
+		if( (routepref[i]>>3) > 3){
+			puts("print_attack_info(): peference value out of range");
+			exit(EXIT_FAILURE);
+		}
+
+	    printf("Prefix: %s/%u   Preference: %s   Lifetime: %u\n", pprefix, routelen[i], \
+		    (routestr[routepref[i]>>3]), routelife[i]);
 	}
     }
 
