@@ -864,7 +864,7 @@ elsif($ARGV[0] eq "get-trace-invalid"){
 		}
 	}
 }
-elsif($ARGV[0] eq "get-alexa-domains"){
+elsif($ARGV[0] eq "get-alexa-domains" || "get-alexa-domains"){
 	while($line=<STDIN>){
 		while($line =~ m{\d+,([^/\s]*)}ig){
 			print "$1\n";		
