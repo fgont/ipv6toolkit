@@ -1133,7 +1133,7 @@ int main(int argc, char **argv){
 				else{
 					portscanl=strtoul(lasts, &endptr, 10);
 					
-					if(pref == endptr && portscanl == 0){
+					if(lasts == endptr && portscanl == 0){
 						portscanl= DEFAULT_MIN_PORT;
 						portscanh= DEFAULT_MAX_PORT;
 					}
