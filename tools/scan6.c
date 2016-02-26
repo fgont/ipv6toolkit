@@ -1,7 +1,7 @@
 /*
  * scan6: An IPv6 Scanning Tool
  *
- * Copyright (C) 2011-2015 Fernando Gont <fgont@si6networks.com>
+ * Copyright (C) 2011-2016 Fernando Gont <fgont@si6networks.com>
  *
  * Programmed by Fernando Gont for SI6 Networks <http://www.si6networks.com>
  *
@@ -260,7 +260,7 @@ int main(int argc, char **argv){
 	struct addrinfo			hints, *res, *aiptr;
 	struct target_ipv6		target;
 	struct timeval			timeout;
-	char					date[DATE_STR_LEN];
+	char					date[DATE_STR_LEN], *endptr;
 	uint8_t			ulhtype;
 
 	static struct option longopts[] = {
@@ -1107,7 +1107,7 @@ int main(int argc, char **argv){
 				}
 				else{
 					puts("Error unknown protocol in 'port-scan' option");
-					exit(1);
+					exit(EXIT_FAILURE);
 				}
 
 				if(address_contains_ranges(lasts)){
@@ -1116,12 +1116,30 @@ int main(int argc, char **argv){
 						exit(EXIT_FAILURE);
 					}
 
-					portscanl= atoi(pref);
-					portscanh= atoi(lasts);
+					portscanl=strtoul(pref, &endptr, 10);
+					
+					if(pref == endptr && portscanl == 0){
+						puts("Error in port range");
+						exit(EXIT_FAILURE);
+					}
+
+					portscanh=strtoul(lasts, &endptr, 10);
+					
+					if(lasts == endptr && portscanh == 0){
+						puts("Error in port range");
+						exit(EXIT_FAILURE);
+					}
 				}
 				else{
-					portscanl= atoi(lasts);
-					portscanh= portscanl;
+					portscanl=strtoul(lasts, &endptr, 10);
+					
+					if(pref == endptr && portscanl == 0){
+						portscanl= DEFAULT_MIN_PORT;
+						portscanh= DEFAULT_MAX_PORT;
+					}
+					else{
+						portscanh= portscanl;
+					}
 				}
 
 				if(portscanl > portscanh){

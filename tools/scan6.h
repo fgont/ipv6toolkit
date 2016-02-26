@@ -107,4 +107,6 @@ struct port_table_entry{
 #define PORT_OPEN		2
 #define PORT_CLOSED		4
 
+#define DEFAULT_MIN_PORT	0
+#define DEFAULT_MAX_PORT	65535
 
