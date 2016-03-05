@@ -1,7 +1,7 @@
 /*
  * addr6: A tool to decode IPv6 addresses
  *
- * Copyright (C) 2013-2015 Fernando Gont (fgont@si6networks.com)
+ * Copyright (C) 2013-2016 Fernando Gont (fgont@si6networks.com)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -49,8 +49,9 @@ struct hashed_host_entry *		add_hashed_host_entry(struct hashed_host_list *, str
 unsigned int			is_ip6_in_hashed_list(struct hashed_host_list *, struct in6_addr *);
 void					print_stats(struct stats6 *);
 
-unsigned char			stdin_f=FALSE, addr_f=FALSE, verbose_f=FALSE, decode_f=FALSE, print_unique_f=FALSE;
-unsigned char			stats_f=FALSE, filter_f=FALSE, canonic_f=FALSE, reverse_f=FALSE;
+unsigned char			stdin_f=FALSE, addr_f=FALSE, verbose_f=FALSE, decode_f=FALSE, block_duplicate_f=FALSE;
+unsigned char			block_duplicate_preflen_f=FALSE, stats_f=FALSE, filter_f=FALSE, canonic_f=FALSE;
+unsigned char			reverse_f=FALSE;
 char					line[MAX_LINE_SIZE];
 
 extern char			*optarg;
@@ -61,12 +62,13 @@ int main(int argc, char **argv){
 	struct stats6		stats;
 	struct hashed_host_list	hlist;
 	int					r;
-	char				*ptr, *pref, *charptr, *lasts;
+	char				*ptr, *pref, *charptr, *lasts, *endptr;
+	unsigned long		ul_res;
 	char				pv6addr[INET6_ADDRSTRLEN];
 	unsigned int		accept_type=0, block_type=0, accept_scope=0, block_scope=0, accept_itype=0, block_itype=0;
 	unsigned int		accept_utype=0, block_utype=0;
 
-	unsigned char		accepted_f=0, acceptfilters_f=0;
+	unsigned char		accepted_f=FALSE, acceptfilters_f=FALSE;
 
 	/* Block Filters */
 	struct in6_addr 	block[MAX_BLOCK];
@@ -75,8 +77,12 @@ int main(int argc, char **argv){
 
 	/* Accept Filters */
 	struct in6_addr		accept[MAX_ACCEPT];
-	uint8_t			acceptlen[MAX_ACCEPT];
+	uint8_t				acceptlen[MAX_ACCEPT];
 	unsigned int		naccept=0;
+
+	/* Filter based on prefix length */
+	uint8_t				dpreflen;
+	struct in6_addr		dummyipv6;
 
 	static struct option longopts[] = {
 		{"address", required_argument, 0, 'a'},
@@ -85,7 +91,9 @@ int main(int argc, char **argv){
 		{"print-decode", no_argument, 0, 'd'},
 		{"print-reverse", no_argument, 0, 'r'},
 		{"print-stats", no_argument, 0, 's'},
-		{"print-unique", no_argument, 0, 'q'},
+		{"block-dup", no_argument, 0, 'q'},
+		{"print-unique", no_argument, 0, 'Q'},
+		{"block-dup-preflen", required_argument, 0, 'p'},
 		{"accept", required_argument, 0, 'j'},
 		{"accept-type", required_argument, 0, 'b'},
 		{"accept-scope", required_argument, 0, 'k'},
@@ -101,7 +109,7 @@ int main(int argc, char **argv){
 		{0, 0, 0,  0 },
 	};
 
-	char shortopts[]= "a:icrdsqj:b:k:w:g:J:B:K:W:G:vh";
+	char shortopts[]= "a:icrdsqQp:j:b:k:w:g:J:B:K:W:G:vh";
 
 	char option;
 
@@ -122,23 +130,23 @@ int main(int argc, char **argv){
 					exit(EXIT_FAILURE);
 				}
 		
-				addr_f=1;
+				addr_f= TRUE;
 				break;
 
 			case 'i':  /* Read from stdin */
-				stdin_f=1;
+				stdin_f= TRUE;
 				break;
 
 			case 'c':	/* Print addresses in canonic form */
-				canonic_f=1;
+				canonic_f= TRUE;
 				break;
 
 			case 'd':	/* Decode IPv6 addresses */
-				decode_f=1;
+				decode_f= TRUE;
 				break;
 
 			case 'r':	/* Print addresses in reversed form */
-				reverse_f=1;
+				reverse_f= TRUE;
 				break;
 
 			case 'j':	/* IPv6 Address (accept) filter */
@@ -171,8 +179,8 @@ int main(int argc, char **argv){
 		
 				sanitize_ipv6_prefix(&accept[naccept], acceptlen[naccept]);
 				naccept++;
-				acceptfilters_f=1;
-				filter_f=1;
+				acceptfilters_f= TRUE;
+				filter_f= TRUE;
 				break;
 
 			case 'J':	/* IPv6 Address (block) filter */
@@ -206,7 +214,7 @@ int main(int argc, char **argv){
 				sanitize_ipv6_prefix(&block[nblock], blocklen[nblock]);
 				
 				nblock++;
-				filter_f=1;
+				filter_f= TRUE;
 				break;
 
 			case 'b':	/* Accept type filter */
@@ -224,8 +232,8 @@ int main(int argc, char **argv){
 					exit(EXIT_FAILURE);
 				}
 
-				acceptfilters_f=1;
-				filter_f=1;
+				acceptfilters_f= TRUE;
+				filter_f= TRUE;
 				break;
 
 			case 'B':	/* Block type filter */
@@ -243,7 +251,7 @@ int main(int argc, char **argv){
 					exit(EXIT_FAILURE);
 				}
 
-				filter_f=1;
+				filter_f= TRUE;
 				break;
 
 			case 'k':	/* Accept scope filter */
@@ -279,8 +287,8 @@ int main(int argc, char **argv){
 					exit(EXIT_FAILURE);
 				}
 
-				acceptfilters_f=1;
-				filter_f=1;
+				acceptfilters_f= TRUE;
+				filter_f= TRUE;
 				break;
 
 			case 'K':	/* Block scope filter */
@@ -316,7 +324,7 @@ int main(int argc, char **argv){
 					exit(EXIT_FAILURE);
 				}
 
-				filter_f=1;
+				filter_f= TRUE;
 				break;
 
 			case 'w':	/* Accept unicast type filter */
@@ -352,8 +360,8 @@ int main(int argc, char **argv){
 					exit(EXIT_FAILURE);
 				}
 
-				acceptfilters_f=1;
-				filter_f=1;
+				acceptfilters_f= TRUE;
+				filter_f= TRUE;
 				break;
 
 
@@ -390,7 +398,7 @@ int main(int argc, char **argv){
 					exit(EXIT_FAILURE);
 				}
 
-				filter_f=1;
+				filter_f= TRUE;
 				break;
 
 			case 'g':	/* Accept IID filter */
@@ -434,8 +442,8 @@ int main(int argc, char **argv){
 					exit(EXIT_FAILURE);
 				}
 
-				acceptfilters_f=1;
-				filter_f = 1;
+				acceptfilters_f= TRUE;
+				filter_f= TRUE;
 				break;
 
 			case 'G':	/* Block IID filter */
@@ -479,15 +487,38 @@ int main(int argc, char **argv){
 					exit(EXIT_FAILURE);
 				}
 
-				filter_f = 1;
+				filter_f= TRUE;
 				break;
 
 			case 's':	/* Generate IPv6 Address Statistics */
-				stats_f = 1;
+				stats_f= TRUE;
 				break;
 
-			case 'q':	/* Filter duplicate addresses */
-				print_unique_f = 1;
+			case 'q':	/* Block duplicate addresses */
+			case 'Q':	/* For backwards-compatibility */
+				block_duplicate_f= TRUE;
+				break;
+
+			case 'p':	/* Filter duplicate addresses on a per-prefix basis */
+				if(block_duplicate_preflen_f){
+					puts("Error: Cannot specify multiple --block-dup-preflen options");
+					exit(EXIT_FAILURE);
+				}
+
+				if((pref=strtok_r(optarg, "/", &lasts)) == NULL){
+					puts("Error in '--block-dup-preflen' option");
+					exit(EXIT_FAILURE);
+				}
+
+				if((ul_res = strtoul(pref, &endptr, 10)) == ULONG_MAX){
+					perror("Error in 'retransmit' parameter");
+					exit(EXIT_FAILURE);
+				}
+
+				if(endptr != pref)
+					dpreflen = ul_res;
+
+				block_duplicate_preflen_f= TRUE;
 				break;
 
 			case 'v':	/* Be verbose */
@@ -508,6 +539,8 @@ int main(int argc, char **argv){
 	} /* while(getopt) */
 
 
+	/* Catch simultaneous use of incompatible addresses */
+
 	if(stdin_f && addr_f){
 		puts("Cannot specify both '-a' and '-s' at the same time (try only one of them at a time)");
 		exit(EXIT_FAILURE);
@@ -523,11 +556,16 @@ int main(int argc, char **argv){
 		exit(EXIT_FAILURE);
 	}
 
+	if(block_duplicate_f && block_duplicate_preflen_f){
+		puts("Cannot employ --print-unique and --print-unique-prefix options simultaneously");
+		exit(EXIT_FAILURE);
+	}
+	
 	/* By default, addr6 decodes IPv6 addresses */
-	if(!print_unique_f && !filter_f && !stats_f && !canonic_f && !reverse_f)
-		decode_f=1;
+	if(!block_duplicate_f && !block_duplicate_preflen_f && !filter_f && !stats_f && !canonic_f && !reverse_f)
+		decode_f=TRUE;
 
-	if(print_unique_f){
+	if(block_duplicate_f || block_duplicate_preflen_f){
 		if(!init_host_list(&hlist)){
 			puts("Not enough memory when initializing internal host list");
 			exit(EXIT_FAILURE);
@@ -566,6 +604,17 @@ int main(int argc, char **argv){
 						continue;
 				}
 
+				if(block_duplicate_f && is_ip6_in_hashed_list(&hlist, &(addr.ip6))){
+					continue;
+				}
+				else if(block_duplicate_preflen_f){
+					dummyipv6= addr.ip6;
+					sanitize_ipv6_prefix(&dummyipv6, dpreflen);
+
+					if(is_ip6_in_hashed_list(&hlist, &dummyipv6))
+						continue;
+				}
+
 				accepted_f=0;
 
 				if(naccept){
@@ -576,21 +625,29 @@ int main(int argc, char **argv){
 				if(!accepted_f && (accept_type || accept_scope || accept_itype || accept_utype)){
 					if( (accept_type & addr.type) || (accept_utype & addr.subtype)\
 						 || (accept_scope & addr.scope) || (accept_itype & addr.iidtype))
-						accepted_f=1;
+						accepted_f= TRUE;
 				}
 
 				if(acceptfilters_f && !accepted_f)
 					continue;
 
-				if(print_unique_f){
-					if(is_ip6_in_hashed_list(&hlist, &(addr.ip6))){
-						continue;
+				/*
+				   If we got here, and block_duplicate_f is TRUE, then this address is unique, and we must add it to
+				   the hashed list.
+				 */
+				if(block_duplicate_f){
+					if(add_hashed_host_entry(&hlist, &(addr.ip6)) == NULL){
+						puts("Not enough memory (or hit internal artificial limit) when storing IPv6 address in memory");
+						exit(EXIT_FAILURE);
 					}
-					else{
-						if(add_hashed_host_entry(&hlist, &(addr.ip6)) == NULL){
-							puts("Not enough memory (or hit internal artificial limit) when storing IPv6 address in memory");
-							exit(EXIT_FAILURE);
-						}
+				}
+				else if(block_duplicate_preflen_f){
+					dummyipv6= addr.ip6;
+					sanitize_ipv6_prefix(&dummyipv6, dpreflen);
+
+					if(add_hashed_host_entry(&hlist, &dummyipv6) == NULL){
+						puts("Not enough memory (or hit internal artificial limit) when storing IPv6 address in memory");
+						exit(EXIT_FAILURE);
 					}
 				}
 
@@ -1112,7 +1169,8 @@ void print_help(void){
 	     "  --print-reverse, -r       Print reversed IPv6 address\n"
 	     "  --print-decode, -d        Decode IPv6 addresses\n"
 	     "  --print-stats, -s         Print statistics about IPv6 addresses\n"
-	     "  --print-unique, -q        Discard duplicate IPv6 addresses\n"
+	     "  --block-dup, -q           Discard duplicate IPv6 addresses\n"
+	     "  --block-dup-preflen, -p   Discard duplicate IPv6 addresses\n"
 	     "  --accept, -j              Accept IPv6 addresses from specified IPv6 prefix\n"
 	     "  --accept-type, -b         Accept IPv6 addresses of specified type\n"
 	     "  --accept-scope, -k        Accept IPv6 addresses of specified scope\n"

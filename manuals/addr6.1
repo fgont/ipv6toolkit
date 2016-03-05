@@ -193,9 +193,15 @@ Block unicast IPv6 addresses with an Interface ID of the specified type. Valid I
 
 
 .TP
-.BR \-q ,\  \-\-print\-unique
+.BR \-q ,\  \-\-block\-dup
 
-This option causes the tool to eliminate duplicate addresses from the list of IPv6 addresses read from standard input (stdin). That is, when reading a list of addresses from stdin, only the first "copy" of each address will be processed by the tool (with later ones being simply ignored).
+This option causes the tool to eliminate duplicate addresses from the list of IPv6 addresses read from standard input (stdin). That is, when reading a list of addresses from stdin, only the first "copy" of each address will be processed by the tool (with later ones being ignored).
+
+.TP
+.BI \-p\  PREFLEN ,\ \-\-block\-dup\-preflen\  PREFLEN
+
+This option causes the tool to accept only one address per prefix from the list of IPv6 addresses read from standard input (stdin). The corresponding prefix length is specified as an argument to this option. That is, when reading a list of addresses from stdin, only the first address for each prefix of length PREFLEN will be processed by the tool (with later ones being ignored).
+
 
 .TP
 .BR \-c ,\  \-\-print\-canonic
