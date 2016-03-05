@@ -982,7 +982,6 @@ int					keyval(char *, unsigned int, char **, char **);
 int					load_dst_and_pcap(struct iface_data *, unsigned int);
 unsigned int		match_ether(struct ether_addr *, unsigned int, struct ether_addr *);
 unsigned int		match_ipv6(struct in6_addr *, uint8_t *, unsigned int, struct in6_addr *);
-int 				match_ipv6_to_prefixes(struct in6_addr *, struct prefix_list *);
 void				print_filters(struct iface_data *, struct filters *);
 void				print_filter_result(struct iface_data *, const u_char *, unsigned char);
 unsigned int		print_ipv6_address(char *s, struct in6_addr *);

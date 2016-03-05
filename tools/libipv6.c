@@ -1,7 +1,7 @@
 /*
  * libipv6 : An IPv6 library for Linux, Mac OS, and BSD systems
  *
- * Copyright (C) 2011-2015 Fernando Gont <fgont@si6networks.com>
+ * Copyright (C) 2011-2016 Fernando Gont <fgont@si6networks.com>
  *
  * Programmed by Fernando Gont for SI6 Networks <http://www.si6networks.com>
  *
@@ -1487,7 +1487,7 @@ int is_ip6_in_address_list(struct prefix_list *plist, struct in6_addr *target){
 
 
 /*
- * Function: is_ip6_in_list()
+ * Function: is_ip6_in_prefix_list()
  *
  * Checks whether an IPv6 address is present in an address list.
  */
@@ -1537,40 +1537,6 @@ int is_time_elapsed(struct timeval *curtime, struct timeval *lastprobe, unsigned
 		}
 
 		return(0);
-}
-
-
-
-/*
- * match_ipv6_to_prefixes()
- *
- * Finds out whether an IPv6 address matches any IPv6 prefix in an array
- */
-
-int match_ipv6_to_prefixes(struct in6_addr *ipv6addr, struct prefix_list *pf){
-	unsigned int	i, j, full32, rbits;
-	uint32_t	mask;
-
-	for(i=0; i < pf->nprefix; i++){
-		full32= (pf->prefix[i])->len/32;
-		for(j=0; j<full32; j++){
-			if(ipv6addr->s6_addr32[j] != (pf->prefix[i])->ip6.s6_addr32[j])
-				break;
-		}
-
-		if(j == full32){
-			if((rbits= (pf->prefix[i])->len%32) == 0)
-				return TRUE;
-			else{
-				mask= 0xffffffff;
-				mask= mask<<rbits;
-				if((pf->prefix[i])->ip6.s6_addr32[full32] == (ipv6addr->s6_addr32[full32] & htonl(mask)))
-					return TRUE;
-			}
-		}
-	}
-
-	return FALSE;
 }
 
 
@@ -2341,7 +2307,7 @@ int sel_next_hop_ra(struct iface_data *idata){
 			}
 		}
 		else if(find_ipv6_router_full(idata->pfd, idata) == 1){
-			if(match_ipv6_to_prefixes(&(idata->dstaddr), &(idata->prefix_ol))){
+			if(is_ip6_in_prefix_list(&(idata->dstaddr), &(idata->prefix_ol))){
 				/* If address is on-link, we must perform Neighbor Discovery */
 				if(ipv6_to_ether(idata->pfd, idata, &(idata->dstaddr), &(idata->hdstaddr)) != 1){
 					if(idata->verbose_f)
