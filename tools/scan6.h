@@ -113,7 +113,7 @@ struct port_table_entry{
 #define DEFAULT_MIN_PORT	0
 #define DEFAULT_MAX_PORT	65535
 #define MAX_PORT_RANGE		65536
-
+#define IPPROTO_ALL			0xf1	/* Fake number to indicate both TCP and UDP */
 
 /* Constants for printing the scanning results */
 

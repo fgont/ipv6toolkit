@@ -229,7 +229,7 @@ struct port_table_entry udp_port_table[MAX_PORT_RANGE];
 unsigned int			*port_results, tcp_results[MAX_PORT_RANGE], udp_results[MAX_PORT_RANGE];
 
 /* Load top ports */
-unsigned char			loadalltoports_f=FALSE, loadtcptopports_f=FALSE, loadudptopports_f=FALSE;
+unsigned char			loadalltopports_f=FALSE, loadtcptopports_f=FALSE, loadudptopports_f=FALSE;
 unsigned int			nalltopports, ntcptopports, nudptopports;
 uint8_t					cprotocol;
 
@@ -252,7 +252,7 @@ struct ether_addr		oui;
 char					*charstart, *charend, *lastcolon;
 char					rangestart[MAX_RANGE_STR_LEN+1], rangeend[MAX_RANGE_STR_LEN+1];
 char 					fname[MAX_FILENAME_SIZE], fname_f=FALSE, configfile[MAX_FILENAME_SIZE], knowniidsfile[MAX_FILENAME_SIZE];
-char 					portsfname[MAX_FILENAME_SIZE], portsfname_f=FALSE;
+char 					portsfname[MAX_FILENAME_SIZE], portsfname_f=FALSE, topportsfname[MAX_FILENAME_SIZE], topportsfname_f=FALSE;
 char					knownprefixesfile[MAX_FILENAME_SIZE];
 FILE					*knowniids_fp, *knownprefixes_fp;
 char 					*oui_end=":00:00:00";
@@ -372,7 +372,7 @@ int main(int argc, char **argv){
 	tcp_port_list.maxport= MAX_PORT_ENTRIES;
 
 	/* Initialize the UDP port struture (for port scans) */
-	udp_port_list.port= tcp_prt_list;
+	udp_port_list.port= udp_prt_list;
 	udp_port_list.nport=0;
 	udp_port_list.cport=0;
 	udp_port_list.proto= IPPROTO_UDP;
@@ -1138,34 +1138,34 @@ int main(int argc, char **argv){
 						exit(EXIT_FAILURE);
 					}
 
-					if(cprotocol == IPPROTO_ALL && (loadtcptopports_f || loadudptopports_f){
+					if(cprotocol == IPPROTO_ALL && (loadtcptopports_f || loadudptopports_f)){
 						puts("Cannot specify all ports and (TCP or UDP) top ports at the same time");
 						exit(EXIT_FAILURE);
 					}
-					else if(cprotocol == IPPROTO_TCP && loadtcptopportsf){
+					else if(cprotocol == IPPROTO_TCP && loadtcptopports_f){
 						puts("Cannot specify TCP top ports more than once");
 						exit(EXIT_FAILURE);
 					}
-					else if(cprotocol == IPPROTO_UDP && loadudptopportsf){
+					else if(cprotocol == IPPROTO_UDP && loadudptopports_f){
 						puts("Cannot specify TCP top ports more than once");
 						exit(EXIT_FAILURE);
 					}
 
 					if( strncmp(lasts, "all", 3) == 0 || strncmp(lasts, "ALL", 3) == 0){
-						ntopports= (MAX_PORT_RANGE+1)*2; /* This sets the cap for the number of entries to load */
+						nalltopports= (MAX_PORT_RANGE+1)*2; /* This sets the cap for the number of entries to load */
 					}
 					else{
-						ntopports= atoi(lasts);
+						nalltopports= atoi(lasts);
 					}
 
-					if(ntopports > 0){
+					if(nalltopports > 0){
 						if(cprotocol == IPPROTO_TCP){
 							loadtcptopports_f= TRUE;
-							ntcptopports= ntopports;
+							ntcptopports= nalltopports;
 						}
 						else if(cprotocol == IPPROTO_UDP){
 							loadudptopports_f= TRUE;
-							nudptopports= ntopports;
+							nudptopports= nalltopports;
 						}
 						else if(cprotocol == IPPROTO_ALL){
 							loadalltopports_f= TRUE;
@@ -1615,7 +1615,30 @@ int main(int argc, char **argv){
 		}
 	}
 
+
+
 	if(portscan_f){
+		if(loadalltopports_f){
+			if(load_top_ports_entries(&tcp_port_list, &udp_port_list, IPPROTO_ALL, nalltopports) == FALSE){
+				puts("Problem loading TCP top ports");
+				exit(EXIT_FAILURE);
+			}
+		}
+		else{
+			if(loadtcptopports_f){
+				if(load_top_ports_entries(&tcp_port_list, &udp_port_list, IPPROTO_TCP, ntcptopports) == FALSE){
+					puts("Problem loading TCP top ports");
+					exit(EXIT_FAILURE);
+				}
+			}
+			if(loadudptopports_f){
+				if(load_top_ports_entries(&tcp_port_list, &udp_port_list, IPPROTO_UDP, nudptopports) == FALSE){
+					puts("Problem loading UDP top ports");
+					exit(EXIT_FAILURE);
+				}
+			}
+		}
+
 		if(tcp_port_list.nport){
 			/* Load service names */
 			if(!load_port_table(tcp_port_table, "tcp", MAX_PORT_RANGE)){
@@ -1640,27 +1663,6 @@ int main(int argc, char **argv){
 
 			/* LInk service names to port_list structure */
 			udp_port_list.port_table= udp_port_table;
-		}
-
-		if(loadalltoports_f){
-			if(load_top_ports_entries(&tcp_port_list, &tcpportlist, IPPROTO_ALL, nalltopports) == FALSE){
-				puts("Problem loading TCP top ports");
-				exit(EXIT_FAILURE);
-			}
-		}
-		else{
-			if(loadtcptopports_f){
-				if(load_top_ports_entries(&tcp_port_list, &tcpportlist, IPPROTO_TCP, ntcptopports) == FALSE){
-					puts("Problem loading TCP top ports");
-					exit(EXIT_FAILURE);
-				}
-			}
-			if(loadudptopports_f){
-				if(load_top_ports_entries(&udp_port_list, &udpportlist, IPPROTO_UDP, nudptopports) == FALSE){
-					puts("Problem loading UDP top ports");
-					exit(EXIT_FAILURE);
-				}
-			}
 		}
 	}
 
@@ -2012,32 +2014,18 @@ int main(int argc, char **argv){
 		/* Set initial contents of the attack packet */
 		init_packet_data(&idata);
 
+/*
 		if(pcap_setfilter(idata.pfd, &pcap_filter) == -1){
 			if(idata.verbose_f>1)
 				printf("pcap_setfilter(): %s\n", pcap_geterr(idata.pfd));
 
 			exit(EXIT_FAILURE);
 		}
-
+*/
 		pcap_freecode(&pcap_filter);
 
 		FD_ZERO(&sset);
 		FD_SET(idata.fd, &sset);
-
-		if(tcp_port_list.nport){
-			pscantype= IPPROTO_TCP;
-			port_list= &tcp_port_list;
-			port_results= tcp_results;
-		}
-		else if(udp_port_list.nport){
-			pscantype= IPPROTO_UDP;
-			port_list= &udp_port_list;
-			port_results= udp_results;
-		}
-		else{
-			/* Should never happen */
-			puts("Error: Port scan selected, but no target TCP or UDP ports");
-		}
 
 
 		/* One loop for each address */
@@ -2045,6 +2033,21 @@ int main(int argc, char **argv){
 		nomoreaddr_f= FALSE;
 
 		while(!nomoreaddr_f){
+			if(tcp_port_list.nport){
+				pscantype= IPPROTO_TCP;
+				port_list= &tcp_port_list;
+				port_results= tcp_results;
+			}
+			else if(udp_port_list.nport){
+				pscantype= IPPROTO_UDP;
+				port_list= &udp_port_list;
+				port_results= udp_results;
+			}
+			else{
+				/* Should never happen */
+				puts("Error: Port scan selected, but no target TCP or UDP ports");
+			}
+
 			endpscan_f= FALSE;
 			end_f= FALSE;
 			donesending_f= FALSE;
@@ -2165,7 +2168,7 @@ int main(int argc, char **argv){
 	#else
 					if(sel && FD_ISSET(idata.fd, &rset)){
 	#endif
-						/* Must rocess incoming packet */
+						/* Must process incoming packet */
 						error_f=FALSE;
 
 						if((result=pcap_next_ex(idata.pfd, &pkthdr, &pktdata)) == -1){
@@ -2180,8 +2183,10 @@ int main(int argc, char **argv){
 							pkt_ipv6 = (struct ip6_hdr *)((char *) pkt_ether + idata.linkhsize);
 							pkt_end = (unsigned char *) pktdata + pkthdr->caplen;
 
-							if( (pkt_end -  pktdata) < (idata.linkhsize + MIN_IPV6_HLEN))
+
+							if( (pkt_end -  pktdata) < (idata.linkhsize + MIN_IPV6_HLEN)){
 								continue;
+							}
 
 							/* Skip IPv6 EHs if present */
 							ulhtype= pkt_ipv6->ip6_nxt;
@@ -2254,14 +2259,17 @@ int main(int argc, char **argv){
 								}
 								else if(pscantype == IPPROTO_UDP && pkt_icmp6->icmp6_type == ICMP6_DST_UNREACH && \
 	 								pkt_icmp6->icmp6_code == ICMP6_DST_UNREACH_NOPORT){
+
 									/* We are interested in the embedded payload */
 									pkt_ipv6=  (struct ip6_hdr *) ((char *) pkt_icmp6 + sizeof(struct icmp6_hdr));
 
-									if( ((unsigned char *)pkt_ipv6 + sizeof(struct ip6_hdr)) > pkt_end)
+									if( ((unsigned char *)pkt_ipv6 + sizeof(struct ip6_hdr)) > pkt_end){
 										continue;
+									}
 
-									if(!is_eq_in6_addr(&(pkt_ipv6->ip6_dst), &(idata.dstaddr)))
+									if(!is_eq_in6_addr(&(pkt_ipv6->ip6_dst), &(idata.dstaddr))){
 										continue;
+									}
 
 									ulhtype= pkt_ipv6->ip6_nxt;
 									pkt_eh= (struct ip6_eh *)  ((char *) pkt_ipv6 + sizeof(struct ip6_hdr));
@@ -5850,10 +5858,10 @@ int process_config_file(const char *path){
 		strncpy(fname, "/usr/local/share/ipv6toolkit/oui.txt", MAX_FILENAME_SIZE-1);
 
 	if(!portsfname_f)
-		strncpy(fname, "/usr/local/share/ipv6toolkit/service-names-port-numbers.csv", MAX_FILENAME_SIZE-1);
+		strncpy(portsfname, "/usr/local/share/ipv6toolkit/service-names-port-numbers.csv", MAX_FILENAME_SIZE-1);
 
 	if(!topportsfname_f)
-		strncpy(fname, "/usr/local/share/ipv6toolkit/top-port-numbers.csv", MAX_FILENAME_SIZE-1);
+		strncpy(topportsfname, "/usr/local/share/ipv6toolkit/top-port-numbers.csv", MAX_FILENAME_SIZE-1);
 
 	return(1);
 }
@@ -5985,23 +5993,21 @@ int load_port_table(struct port_table_entry *pentry, char *prot, unsigned int ma
  * Load target ports from top ports file
  */
 
-int load_top_ports_entries(struct port_list *tcp_port_list, struct port_list *udp_port_list, uint8_t protocol, unsigned int maxports){
+int load_top_ports_entries(struct port_list *tcp_port_list, struct port_list *udp_port_list, uint8_t protocol, unsigned int maxport){
 	FILE 				*fp;
-	char				line[MAX_PORTS_LINE_SIZE], proto[MAX_PORTS_LINE_SIZE], name[MAX_PORTS_LINE_SIZE];
+	char				line[MAX_PORTS_LINE_SIZE];
 	char				*charptr, *lasts;
 	unsigned int		lines=0, ports=0;
-	unsigned int 		ports;
 	uint16_t			port;
 	uint8_t				cprotocol;
+	struct port_list    *port_list;
 
 	if( (fp=fopen(topportsfname, "r")) == NULL){
 		perror("scan6:");
 		return(0);
 	}
 
-	ports=0;
-
-	while( ports <= maxport && fgets(line, MAX_PORTS_LINE_SIZE, fp) != NULL){
+	while( ports < maxport && fgets(line, MAX_PORTS_LINE_SIZE, fp) != NULL){
 		lines=Strnlen(line, MAX_PORTS_LINE_SIZE);
 		charptr= (char *)line;
 
@@ -6034,7 +6040,7 @@ int load_top_ports_entries(struct port_list *tcp_port_list, struct port_list *ud
 			continue;
 
 		/* If this entry corresponds to the protocol we have selected, incorporate the entry */
-		if(cprotocol== protocol || protocol==IPPROTO_ALL){
+		if(protocol == cprotocol || protocol==IPPROTO_ALL){
 			if(port_list->nport < port_list->maxport){
 				if( (port_list->port[port_list->nport] = malloc(sizeof(struct port_entry))) == NULL){
 					if(idata.verbose_f)
@@ -6241,6 +6247,7 @@ int	add_to_scan_list(struct scan_list *scan_list, struct scan_entry *new_entry){
 		return(FALSE);
 	}
 
+puts("VOy a chequear duplicada");
 	/* Do not add this entry if it is a duplicate */
 	if(is_scan_entry_duplicate(scan_list, new_entry)){
 		return(TRUE);
@@ -6270,14 +6277,14 @@ int is_scan_entry_duplicate(struct scan_list *scan_list, struct scan_entry *scan
 	unsigned int i, j;
 
 	for(i=0; i < scan_list->ntarget; i++){
-		for(j=0; j<4; j++){
-			if( scan_entry->start.in6_addr.s6_addr32[j] < (scan_list->target[i])->start.in6_addr.s6_addr32[j] ||
-				scan_entry->end.in6_addr.s6_addr32[j] > (scan_list->target[i])->start.in6_addr.s6_addr32[j]){
+		for(j=0; j<8; j++){
+			if( ntohs(scan_entry->start.in6_addr.s6_addr16[j]) < ntohs((scan_list->target[i])->start.in6_addr.s6_addr16[j]) ||
+				ntohs(scan_entry->end.in6_addr.s6_addr16[j]) > ntohs((scan_list->target[i])->end.in6_addr.s6_addr16[j])){
 				break;
 			}
 		}
 
-		if(j >= 4)
+		if(j >= 8)
 			return(TRUE);
 	}
 
