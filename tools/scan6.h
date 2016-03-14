@@ -63,13 +63,14 @@ struct scan_entry{
 	union my6_addr		cur;
 };
 
+
 /* Store the list of remote targets to scan */
 struct scan_list{
 	struct scan_entry	**target;
 	unsigned int		ctarget;
-	unsigned int		ntarget;
-	unsigned int		maxtarget;
-	unsigned int		inc;
+	unsigned int		ntarget;    /* Number of existing enties */
+	unsigned int		maxtarget;  /* Max enties */
+	unsigned int		inc;		/* Increment size */
 };
 
 
@@ -103,10 +104,55 @@ struct port_table_entry{
 
 /* Constants for port scan results */
 
-#define PORT_FILTERED	1
-#define PORT_OPEN		2
-#define PORT_CLOSED		4
+#define PORT_FILTERED		1
+#define PORT_OPEN			2
+#define PORT_CLOSED			4
+#define PORT_ACT_FILT		8
+
 
 #define DEFAULT_MIN_PORT	0
 #define DEFAULT_MAX_PORT	65535
+#define MAX_PORT_RANGE		65536
+
+
+/* Constants for printing the scanning results */
+
+/* Steps into which results will be printed */
+#define MAX_STEPS	20
+
+
+struct print_scan_entry{
+	struct timeval	start;
+	unsigned int	nscan_entry;
+	struct in6_addr	addrstart;
+	unsigned int	nport_entry;
+	uint16_t		portstart;
+};
+
+struct print_scans_list{
+	struct	print_scan_entry	print_scan_entry[MAX_STEPS];
+/*	unsigned int	max=MAX_STEPS; */
+	unsigned int	fullq; /* Flag to indicate that the cirdular list is full */
+	unsigned int	in;   /* Next entry to write */
+	unsigned int	out;  /* Next entry to read */
+	unsigned int	donesending;
+};
+
+
+struct hashed_host_entry{
+	struct in6_addr		ip6;
+	unsigned int	tcp_results[MAX_PORT_RANGE];	
+	struct hashed_host_entry	*next;
+	struct hashed_host_entry	*prev;
+};
+
+struct hashed_host_list{
+	struct hashed_host_entry	**host;			/* Double-linked list of host entries */
+	unsigned int		nhosts;			/* Current number of host entries */
+	unsigned int		maxhosts;		/* Maximum number of host entries */
+	uint16_t			key_l;			/* Low-order word of the hash key */
+	uint16_t			key_h;			/* High-order word of the hash key */
+};
+
+
 
