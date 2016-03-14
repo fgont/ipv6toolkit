@@ -109,6 +109,8 @@ data/ipv6toolkit.conf:
            data/ipv6toolkit.conf 
 	echo Ports-Database=$(PREFIX)/share/ipv6toolkit/service-names-port-numbers.csv >> \
            data/ipv6toolkit.conf 
+	echo Top-Ports-Database=$(PREFIX)/share/ipv6toolkit/top-port-numbers.csv >> \
+           data/ipv6toolkit.conf 
 
 clean: 
 	rm -f $(TOOLS) $(LIBS)
@@ -131,6 +133,9 @@ install: all
 
 	# Install the port numbers database
 	install -m0644 data/service-names-port-numbers.csv $(DATAPATH)
+
+	# Install the top port numbers database
+	install -m0644 data/top-port-numbers.csv $(DATAPATH)
 
 	# Install the manual pages
 	install -m0755 -d $(MANPATH)/man1
@@ -163,7 +168,7 @@ uninstall:
 	# Remove the configuration file
 	rm -f $(ETCPATH)/ipv6toolkit.conf
 
-	# Remove the IEEE OUI database
+	# Remove the IEEE OUI database, service names database, and top port numbers database
 	rm -rf $(DATAPATH)
 
 	# Remove the manual pages
