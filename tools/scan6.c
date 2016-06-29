@@ -5620,8 +5620,8 @@ int valid_icmp6_response(struct iface_data *idata, unsigned char type, struct pc
 			/* The packet length is the minimum of what we capured, and what is specified in the
 			   IPv6 Total Lenght field
 			 */
-			if( pkt_end > ((unsigned char *)pkt_icmp6 + pkt_ipv6->ip6_plen) )
-				pkt_end = (unsigned char *)pkt_icmp6 + pkt_ipv6->ip6_plen;
+			if( pkt_end > ((unsigned char *)pkt_icmp6 + ntohs(pkt_ipv6->ip6_plen)) )
+				pkt_end = (unsigned char *)pkt_icmp6 + ntohs(pkt_ipv6->ip6_plen);
 
 			/*
 			   Discard the packet if it is not of the minimum size to contain an ICMPv6 
@@ -5639,8 +5639,8 @@ int valid_icmp6_response(struct iface_data *idata, unsigned char type, struct pc
 			/* The packet length is the minimum of what we capured, and what is specified in the
 			   IPv6 Total Lenght field
 			 */
-			if( pkt_end > ((unsigned char *)pkt_icmp6 + pkt_ipv6->ip6_plen) )
-				pkt_end = (unsigned char *)pkt_icmp6 + pkt_ipv6->ip6_plen;
+			if( pkt_end > ((unsigned char *)pkt_icmp6 + ntohs(pkt_ipv6->ip6_plen)) )
+				pkt_end = (unsigned char *)pkt_icmp6 + ntohs(pkt_ipv6->ip6_plen);
 
 			/*
 			   Discard the packet if it is not of the minimum size to contain an ICMPv6 
@@ -5726,8 +5726,8 @@ int valid_icmp6_response_remote(struct iface_data *idata, struct scan_list *scan
 			/* The packet length is the minimum of what we capured, and what is specified in the
 			   IPv6 Total Lenght field
 			 */
-			if( pkt_end > ((unsigned char *)pkt_icmp6 + pkt_ipv6->ip6_plen) )
-				pkt_end = (unsigned char *)pkt_icmp6 + pkt_ipv6->ip6_plen;
+			if( pkt_end > ((unsigned char *)pkt_icmp6 + ntohs(pkt_ipv6->ip6_plen)) )
+				pkt_end = (unsigned char *)pkt_icmp6 + ntohs(pkt_ipv6->ip6_plen);
 
 			/*
 			   Discard the packet if it is not of the minimum size to contain an ICMPv6 
@@ -5743,8 +5743,8 @@ int valid_icmp6_response_remote(struct iface_data *idata, struct scan_list *scan
 			/* The packet length is the minimum of what we capured, and what is specified in the
 			   IPv6 Total Lenght field
 			 */
-			if( pkt_end > ((unsigned char *)pkt_icmp6 + pkt_ipv6->ip6_plen) )
-				pkt_end = (unsigned char *)pkt_icmp6 + pkt_ipv6->ip6_plen;
+			if( pkt_end > ((unsigned char *)pkt_icmp6 + ntohs(pkt_ipv6->ip6_plen)) )
+				pkt_end = (unsigned char *)pkt_icmp6 + ntohs(pkt_ipv6->ip6_plen);
 
 			/*
 			   Discard the packet if it is not of the minimum size to contain an ICMPv6 
