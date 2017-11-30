@@ -3,7 +3,7 @@
 # script6: A tool to make complex IPv6 tasks easy
 #
 
-$SI6_TOOLKIT="Networks IPv6 Toolkit v2.0 (Guille)";
+$SI6_TOOLKIT="SI6 Networks IPv6 Toolkit v2.1 (Guille)";
 $SCRIPT6="script6: A tool to make complex IPv6 tasks easy";
 $USAGE="\
 Usage: script6 COMMAND [PARAMETERS]
