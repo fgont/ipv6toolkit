@@ -6,17 +6,18 @@
 $SI6_TOOLKIT="SI6 Networks IPv6 Toolkit v2.1 (Guille)";
 $SCRIPT6="script6: A tool to make complex IPv6 tasks easy";
 $USAGE="\
-Usage: script6 COMMAND [PARAMETERS]
-   COMMANDS:
-   get-aaaa: Get AAAA records for domain name
-   get-mx: Get X records for domain name
-   get-ns: Get NS records fo domain name
-   get-asn6: Get Autonomos System Number for IPv6 address
-   get-as6: Get Autonomous System information for IPv6 address
-   get-ipv6addrs: Get IPv6 addresses from STDIN
-   get-trace6-stats: Get statistics for trace results read from STDIN
-   get-alexa-domains: Obtain list of domain names from Alexa's file
-   get-trace6: Perform traceroute6 (with EHs) to a given destination
+Usage: script6 COMMAND [PARAMETERS]\n
+   COMMANDS:\n
+   get-aaaa: Get AAAA records for domain name\n
+   get-mx: Get X records for domain name\n
+   get-ns: Get NS records fo domain name\n
+   get-asn6: Get Autonomos System Number for IPv6 address\n
+   get-as6: Get Autonomous System information for IPv6 address\n
+   get-ipv6addrs: Get IPv6 addresses from STDIN\n
+   get-alexa-domains: Obtain list of domain names from Alexa's file\n
+   get-majestic-domains: Obtain list of domain names from Majestic's file\n
+   get-trace6: Perform traceroute6 (with EHs) to a given destination\n
+   get-trace6-stats: Get statistics for trace results read from STDIN\n
 ";
 
 
@@ -897,6 +898,13 @@ elsif($ARGV[0] eq "get-trace-invalid" || $ARGV[0] eq "get-trace6-invalid"){
 elsif($ARGV[0] eq "get-alexa-domains"){
 	while($line=<STDIN>){
 		while($line =~ m{\d+,([^/\s]*)}ig){
+			print "$1\n";		
+		}
+	}
+}
+elsif($ARGV[0] eq "get-majestic-domains"){
+	while($line=<STDIN>){
+		while($line =~ m{\d+,\d+,([^/\s,]*),.*}ig){
 			print "$1\n";		
 		}
 	}
