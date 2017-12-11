@@ -1,0 +1,1172 @@
+#!/usr/bin/perl -w
+#
+# script6: A tool to make complex IPv6 tasks easy
+#
+
+$SI6_TOOLKIT="SI6 Networks IPv6 Toolkit v2.1 (Guille)";
+$SCRIPT6="script6: A tool to make complex IPv6 tasks easy";
+$USAGE="\
+Usage: script6 COMMAND [PARAMETERS]
+   COMMANDS:
+   get-aaaa: Get AAAA records for domain name
+   get-mx: Get X records for domain name
+   get-ns: Get NS records fo domain name
+   get-asn6: Get Autonomos System Number for IPv6 address
+   get-as6: Get Autonomous System information for IPv6 address
+   get-ipv6-addrs: Get IPv6 addresses from STDIN
+   get-ipv6-prefix: Get IPv6 addresses from STDIN
+   get-alexa-domains: Obtain list of domain names from Alexa's file
+   get-majestic-domains: Obtain list of domain names from Majestic's file
+   get-trace6: Perform traceroute6 (with EHs) to a given destination
+   get-trace6-stats: Get statistics for trace results read from STDIN
+";
+
+use Socket();
+
+
+sub GetASN{
+	@revname=`addr6 -a $_[0] -r`;
+
+	if($? == 0){
+		chomp($revname[0]);
+		$queryname= $revname[0] . ".origin6.asn.cymru.com.";
+		@reverse=`host -t TXT $queryname`;
+
+		if($reverse[0] =~ m/\"\s*((\d+)\s*)\s+|"/){
+			return($2);
+		}
+	}
+
+	return("");
+}
+
+
+# Function GetORG()
+#
+# Obtains the organization corresponding to an autonomous system number (ASN)
+#
+sub GetORG{
+	$querystring="host -t TXT AS".$_[0].".asn.cymru.com";
+	@asinfo= `$querystring`;
+
+	if($asinfo[0] =~ m/\"*.\|.*\|.*\|.*\|\s*(.*)\"/){
+		return($1);
+	}
+	else{
+		return("");
+	}
+}
+
+
+ 
+if($#ARGV < 0){
+	print "$SI6_TOOLKIT\n";
+	print "$SCRIPT6\n";
+	print "$USAGE\n";
+}
+elsif($ARGV[0] eq "get-aaaa"){
+	while($domain=<STDIN>){
+		$aaaa_f=0;
+		chomp($domain);
+
+		if($domain =~ m/(\S+)/){
+			$domcmd= $1;
+		}
+		else{
+			next;
+		}
+
+		if($domcmd =~ m/^\S*#/){
+			next;
+		}
+
+		while(1){
+			undef @dig;
+			@dig=`dig $domcmd aaaa`;
+			$answer_f=0;
+
+			foreach $line (@dig){
+				if($answer_f == 0){
+				# Detect the "ANSWER" portion of the dig command
+					if($line =~ m/\;\; ANSWER SECTION:/){
+						$answer_f=1;
+					}
+
+					next; 
+				}
+				elsif($answer_f == 1){
+					# If we are in the answer portion, look for AAAA records
+					if($line =~ m/^\s*$/){
+						last;
+					}
+
+					elsif($line =~ m/(\S+)\s+\d+\s+IN\s+AAAA\s+([a-fA-F0-9:]+)/){
+						if($aaaa_f == 0){
+							print "# $domcmd ($1)\n";
+						}
+
+						print "$2\n";      # AAAA record
+						$aaaa_f = 1;
+					}
+#					else{
+#						last;
+#					}
+				}
+			}
+		 
+
+			# If we found AAAA records, try the next domain
+			if($aaaa_f == 1){
+				last;
+			}
+
+			# If we didn't find any AAAA records, and the domain name does not start with "www",
+			# add the "www" suffix and see if there are any AAAA records.
+			if($domcmd =~ m/www\.[a-zA-Z_0-9.]/){
+				last;
+			}
+			else{
+				$domcmd= "www.$domcmd";
+			}
+		}
+	}
+}
+elsif($ARGV[0] eq "get-mx"){
+	while($domain=<STDIN>){
+		    # This variable set to 1 indicates that we already found the MX records
+		$mx_f=0;
+
+		chomp($domain);
+
+		# Only non-empty lines are useful to us
+		if($domain =~ m/(\S+)/){
+			$domcmd= $1;
+		}
+		else{
+			next;
+		}
+
+		# If the line cotains a comment at the end of the line, remove it
+        # XXX should be improved. First regex above already eliminates this
+		if($domcmd =~ m/^\s*(\S+)\s*#/){
+			$domcmd= $1;
+		}
+
+		# If the domain contains a "www" prefix, remove it.
+		if($domcmd =~ m/www\.(\S+)/){
+			$domcmd = $1;
+		}
+
+		@dig=`dig $domcmd mx`;
+
+		$answer_f=0;
+		foreach $line (@dig){
+			# Detect the "ANSWER" portion of the dig command
+			if($answer_f == 0){
+				if($line =~ m/\;\; ANSWER SECTION:/){
+					$answer_f=1; # Found the ANSWER section
+				}
+
+				next;  
+			}
+			elsif($answer_f == 1){
+				# If we are in the answer portion, look for MX records
+				if($line =~ m/^\s*$/){
+					# Empty line marks end of ANSWER section
+					last;
+				}
+
+				elsif($line =~ m/(\S+)\s+\d+\s+IN\s+MX\s+\d+\s+(\S+)/){
+					# FIrst 
+					if($mx_f == 0){
+						print "# $domcmd ($1)\n";
+					}
+
+					printf "$2\n";      # MX record
+					$mx_f = 1;
+				}
+			}
+		}
+	}
+}
+elsif($ARGV[0] eq "get-ns"){
+	while($domain=<STDIN>){
+		$ns_f=0;
+		chomp($domain);
+
+		if($domain =~ m/(\S+)/){
+			$domcmd= $1;
+		}
+		else{
+			next;
+		}
+
+		if($domcmd =~ m/^\S*#/){
+			next;
+		}
+
+		if($domcmd =~ m/www\.(\S+)/){
+			$domcmd = $1;
+		}
+
+		undef @dig;	
+		@dig=`dig $domcmd ns`;
+		$answer_f=0;
+
+		foreach $line (@dig){
+			if($answer_f == 0){
+				# Detect the "ANSWER" portion of the dig command
+				if($line =~ m/\;\; ANSWER SECTION:/){
+					$answer_f=1;
+				}
+
+				next; 
+			}
+			elsif($answer_f == 1){
+				# If we are in the answer portion, look for AAAA records
+				if($line =~ m/^\s*$/){
+					last;
+				}
+
+				elsif($line =~ m/(\S+)\s+\d+\s+IN\s+NS\s+(\S+)/){
+					if($ns_f == 0){
+						print "# $domcmd ($1)\n";
+					}
+
+					printf "$2\n";      # AAAA record
+					$ns_f = 1;
+				}
+			}
+		}
+	}
+}
+elsif($ARGV[0] eq "get-asn" || $ARGV[0] eq "get-asn6"){
+	@revname=`addr6 -a $ARGV[1] -r`;
+
+	if($? != 0){
+		print "Error in specified IPv6 address";
+		exit(1);
+	}
+
+	chomp($revname[0]);
+	$queryname= $revname[0] . ".origin6.asn.cymru.com.";
+	@reverse=`host -t TXT $queryname`;
+
+	if($? != 0){
+		print "Error when trying to obtain ASN information\n";
+		exit(1);
+	}
+
+	$reverse[0] =~ m/\"\s*((\d+)\s*)\s+|"/;
+
+	if($1 eq ""){
+		print "ASN unknown";
+		exit(1);
+	}
+
+	print "$1\n";
+	exit(0);
+}
+elsif($ARGV[0] eq "get-as" || $ARGV[0] eq "get-as6"){
+	@revname=`addr6 -a $ARGV[1] -r`;
+
+	if($? != 0){
+		print "Error in specified IPv6 address\n";
+		exit(1);
+	}
+
+	chomp($revname[0]);
+	$queryname= $revname[0] . ".origin6.asn.cymru.com.";
+
+	@reverse=`host -t TXT $queryname`;
+
+	if($? != 0){
+		print "Error when trying to obtain origin AS\n";
+		exit(1);
+	}
+
+	$reverse[0] =~ m/\"(.*)\"/;
+
+	if($1 eq ""){
+		print "Origin ASN unknown\n";
+	}
+	else{
+		print "$1\n";
+	}
+
+	$reverse[0] =~ m/"\s*(\d+).*"/;
+	$asn=$1;
+	$querystring="host -t TXT AS".$asn.".asn.cymru.com";
+	@asinfo= `$querystring`;
+
+	if($? != 0){
+		print "Error when trying to obtain ASN information\n";
+		exit(1);
+	}
+
+	$asinfo[0] =~ m/\"(.*)\"/;
+
+	if($1 eq ""){
+		print "Error when trying to obtain AS information";
+	}
+	else{
+		print "$1\n";
+	}
+
+	exit(0);
+}
+elsif($ARGV[0] eq "ip6addr" || $ARGV[0] eq "ip6addrs" || $ARGV[0] eq "get-ip6addrs" || $ARGV[0] eq "get-ip6-addrs" || $ARGV[0] eq "get-ipv6-addrs"){
+	while(<STDIN>){
+		while($_ =~ s/((?:(?:[0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4})|(?:(?:(?:[0-9a-fA-F]{1,4}:){1,4}|:):(?:(?:(?:1[0-9]{2}|2(?:[0-4][0-9]|5[0-9])|[0-9]{1,2})\.){3}(?:(?:1[0-9]{2}|2(?:[0-4][0-9]|5[0-9])|[0-9]{1,2}))))|(?:(?:(?:(?:[0-9a-fA-F]{1,4}:)(?::[0-9a-fA-F]{1,4}){1,7})|(?:(?:[0-9a-fA-F]{1,4}:){2}(?::[0-9a-fA-F]{1,4}){1,6})|(?:(?:[0-9a-fA-F]{1,4}:){3}(?::[0-9a-fA-F]{1,4}){1,5})|(?:(?:[0-9a-fA-F]{1,4}:){4}(?::[0-9a-fA-F]{1,4}){1,4})|(?:(?:[0-9a-fA-F]{1,4}:){5}(?::[0-9a-fA-F]{1,4}){1,3})|(?:(?:[0-9a-fA-F]{1,4}:){6}(?::[0-9a-fA-F]{1,4}){1,2})|(?:[0-9a-fA-F]{1,4}:){1,7}:)|(?::(?:(?::[0-9a-fA-F]{1,4}){1,7}|:))))//){
+			print "$1\n";
+		}
+	}
+}
+elsif($ARGV[0] eq "ipaddr" || $ARGV[0] eq "ipaddrs" || $ARGV[0] eq "get-ipaddrs" || $ARGV[0] eq "get-ip-addrs"){
+	while(<STDIN>){
+#print "lei: $_";
+		while($_ =~ s/((?:(?:1[0-9]{2}|2(?:[0-4][0-9]|5[0-9])|[0-9]{1,2})\.){3}(?:(?:1[0-9]{2}|2(?:[0-4][0-9]|5[0-9])|[0-9]{1,2})))//){
+#		while($_ =~ s/((((?:1[0-9]{2}|2(?:[0-4][0-9]|5[0-9])|[0-9]{1,2})\.){3}(?:(?:1[0-9]{2}|2(?:[0-4][0-9]|5[0-9])|[0-9]{1,2}))))//){
+			print "$1\n";
+		}
+	}
+}
+elsif($ARGV[0] eq "ippref" || $ARGV[0] eq "ipprefs" || $ARGV[0] eq "get-ipprefs" || $ARGV[0] eq "get-ip-prefs"){
+	while(<STDIN>){
+		while($_ =~ s/((?:(?:(?:1[0-9]{2}|2(?:[0-4][0-9]|5[0-9])|[0-9]{1,2})\.){3}(?:(?:1[0-9]{2}|2(?:[0-4][0-9]|5[0-9])|[0-9]{1,2})))\/(3[0-2]|[1-2]?[0-9]))//){
+			print "$1\n";
+		}
+	}
+}
+elsif($ARGV[0] eq "ipv6pref" || $ARGV[0] eq "ipv6prefs" || $ARGV[0] eq "get-ipv6prefs" || $ARGV[0] eq "get-ip6-prefs" || $ARGV[0] eq "get-ipv6-prefs"){
+	while(<STDIN>){
+		while($_ =~ s/((?:(?:(?:[0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4})|(?:(?:(?:[0-9a-fA-F]{1,4}:){1,4}|:):(?:(?:(?:1[0-9]{2}|2(?:[0-4][0-9]|5[0-9])|[0-9]{1,2})\.){3}(?:(?:1[0-9]{2}|2(?:[0-4][0-9]|5[0-9])|[0-9]{1,2}))))|(?:(?:(?:(?:[0-9a-fA-F]{1,4}:)(?::[0-9a-fA-F]{1,4}){1,7})|(?:(?:[0-9a-fA-F]{1,4}:){2}(?::[0-9a-fA-F]{1,4}){1,6})|(?:(?:[0-9a-fA-F]{1,4}:){3}(?::[0-9a-fA-F]{1,4}){1,5})|(?:(?:[0-9a-fA-F]{1,4}:){4}(?::[0-9a-fA-F]{1,4}){1,4})|(?:(?:[0-9a-fA-F]{1,4}:){5}(?::[0-9a-fA-F]{1,4}){1,3})|(?:(?:[0-9a-fA-F]{1,4}:){6}(?::[0-9a-fA-F]{1,4}){1,2})|(?:[0-9a-fA-F]{1,4}:){1,7}:)|(?::(?:(?::[0-9a-fA-F]{1,4}){1,7}|:))))\/(1([0-1][0-9]|2[0-8])|[1-9]?[0-9]))//){
+			print "$1\n";
+		}
+	}
+}
+elsif($ARGV[0] eq "get-trace-stats" || $ARGV[0] eq "get-trace6-stats" || $ARGV[0] eq "get-trace-results"){
+	$valid=0;
+	$dropped=0;
+	$pass=0;
+	$total=0;
+	$sameas=0;
+	$difas=0;
+	$sameas2=0;
+	$difas2=0;
+	$unknownas=0;
+	$unknownipdrop=0;
+	$unknownipfree=0;
+	$unknowniptrouble=0;
+	$ipfreedrop=0;
+	$hoperror=0;
+	$hopzero=0;
+	$unknownas=0;
+	$unknowniporigas=0;
+	$unknownipdropas=0;
+
+	print "$SI6_TOOLKIT\n";
+	print "$SCRIPT6\n";
+	print "[Computing stats....]\n\n";
+
+	while($fline=<STDIN>){
+		chomp($fline);
+
+		if($fline =~ m/([^\x0d]+)/){
+			$fline= $1;
+		}
+
+		# Check whether this line is just a comment -- if so, skip it
+		if($fline =~ m/^((\s)*#)/){
+			next;
+		}
+
+		# Skip blanck lines 
+		if($fline =~ m/^(\s)*$/){
+			next;
+		}
+
+		# Grab elements 
+		if($fline =~ m/(\S*)#(\S*)#(\d*)#(\S*)#(\d*)#(\S*)#(\S*)/){
+			$total++;
+
+			$iporig= $1;
+			$ipfree= $2;
+			$hopsfree= $3;
+			$iptrouble= $4;
+			$hopstrouble= $5;
+			$ipdrop=$6;
+			$ipdrop2=$7;
+
+			# Discard this line if we did not learn any host address in the non-EH path6
+			if($ipfree eq ""){
+				$unknownipfree++;
+				next;
+			}
+
+			# Discard this line if we did not learn any address in the path6 with EHs
+			if($iptrouble eq ""){
+				$unknowniptrouble++;
+				next;
+			}
+
+			# If the final node in the normal traceroute was not the final destination, discard
+			# this line -- it is impossible to learn where the packets are being dropped
+			if($ipfree ne $iporig){
+				$ipfreedrop++;
+				next;
+			}
+
+			
+			# The number of hops from the first-responding node cannot possibly be 0.
+			if($hopsfree == 0){
+				$hopzero++;
+				next;
+			}
+
+			# The number of hops till the last responding node cannot be larger for the
+			# EH-case than for the non-EH case.
+			if($hopstrouble > $hopsfree){
+				$hoperror++;
+				next;
+			}
+
+			# If packets are being dropped but the address of the node dropping the packets is
+			# unavailable, discard this line
+			if($iporig ne $iptrouble && $ipdrop eq ""){
+				$unknownipdrop++;
+				next;
+			}
+
+			# If the line has passed all the previous checks, we consider it to be valid
+			$valid= $valid+1;
+			$delta= $hopsfree - $hopstrouble;
+
+			# If the last responding node of the EH case is the destination address, then there
+			# are no packet drops
+			if($iporig eq $iptrouble){
+				$pass=$pass+1;
+			}
+			else{
+				# Otherwise, there is a packet drop
+
+				$dropped= $dropped +1;
+				$hops[$delta]++;
+
+				$asiporig= GetASN($iporig);
+
+				if($asiporig eq ""){
+					$unknownas2++;
+					$unknownas++;
+					$unknowniporigas++;
+					next;
+				}
+
+				$asipdrop= GetASN($ipdrop);
+
+				if($asipdrop eq ""){
+					$unknownas++;
+					$unknownipdropas++;
+				}
+				else{
+					# Count whether the dropping node is in the same or different ASN as the destination node (worst-case)
+					if($asiporig == $asipdrop){
+						$sameas++;
+
+						if($destasworst[$asipdrop] == 0){
+							$numdestasworst++;
+							$destasorgworst[$asipdrop]= GetORG($asipdrop);
+
+							if($destasorgworst[$asipdrop] eq ""){
+								$destasorgworst[$asipdrop]="Unknown";
+							}
+						}
+
+						$ndestasworst++;
+						$destasworst[$asipdrop]++;
+					}
+					else{
+						$difas++;
+
+						if($nondestasworst[$asipdrop] == 0){
+							$numnondestasworst++;
+							$nondestasorgworst[$asipdrop]= GetORG($asipdrop);
+
+							if($nondestasorgworst[$asipdrop] eq ""){
+								$nondestasorgworst[$asipdrop]="Unknown";
+							}
+						}
+
+						$nnondestasworst++;
+						$nondestasworst[$asipdrop]++;
+					}
+				}
+
+				if($ipdrop2 ne ""){
+					$asipdrop2= GetASN($ipdrop2);
+
+					if($asipdrop2 eq ""){
+						$unknownas2++;
+						$unknownipdropas2++;
+						next;
+					}
+				}
+				else{
+					# If M+2 is "null", we use M+1
+					if($asipdrop ne ""){
+						$asipdrop2= $asipdrop;
+					}
+					else{
+						$unknownas2++;
+						$unknownipdropas2++;
+						next;
+					}
+				}
+
+				if($asiporig == $asipdrop2){
+					$sameas2++;
+
+					if($destasbest[$asipdrop2] == 0){
+						$numdestasbest++;
+
+						$destasorgbest[$asipdrop2]= GetORG($asipdrop2);
+
+						if($destasorgbest[$asipdrop2] eq ""){
+							$destasorgbest[$asipdrop2]="Unknown";
+						}
+					}
+
+					$ndestasbest++;
+					$destasbest[$asipdrop2]++;
+				}
+				else{
+					$difas2++;
+
+					if($nondestasbest[$asipdrop2] == 0){
+						$numnondestasbest++;
+						$nondestasorgbest[$asipdrop2]= GetORG($asipdrop2);
+
+						if($nondestasorgbest[$asipdrop2] eq ""){
+							$nondestasorgbest[$asipdrop2]="Unknown";
+						}
+					}
+
+					$nnondestasbest++;
+					$nondestasbest[$asipdrop2]++;
+				}
+			}
+		}
+	}
+
+#	print "Total entries: $total\t Valid entries: $valid\n";
+
+	if($valid >= 1){
+		$passp= ($pass * 100)/$valid;
+		$droppedp= ($dropped * 100)/$valid;
+
+		printf "Valid entries: %d\tPassed: %d (%.2f%%)\t Dropped: %d (%.2f%%)\n", $valid, $pass, $passp, $dropped, $droppedp;
+	}
+	else{
+		print "No valid entries were found\n";
+	}
+
+	if($dropped >= 1){
+		print "******************************************************************************\n";
+		$sameasp= ($sameas * 100)/$dropped;
+		$difasp= ($difas * 100)/$dropped;
+		$unknownasp= ($unknownas * 100)/$dropped;
+		$sameasp2= ($sameas2 * 100)/$dropped;
+		$difasp2= ($difas2 * 100)/$dropped;
+		$unknownasp2= ($unknownas2 * 100)/$dropped;
+
+		print "PACKET DROPS\n\n";
+
+		if($sameas == $sameas2 && $difas == $difas2){
+			printf "Same ASN: %d (%.2f%%)\t Different ASN: %d (%.2f%%)\t Unknown ASN:%d (%.2f%%)\n", $sameas, $sameasp, $difas, $difasp, $unknownas, $unknownasp;
+		}
+		else{
+			printf "Best case:\nSame ASN: %d (%.2f%%)\t Different ASN: %d (%.2f%%)\t Unknown ASN:%d (%.2f%%)\n", $sameas2, $sameasp2, $difas2, $difasp2, $unknownas2, $unknownasp2;
+			printf "Worst case:\nSame ASN: %d (%.2f%%)\t Different ASN: %d (%.2f%%)\t Unknown ASN:%d (%.2f%%)\n", $sameas, $sameasp, $difas, $difasp, $unknownas, $unknownasp;
+		}
+
+		print "******************************************************************************\n";
+		print "DELTA-HOPS DISTRIBUTION\n\n";
+		for($i=0; $i<= $#hops; $i++){
+			if($hops[$i] != 0){
+				$dhop= ($hops[$i] * 100)/$dropped;
+				printf "Delta-Hop %2d: %6d (%.2f%%)\n", $i, $hops[$i], $dhop;
+			}
+		}
+
+		print "******************************************************************************\n";
+		print "AUTONOMOUS SYSTEMS DISTRIBUTION\n";
+		printf "\nNon-Destination Dropping AS Distribution (best case): (%u ASes)\n\n", $numnondestasbest;
+
+		if($numnondestasbest == 0){
+			print "(no ASes)\n";
+		}
+
+		for($i=0; $i<= $#nondestasbest; $i++){
+			if($nondestasbest[$i] != 0){
+#				($nondestasbest[$i] * 100)/$nnondestasbest;
+				printf "%6d (%.2f%%): AS %5d (%s)\n", $nondestasbest[$i], ($nondestasbest[$i] * 100)/$nnondestasbest, $i, $nondestasorgbest[$i];
+			}
+		}
+
+		printf "\nDestination Dropping AS Distribution (best case): (%u ASes)\n\n", $numdestasbest;
+
+		if($numdestasbest == 0){
+			print "(no ASes)\n";
+		}
+
+		for($i=0; $i<= $#destasbest; $i++){
+			if($destasbest[$i] != 0){
+#				($destasbest[$i] * 100)/$ndestasbest;
+
+				printf "%6d (%.2f%%): AS %5d (%s)\n", $destasbest[$i], ($destasbest[$i] * 100)/$ndestasbest, $i, $destasorgbest[$i];
+			}
+		}
+
+		printf "\nNon-Destination Dropping AS Distribution (worst case): (%u ASes)\n\n", $numnondestasworst;
+
+		if($numnondestasworst == 0){
+			print "(no ASes)\n";
+		}
+
+		for($i=0; $i<= $#nondestasworst; $i++){
+			if($nondestasworst[$i] != 0){
+#				($nondestasworst[$i] * 100)/$nnondestasworst;
+				printf "%6d (%.2f%%): AS %5d (%s)\n", $nondestasworst[$i], ($nondestasworst[$i] * 100)/$nnondestasworst, $i, $nondestasorgworst[$i];
+			}
+		}
+
+		printf "\nDestination Dropping AS Distribution (worst case): (%u ASes)\n\n", $numdestasworst;
+
+		if($numdestasworst == 0){
+			print "(no ASes)\n";
+		}
+
+		for($i=0; $i<= $#destasworst; $i++){
+			if($destasworst[$i] != 0){
+#				($destasworst[$i] * 100)/$ndestasworst;
+				printf "%6d (%.2f%%): AS %5d (%s)\n", $destasworst[$i], ($destasworst[$i] * 100)/$ndestasworst, $i, $destasorgworst[$i];
+			}
+		}
+	}
+
+	if( ($total - $valid) > 0){
+		print "******************************************************************************\n";
+		print "VALIDATION OF INPUT DATA\n\n";
+		printf "Total entries: %d\tValid entries: %d\tInvalid: %d\n", $total, $valid, ($total-$valid);
+		print "Unknown no-EH IPv6: $unknownipfree\tUnknown EH IPv6: $unknowniptrouble\tNo-EH IPv6 != Dst IPv6: $ipfreedrop\n";
+		print "No-EH Hops==0: $hopzero\tNo-EH Hops < EH Hops: $hoperror\n";
+	}
+}
+elsif($ARGV[0] eq "get-trace-stats-old" || $ARGV[0] eq "get-trace6-stats-old"){
+	$valid=0;
+	$dropped=0;
+	$pass=0;
+	$total=0;
+	$sameas=0;
+	$difass=0;
+	$unknownas=0;
+	$unknownipdrop=0;
+	$unknownipfree=0;
+	$unknowniptrouble=0;
+	$ipfreedrop=0;
+	$hoperror=0;
+	$hopzero=0;
+	$unknownas=0;
+	$unknowniporigas=0;
+	$unknownipdropas=0;
+
+	while($fline=<STDIN>){
+		chomp($fline);
+
+		if($fline =~ m/([^\x0d]+)/){
+			$fline= $1;
+		}
+
+		# Check whether this line is just a comment -- if so, skip it
+		if($fline =~ m/^((\s)*#)/){
+			next;
+		}
+
+		# Skip blanck lines 
+		if($fline =~ m/^(\s)*$/){
+			next;
+		}
+
+		# Grab elements 
+		if($fline =~ m/(\S*)#(\S*)#(\d*)#(\S*)#(\d*)#(\S*)/){
+			$total++;
+
+			$iporig= $1;
+			$ipfree= $2;
+			$hopsfree= $3;
+			$iptrouble= $4;
+			$hopstrouble= $5;
+			$ipdrop=$6;
+
+			if($ipfree eq ""){
+				$unknownipfree++;
+				next;
+			}
+
+			if($iptrouble eq ""){
+				$unknowniptrouble++;
+				next;
+			}
+
+			if($ipfree ne $iporig){
+				$ipfreedrop++;
+				next;
+			}
+
+			if($hopsfree == 0){
+				$hopzero++;
+				next;
+			}
+
+			if($hopstrouble > $hopsfree){
+				$hoperror++;
+				next;
+			}
+
+			$delta= $hopsfree - $hopstrouble;
+
+
+			$valid= $valid+1;
+
+			if($iporig eq $iptrouble){
+				#notdropped
+				$pass=$pass+1;
+			}
+			else{
+				$dropped= $dropped +1;
+				$hops[$delta]++;
+
+				if($ipdrop eq ""){
+					$unknownipdrop++;
+					$unknownas++;
+					next;
+				}
+				else{
+					undef @revname;
+					undef @reverse;
+					@revname=`addr6 -a $iporig -r`;
+					chomp($revname[0]);
+					$queryname= $revname[0] . ".origin6.asn.cymru.com.";
+
+					@reverse=`host -t TXT $queryname`;
+					$reverse[0] =~ m/\"\s*((\d+)\s*)\s+|"/;
+
+					$asiporig=$2;
+
+					if($asiporig==0){
+						$unknownas++;
+						$unknowniporigas++;
+						next;
+					}
+
+					undef @revname;
+					undef @reverse;
+					@revname=`addr6 -a $ipdrop -r`;
+					chomp($revname[0]);
+					$queryname= $revname[0] . ".origin6.asn.cymru.com.";
+
+					@reverse=`host -t TXT $queryname`;
+					$reverse[0] =~ m/\"\s*((\d+)\s*)\s+|"/;
+					$asipdrop=$1;
+
+					if($asipdrop==0){
+						$unknownas++;
+						$unknownipdropas++;
+						next;
+					}
+
+					if($asiporig eq "" || $asipdrop eq ""){
+						$unknownas++;
+					}
+
+					if($asiporig == $asipdrop){
+						$sameas++;
+					}
+					else{
+						$difas++;
+					}
+				}
+			}
+
+	#		print "iporig: $1, ipfree: $2, hopsfree: $3, iptrouble: $4, hopstrouble: $5\n";
+		}
+
+	}
+
+	print "$SI6_TOOLKIT\n";
+	print "$SCRIPT6\n\n";
+
+#	print "Total entries: $total\t Valid entries: $valid\n";
+
+	if($valid >= 1){
+		$passp= ($pass * 100)/$valid;
+		$droppedp= ($dropped * 100)/$valid;
+
+		printf "Valid entries: %d\tPass: %d (%.2f%%)\t Dropped: %d (%.2f%%)\n", $valid, $pass, $passp, $dropped, $droppedp;
+		print "******************************************************************************\n";
+	}
+	else{
+		print "No valid entries were found\n";
+	}
+
+	if($dropped >= 1){
+		$sameasp= ($sameas * 100)/$dropped;
+		$difasp= ($difas * 100)/$dropped;
+		$unknownasp= ($unknownas * 100)/$dropped;
+
+		print "Packet Drops\n\n";
+		printf "Same ASN: %d (%.2f%%)\t Different ASN: %d (%.2f%%)\t Unknown ASN:%d (%.2f%%)\n\n", $sameas, $sameasp, $difas, $difasp, $unknownas, $unknownasp;
+
+		print "Delta-Hops distribution\n\n";
+		for($i=0; $i<= $#hops; $i++){
+			if($hops[$i] != 0){
+				$dhop= ($hops[$i] * 100)/$dropped;
+				printf "DHop %d: %d (%.2f%%)\n", $i, $hops[$i], $dhop;
+			}
+		}
+	}
+
+	print "******************************************************************************\n";
+	if( ($total - $valid) > 0){
+		print "Validation of input data\n\n";
+		printf "Total entries: %d\tValid entries: %d\tInvalid: %d\n", $total, $valid, ($total-$valid);
+		print "Unknown no-EH IPv6: $unknownipfree\tUnknown EH IPv6: $unknowniptrouble\tNo-EH IPv6 != Dst IPv6: $ipfreedrop\n";
+		print "No-EH Hops==0: $hopzero\tNo-EH Hops < EH Hops: $hoperror\n";
+	}
+}
+elsif($ARGV[0] eq "get-trace-invalid" || $ARGV[0] eq "get-trace6-invalid"){
+	$valid=0;
+	$dropped=0;
+	$pass=0;
+	$total=0;
+	$sameas=0;
+	$difass=0;
+	$unknownas=0;
+	$unknownipdrop=0;
+	$unknownipfree=0;
+	$unknowniptrouble=0;
+	$ipfreedrop=0;
+	$hoperror=0;
+	$hopzero=0;
+	$unknownas=0;
+
+	while($fline=<STDIN>){
+		chomp($fline);
+
+		if($fline =~ m/([^\x0d]+)/){
+			$fline= $1;
+		}
+
+		# Check whether this line is just a comment -- if so, skip it
+		if($fline =~ m/^((\s)*#)/){
+			next;
+		}
+
+		# Skip blanck lines 
+		if($fline =~ m/^(\s)*$/){
+			next;
+		}
+
+		# Grab elements 
+		if($fline =~ m/(\S*)#(\S*)#(\d*)#(\S*)#(\d*)#(\S*)/){
+			$total++;
+
+			$iporig= $1;
+			$ipfree= $2;
+			$hopsfree= $3;
+			$iptrouble= $4;
+			$hopstrouble= $5;
+			$ipdrop=$6;
+
+			if($ipfree eq ""){
+				$unknownipfree++;
+				print "$fline\n";
+				next;
+			}
+
+			if($iptrouble eq ""){
+				$unknowniptrouble++;
+				print "$fline\n";
+				next;
+			}
+
+			if($ipfree ne $iporig){
+				$ipfreedrop++;
+				print "$fline\n";
+				next;
+			}
+
+			if($hopsfree == 0){
+				$hopzero++;
+				print "$fline\n";
+				next;
+			}
+
+			if($hopstrouble > $hopsfree){
+				$hoperror++;
+				print "$fline\n";
+				next;
+			}
+		}
+	}
+}
+elsif($ARGV[0] eq "get-alexa-domains"){
+	while($line=<STDIN>){
+		while($line =~ m{\d+,([^/\s]*)}ig){
+			print "$1\n";		
+		}
+	}
+}
+elsif($ARGV[0] eq "get-majestic-domains"){
+	while($line=<STDIN>){
+		while($line =~ m{\d+,\d+,([^/\s,]*),.*}ig){
+			print "$1\n";		
+		}
+	}
+}
+elsif($ARGV[0] eq "trace" || $ARGV[0] eq "trace6" || $ARGV[0] eq "get-trace" || $ARGV[0] eq "get-trace6"){
+	if($> != 0){
+		print "Error: This script requires superuser privileges\n";
+		exit 1;
+	}
+
+	select STDOUT; $| = 1;
+
+	$total=0;
+# XXX
+#	$response=0;
+#	$timeout=0;
+
+	$ehtype= "do";
+	$ehsize= "8";
+	$prototype="icmp";
+
+	if($#ARGV > 0){
+		if($ARGV[1] =~ m/([a-zA-Z]+):?(\d+)/){
+			$ehtype= lc($1);
+			$ehsize= $2;
+		}
+		else{
+			$ehtype= $ARGV[1];
+		}
+
+		if($#ARGV > 1){
+			$prototype=	$ARGV[2];
+
+			if($#ARGV > 2){
+				$port=	$ARGV[3];
+			}
+			else{
+				$port= "80";
+			}
+		}
+	}
+
+	if($prototype eq "tcp"){
+		$protoopt= "--tcp-flags S -a $port";
+	}
+	else{
+		$protoopt="";
+	}
+
+	if($ehtype eq "fh" || $ehtype eq "frag"){
+		if($ehsize < 8){
+			print "Error: Fragment size should be larger than or equal to 8 bytes";
+			exit 1;
+		}
+		elsif($ehsize > 1280){
+			print "Error: Fragment size should be smaller than or equal to 1280 bytes";
+			exit 1;
+		}
+
+		$payload= ($ehsize * 2) - 20;
+		$protoopt="-P $payload " . $protoopt;
+	}
+
+	if($ehtype eq "fh" || $ehtype eq "frag"){
+		$eh= "-y $ehsize";
+	}
+	elsif($ehtype eq "hbh"){
+		$eh= "-H $ehsize";
+	}
+	elsif($ehtype eq "do"){
+		$eh= "-u $ehsize";
+	}
+	elsif($ehtype eq "ah"){
+		$eh= "-p ah";
+	}
+	elsif($ehtype eq "esp"){
+		$eh= "-p esp";
+	}
+	else{
+		print "Error: Unknown EH type";
+		exit 1;
+	}
+
+#	print "path6 -d NOSPEC -p $prototype $protoopt --rate-limit 20pps\n";
+#	print "path6 -d NOSPEC -p $prototype $protoopt $eh --rate-limit 20pps\n";
+
+	while($fline=<STDIN>){
+		chomp($fline);
+
+		if($fline =~ m/([^\x0d]+)/){
+			$fline= $1;
+		}
+
+		# Check whether this line is just a comment -- if so, skip it
+		if($fline =~ m/^((\s)*#)/){
+			next;
+		}
+
+		# Skip blanck lines 
+		if($fline =~ m/^(\s)*$/){
+			next;
+		}
+
+		# Remove all items from the array of IP addresses
+		undef @ipsfree;
+		undef @tcp;
+
+		$maxhopsfree=0;
+		$maxhopsfreeip="";
+		@tcp=`path6 -d $fline -p $prototype $protoopt`; # --rate-limit 25pps
+
+		if($? != 0){
+			next;
+		}
+
+		foreach $line (@tcp){
+			# Discard lines that do not contain a "probe" line
+			if($line =~ m/\s+(\d+)\s+\((\S*)\)/){
+				if($1 > $maxhopsfree){
+					if($2 ne ""){
+						$maxhopsfree=$1;
+						$maxhopsfreeip=$2;
+					}
+
+					# We store the IPv6 addresses of all hops
+					push(@ipsfree, $2);
+				}
+			}
+		}
+
+		undef @tcp;
+		$maxhopstrouble=0;
+		$maxhopstroubleip="";
+
+		# XXX: This is an ugly hack. should be removed. ESP and AH should possibly be handled as EHs, rather than probe types
+		if($ehtype eq "esp" || $ehtype eq "ah"){
+			@tcp=`path6 -d $fline $eh`; # --rate-limit 25pps
+		}else{
+			@tcp=`path6 -d $fline -p $prototype $protoopt $eh`; #  --rate-limit 25pps
+		}
+
+		if($? != 0){
+			next;
+		}
+
+		foreach $line (@tcp){
+			# Discard lines that do not contain a "probe" line
+			if($line =~ m/\s+(\d+)\s+\((\S*)\)/){
+				if($1 > $maxhopstrouble){
+					if($2 ne ""){
+						$maxhopstrouble=$1;
+						$maxhopstroubleip= $2;
+					}
+				}
+			}
+		}
+
+		$dropip="";
+		$dropip2="";
+
+		for($i=0; $i<= $#ipsfree; $i++){
+			if($ipsfree[$i] eq $maxhopstroubleip){
+				if($i == $#ipsfree){
+					$dropip= $ipsfree[$i];
+				}
+				else{
+					$dropip= $ipsfree[$i+1];
+				}
+
+				if($dropip eq $fline){
+					$dropip2= $dropip;
+				}
+				else{
+					$dropip2= $ipsfree[$i+2];
+					if($dropip2 eq ""){
+						$dropip2= $dropip;
+					}
+				}
+
+				last;
+			}
+		}
+
+		print "$fline#$maxhopsfreeip#$maxhopsfree#$maxhopstroubleip#$maxhopstrouble#$dropip#$dropip2\n";
+
+	}
+}
+elsif($ARGV[0] eq "get-routers-traceroute6" || $ARGV[0] eq "get-routers"){
+print "Entre\n";
+	while($fline=<STDIN>){
+
+		# Get rid of spaces, and also leave out comments
+		if($fline =~ m/\s*([^#\s]+)/){
+			$ipname=$1;
+
+
+#			if( $ip !~ m/(?:(?:(?:[0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4})|(?:(?:(?:[0-9a-fA-F]{1,4}:){1,4}|:):(?:(?:(?:1[0-9]{2}|2(?:[0-4][0-9]|5[0-9])|[0-9]{1,2})\.){3}(?:(?:1[0-9]{2}|2(?:[0-4][0-9]|5[0-9])|[0-9]{1,2}))))|(?:(?:(?:(?:[0-9a-fA-F]{1,4}:)(?::[0-9a-fA-F]{1,4}){1,7})|(?:(?:[0-9a-fA-F]{1,4}:){2}(?::[0-9a-fA-F]{1,4}){1,6})|(?:(?:[0-9a-fA-F]{1,4}:){3}(?::[0-9a-fA-F]{1,4}){1,5})|(?:(?:[0-9a-fA-F]{1,4}:){4}(?::[0-9a-fA-F]{1,4}){1,4})|(?:(?:[0-9a-fA-F]{1,4}:){5}(?::[0-9a-fA-F]{1,4}){1,3})|(?:(?:[0-9a-fA-F]{1,4}:){6}(?::[0-9a-fA-F]{1,4}){1,2})|(?:[0-9a-fA-F]{1,4}:){1,7}:)|(?::(?:(?::[0-9a-fA-F]{1,4}){1,7}|:))))/){
+#				next;
+#			}
+
+			# Obtain the IPv6 addres corresponding to the specified domain name
+			# (This implicitly obtains the canonic address if an IPv6 address was specified)
+			my ( $erraddr, @addrs ) = Socket::getaddrinfo( $ipname, 0, { 'protocol' => Socket::IPPROTO_TCP, 'family' => Socket::AF_INET6 } );
+
+			if($erraddr){
+				die "gettadrinfo(): $erraddr";
+			}
+
+			my ( $errname, $ip ) = Socket::getnameinfo( $addrs[0]->{addr}, Socket::NI_NUMERICHOST );
+
+			if ($errname){
+				die "getnameinfo() $errname";
+			}
+
+			# At this point we have one IPv6 address to traceroute to (in $IP)
+
+			# Open pipe to addr6, to filter out duplicate addresses.
+			open FILTER, "| addr6 -i q" or die "can't use addr6 for filtering addresses: $!";
+
+			@revname=`traceroute6 -n $ip`;
+
+			if($? == 0){
+				print "# $ip\n";
+
+				foreach $line (@revname){
+					while($_ =~ s/((?:(?:[0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4})|(?:(?:(?:[0-9a-fA-F]{1,4}:){1,4}|:):(?:(?:(?:1[0-9]{2}|2(?:[0-4][0-9]|5[0-9])|[0-9]{1,2})\.){3}(?:(?:1[0-9]{2}|2(?:[0-4][0-9]|5[0-9])|[0-9]{1,2}))))|(?:(?:(?:(?:[0-9a-fA-F]{1,4}:)(?::[0-9a-fA-F]{1,4}){1,7})|(?:(?:[0-9a-fA-F]{1,4}:){2}(?::[0-9a-fA-F]{1,4}){1,6})|(?:(?:[0-9a-fA-F]{1,4}:){3}(?::[0-9a-fA-F]{1,4}){1,5})|(?:(?:[0-9a-fA-F]{1,4}:){4}(?::[0-9a-fA-F]{1,4}){1,4})|(?:(?:[0-9a-fA-F]{1,4}:){5}(?::[0-9a-fA-F]{1,4}){1,3})|(?:(?:[0-9a-fA-F]{1,4}:){6}(?::[0-9a-fA-F]{1,4}){1,2})|(?:[0-9a-fA-F]{1,4}:){1,7}:)|(?::(?:(?::[0-9a-fA-F]{1,4}){1,7}|:))))//){
+						print FILTER "$1\n";
+					}
+				}
+			}
+		}
+
+		close FILTER;
+	}
+}
+else{
+	print "$SI6_TOOLKIT\n";
+	print "$SCRIPT6\n";
+	print "$USAGE\n";
+}
