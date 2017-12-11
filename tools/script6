@@ -1119,8 +1119,12 @@ elsif($ARGV[0] eq "trace" || $ARGV[0] eq "trace6" || $ARGV[0] eq "get-trace" || 
 }
 elsif($ARGV[0] eq "get-routers-traceroute6" || $ARGV[0] eq "get-routers"){
 	while(<STDIN>){
+		if($_ =~ m/^\s*#/){
+			print "$_";
+			next;
+		}
 
-		# Get rid of spaces, and also leave out comments
+		# Get rid of spaces, and also leave out in-line comments
 		if($_ =~ m/\s*([^#\s]+)/){
 			$ipname=$1;
 
