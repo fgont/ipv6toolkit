@@ -1120,7 +1120,7 @@ elsif($ARGV[0] eq "trace" || $ARGV[0] eq "trace6" || $ARGV[0] eq "get-trace" || 
 elsif($ARGV[0] eq "get-routers-traceroute6" || $ARGV[0] eq "get-routers"){
 	while(<STDIN>){
 		if($_ =~ m/^\s*#/){
-			print "$_";
+			print "$_\n";
 			next;
 		}
 
@@ -1152,7 +1152,7 @@ elsif($ARGV[0] eq "get-routers-traceroute6" || $ARGV[0] eq "get-routers"){
 			# Open pipe to addr6, to filter out duplicate addresses.
 			open FILTER, "| addr6 -i -q" or die "can't use addr6 for filtering addresses: $!";
 
-			@revname=`traceroute6 -n $ip`;
+			@revname=`traceroute6 -n $ip 2>&1`;
 
 			if($? == 0){
 				print "# $ip\n";
