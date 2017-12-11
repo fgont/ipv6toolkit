@@ -1146,7 +1146,7 @@ elsif($ARGV[0] eq "get-routers-traceroute6" || $ARGV[0] eq "get-routers"){
 			# At this point we have one IPv6 address to traceroute to (in $IP)
 
 			# Open pipe to addr6, to filter out duplicate addresses.
-			open FILTER, "| addr6 -i q" or die "can't use addr6 for filtering addresses: $!";
+			open FILTER, "| addr6 -i -q" or die "can't use addr6 for filtering addresses: $!";
 
 			@revname=`traceroute6 -n $ip`;
 
