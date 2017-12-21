@@ -1139,7 +1139,7 @@ elsif($ARGV[0] eq "get-routers-traceroute6" || $ARGV[0] eq "get-routers"){
 			my ( $erraddr, @addrs ) = Socket::getaddrinfo( $ipname, 0, { 'protocol' => Socket::IPPROTO_TCP, 'family' => Socket::AF_INET6 } );
 
 			if($erraddr){
-				die "gettadrinfo(): $erraddr";
+				die "getadrinfo(): $erraddr";
 			}
 
 			my ( $errname, $ip ) = Socket::getnameinfo( $addrs[0]->{addr}, Socket::NI_NUMERICHOST );
@@ -1166,9 +1166,10 @@ elsif($ARGV[0] eq "get-routers-traceroute6" || $ARGV[0] eq "get-routers"){
 					}
 				}
 			}
+
+			close FILTER;
 		}
 
-		close FILTER;
 	}
 }
 else{
