@@ -478,6 +478,198 @@ elsif($ARGV[0] eq "get-crawler"){
 
 	exit;
 }
+elsif($ARGV[0] eq "get-crawler-batch"){
+	if($#ARGV >=1 ){
+		$maxresults= $ARGV[1];
+	}
+	else{
+		$maxresults= 0;
+	}
+
+	while(<STDIN>){
+		$cur= 1;
+		$nresults=0;
+		$fpzeromatch=0;
+		$nzeromatch=0;
+		$ncollisions=0;
+		$ccollisions=0;
+		$continue=1;
+		$phase=0;
+		$heur="";
+		undef @domain;
+
+		if($_ =~ m/^\s*([-a-z0-9.]+)/){
+			$czone= $1;
+		}
+		else{
+			next;
+		}
+
+		print "######## DOMAIN: $czone ########\n";
+
+		do{
+			$matches=0;
+			$collisions=0;
+
+			# --user-agent "Mozilla/4.0"  works fine most of the time. curl || wget original headers cause trouble.
+			$useragent=GetRandomUserAgent();
+
+			@revname=`curl -s --user-agent "$useragent" "https://www.bing.com/search?q=site%3A$czone$heur&first=$cur"`;
+
+			if($? == 0){
+				foreach $line (@revname){
+					while($continue && $line =~ s/<h2[^>]*><a href="https?[^"\/]*\/\/([^"\/]*)//){
+						$matches++;
+						$nzeromatch=0;
+
+						for($i=0; $i<= $#domain; $i++){
+							if($domain[$i] eq $1){
+								$collisions++;
+								last;
+							}
+						}
+
+						if($i > $#domain){
+							$domain[$#domain + 1]=$1;
+							print "$1\n";
+							$nresults++;
+						}
+
+						if($maxresults > 0 && $nresults>=$maxresults){
+							$continue=0;
+						} 
+					}
+				}
+
+
+				if($matches>0){
+					$cur= $cur+10;
+				}
+				else{
+					#print "# ERROR: No matchie nada!\n";
+					if($nzeromatch == 0){
+						# If it is the first time the main regex fails, chances are that bing has "banned" us. Wait a bit, and retry.
+						sleep(rand(($nzeromatch+1)*10));
+						$fpzeromatch=$cur;  # Record "when" this happened
+						#print "# Offset: $fpzeromatch\n";
+					}
+
+					$nzeromatch++;
+					#print "# Zero-match contiguo: $nzeromatch\n";
+
+					if($nzeromatch > 25 ){
+						# If we get nothing after 25 pages we quit
+						print "#### Bing has banned us. Quitting.... ####\n";
+						$continue=0;
+					}
+				}
+
+				# If we get ten collisions fo this page (no new data, we record it)
+				if($collisions >= 10){
+					$ncollisions++;
+					$ccollisions++;  # Cumulative colissions even across changes in search string
+
+					if($ccollisions > 80){
+						# If we get nothing after 40 pages we quit
+						print "#### Couldn't get any new results. Quitting.... ####\n";
+						$continue=0;
+					}
+
+					#print "## GOT ALL COLLISIONS FOR $ncollisions"."th time ####\n";
+
+					if($phase == 0){
+						# Firstly we only query for the domain name;
+						if($ncollisions > 20){
+							print "#### Phase 1  ####\n";
+							$phase=1;
+							$letterkey="a";
+							$heur="+$letterkey";
+							$ncollisions=0;
+							$cur=1; # Since we change the search keys, we retrieve the first page of results
+						}
+					}
+					elsif($phase == 1){
+						# In phase 1 we search for the domain name and one letter
+						if($ncollisions > 5){
+							if($letterkey eq "z"){
+								$letterkey="a";
+								$numkey="0";
+								$heur="+$numkey";
+								$ncollisions=0;
+								$phase=2;
+								$cur=1; # Since we change the search keys, we retrieve the first page of results
+								print "#### Phase 2  ####\n";
+							}
+							else{
+								$letterkey++;
+								$ncollisions=0;
+								$heur="+$letterkey";
+								$cur=1; # Since we change the search keys, we retrieve the first page of results
+							}
+						}
+					}
+
+					elsif($phase == 2){
+						# In phase 2 we search for the domain name and a number
+						if($ncollisions >= 2){
+							# We allow for fewer collisions since it is easy to change the number
+							if($numkey >= 10001){
+								$letterkey="a";
+								$numkey="0";
+								$heur="+$letterkey+$numkey";
+								$ncollisions=0;
+								$phase=3;
+								$cur=1; # Since we change the search keys, we retrieve the first page of results
+								print "#### Phase 3  ####\n";
+							}
+							else{
+								$numkey++;
+								$ncollisions=0;
+								$cur=1; # Since we change the search keys, we retrieve the first page of results
+								$heur="+$numkey";
+							}
+						}
+					}
+
+					else{
+						# In phase #3, we search for the domainname, plus a letter and a number
+						if($ncollisions > 2){
+							if($numkey > 10000){
+								if($letterkey eq "z"){
+									# No mor combinations
+									print "#### Tried my best. Quitting.... ####\n";
+									$continue=0;
+								}
+								else{
+									$letterkey++;
+									$numkey=0;
+									$cur=1; # Since we change the search keys, we retrieve the first page of results
+									$heur="+$letterkey+$numkey";
+									$ncollisions=0;
+								}
+							}
+							else{
+								$numkey++;
+								$ncollisions=0;
+								$cur=1; # Since we change the search keys, we retrieve the first page of results
+								$heur="+$letterkey+$numkey";
+							}
+						}
+					}
+				}
+				else{
+					$ncollisions=0;
+					$ccollisions=0;
+					#print "### GOT NEW DATA ####\n"
+				}
+			}
+
+
+		}while($? == 0 && $continue == 1);
+	};
+
+	exit;
+}
 elsif($ARGV[0] eq "get-crawler-old"){
 	if($#ARGV <1 ){
 		print "# Error: Must specify domain name to search for\n";
