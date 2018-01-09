@@ -41,6 +41,56 @@ sub GetASN{
 }
 
 
+sub GetRandomUserAgent{
+	$uagent[0]="Mozilla/5.0 (Windows NT 6.1; WOW64; rv:40.0) Gecko/20100101 Firefox/40.1";
+	$uagent[1]="Mozilla/5.0 (Windows NT 6.3; rv:36.0) Gecko/20100101 Firefox/36.0";
+	$uagent[2]="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10; rv:33.0) Gecko/20100101 Firefox/33.0";
+	$uagent[3]="Mozilla/5.0 (X11; Linux i586; rv:31.0) Gecko/20100101 Firefox/31.0";
+	$uagent[4]="Mozilla/5.0 (Windows NT 6.1; WOW64; rv:31.0) Gecko/20130401 Firefox/31.0";
+	$uagent[5]="Mozilla/5.0 (Windows NT 5.1; rv:31.0) Gecko/20100101 Firefox/31.0";
+	$uagent[6]="Mozilla/5.0 (Windows NT 6.1; WOW64; rv:29.0) Gecko/20120101 Firefox/29.0";
+	$uagent[7]="Mozilla/5.0 (Windows NT 6.1; Win64; x64; rv:25.0) Gecko/20100101 Firefox/29.0";
+	$uagent[8]="Mozilla/5.0 (X11; OpenBSD amd64; rv:28.0) Gecko/20100101 Firefox/28.0";
+	$uagent[9]="Mozilla/5.0 (X11; Linux x86_64; rv:28.0) Gecko/20100101 Firefox/28.0";
+	$uagent[10]="Mozilla/5.0 (Windows NT 6.1; rv:27.3) Gecko/20130101 Firefox/27.3";
+	$uagent[11]="Mozilla/5.0 (Windows NT 6.2; Win64; x64; rv:27.0) Gecko/20121011 Firefox/27.0";
+	$uagent[12]="Opera/9.80 (X11; Linux i686; Ubuntu/14.10) Presto/2.12.388 Version/12.16";
+	$uagent[13]="Opera/9.80 (Windows NT 6.0) Presto/2.12.388 Version/12.14";
+	$uagent[14]="Mozilla/5.0 (Windows NT 6.0; rv:2.0) Gecko/20100101 Firefox/4.0 Opera 12.14";
+	$uagent[15]="Mozilla/5.0 (compatible; MSIE 9.0; Windows NT 6.0) Opera 12.14";
+	$uagent[16]="Opera/12.80 (Windows NT 5.1; U; en) Presto/2.10.289 Version/12.02";
+	$uagent[17]="Opera/9.80 (Windows NT 6.1; U; es-ES) Presto/2.9.181 Version/12.00";
+	$uagent[18]="Opera/9.80 (Windows NT 5.1; U; zh-sg) Presto/2.9.181 Version/12.00";
+	$uagent[19]="Opera/12.0(Windows NT 5.2;U;en)Presto/22.9.168 Version/12.00";
+	$uagent[20]="Opera/12.0(Windows NT 5.1;U;en)Presto/22.9.168 Version/12.00";
+	$uagent[21]="Mozilla/5.0 (Windows NT 5.1) Gecko/20100101 Firefox/14.0 Opera/12.0";
+	$uagent[22]="Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2228.0 Safari/537.36";
+	$uagent[23]="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2227.1 Safari/537.36";
+	$uagent[24]="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2227.0 Safari/537.36";
+	$uagent[25]="Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2227.0 Safari/537.36";
+	$uagent[26]="Mozilla/5.0 (Windows NT 6.3; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2226.0 Safari/537.36";
+	$uagent[27]="Mozilla/5.0 (Windows NT 6.4; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2225.0 Safari/537.36";
+	$uagent[28]="Mozilla/5.0 (Windows NT 6.3; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2225.0 Safari/537.36";
+	$uagent[29]="Mozilla/5.0 (Windows NT 5.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2224.3 Safari/537.36";
+	$uagent[30]="Mozilla/5.0 (Windows NT 10.0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/40.0.2214.93 Safari/537.36";
+	$uagent[31]="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/37.0.2062.124 Safari/537.36";
+	$uagent[32]="Mozilla/5.0 (Windows NT 6.3; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/37.0.2049.0 Safari/537.36";
+	$uagent[33]="Mozilla/5.0 (Windows NT 4.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/37.0.2049.0 Safari/537.36";
+	$uagent[34]="Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/36.0.1985.67 Safari/537.36";
+	$uagent[35]="Mozilla/5.0 (Windows NT 5.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/36.0.1985.67 Safari/537.36";
+	$uagent[36]="Mozilla/5.0 (X11; OpenBSD i386) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/36.0.1985.125 Safari/537.36";
+	$uagent[37]="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_2) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/36.0.1944.0 Safari/537.36";
+	$uagent[38]="Mozilla/5.0 (Windows NT 5.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/35.0.3319.102 Safari/537.36";
+	$uagent[39]="Mozilla/5.0 (Windows NT 5.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/35.0.2309.372 Safari/537.36";
+	$uagent[40]="Mozilla/5.0 (Windows NT 5.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/35.0.2117.157 Safari/537.36";
+
+	return ($uagent[rand($#uagent+1)%($#uagent+1)]);
+}
+
+
+
+
+
 # Function GetORG()
 #
 # Obtains the organization corresponding to an autonomous system number (ASN)
@@ -58,7 +108,6 @@ sub GetORG{
 }
 
 
- 
 if($#ARGV < 0){
 	print "$SI6_TOOLKIT\n";
 	print "$SCRIPT6\n";
@@ -259,15 +308,32 @@ elsif($ARGV[0] eq "get-crawler"){
 
 	$cur= 1;
 	$nresults=0;
+	$fpzeromatch=0;
+	$nzeromatch=0;
+	$ncollisions=0;
+	$ccollisions=0;
+	$phase=0;
+	$heur="";
+
 
 	do{
-		@revname=`curl -s --user-agent "Mozilla/4.0" "https://www.bing.com/search?q=site%3A$ARGV[1]&first=$cur"`;
+		$matches=0;
+		$collisions=0;
+
+		# --user-agent "Mozilla/4.0"  works fine most of the time. curl || wget original headers cause trouble.
+		$useragent=GetRandomUserAgent();
+
+		@revname=`curl -s --user-agent "$useragent" "https://www.bing.com/search?q=site%3A$ARGV[1]$heur&first=$cur"`;
 
 		if($? == 0){
 			foreach $line (@revname){
 				while($line =~ s/<h2[^>]*><a href="https?[^"\/]*\/\/([^"\/]*)//){
+					$matches++;
+					$nzeromatch=0;
+
 					for($i=0; $i<= $#domain; $i++){
 						if($domain[$i] eq $1){
+							$collisions++;
 							last;
 						}
 					}
@@ -283,10 +349,248 @@ elsif($ARGV[0] eq "get-crawler"){
 					} 
 				}
 			}
+
+
+			if($matches>0){
+				$cur= $cur+10;
+			}
+			else{
+				#print "# ERROR: No matchie nada!\n";
+				if($nzeromatch == 0){
+					# If it is the first time the main regex fails, chances are that bing has "banned" us. Wait a bit, and retry.
+					sleep(rand(($nzeromatch+1)*10));
+					$fpzeromatch=$cur;  # Record "when" this happened
+					#print "# Offset: $fpzeromatch\n";
+				}
+
+				$nzeromatch++;
+				#print "# Zero-match contiguo: $nzeromatch\n";
+
+				if($nzeromatch > 25 ){
+					# If we get nothing after 25 pages we quit
+					print "#### Bing has banned us. Quitting.... ####\n";
+					exit;
+				}
+			}
+
+			# If we get ten collisions fo this page (no new data, we record it)
+			if($collisions >= 10){
+				$ncollisions++;
+				$ccollisions++;  # Cumulative colissions even across changes in search string
+
+				if($ccollisions > 80){
+					# If we get nothing after 40 pages we quit
+					print "#### Couldn't get any new results. Quitting.... ####\n";
+					exit;
+				}
+
+				#print "## GOT ALL COLLISIONS FOR $ncollisions"."th time ####\n";
+
+				if($phase == 0){
+					# Firstly we only query for the domain name;
+					if($ncollisions > 20){
+						print "#### Phase 1  ####\n";
+						$phase=1;
+						$letterkey="a";
+						$heur="+$letterkey";
+						$ncollisions=0;
+						$cur=1; # Since we change the search keys, we retrieve the first page of results
+					}
+				}
+				elsif($phase == 1){
+					# In phase 1 we search for the domain name and one letter
+					if($ncollisions > 5){
+						if($letterkey eq "z"){
+							$letterkey="a";
+							$numkey="0";
+							$heur="+$numkey";
+							$ncollisions=0;
+							$phase=2;
+							$cur=1; # Since we change the search keys, we retrieve the first page of results
+							print "#### Phase 2  ####\n";
+						}
+						else{
+							$letterkey++;
+							$ncollisions=0;
+							$heur="+$letterkey";
+							$cur=1; # Since we change the search keys, we retrieve the first page of results
+						}
+					}
+				}
+
+				elsif($phase == 2){
+					# In phase 2 we search for the domain name and a number
+					if($ncollisions >= 2){
+						# We allow for fewer collisions since it is easy to change the number
+						if($numkey >= 10001){
+							$letterkey="a";
+							$numkey="0";
+							$heur="+$letterkey+$numkey";
+							$ncollisions=0;
+							$phase=3;
+							$cur=1; # Since we change the search keys, we retrieve the first page of results
+							print "#### Phase 3  ####\n";
+						}
+						else{
+							$numkey++;
+							$ncollisions=0;
+							$cur=1; # Since we change the search keys, we retrieve the first page of results
+							$heur="+$numkey";
+						}
+					}
+				}
+
+				else{
+					# In phase #3, we search for the domainname, plus a letter and a number
+					if($ncollisions > 2){
+						if($numkey > 10000){
+							if($letterkey eq "z"){
+								# No mor combinations
+								print "#### Tried my best. Quitting.... ####\n";
+								exit;
+							}
+							else{
+								$letterkey++;
+								$numkey=0;
+								$cur=1; # Since we change the search keys, we retrieve the first page of results
+								$heur="+$letterkey+$numkey";
+								$ncollisions=0;
+							}
+						}
+						else{
+							$numkey++;
+							$ncollisions=0;
+							$cur=1; # Since we change the search keys, we retrieve the first page of results
+							$heur="+$letterkey+$numkey";
+						}
+					}
+				}
+			}
+			else{
+				$ncollisions=0;
+				$ccollisions=0;
+				#print "### GOT NEW DATA ####\n"
+			}
 		}
 
-		$cur= $cur+10;
+
 	}while($? == 0);
+
+	exit;
+}
+elsif($ARGV[0] eq "get-crawler-old"){
+	if($#ARGV <1 ){
+		print "# Error: Must specify domain name to search for\n";
+		exit;
+	}
+
+	if($#ARGV >=2 ){
+		$maxresults= $ARGV[2];
+	}
+	else{
+		$maxresults= 0;
+	}
+
+	$cur= 1;
+	$nresults=0;
+	$fpzeromatch=0;
+	$nzeromatch=0;
+	$ncollisions=0;
+
+
+	do{
+		$matches=0;
+		$collisions=0;
+
+		# --user-agent "Mozilla/4.0"  works fine most of the time. curl || wget original headers cause trouble.
+		$useragent=GetRandomUserAgent();
+
+		@revname=`curl -s --user-agent "$useragent" "https://www.bing.com/search?q=site%3A$ARGV[1]&first=$cur"`;
+
+		if($? == 0){
+			foreach $line (@revname){
+				while($line =~ s/<h2[^>]*><a href="https?[^"\/]*\/\/([^"\/]*)//){
+					$matches++;
+					$nzeromatch=0;
+
+					for($i=0; $i<= $#domain; $i++){
+						if($domain[$i] eq $1){
+							$collisions++;
+							last;
+						}
+					}
+
+					if($i > $#domain){
+						$domain[$#domain + 1]=$1;
+						print "$1\n";
+						$nresults++;
+					}
+
+					if($maxresults > 0 && $nresults>=$maxresults){
+						exit;
+					} 
+				}
+			}
+
+
+			if($matches>0){
+				$cur= $cur+10;
+			}
+			else{
+				#print "# ERROR: No matchie nada!\n";
+				if($nzeromatch == 0){
+					# If it is the first time the main regex fails, chances are that bing has "banned" us. Wait a bit, and retry.
+					sleep(rand(($nzeromatch+1)*10));
+					$fpzeromatch=$cur;  # Record "when" this happened
+					#print "# Offset: $fpzeromatch\n";
+				}
+
+				$nzeromatch++;
+				#print "# Zero-match contiguo: $nzeromatch\n";
+
+				if($nzeromatch > 25 ){
+					# If we get nothing after 25 pages we quit
+					print "#### Bing has banned us. Quitting.... ####\n";
+					exit;
+				}
+			}
+
+			# If we get ten collisions fo this page (no new data, we record it)
+			if($collisions >= 10){
+				$ncollisions++;
+
+				#print "## GOT ALL COLLISIONS FOR $ncollisions"."th time ####\n";
+
+				if($ncollisions > 80){
+					# If we get nothing after 25 pages we quit
+					print "#### Couldn't get any new results. Quitting.... ####\n";
+					exit;
+				}
+			}
+			else{
+				$ncollisions=0;
+				#print "### GOT NEW DATA ####\n"
+			}
+		}
+
+
+	}while($? == 0);
+
+	exit;
+}
+elsif($ARGV[0] eq "get-dns-root-zone" || $ARGV[0] eq "get-root-zone"){
+	# --user-agent "Mozilla/4.0"  works fine most of the time. curl || wget original headers cause trouble.
+	$useragent=GetRandomUserAgent();
+
+	@revname=`curl -s --user-agent "$useragent" "https://www.iana.org/domains/root/db"`;
+
+	if($? == 0){
+		foreach $line (@revname){
+			while($line =~ s/\<span class="domain tld"><a href="\/domains\/root\/db\/([^.>"]+).html">//){
+				print "$1\n";
+			}
+		}
+	}
 
 	exit;
 }
