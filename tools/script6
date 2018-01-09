@@ -576,6 +576,11 @@ elsif($ARGV[0] eq "get-crawler-old"){
 
 	}while($? == 0);
 
+	if($? != 0){
+		print "#### ERROR: \$? was: $? ####\n";
+		print "#### \$phase: $phase, \$cur: $cur, \$letterkey: $letterkey, \$numkey: $numkey, \$heur: $heur\n";
+	}
+
 	exit;
 }
 elsif($ARGV[0] eq "get-dns-root-zone" || $ARGV[0] eq "get-root-zone"){
@@ -588,6 +593,23 @@ elsif($ARGV[0] eq "get-dns-root-zone" || $ARGV[0] eq "get-root-zone"){
 		foreach $line (@revname){
 			while($line =~ s/\<span class="domain tld"><a href="\/domains\/root\/db\/([^.>"]+).html">//){
 				print "$1\n";
+			}
+		}
+	}
+
+	exit;
+}
+elsif($ARGV[0] eq "get-dns-root-zone-raw" || $ARGV[0] eq "get-root-zone-raw"){
+	# --user-agent "Mozilla/4.0"  works fine most of the time. curl || wget original headers cause trouble.
+	$useragent=GetRandomUserAgent();
+
+	@revname=`curl -s --user-agent "$useragent" "https://data.iana.org/TLD/tlds-alpha-by-domain.txt"`;
+
+	if($? == 0){
+		foreach $line (@revname){
+			while($line =~ s/^\s*(\S+)//){
+				$domain=$1;
+				print "$domain\n";
 			}
 		}
 	}
