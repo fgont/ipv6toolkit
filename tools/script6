@@ -374,7 +374,7 @@ elsif($ARGV[0] eq "get-crawler"){
 			}
 
 			# If we get ten collisions fo this page (no new data, we record it)
-			if($collisions >= 10){
+			if($collisions >= $matches){
 				$ncollisions++;
 				$ccollisions++;  # Cumulative colissions even across changes in search string
 
@@ -510,7 +510,7 @@ elsif($ARGV[0] eq "get-crawler-batch"){
 		do{
 			$matches=0;
 			$collisions=0;
-
+#print "#NEWQUERY!\n";
 			# --user-agent "Mozilla/4.0"  works fine most of the time. curl || wget original headers cause trouble.
 			$useragent=GetRandomUserAgent();
 
@@ -518,12 +518,15 @@ elsif($ARGV[0] eq "get-crawler-batch"){
 
 			if($? == 0){
 				foreach $line (@revname){
+#print "#LINE: $line\n";
 					while($continue && $line =~ s/<h2[^>]*><a href="https?[^"\/]*\/\/([^"\/]*)//){
+#print "#MATCHED!\n";
 						$matches++;
 						$nzeromatch=0;
 
 						for($i=0; $i<= $#domain; $i++){
 							if($domain[$i] eq $1){
+#print "#COLLISION\n";
 								$collisions++;
 								last;
 							}
@@ -532,6 +535,7 @@ elsif($ARGV[0] eq "get-crawler-batch"){
 						if($i > $#domain){
 							$domain[$#domain + 1]=$1;
 							print "$1\n";
+#print "#ADDED DOMAIN!\n";
 							$nresults++;
 						}
 
@@ -546,6 +550,7 @@ elsif($ARGV[0] eq "get-crawler-batch"){
 					$cur= $cur+10;
 				}
 				else{
+#print "#NOMATCHES!\n";
 					#print "# ERROR: No matchie nada!\n";
 					if($nzeromatch == 0){
 						# If it is the first time the main regex fails, chances are that bing has "banned" us. Wait a bit, and retry.
@@ -565,7 +570,7 @@ elsif($ARGV[0] eq "get-crawler-batch"){
 				}
 
 				# If we get ten collisions fo this page (no new data, we record it)
-				if($collisions >= 10){
+				if($collisions >= $matches){
 					$ncollisions++;
 					$ccollisions++;  # Cumulative colissions even across changes in search string
 
