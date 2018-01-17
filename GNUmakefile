@@ -112,11 +112,19 @@ libipv6.o: $(SRCPATH)/libipv6.c $(SRCPATH)/libipv6.h
 data/ipv6toolkit.conf:
 	echo "# SI6 Networks' IPv6 Toolkit Configuration File" > \
            data/ipv6toolkit.conf
+	echo WWW-client=curl >> \
+           data/ipv6toolkit.conf 
 	echo OUI-Database=$(PREFIX)/share/ipv6toolkit/oui.txt >> \
            data/ipv6toolkit.conf 
 	echo Ports-Database=$(PREFIX)/share/ipv6toolkit/service-names-port-numbers.csv >> \
            data/ipv6toolkit.conf 
 	echo Top-Ports-Database=$(PREFIX)/share/ipv6toolkit/top-port-numbers.csv >> \
+           data/ipv6toolkit.conf 
+	echo Country-Database=$(PREFIX)/share/ipv6toolkit/country-data.csv >> \
+           data/ipv6toolkit.conf 
+	echo DNS-Suffix-Database=$(PREFIX)/share/ipv6toolkit/public_suffix_list.dat >> \
+           data/ipv6toolkit.conf
+	echo DNS-Dictionary-Database=$(PREFIX)/share/ipv6toolkit/dns-dictionary.txt >> \
            data/ipv6toolkit.conf 
 
 clean: 
@@ -144,6 +152,15 @@ ifneq ($(OS),SunOS)
 
 	# Install the top port numbers database
 	install -m0644 data/top-port-numbers.csv $(DATAPATH)
+
+	# Install the country information database
+	install -m0644 data/country-data.csv $(DATAPATH)
+
+	# Install the DNS Suffixes database
+	install -m0644 data/public_suffix_list.dat $(DATAPATH)
+
+	# Install the DNS Dictionary database
+	install -m0644 data/dns-dictionary.txt $(DATAPATH)
 
 	# Install the manual pages
 	install -m0755 -d $(MANPATH)/man1
@@ -186,8 +203,18 @@ else
 	# Install the port numbers database
 	install -m 0644 -f $(DATAPATH) data/service-names-port-numbers.csv
 
-	# Install the port numbers database
+	# Install the top port numbers database
 	install -m 0644 -f $(DATAPATH) data/top-port-numbers.csv
+
+	# Install the top port numbers database
+	install -m 0644 -f $(DATAPATH) data/country-data.csv
+
+	# Install the DNS Suffixes database
+	install -m 0644 -f $(DATAPATH) data/public_suffix_list.dat
+
+	# Install the DNS Dictionary database
+	install -m 0644 -f $(DATAPATH) data/dns-dictionary.txt
+
 
 	# Install the manual pages
 	install -m 0755 -d $(MANPATH)/man1
