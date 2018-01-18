@@ -124,7 +124,9 @@ data/ipv6toolkit.conf:
            data/ipv6toolkit.conf 
 	echo DNS-Suffix-Database=$(PREFIX)/share/ipv6toolkit/public_suffix_list.dat >> \
            data/ipv6toolkit.conf
-	echo DNS-Dictionary-Database=$(PREFIX)/share/ipv6toolkit/dns-dictionary.txt >> \
+	echo RIR-Database=$(PREFIX)/share/ipv6toolkit/rir-database.csv >> \
+           data/ipv6toolkit.conf 
+	echo DNS-Dictionary=$(PREFIX)/share/ipv6toolkit/dns-dictionary.txt >> \
            data/ipv6toolkit.conf 
 
 clean: 
@@ -159,7 +161,10 @@ ifneq ($(OS),SunOS)
 	# Install the DNS Suffixes database
 	install -m0644 data/public_suffix_list.dat $(DATAPATH)
 
-	# Install the DNS Dictionary database
+	# Install the RIR database
+	install -m0644 data/rir-database.csv $(DATAPATH)
+
+	# Install the DNS Dictionary
 	install -m0644 data/dns-dictionary.txt $(DATAPATH)
 
 	# Install the manual pages
@@ -212,7 +217,10 @@ else
 	# Install the DNS Suffixes database
 	install -m 0644 -f $(DATAPATH) data/public_suffix_list.dat
 
-	# Install the DNS Dictionary database
+	# Install the RIR Database
+	install -m 0644 -f $(DATAPATH) data/rir-database.csv
+
+	# Install the DNS Dictionary
 	install -m 0644 -f $(DATAPATH) data/dns-dictionary.txt
 
 

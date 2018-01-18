@@ -117,7 +117,9 @@ data/ipv6toolkit.conf:
            data/ipv6toolkit.conf
 	echo DNS-Suffix-Database=$(PREFIX)/share/ipv6toolkit/public_suffix_list.dat >> \
            data/ipv6toolkit.conf
-	echo DNS-Dictionary-Database=$(PREFIX)/share/ipv6toolkit/dns-dictionary.txt >> \
+	echo RIR-Database=$(PREFIX)/share/ipv6toolkit/rir-database.csv >> \
+           data/ipv6toolkit.conf 
+	echo DNS-Dictionary=$(PREFIX)/share/ipv6toolkit/dns-dictionary.txt >> \
            data/ipv6toolkit.conf 
 
 clean: 
@@ -150,6 +152,12 @@ install: all
 
 	# Install the DNS Suffixes database
 	install -m0644 data/public_suffix_list.dat $(DATAPATH)
+
+	# Install the RIR Database
+	install -m0644 data/rir-database.csv $(DATAPATH)
+
+	# Install the DNS Dictionary
+	install -m0644 data/dns-dictionary.txt $(DATAPATH)
 
 	# Install the manual pages
 	install -m0755 -d $(MANPATH)/man1
