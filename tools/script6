@@ -23,6 +23,221 @@ Usage: script6 COMMAND [PARAMETERS]
 
 use Socket();
 
+$wwwclient="";
+$country_database="";
+$dns_suffix_database="";
+$dns_dictionary_database="";
+$wwwclient_sopt="";
+$wwwclient_tout="";
+$wwwclient_agnt="";
+$MAXTIMEPERIOD=10;
+
+sub ParseConfigFile{
+	$configfile="/etc/ipv6toolkit.conf";
+
+	open FILE, "$configfile" or die $!;
+
+	while(<FILE>){
+		if($_ =~ m/\s*WWW-client\s*=\s*([^\s]+)\s*/i){
+			$wwwclient=$1;
+		}
+		elsif($_ =~ m/\s*Country-Database\s*=\s*([^\s]+)\s*/i){
+			$country_database=$1;
+		}
+		elsif($_ =~ m/\s*DNS-Suffix-Database\s*=\s*([^\s]+)\s*/i){
+			$dns_suffix_database=$1;
+		}
+		elsif($_ =~ m/\s*DNS-Dictionary-Database\s*=\s*([^\s]+)\s*/i){
+			$dns_dictionary_database=$1;
+		}
+	}
+
+	if($wwwclient=~ m/(?:\/[a-z-A-Z0-9-_]+\/)*curl/){
+		$wwwclient_sopt=" -s ";
+		$wwwclient_tout=" --max-time $MAXTIMEPERIOD ";
+		$wwwclient_agnt=" --user-agent ";
+	}
+	elsif($wwwclient=~ m/(?:\/[a-z-A-Z0-9-_]+\/)*wget/){
+		$wwwclient_sopt=" -q -O - ";
+		$wwwclient_tout=" --timeout=$MAXTIMEPERIOD ";
+		$wwwclient_agnt=" --user-agent=";
+	}
+	else{
+		print "ERROR: WWW Client \"$wwwclient\" is not supported. Please try curl or wget\n";
+		exit(1);
+	}
+
+	close(FILE);
+}
+
+sub PrintConfigFile{
+	print "WWW-client: $wwwclient\n";
+	print "Country-Database=$country_database\n";
+	print "DNS-Suffix-Database=$dns_suffix_database\n";
+	print "DNS-Dictionary-Database=$dns_dictionary_database\n";
+	print "[NOTE] WWW-client run as '$wwwclient$wwwclient_sopt\[$wwwclient_tout\]$wwwclient_agnt\"\[sample agent\]\"'\n";
+}
+
+
+sub SuffixForTLD{
+		my ($tld)= $_[0];
+
+		open FILE, "$dns_suffix_database" or die $!;
+
+		$WAITINGFORBAR=1;
+		$WAITINGFORDOMAIN=2;
+		$WAITINGFORDATA=3;
+		$PRINTINGDATA=4;
+		$status=$WAITINGFORBAR;
+
+
+		while($fline=<FILE>){
+
+			if($status == $WAITINGFORBAR){
+				if($fline =~ m/^\/\//){
+					$status=$WAITINGFORDOMAIN;
+				}
+			}
+			elsif($status == $WAITINGFORDOMAIN){
+				if($fline =~ m/^\/\//){
+					next;
+				}
+				elsif($fline =~ m/^\s*$/){
+					$status=$WAITINGFORBAR;
+					next;
+				}
+				elsif($fline =~ m/^[-a-zA-Z0-9_.]+\s*$/){
+					$status=$WAITINGFORDATA;
+
+					if($fline =~ m/^\s*$tld\s*$/i){
+						$status=$PRINTINGDATA;
+					}
+					next;
+				}
+			}
+			elsif($status == $WAITINGFORDATA){
+				if($fline =~ m/^\s*$/){
+					$status=$WAITINGFORBAR;
+					next;
+				}
+			}
+			elsif($status == $PRINTINGDATA){
+				if($fline =~ m/^\/\//){
+					next;
+				}
+				elsif($fline =~ m/^\s*$/){
+					last;
+				}
+				elsif($fline =~ m/^[\s.*]*([\S]+)$/){
+					print "$1\n";
+				}
+			}
+		}
+
+		close(FILE);
+}
+
+
+sub Iso2ForCountry{
+		my ($country) = $_[0];
+
+		open FILE, "$country_database" or die $!;
+
+		while(<FILE>){
+			if($_ =~ m/"$country"\s*,\s*"([^"]+)"\s*/i){
+				print "$1\n";
+				close(FILE);
+				last;
+			}
+		}
+
+		close(FILE);
+}
+
+
+sub Iso3ForCountry{
+		my ($country) = $_[0];
+
+		open FILE, "$country_database" or die $!;
+
+		while(<FILE>){
+			if($_ =~ m/"$country"\s*,\s*"[^"]+"\s*,\s*"([^"]+)"\s*/i){
+				print "$1\n";
+				close(FILE);
+				last;
+			}
+		}
+
+		close(FILE);
+}
+
+
+sub Iso2ForRIR{
+		my ($trir)= $_[0];
+
+		$useragent=GetRandomUserAgent();
+		@lines=`$wwwclient $wwwclient_sopt $wwwclient_agnt"$useragent" "https://www.nro.net/about-the-nro/list-of-country-codes-and-rirs-ordered-by-country-code/"`;
+
+		my @domains;
+		$start=0;
+
+		if($? == 0){
+			foreach $line (@lines){
+				if($start == 0 && $line =~ m/\s*<td\s+class="cc-head">Region<\/td>/){
+					$start=1;
+				}
+				elsif($start == 1){
+					if(!$country){
+						if($line=~/<td\s+class="cc-(?:white|grey)">([^<*]+)[*\s]*<\/td>/){
+							$country=$1;
+						}
+					}
+					elsif(!$iso2){
+						if($line=~/<td\s+class="cc-(?:white|grey)">([^<*]+)[*\s]*<\/td>/){
+							$iso2=$1;
+						}
+					}
+					elsif(!$iso3){
+						if($line=~/<td\s+class="cc-(?:white|grey)">([^<*]+)[*\s]*<\/td>/){
+							$iso3=$1;
+						}
+					}
+					elsif(!$rir){
+						if($line=~/<td\s+class="cc-(?:white|grey)">([^<*]+)[*\s]*<\/td>/){
+							$rir=$1;
+
+							if($rir=~ m/$trir/i){
+								print "$iso2\n";
+							}
+							else{
+								undef $country;
+								undef $iso2;
+								undef $iso3;
+								undef $rir;
+							}
+						}
+					}
+				}
+
+			} # foreach $line;
+		}   # if $? == 0
+}
+
+
+sub CountryForContinent{
+		my ($continent)= $_[0];
+
+		open FILE, "$country_database" or die $!;
+
+		while(<FILE>){
+			if($_ =~ m/\s*"([^"]+)"\s*,\s*"[^"]+"\s*,\s*"[^"]+"\s*,\s*"[^"]+"\s*,\s*"[^"]+"\s*,\s*"[^"]+"\s*,\s*"[^"]+"\s*,\s*"[^"]+"\s*,\s*"[^"]+"\s*,\s*"$continent"\s*/i){
+				print "$1\n";
+			}
+		}
+
+		close(FILE);
+}
+
 
 sub GetASN{
 	@revname=`addr6 -a $_[0] -r`;
@@ -39,6 +254,182 @@ sub GetASN{
 
 	return("");
 }
+
+@filetypesstr= ("doc", "pdf", "xls", "ppt", "txt", "pptx", "docx", "dot");
+
+
+# This function is employed to generate the list of domain sites that are excluded in one of the subphases
+sub GetRemSitesString{
+	my($dref, $searchdomain, $mode) = @_;
+
+#	print "SEARCHDOMAIN: $searchdomain, MODE: $mode\n";
+
+	$MAXREMOVEDSITES=25;
+
+	$tsearchdomain=$searchdomain;
+
+
+	$sddots=0; # Number of dots in search domain.
+
+#	@remsites; # Contains domain name to be removed
+#	@cdremsites # Contains number of dots in domain to be removed
+
+	while($tsearchdomain =~ s/\.//){
+		$sddots++;
+	}	
+
+#print "Dots in search: $sddots\n";
+
+	# Go through list of all domains
+	for($i=0; $i<= $#$dref; $i++){
+		$tdots=0;  # Number of dots in current domain
+		$tdomain= $dref->[$i];
+
+		if($tdomain !~ m/$searchdomain(?::\d+)?$/){
+			next;
+#print "# When computing excludedomains, $tdomain didn't match (search: $searchdomain)\n";
+		}
+		else{
+#print "# $tdomain is good candidate for exclusion list\n";
+		}
+
+
+
+		if($mode==0){
+			while($tdomain =~ s/\.//){
+				$tdots++;
+			}
+
+			$tdomain= $dref->[$i];
+		}
+		else{
+			if($tdomain=~ m/www\.([-0-9a-zA-Z.]+)/){
+				$tdomain=$1;
+			}
+
+			$stdomain=$tdomain;
+
+			while($tdomain =~ s/\.//){
+				$tdots++;
+			}
+
+			$tdomain=$stdomain;
+		}
+
+#print "Dots actual: $tdots, Dominio actual: $tdomain\n";
+
+# Si la lista es menor q el max numero, lo inserto si o si.
+# Voy del primero al ultimo, y meto en primero lugar el que es mayor.
+# Si la lista esta completa, solo lo meto si la lngitud es mayor
+
+		if($tdots <= $sddots){
+			next;   # We don't remove domains of the same "depth"
+		}
+
+		for($j=0; $j <= $#remsites; $j++){
+			if($tdomain eq $remsites[$j]){
+				last;
+			}
+		}
+
+		if($j <= $#remsites){
+			next;
+		}
+
+		for($j=0; $j <= $#remsites; $j++){
+#print "Comparing ($tdots, $tdomain) with ($cdremsites[$j], $remsites[$j])\n";
+			if($tdots >= $cdremsites[$j]){
+				$tempdomain= $remsites[$j];
+				$tempdots= $cdremsites[$j];
+				$remsites[$j]= $tdomain;
+				$cdremsites[$j]= $tdots;
+				$tdomain= $tempdomain;
+				$tdots= $tempdots;
+			}
+		}
+
+		if($j > $#remsites && $j <= ($MAXREMOVEDSITES-1)){
+			$remsites[$j]= $tdomain;
+			$cdremsites[$j]= $tdots;
+		}
+	}
+
+
+	# Compute string
+	$remsitesstring="";
+
+	for($i=0; $i<=$#remsites; $i++){
+#		print "DOTS: $cdremsites[$i], DOMAIN: $remsites[$i]\n";
+		$remsitesstring= "$remsitesstring+-site%3a$remsites[$i]"
+	}
+
+	return($remsitesstring);
+}
+
+
+# Genarates list of domains to walk the tree
+sub	GenDomListLevel{
+	my($dref, $remref, $czone, $level, $limit) = @_;
+
+	# Go through list of all domains
+	for($w=0; $w<= $#$dref; $w++){
+		if($limit > 0 && $#$remref >= ($limit - 1)){
+			last; # Got as many as we needed
+		}
+		else{
+			#print "NO LIMIT\n";
+		}
+
+		$tdomain= $dref->[$w];
+
+		$lele=$level-1;
+
+		if(	$dref->[$w]=~  m/www\.((?:[-0-9a-zA-Z]+\.){$lele}$czone)/){
+			#print "#### EXCLUDED DOMAIN NUEVO $dref->[$w] (Starts with www) ####\n";
+			next;
+		}
+		else{
+			#print "# TODO BIEN!\n";
+		}
+
+		if(	$dref->[$w]=~  m/((?:[-0-9a-zA-Z]+\.){$level}$czone)(?::\d+)?/){
+			$tdomain= $1;
+		}
+		else{
+			next;
+		}
+
+		for($x=0; $x <= $#$remref; $x++){
+			if($tdomain eq $remref->[$x]){
+				last;
+			}
+		}
+
+		if($x <= $#$remref){
+			next;
+		}
+		else{
+			$remref->[$#$remref + 1]= $tdomain;
+		}
+	}
+}
+
+
+
+sub GenRemListStr{
+	my ($remref, $j)= @_;
+
+	# Compute string
+	$remsitesstring="";
+
+	for($i=0; $i<=$#$remref && $i<=$j; $i++){
+		$remsitesstring= "$remsitesstring+-site%3a$remref->[$i]"
+	}
+
+	return($remsitesstring);
+}
+
+
 
 
 sub GetRandomUserAgent{
@@ -89,6 +480,568 @@ sub GetRandomUserAgent{
 
 
 
+sub GetDomainsFromBing{
+#		GetDomainsFromCrawler(\@domain, $czone, $level, $maxresults);	
+		my($pdomain, $pzone, $plevel, $pmaxresults) = @_;
+		my $czone=$pzone;
+
+		$MAXREMOVEDSITES=25;
+
+# Now set from the config file
+#		$MAXTIMEPERIOD=10;
+
+#		$maxtime=$MAXTIMEPERIOD;
+
+#		if($maxtime < 5){
+#			$maxtime=5;
+#		}
+
+		$MAXCNNORESULTS=125;
+		$MINCNNORESULTS= 10;
+
+		$limcnnoresults= $MAXCNNORESULTS/($plevel+1);
+
+		if($limcnnoresults < $MINCNNORESULTS){
+			$limcnnoresults= $MINCNNORESULTS;
+		}
+
+		$MAXCCOLLISIONS=150;
+		$MINCCOLISSIONS= 10;
+		$limccollisions= $MAXCCOLLISIONS/($plevel+1);
+
+		if($limccollisions < $MINCCOLISSIONS){
+			$limccollisions= $MINCCOLISSIONS;
+		}
+
+
+		# This triggers a change in search string after cumulative number of pages that resulted
+		# in 100% collisions
+		$cphaseonesubone= $limccollisions/3;
+		if($cphaseonesubone<4){
+			$cphaseonesubone=4;
+		}
+
+		# This triggers changes in subphases that should change faster
+		$csubphase= $limccollisions/4;
+		if($csubphase < 4){
+			$csubphase=4;
+		}
+
+		$MAXBLANKPAGE= 25;
+		$MINBLANKPAGE= 5;
+
+		$limblankpage= $MAXBLANKPAGE/($plevel+1);
+
+		if($limblankpage < $MINBLANKPAGE){
+			$limblankpage= $MINBLANKPAGE;
+		}
+
+
+		$maxresults= $pmaxresults;
+
+		$cur= 1;
+		$nresults=0;
+		$fpzeromatch=0;
+		$nzeromatch=0;
+		$czeromatch=0;
+		$ncollisions=0;
+		$ccollisions=0;
+		$cnnoresults=0;
+		$continue=1;
+		$phase=0;
+		$subphase=0;
+		$heur="";
+		$sitesstr="";
+		$ftstr="";
+		$remsites="";
+		$totalqueries=0;
+
+		do{   # Iteration for each page
+			$matches=0;
+			$totalmatches=0;
+			$collisions=0;
+			$hasnext=0;
+			$noresults=0;
+
+			# --user-agent "Mozilla/4.0"  works fine most of the time. curl || wget original headers cause trouble.
+			$useragent=GetRandomUserAgent();
+
+			@revname=`$wwwclient $wwwclient_sopt $wwwclient_tout $wwwclient_agnt"$useragent" "https://www.bing.com/search?q=site%3A$czone$sitesstr$ftstr$heur&first=$cur"`;
+
+			$totalqueries++;
+
+			if($? == 0){
+				foreach $line (@revname){
+					if($line=~ m/<div class="sw_next">[^<]+<\/div><\/a>/){
+						$hasnext=1;
+					}
+
+					if($line=~ m/<ol id="b_results" role="main" aria-label="[^"]+"><li class="b_no">\s*<h1>/){
+						$noresults=1;
+						$cnnoresults++;
+
+						if($cnnoresults >= $limcnnoresults){
+							$continue=0;
+						}
+					}
+
+					while($continue && $line =~ s/<h2[^>]*><a href="https?[^"\/]*\/\/([^"\/]*)//){
+						$totalmatches++;
+						$grabbeddomain= $1;
+
+
+						if($grabbeddomain !~ m/$czone(:\d+)?/){
+							#print "##### DEBUG: Discarded $grabbeddomain\n";
+							next;
+						}
+
+						$matches++;
+						$nzeromatch=0;
+						$czeromatch=0;
+
+						for($i=0; $i<= $#$pdomain; $i++){
+							if($pdomain->[$i] eq $grabbeddomain){
+								$collisions++;
+								last;
+							}
+						}
+
+						if($i > $#$pdomain){
+							if($maxresults < 0 || ($maxresults >= 0 &&  $#$pdomain < $maxresults)){
+								$pdomain->[$#$pdomain + 1]=$grabbeddomain;
+								print "$grabbeddomain\n";
+								$nresults++;
+							}
+							else{
+								$continue=0;
+							}
+						}
+
+						if($maxresults >= 0 && $#$pdomain >=$maxresults){
+							$continue=0;
+						} 
+					}
+				}
+
+				#  There are a number of posible results:
+				#
+				# 1) We didn't get any results:
+				#     a) because search engine banned us (condition: no matches, but no "no results" page)
+				#        ACTION: Wait for some time, and retry with same query string and same "results page"
+				#     b) Because the query string didn't yield results (condition: "no results" page)
+				#        ACTION: First couple of times, wait a bit, and retry. Otherwise, change the query string. And
+				#                if we hit the threshold of "no results", quit.
+				# 2) We got results:
+				#     a) Some were new results
+				#        ACTION: Keep searching
+				#     b) All were collisions
+				#        ACTION: If we hit threshold, change query string. Otherwise, keep searching
+
+				$trydifferent=0;
+
+				if($totalmatches == 0){
+					#print "#### DEBUG: GOT NO MATCHES ####\n";
+					if($noresults == 1){
+						#print "#### DEBUG: GOT NO RESULTS ####\n";
+						if($nzeromatch == 0){
+							$fpzeromatch=$cur;  # Record "when" this happened
+						}
+
+						$nzeromatch++;
+
+						# The continue = 0 condition was set above, anyway
+						if($cnnoresults > $limcnnoresults){
+							# If we get "no results" after 25 pages we quit
+							# print "#### Bing showed no results for our query, after retries. Quitting.... ####\n";
+							$continue=0;
+						}
+						else{
+							# Before we were trying the same query. But it does not really make sense.
+							$trydifferent=1;
+						}
+					}
+					else{
+						#print "#### DEBUG: GOT BLANK PAGE ####\n";
+
+						# If we dn't even get a page that says "no results", we assume we have been banned. Back off, and retry.
+						if($nzeromatch == 0){
+							$fpzeromatch=$cur;  # Record "when" this happened
+							#print "# Offset: $fpzeromatch\n";
+						}
+
+						$nzeromatch++;
+						$czeromatch++;
+
+						# If it is the first time the main regex fails, chances are that bing has "banned" us. Wait a bit, and retry.
+						#print "#### DEBUG: SLEEP A BIT ####\n";
+						sleep(rand(($nzeromatch)*15));
+
+						if($nzeromatch > $limblankpage || $czeromatch  > $limblankpage){
+							# If we get nothing after 25 pages we quit
+							#print "#### Bing has banned us. Quitting.... ####\n";
+							$continue=0;
+						}
+
+						if($plevel > 0 && $nzeromatch > 2){
+							$trydifferent=1;
+						}
+					}
+				}
+				else{
+					# We did get search results
+
+					# If all were collisions, count the number of collisions to exit on threshold.
+					if($collisions >= $matches){
+						#print "#### DEBUG: GOT ALL COLLISIONS ####\n";
+						$ncollisions++;
+						$ccollisions++;  # Cumulative colissions even across changes in search string
+
+						if( ($phase >= 2 && $ccollisions > $limccollisions) || ($plevel > 0 && $phase > 0 && $ccollisions > $limccollisions)){
+							# If we get nothing after 100 pages (across change of query strings), and we are in 
+							# phase 2 or more, we quit
+							# print "#### Couldn't get any new results. Quitting.... ####\n";
+							$continue=0;
+						}
+
+						if($phase == 0){
+							if($subphase == 0){
+								if($ncollisions > $cphaseonesubone){
+									$trydifferent=1;
+								}
+							}
+							else{
+								if($ncollisions > $csubphase){
+									$trydifferent=1;
+								}								
+							}
+						}
+						elsif($phase == 1){
+							if($ncollisions > $cphaseonesubone){
+								$trydifferent=1;
+							}
+						}
+						elsif($phase == 2){
+							if($ncollisions > $csubphase){
+								$trydifferent=1;
+							}
+						}
+						else{
+							if($ncollisions > $csubphase){
+								$trydifferent=1;
+							}
+						}
+
+						$cur= $cur+ $totalmatches;
+					}
+					else{
+						$difmatch=$totalmatches-$matches;
+						# Not all results were collisions. So get the next search results.
+						$cur= $cur+$totalmatches;
+						$ncollisions=0;
+						$ccollisions=0;
+						#print "### GOT NEW DATA ####\n"
+					}
+
+					# If last search didn't have "Next results", we have no other option than changing the query stringg
+					if($hasnext == 0){
+						#print "#### DEBUG: NO NEXT RESULTS ####\n";
+						$trydifferent=1;
+					}
+
+				}  # if/else on whether there were matches
+
+				if($trydifferent == 1){
+					# subfase0: no pongo nada extra
+					# subfase1: tipos de archivos
+					# subfase2: elimino sites
+					# subfase3: elimino sites sin www;
+					# subfase4: tipos de archivo + elimino sites	
+					# subfase5: tipos de archivo ´+ sites sin www
+
+					if($subphase == 0){
+						$subphase=1;
+						$ftindex=0;
+						$ftstr="+filetype%3A$filetypesstr[$ftindex]";
+						$ncollisions=0;
+						$cur=1; # Since we change the search keys, we retrieve the first page of results
+					}
+					elsif($subphase == 1){
+						if($ftindex >= $#filetypesstr){
+							$ftstr="";
+							$ftindex=0;
+							$subphase=2;
+							undef @remsites;
+							$sitesstr=GetRemSitesString($pdomain, $czone, 0);
+						}
+						else{
+							$ftindex++;
+							$ftstr="+filetype%3A$filetypesstr[$ftindex]";
+						}
+
+						$ncollisions=0;
+						$cur=1; # Since we change the search keys, we retrieve the first page of results
+					}
+					elsif($subphase == 2){
+						$subphase=3;
+						undef @remsites;
+						$sitesstr=GetRemSitesString($pdomain, $czone, 1);
+						$ncollisions=0;
+						$cur=1; # Since we change the search keys, we retrieve the first page of results
+					}
+					elsif($subphase == 3){
+						$subphase=4;
+						undef @remsites;
+						$sitesstr=GetRemSitesString($pdomain, $czone, 0);
+						$ftindex=0;
+						$ftstr="+filetype%3A$filetypesstr[$ftindex]";
+						$ncollisions=0;
+						$cur=1; # Since we change the search keys, we retrieve the first page of results
+					}
+					elsif($subphase == 4){
+						if($ftindex >= $#filetypesstr){
+							$subphase=5;
+							$ftindex=0;
+							$ftstr="+filetype%3A$filetypesstr[$ftindex]";
+							undef @remsites;
+							$sitesstr=GetRemSitesString($pdomain, $czone, 1);
+						}
+						else{
+							$ftindex++;
+							$ftstr="+filetype%3A$filetypesstr[$ftindex]";
+						}
+
+						$ncollisions=0;
+						$cur=1; # Since we change the search keys, we retrieve the first page of results
+					}
+					elsif($subphase ==5){
+						if($ftindex < $#filetypesstr){
+							$ftindex++;
+							$ftstr="+filetype%3A$filetypesstr[$ftindex]";
+							$ncollisions=0;
+							$cur=1; # Since we change the search keys, we retrieve the first page of results
+						}
+						else{
+							$ftstr="";
+							$ftindex=0;
+							$sitesstr="";
+							$subphase=0;
+
+							if($phase == 0){
+								# print "#### Phase 1  ####\n";
+								$phase=1;
+								$letterkey="a";
+								$heur="+$letterkey";
+								$ncollisions=0;
+								$cur=1; # Since we change the search keys, we retrieve the first page of results
+							}
+							elsif($phase == 1){
+								# In phase 1 we search for the domain name and one letter
+								if($letterkey eq "z"){
+									$letterkey="a";
+									$numkey="0";
+									$heur="+$numkey";
+									$ncollisions=0;
+									$phase=2;
+									$cur=1; # Since we change the search keys, we retrieve the first page of results
+									# print "#### Phase 2  ####\n";
+								}
+								else{
+									$letterkey++;
+									$ncollisions=0;
+									$heur="+$letterkey";
+									$cur=1; # Since we change the search keys, we retrieve the first page of results
+								}
+							}
+							elsif($phase == 2){
+								# In phase 2 we search for the domain name and a number
+
+								if($numkey >= 10001){
+									$letterkey="a";
+									$numkey=0;
+									$heur="+$letterkey+$numkey";
+									$ncollisions=0;
+									$phase=3;
+									$cur=1; # Since we change the search keys, we retrieve the first page of results
+									# print "#### Phase 3  ####\n";
+								}
+								else{
+									$numkey++;
+									$ncollisions=0;
+									$cur=1; # Since we change the search keys, we retrieve the first page of results
+									$heur="+$numkey";
+								}
+							}
+							else{
+								# In phase #3, we search for the domainname, plus a letter and a number
+								if($numkey > 10000){
+									if($letterkey eq "z"){
+										# print "#### Tried my best. Quitting.... ####\n";
+										$continue=0;
+									}
+									else{
+										$letterkey++;
+										$numkey=0;
+										$cur=1; # Since we change the search keys, we retrieve the first page of results
+										$heur="+$letterkey+$numkey";
+										$ncollisions=0;
+									}
+								}
+								else{
+									$numkey++;
+									$ncollisions=0;
+									$cur=1; # Since we change the search keys, we retrieve the first page of results
+									$heur="+$letterkey+$numkey";
+								}
+							} #end oh phase 
+						} # end of else in subphase 5
+
+					} #end of subphase
+
+				}  # End of "trydifferent"
+			}  # End of $? (result of wget)
+		}while($? == 0 && $continue == 1);
+
+
+		if($maxresults > 0 && $#$pdomain >= $maxresults){
+			return;
+		}
+
+
+		# We will now exclude next level domains
+
+		undef @remsites;
+
+		GenDomListLevel($pdomain, \@remsites, $czone, 1, $MAXREMOVEDSITES);
+
+		$continue=1;
+
+		for($jjj= 0; $jjj <= $#remsites && $continue == 1; $jjj++){
+			$cur= 1;
+
+			$sitesstr= GenRemListStr(\@remsites, $jjj);
+			$trydifferent=0;
+
+			do{   # Iteration for each page
+				$matches=0;
+				$totalmatches=0;
+				$collisions=0;
+				$hasnext=0;
+				$noresults=0;
+
+				$useragent=GetRandomUserAgent();
+
+				@revname=`$wwwclient $wwwclient_sopt $wwwclient_tout $wwwclient_agnt"$useragent" "https://www.bing.com/search?q=site%3A$czone$sitesstr&first=$cur"`;
+
+				$totalqueries++;
+
+				if($? == 0){
+					foreach $line (@revname){
+						if($continue == 0){
+							last;
+						}
+
+						if($line=~ m/<div class="sw_next">[^<]+<\/div><\/a>/){
+							$hasnext=1;
+						}
+
+						if($line=~ m/<ol id="b_results" role="main" aria-label="[^"]+"><li class="b_no">\s*<h1>/){
+							$noresults=1;
+						}
+
+						while($continue && $line =~ s/<h2[^>]*><a href="https?[^"\/]*\/\/([^"\/]*)//){
+							$totalmatches++;
+							$grabbeddomain= $1;
+
+							if($grabbeddomain !~ m/$czone(:\d+)?/){
+								next;
+							}
+
+							$matches++;
+							$nzeromatch=0;
+
+							for($k=0; $k<= $#$pdomain; $k++){
+								if($pdomain->[$k] eq $grabbeddomain){
+									$collisions++;
+									last;
+								}
+							}
+
+
+							if($k > $#$pdomain){
+								if($maxresults < 0 || ($maxresults >= 0 &&  $#$pdomain < $maxresults)){
+									$pdomain->[$#$pdomain + 1]=$grabbeddomain;
+									print "$grabbeddomain\n";
+									$nresults++;
+								}
+								else{
+									$continue=0;
+								}
+							}
+
+							if($maxresults >= 0 && $#$pdomain>=$maxresults){
+								$continue=0;
+							} 
+						} # while() that reads lines
+					}  # foreach $line
+
+					$trydifferent=0;
+
+					if($totalmatches == 0){
+						if($noresults == 1){
+							$trydifferent=1;
+						}
+						else{
+							#print "#### DEBUG: GOT BLANK PAGE ####\n";
+							$nzeromatch++;
+
+							# If it is the first time the main regex fails, chances are that bing has "banned" us. Wait a bit, and retry.
+							#print "#### DEBUG: SLEEP A BIT ####\n";
+							sleep(rand(($nzeromatch)*20));
+
+							if($nzeromatch > 5){
+								#	print "#### Bing has banned us. Quitting.... ####\n";
+								$trydifferent=1;
+							}
+						}
+					}
+					else{
+						# We did get search results
+
+						# If all were collisions, count the number of collisions to exit on threshold.
+						if($collisions >= $matches){
+							#print "#### DEBUG: GOT ALL COLLISIONS ####\n";
+							$ncollisions++;
+
+							if($ncollisions >= 10){
+								$trydifferent=1;
+							} 
+
+							$cur= $cur+ $totalmatches;
+						}
+						else{
+							$difmatch=$totalmatches-$matches;
+							# Not all results were collisions. So get the next search results.
+							$cur= $cur+$totalmatches;
+							$ncollisions=0;
+						}
+
+						# If last search didn't have "Next results", we have no other option than changing the query stringg
+						if($hasnext == 0){
+							#print "#### DEBUG: NO NEXT RESULTS ####\n";
+							$trydifferent=1;
+						}
+					}  # if/else on whether there were matches
+				}  # End of $? (result of wget)
+			}while($? == 0 && $trydifferent == 0);
+
+			if($#remsites < ($MAXREMOVEDSITES-1)){
+				# If list is not complete, attempt to complete it
+				GenDomListLevel($pdomain, \@remsites, $czone, 1, $MAXREMOVEDSITES);
+			}
+		} # for that adds new removed sites;
+}
+
+
 
 
 # Function GetORG()
@@ -114,29 +1067,314 @@ if($#ARGV < 0){
 	print "$USAGE\n";
 }
 elsif($ARGV[0] eq "get-aaaa"){
-	while($domain=<STDIN>){
-		$aaaa_f=0;
-		chomp($domain);
+	if($#ARGV == 0){
+		while($domain=<STDIN>){
+			$aaaa_f=0;
+			chomp($domain);
 
-		if($domain =~ m/(\S+)/){
-			$domcmd= $1;
-		}
-		else{
-			next;
-		}
+			if($domain =~ m/(\S+)/){
+				$domcmd= $1;
+			}
+			else{
+				next;
+			}
 
-		if($domcmd =~ m/^\S*#/){
-			next;
-		}
+			if($domcmd =~ m/^\S*#/){
+				next;
+			}
 
-		while(1){
-			undef @dig;
-			@dig=`dig $domcmd aaaa`;
+			while(1){
+				undef @dig;
+				@dig=`dig $domcmd aaaa 2>&1`;
+				$answer_f=0;
+
+				foreach $line (@dig){
+					if($answer_f == 0){
+						if($line =~ m/^dig: /){
+							print "# Error for $domcmd: $line";
+							last;
+						}
+
+						# Detect the "ANSWER" portion of the dig command
+						if($line =~ m/;; ANSWER SECTION:/){
+							$answer_f=1;
+						}
+
+						next; 
+					}
+					elsif($answer_f == 1){
+						# If we are in the answer portion, look for AAAA records
+						if($line =~ m/^\s*$/){
+							last;
+						}
+
+						elsif($line =~ m/(\S+)\s+\d+\s+IN\s+AAAA\s+([a-fA-F0-9:]+)/){
+							if($aaaa_f == 0){
+								print "# $domcmd ($1)\n";
+							}
+
+							print "$2\n";      # AAAA record
+							$aaaa_f = 1;
+						}
+	#					else{
+	#						last;
+	#					}
+					}
+				}
+			 
+
+				# If we found AAAA records, try the next domain
+				if($aaaa_f == 1){
+					last;
+				}
+
+				# If we didn't find any AAAA records, and the domain name does not start with "www",
+				# add the "www" suffix and see if there are any AAAA records.
+				if($domcmd =~ m/www\.[a-zA-Z_0-9.]/){
+					last;
+				}
+				else{
+					$domcmd= "www.$domcmd";
+				}
+			}
+		}
+	}
+	else{
+			$domain= $ARGV[1];
+			$aaaa_f=0;
+			chomp($domain);
+
+			if($domain =~ m/(\S+)/){
+				$domcmd= $1;
+			}
+			else{
+				next;
+			}
+
+			if($domcmd =~ m/^\S*#/){
+				next;
+			}
+
+			while(1){
+				undef @dig;
+				@dig=`dig $domcmd aaaa 2>&1`;
+				$answer_f=0;
+
+				foreach $line (@dig){
+					if($answer_f == 0){
+						if($line =~ m/^dig: /){
+							print "# Error for $domcmd: $line";
+							last;
+						}
+
+					# Detect the "ANSWER" portion of the dig command
+						if($line =~ m/;; ANSWER SECTION:/){
+							$answer_f=1;
+						}
+
+						next; 
+					}
+					elsif($answer_f == 1){
+						# If we are in the answer portion, look for AAAA records
+						if($line =~ m/^\s*$/){
+							last;
+						}
+
+						elsif($line =~ m/(\S+)\s+\d+\s+IN\s+AAAA\s+([a-fA-F0-9:]+)/){
+							if($aaaa_f == 0){
+								print "# $domcmd ($1)\n";
+							}
+
+							print "$2\n";      # AAAA record
+							$aaaa_f = 1;
+						}
+	#					else{
+	#						last;
+	#					}
+					}
+				}
+			 
+
+				# If we found AAAA records, try the next domain
+				if($aaaa_f == 1){
+					last;
+				}
+
+				# If we didn't find any AAAA records, and the domain name does not start with "www",
+				# add the "www" suffix and see if there are any AAAA records.
+				if($domcmd =~ m/www\.[a-zA-Z_0-9.]/){
+					last;
+				}
+				else{
+					$domcmd= "www.$domcmd";
+				}
+			}
+
+	}
+}
+elsif($ARGV[0] eq "get-mx"){
+	if($#ARGV == 0){
+		while($domain=<STDIN>){
+				# This variable set to 1 indicates that we already found the MX records
+			$mx_f=0;
+
+			chomp($domain);
+
+			# Only non-empty lines are useful to us
+			if($domain =~ m/(\S+)/){
+				$domcmd= $1;
+			}
+			else{
+				next;
+			}
+
+			# If the line cotains a comment at the end of the line, remove it
+		    # XXX should be improved. First regex above already eliminates this
+			if($domcmd =~ m/^\s*(\S+)\s*#/){
+				$domcmd= $1;
+			}
+
+			# If the domain contains a "www" prefix, remove it.
+			if($domcmd =~ m/www\.(\S+)/){
+				$domcmd = $1;
+			}
+
+			@dig=`dig $domcmd mx 2>&1`;
+
+			$answer_f=0;
+			foreach $line (@dig){
+				# Detect the "ANSWER" portion of the dig command
+				if($answer_f == 0){
+					if($line =~ m/^dig: /){
+						print "# Error for $domcmd: $line";
+						last;
+					}
+
+					if($line =~ m/\;\; ANSWER SECTION:/){
+						$answer_f=1; # Found the ANSWER section
+					}
+
+					next;  
+				}
+				elsif($answer_f == 1){
+					# If we are in the answer portion, look for MX records
+					if($line =~ m/^\s*$/){
+						# Empty line marks end of ANSWER section
+						last;
+					}
+
+					elsif($line =~ m/(\S+)\s+\d+\s+IN\s+MX\s+\d+\s+(\S+)/){
+						# FIrst 
+						if($mx_f == 0){
+							print "# $domcmd ($1)\n";
+						}
+
+						printf "$2\n";      # MX record
+						$mx_f = 1;
+					}
+				}
+			}
+		}
+	}
+	else{
+			$domain= $ARGV[1];
+				# This variable set to 1 indicates that we already found the MX records
+			$mx_f=0;
+
+			chomp($domain);
+
+			# Only non-empty lines are useful to us
+			if($domain =~ m/(\S+)/){
+				$domcmd= $1;
+			}
+			else{
+				next;
+			}
+
+			# If the line cotains a comment at the end of the line, remove it
+		    # XXX should be improved. First regex above already eliminates this
+			if($domcmd =~ m/^\s*(\S+)\s*#/){
+				$domcmd= $1;
+			}
+
+			# If the domain contains a "www" prefix, remove it.
+			if($domcmd =~ m/www\.(\S+)/){
+				$domcmd = $1;
+			}
+
+			@dig=`dig $domcmd mx 2>&1`;
+
+			$answer_f=0;
+			foreach $line (@dig){
+				# Detect the "ANSWER" portion of the dig command
+				if($answer_f == 0){
+					if($line =~ m/^dig: /){
+						print "# Error for $domcmd: $line";
+						last;
+					}
+
+					if($line =~ m/\;\; ANSWER SECTION:/){
+						$answer_f=1; # Found the ANSWER section
+					}
+
+					next;  
+				}
+				elsif($answer_f == 1){
+					# If we are in the answer portion, look for MX records
+					if($line =~ m/^\s*$/){
+						# Empty line marks end of ANSWER section
+						last;
+					}
+
+					elsif($line =~ m/(\S+)\s+\d+\s+IN\s+MX\s+\d+\s+(\S+)/){
+						# FIrst 
+						if($mx_f == 0){
+							print "# $domcmd ($1)\n";
+						}
+
+						printf "$2\n";      # MX record
+						$mx_f = 1;
+					}
+				}
+			}
+
+	}
+}
+elsif($ARGV[0] eq "get-ns"){
+	if($#ARGV == 0){
+		while($domain=<STDIN>){
+			$ns_f=0;
+			chomp($domain);
+
+			if($domain =~ m/(\S+)/){
+				$domcmd= $1;
+			}
+			else{
+				next;
+			}
+
+			# Skip lines that only contain comments
+			if($domcmd =~ m/^\s*#/){
+				next;
+			}
+
+			# If domainname is preceded by "www." strip it (we want base domains)
+			if($domcmd =~ m/www\.(\S+)/){
+				$domcmd = $1;
+			}
+
+			undef @dig;	
+			@dig=`dig $domcmd ns 2>&1`;
 			$answer_f=0;
 
 			foreach $line (@dig){
 				if($answer_f == 0){
-				# Detect the "ANSWER" portion of the dig command
+					if($line =~ m/^dig: /){
+						print "# Error for $domcmd: $line";
+						last;
+					}
+
+					# Detect the "ANSWER" portion of the dig command
 					if($line =~ m/;; ANSWER SECTION:/){
 						$answer_f=1;
 					}
@@ -146,359 +1384,310 @@ elsif($ARGV[0] eq "get-aaaa"){
 				elsif($answer_f == 1){
 					# If we are in the answer portion, look for AAAA records
 					if($line =~ m/^\s*$/){
+						# A blank line marks no more ANSWERs/records
 						last;
 					}
 
-					elsif($line =~ m/(\S+)\s+\d+\s+IN\s+AAAA\s+([a-fA-F0-9:]+)/){
-						if($aaaa_f == 0){
+					elsif($line =~ m/(\S+)\s+\d+\s+IN\s+NS\s+(\S+)/){
+						if($ns_f == 0){
+							# Before the first NS record we print the domain name
 							print "# $domcmd ($1)\n";
 						}
 
-						print "$2\n";      # AAAA record
-						$aaaa_f = 1;
+						printf "$2\n";      # print NS record
+						$ns_f = 1;
 					}
-#					else{
-#						last;
-#					}
-				}
-			}
-		 
-
-			# If we found AAAA records, try the next domain
-			if($aaaa_f == 1){
-				last;
-			}
-
-			# If we didn't find any AAAA records, and the domain name does not start with "www",
-			# add the "www" suffix and see if there are any AAAA records.
-			if($domcmd =~ m/www\.[a-zA-Z_0-9.]/){
-				last;
-			}
-			else{
-				$domcmd= "www.$domcmd";
-			}
-		}
-	}
-}
-elsif($ARGV[0] eq "get-mx"){
-	while($domain=<STDIN>){
-		    # This variable set to 1 indicates that we already found the MX records
-		$mx_f=0;
-
-		chomp($domain);
-
-		# Only non-empty lines are useful to us
-		if($domain =~ m/(\S+)/){
-			$domcmd= $1;
-		}
-		else{
-			next;
-		}
-
-		# If the line cotains a comment at the end of the line, remove it
-        # XXX should be improved. First regex above already eliminates this
-		if($domcmd =~ m/^\s*(\S+)\s*#/){
-			$domcmd= $1;
-		}
-
-		# If the domain contains a "www" prefix, remove it.
-		if($domcmd =~ m/www\.(\S+)/){
-			$domcmd = $1;
-		}
-
-		@dig=`dig $domcmd mx`;
-
-		$answer_f=0;
-		foreach $line (@dig){
-			# Detect the "ANSWER" portion of the dig command
-			if($answer_f == 0){
-				if($line =~ m/\;\; ANSWER SECTION:/){
-					$answer_f=1; # Found the ANSWER section
-				}
-
-				next;  
-			}
-			elsif($answer_f == 1){
-				# If we are in the answer portion, look for MX records
-				if($line =~ m/^\s*$/){
-					# Empty line marks end of ANSWER section
-					last;
-				}
-
-				elsif($line =~ m/(\S+)\s+\d+\s+IN\s+MX\s+\d+\s+(\S+)/){
-					# FIrst 
-					if($mx_f == 0){
-						print "# $domcmd ($1)\n";
-					}
-
-					printf "$2\n";      # MX record
-					$mx_f = 1;
 				}
 			}
 		}
-	}
-}
-elsif($ARGV[0] eq "get-ns"){
-	while($domain=<STDIN>){
-		$ns_f=0;
-		chomp($domain);
-
-		if($domain =~ m/(\S+)/){
-			$domcmd= $1;
-		}
-		else{
-			next;
-		}
-
-		# Skip lines that only contain comments
-		if($domcmd =~ m/^\s*#/){
-			next;
-		}
-
-		# If domainname is preceded by "www." strip it (we want base domains)
-		if($domcmd =~ m/www\.(\S+)/){
-			$domcmd = $1;
-		}
-
-		undef @dig;	
-		@dig=`dig $domcmd ns`;
-		$answer_f=0;
-
-		foreach $line (@dig){
-			if($answer_f == 0){
-				# Detect the "ANSWER" portion of the dig command
-				if($line =~ m/;; ANSWER SECTION:/){
-					$answer_f=1;
-				}
-
-				next; 
-			}
-			elsif($answer_f == 1){
-				# If we are in the answer portion, look for AAAA records
-				if($line =~ m/^\s*$/){
-					# A blank line marks no more ANSWERs/records
-					last;
-				}
-
-				elsif($line =~ m/(\S+)\s+\d+\s+IN\s+NS\s+(\S+)/){
-					if($ns_f == 0){
-						# Before the first NS record we print the domain name
-						print "# $domcmd ($1)\n";
-					}
-
-					printf "$2\n";      # print NS record
-					$ns_f = 1;
-				}
-			}
-		}
-	}
-}
-elsif($ARGV[0] eq "get-crawler"){
-	if($#ARGV <1 ){
-		print "# Error: Must specify domain name to search for\n";
-		exit;
-	}
-
-	if($#ARGV >=2 ){
-		$maxresults= $ARGV[2];
 	}
 	else{
-		$maxresults= 0;
+			$domain= $ARGV[1];
+			$ns_f=0;
+			chomp($domain);
+
+			if($domain =~ m/(\S+)/){
+				$domcmd= $1;
+			}
+			else{
+				next;
+			}
+
+			# Skip lines that only contain comments
+			if($domcmd =~ m/^\s*#/){
+				next;
+			}
+
+			# If domainname is preceded by "www." strip it (we want base domains)
+			if($domcmd =~ m/www\.(\S+)/){
+				$domcmd = $1;
+			}
+
+			undef @dig;	
+			@dig=`dig $domcmd ns 2>&1`;
+			$answer_f=0;
+
+			foreach $line (@dig){
+				if($answer_f == 0){
+					if($line =~ m/^dig: /){
+						print "# Error for $domcmd: $line";
+						last;
+					}
+
+					# Detect the "ANSWER" portion of the dig command
+					if($line =~ m/;; ANSWER SECTION:/){
+						$answer_f=1;
+					}
+
+					next; 
+				}
+				elsif($answer_f == 1){
+					# If we are in the answer portion, look for AAAA records
+					if($line =~ m/^\s*$/){
+						# A blank line marks no more ANSWERs/records
+						last;
+					}
+
+					elsif($line =~ m/(\S+)\s+\d+\s+IN\s+NS\s+(\S+)/){
+						if($ns_f == 0){
+							# Before the first NS record we print the domain name
+							print "# $domcmd ($1)\n";
+						}
+
+						printf "$2\n";      # print NS record
+						$ns_f = 1;
+					}
+				}
+			}
+
+	}
+}
+elsif($ARGV[0] eq "get-suffix-for-tld"){
+	if($#ARGV > 1){
+		print "Syntax: script6 get-iso2-for-country COUNTRY\n";
+		exit 1;
 	}
 
-	$cur= 1;
-	$nresults=0;
-	$fpzeromatch=0;
-	$nzeromatch=0;
-	$ncollisions=0;
-	$ccollisions=0;
-	$phase=0;
-	$heur="";
+	ParseConfigFile();
 
-
-	do{
-		$matches=0;
-		$collisions=0;
-
-		# --user-agent "Mozilla/4.0"  works fine most of the time. curl || wget original headers cause trouble.
-		$useragent=GetRandomUserAgent();
-
-		@revname=`curl -s --user-agent "$useragent" "https://www.bing.com/search?q=site%3A$ARGV[1]$heur&first=$cur"`;
-
-		if($? == 0){
-			foreach $line (@revname){
-				while($line =~ s/<h2[^>]*><a href="https?[^"\/]*\/\/([^"\/]*)//){
-					$matches++;
-					$nzeromatch=0;
-
-					for($i=0; $i<= $#domain; $i++){
-						if($domain[$i] eq $1){
-							$collisions++;
-							last;
-						}
-					}
-
-					if($i > $#domain){
-						$domain[$#domain + 1]=$1;
-						print "$1\n";
-						$nresults++;
-					}
-
-					if($maxresults > 0 && $nresults>=$maxresults){
-						exit;
-					} 
-				}
+	if($#ARGV == 1){
+		$tld= $ARGV[1];
+		SuffixForTLD($tld);
+	}
+	else{
+		while($line=<STDIN>){
+			if($line=~ m/^\s*$/){
+				next;
 			}
-
-
-			if($matches>0){
-				$cur= $cur+10;
+			if($line=~ m/^\s*#/){
+				print "$line";
 			}
-			else{
-				#print "# ERROR: No matchie nada!\n";
-				if($nzeromatch == 0){
-					# If it is the first time the main regex fails, chances are that bing has "banned" us. Wait a bit, and retry.
-					sleep(rand(($nzeromatch+1)*10));
-					$fpzeromatch=$cur;  # Record "when" this happened
-					#print "# Offset: $fpzeromatch\n";
-				}
+			elsif($line=~ m/^\s*([^#\s]+)/){
+				$tld=$1;
 
-				$nzeromatch++;
-				#print "# Zero-match contiguo: $nzeromatch\n";
-
-				if($nzeromatch > 25 ){
-					# If we get nothing after 25 pages we quit
-					print "#### Bing has banned us. Quitting.... ####\n";
-					exit;
-				}
+				SuffixForTLD($tld);
 			}
+		}
+	}
+}
+elsif($ARGV[0] eq "get-iso2-for-country"){
+	if($#ARGV > 1){
+		print "Syntax: script6 get-iso2-for-country [COUNTRY]\n";
+	}
 
-			# If we get ten collisions fo this page (no new data, we record it)
-			if($collisions >= $matches){
-				$ncollisions++;
-				$ccollisions++;  # Cumulative colissions even across changes in search string
+	ParseConfigFile();
 
-				if($ccollisions > 80){
-					# If we get nothing after 40 pages we quit
-					print "#### Couldn't get any new results. Quitting.... ####\n";
-					exit;
-				}
-
-				#print "## GOT ALL COLLISIONS FOR $ncollisions"."th time ####\n";
-
-				if($phase == 0){
-					# Firstly we only query for the domain name;
-					if($ncollisions > 20){
-						print "#### Phase 1  ####\n";
-						$phase=1;
-						$letterkey="a";
-						$heur="+$letterkey";
-						$ncollisions=0;
-						$cur=1; # Since we change the search keys, we retrieve the first page of results
-					}
-				}
-				elsif($phase == 1){
-					# In phase 1 we search for the domain name and one letter
-					if($ncollisions > 5){
-						if($letterkey eq "z"){
-							$letterkey="a";
-							$numkey="0";
-							$heur="+$numkey";
-							$ncollisions=0;
-							$phase=2;
-							$cur=1; # Since we change the search keys, we retrieve the first page of results
-							print "#### Phase 2  ####\n";
-						}
-						else{
-							$letterkey++;
-							$ncollisions=0;
-							$heur="+$letterkey";
-							$cur=1; # Since we change the search keys, we retrieve the first page of results
-						}
-					}
-				}
-
-				elsif($phase == 2){
-					# In phase 2 we search for the domain name and a number
-					if($ncollisions >= 2){
-						# We allow for fewer collisions since it is easy to change the number
-						if($numkey >= 10001){
-							$letterkey="a";
-							$numkey="0";
-							$heur="+$letterkey+$numkey";
-							$ncollisions=0;
-							$phase=3;
-							$cur=1; # Since we change the search keys, we retrieve the first page of results
-							print "#### Phase 3  ####\n";
-						}
-						else{
-							$numkey++;
-							$ncollisions=0;
-							$cur=1; # Since we change the search keys, we retrieve the first page of results
-							$heur="+$numkey";
-						}
-					}
-				}
-
-				else{
-					# In phase #3, we search for the domainname, plus a letter and a number
-					if($ncollisions > 2){
-						if($numkey > 10000){
-							if($letterkey eq "z"){
-								# No mor combinations
-								print "#### Tried my best. Quitting.... ####\n";
-								exit;
-							}
-							else{
-								$letterkey++;
-								$numkey=0;
-								$cur=1; # Since we change the search keys, we retrieve the first page of results
-								$heur="+$letterkey+$numkey";
-								$ncollisions=0;
-							}
-						}
-						else{
-							$numkey++;
-							$ncollisions=0;
-							$cur=1; # Since we change the search keys, we retrieve the first page of results
-							$heur="+$letterkey+$numkey";
-						}
-					}
-				}
+	if($#ARGV == 1){
+		$country= $ARGV[1];
+		Iso2ForCountry($country);
+	}
+	else{
+		while($line=<STDIN>){
+			if($line=~ m/^\s*$/){
+				next;
 			}
-			else{
-				$ncollisions=0;
-				$ccollisions=0;
-				#print "### GOT NEW DATA ####\n"
+			if($line=~ m/^\s*#/){
+				print "$line";
+			}
+			elsif($line=~ m/^\s*([^#\s]+)/){
+				$country=$1;
+				Iso2ForCountry($country);
+			}
+		}
+	}
+}
+elsif($ARGV[0] eq "get-iso3-for-country"){
+	if($#ARGV > 1){
+		print "Syntax: script6 get-iso3-for-country [COUNTRY]\n";
+	}
+
+	ParseConfigFile();
+
+	if($#ARGV == 1){
+		$country= $ARGV[1];
+		Iso3ForCountry($country);
+	}
+	else{
+		while($line=<STDIN>){
+			if($line=~ m/^\s*$/){
+				next;
+			}
+			if($line=~ m/^\s*#/){
+				print "$line";
+			}
+			elsif($line=~ m/^\s*([^#\s]+)/){
+				$country=$1;
+				Iso3ForCountry($country);
+			}
+		}
+	}
+}
+elsif($ARGV[0] eq "get-tld-for-country"){
+	if($#ARGV > 1){
+		print "Syntax: script6 get-tld-for-country [COUNTRY]\n";
+	}
+
+	ParseConfigFile();
+
+	if($#ARGV == 1){
+		$country= $ARGV[1];
+		open FILE, "$country_database" or die $!;
+
+		while(<FILE>){
+			if($_ =~ m/"$country"\s*,\s*"[^"]+"\s*,\s*"[^"]+"\s*,\s*"([^"]+)"\s*/i){
+				print "$1\n";
+				close(FILE);
+				exit;
 			}
 		}
 
+		close(FILE);
+	}
+	else{
+		while($line=<STDIN>){
+			if($line=~ m/^\s*$/){
+				next;
+			}
+			if($line=~ m/^\s*#/){
+				print "$line";
+			}
+			elsif($line=~ m/^\s*([^#\s]+)/){
+				$tld=$1;
 
-	}while($? == 0);
 
-	exit;
+			}
+		}
+	}
 }
-elsif($ARGV[0] eq "get-crawler-batch"){
+elsif($ARGV[0] eq "get-tld-for-continent"){
+	if($#ARGV > 1){
+		print "Syntax: script6 get-tld-for-continent [CONTINENT]\n";
+	}
+
+	ParseConfigFile();
+
+	if($#ARGV == 1){
+		$continent= $ARGV[1];
+		open FILE, "$country_database" or die $!;
+
+		while(<FILE>){
+			if($_ =~ m/\s*"[^"]+"\s*,\s*"[^"]+"\s*,\s*"[^"]+"\s*,\s*"([^"]+)"\s*,\s*"[^"]+"\s*,\s*"[^"]+"\s*,\s*"[^"]+"\s*,\s*"[^"]+"\s*,\s*"[^"]+"\s*,\s*"$continent"\s*/i){
+				print "$1\n";
+			}
+		}
+
+		close(FILE);
+	}
+	else{
+		while($line=<STDIN>){
+			if($line=~ m/^\s*$/){
+				next;
+			}
+			if($line=~ m/^\s*#/){
+				print "$line";
+			}
+			elsif($line=~ m/^\s*([^#\s]+)/){
+				$tld=$1;
+
+
+			}
+		}
+	}
+}
+elsif($ARGV[0] eq "get-country-for-continent"){
+	if($#ARGV > 1){
+		print "Syntax: script6 get-country-for-continent [CONTINENT]\n";
+	}
+
+	ParseConfigFile();
+
+	if($#ARGV == 1){
+		$continent= $ARGV[1];
+		CountryForContinent($continent);
+	}
+	else{
+		while($line=<STDIN>){
+			if($line=~ m/^\s*$/){
+				next;
+			}
+			if($line=~ m/^\s*#/){
+				print "$line";
+			}
+			elsif($line=~ m/^\s*([^#\s]+)/){
+				$continent=$1;
+				CountryForContinent($continent);
+			}
+		}
+	}
+}
+elsif($ARGV[0] eq "get-iso2-for-rir"){
+	if($#ARGV > 1){
+		print "Syntax: script6 get-iso2-for-rir [RIR]\n";
+	}
+
+	ParseConfigFile();
+
+	if($#ARGV == 1){
+		$trir= $ARGV[1];
+		Iso2ForRIR($trir);
+	}
+	else{
+		while($line=<STDIN>){
+			if($line=~ m/^\s*$/){
+				next;
+			}
+			if($line=~ m/^\s*#/){
+				print "$line";
+			}
+			elsif($line=~ m/^\s*([^#\s]+)/){
+				$trir=$1;
+				Iso2ForRIR($trir);
+			}
+		}
+	}
+
+}
+elsif($ARGV[0] eq "get-bing-batch"){
 	if($#ARGV >=1 ){
 		$maxresults= $ARGV[1];
+		$maxresults--;
+
+		if($maxresults < 0){
+			exit 0;
+		}
 	}
 	else{
-		$maxresults= 0;
+		$maxresults= -1;
 	}
 
+	ParseConfigFile();
+
 	while(<STDIN>){
-		$cur= 1;
-		$nresults=0;
-		$fpzeromatch=0;
-		$nzeromatch=0;
-		$ncollisions=0;
-		$ccollisions=0;
-		$continue=1;
-		$phase=0;
-		$heur="";
+
+
 		undef @domain;
 
-		if($_ =~ m/^\s*([-a-z0-9.]+)/){
+		if($_ =~ m/^\s*\.*([-a-zA-Z0-9.]+)/){
 			$czone= $1;
 		}
 		else{
@@ -507,284 +1696,146 @@ elsif($ARGV[0] eq "get-crawler-batch"){
 
 		print "######## DOMAIN: $czone ########\n";
 
-		do{
-			$matches=0;
-			$collisions=0;
-#print "#NEWQUERY!\n";
-			# --user-agent "Mozilla/4.0"  works fine most of the time. curl || wget original headers cause trouble.
-			$useragent=GetRandomUserAgent();
 
-			@revname=`curl -s --user-agent "$useragent" "https://www.bing.com/search?q=site%3A$czone$heur&first=$cur"`;
+		GetDomainsFromBing(\@domain, $czone, 0, $maxresults);	
 
-			if($? == 0){
-				foreach $line (@revname){
-#print "#LINE: $line\n";
-					while($continue && $line =~ s/<h2[^>]*><a href="https?[^"\/]*\/\/([^"\/]*)//){
-#print "#MATCHED!\n";
-						$matches++;
-						$nzeromatch=0;
+		#print "#### IMPORTANT: WILL NOW SEARCH FOR DOMAINS WITHIN SPECIFIC SUBDOMAINS\n";
+		undef @remsites;
+		undef @levsites;
+		$continue=1;
 
-						for($i=0; $i<= $#domain; $i++){
-							if($domain[$i] eq $1){
-#print "#COLLISION\n";
-								$collisions++;
-								last;
-							}
-						}
-
-						if($i > $#domain){
-							$domain[$#domain + 1]=$1;
-							print "$1\n";
-#print "#ADDED DOMAIN!\n";
-							$nresults++;
-						}
-
-						if($maxresults > 0 && $nresults>=$maxresults){
-							$continue=0;
-						} 
-					}
-				}
+		$domlevel=1;
+		GenDomListLevel(\@domain, \@levsites, $czone, $domlevel, -1);
 
 
-				if($matches>0){
-					$cur= $cur+10;
+		while($#levsites >= 0 && $continue == 1){
+			#print "#### LEVEL: $domlevel, TOTAL: $#levsites\n\n#LIST:\n";
+
+			for($jj= 0; $jj <= $#levsites && $continue == 1; $jj++){
+				$newczone= $levsites[$jj];
+
+				GetDomainsFromBing(\@domain, $newczone, $domlevel, $maxresults);
+				if($maxresults >= 0 && $#domain>=$maxresults){
+					$continue=0;
 				}
 				else{
-#print "#NOMATCHES!\n";
-					#print "# ERROR: No matchie nada!\n";
-					if($nzeromatch == 0){
-						# If it is the first time the main regex fails, chances are that bing has "banned" us. Wait a bit, and retry.
-						sleep(rand(($nzeromatch+1)*10));
-						$fpzeromatch=$cur;  # Record "when" this happened
-						#print "# Offset: $fpzeromatch\n";
-					}
-
-					$nzeromatch++;
-					#print "# Zero-match contiguo: $nzeromatch\n";
-
-					if($nzeromatch > 25 ){
-						# If we get nothing after 25 pages we quit
-						print "#### Bing has banned us. Quitting.... ####\n";
-						$continue=0;
-					}
-				}
-
-				# If we get ten collisions fo this page (no new data, we record it)
-				if($collisions >= $matches){
-					$ncollisions++;
-					$ccollisions++;  # Cumulative colissions even across changes in search string
-
-					if($ccollisions > 80){
-						# If we get nothing after 40 pages we quit
-						print "#### Couldn't get any new results. Quitting.... ####\n";
-						$continue=0;
-					}
-
-					#print "## GOT ALL COLLISIONS FOR $ncollisions"."th time ####\n";
-
-					if($phase == 0){
-						# Firstly we only query for the domain name;
-						if($ncollisions > 20){
-							print "#### Phase 1  ####\n";
-							$phase=1;
-							$letterkey="a";
-							$heur="+$letterkey";
-							$ncollisions=0;
-							$cur=1; # Since we change the search keys, we retrieve the first page of results
-						}
-					}
-					elsif($phase == 1){
-						# In phase 1 we search for the domain name and one letter
-						if($ncollisions > 5){
-							if($letterkey eq "z"){
-								$letterkey="a";
-								$numkey="0";
-								$heur="+$numkey";
-								$ncollisions=0;
-								$phase=2;
-								$cur=1; # Since we change the search keys, we retrieve the first page of results
-								print "#### Phase 2  ####\n";
-							}
-							else{
-								$letterkey++;
-								$ncollisions=0;
-								$heur="+$letterkey";
-								$cur=1; # Since we change the search keys, we retrieve the first page of results
-							}
-						}
-					}
-
-					elsif($phase == 2){
-						# In phase 2 we search for the domain name and a number
-						if($ncollisions >= 2){
-							# We allow for fewer collisions since it is easy to change the number
-							if($numkey >= 10001){
-								$letterkey="a";
-								$numkey="0";
-								$heur="+$letterkey+$numkey";
-								$ncollisions=0;
-								$phase=3;
-								$cur=1; # Since we change the search keys, we retrieve the first page of results
-								print "#### Phase 3  ####\n";
-							}
-							else{
-								$numkey++;
-								$ncollisions=0;
-								$cur=1; # Since we change the search keys, we retrieve the first page of results
-								$heur="+$numkey";
-							}
-						}
-					}
-
-					else{
-						# In phase #3, we search for the domainname, plus a letter and a number
-						if($ncollisions > 2){
-							if($numkey > 10000){
-								if($letterkey eq "z"){
-									# No mor combinations
-									print "#### Tried my best. Quitting.... ####\n";
-									$continue=0;
-								}
-								else{
-									$letterkey++;
-									$numkey=0;
-									$cur=1; # Since we change the search keys, we retrieve the first page of results
-									$heur="+$letterkey+$numkey";
-									$ncollisions=0;
-								}
-							}
-							else{
-								$numkey++;
-								$ncollisions=0;
-								$cur=1; # Since we change the search keys, we retrieve the first page of results
-								$heur="+$letterkey+$numkey";
-							}
-						}
-					}
-				}
-				else{
-					$ncollisions=0;
-					$ccollisions=0;
-					#print "### GOT NEW DATA ####\n"
+					$continue=1;
 				}
 			}
 
-
-		}while($? == 0 && $continue == 1);
-	};
+			$domlevel++;
+			undef @levsites;
+			GenDomListLevel(\@domain, \@levsites, $czone, $domlevel, -1);
+		}  # While lev > 0;
+	};  # while(<STDIN>)
 
 	exit;
 }
-elsif($ARGV[0] eq "get-crawler-old"){
-	if($#ARGV <1 ){
-		print "# Error: Must specify domain name to search for\n";
-		exit;
+elsif($ARGV[0] eq "get-bing"){
+	if($#ARGV < 1 || $#ARGV > 2){
+		print "Syntax: script6 get-bing DOMAIN [MAXRESULTS]\n";
+		exit 1;
 	}
 
-	if($#ARGV >=2 ){
+	if($#ARGV == 2){
 		$maxresults= $ARGV[2];
-	}
-	else{
-		$maxresults= 0;
-	}
 
-	$cur= 1;
-	$nresults=0;
-	$fpzeromatch=0;
-	$nzeromatch=0;
-	$ncollisions=0;
-
-
-	do{
-		$matches=0;
-		$collisions=0;
-
-		# --user-agent "Mozilla/4.0"  works fine most of the time. curl || wget original headers cause trouble.
-		$useragent=GetRandomUserAgent();
-
-		@revname=`curl -s --user-agent "$useragent" "https://www.bing.com/search?q=site%3A$ARGV[1]&first=$cur"`;
-
-		if($? == 0){
-			foreach $line (@revname){
-				while($line =~ s/<h2[^>]*><a href="https?[^"\/]*\/\/([^"\/]*)//){
-					$matches++;
-					$nzeromatch=0;
-
-					for($i=0; $i<= $#domain; $i++){
-						if($domain[$i] eq $1){
-							$collisions++;
-							last;
-						}
-					}
-
-					if($i > $#domain){
-						$domain[$#domain + 1]=$1;
-						print "$1\n";
-						$nresults++;
-					}
-
-					if($maxresults > 0 && $nresults>=$maxresults){
-						exit;
-					} 
-				}
-			}
-
-
-			if($matches>0){
-				$cur= $cur+10;
-			}
-			else{
-				#print "# ERROR: No matchie nada!\n";
-				if($nzeromatch == 0){
-					# If it is the first time the main regex fails, chances are that bing has "banned" us. Wait a bit, and retry.
-					sleep(rand(($nzeromatch+1)*10));
-					$fpzeromatch=$cur;  # Record "when" this happened
-					#print "# Offset: $fpzeromatch\n";
-				}
-
-				$nzeromatch++;
-				#print "# Zero-match contiguo: $nzeromatch\n";
-
-				if($nzeromatch > 25 ){
-					# If we get nothing after 25 pages we quit
-					print "#### Bing has banned us. Quitting.... ####\n";
-					exit;
-				}
-			}
-
-			# If we get ten collisions fo this page (no new data, we record it)
-			if($collisions >= 10){
-				$ncollisions++;
-
-				#print "## GOT ALL COLLISIONS FOR $ncollisions"."th time ####\n";
-
-				if($ncollisions > 80){
-					# If we get nothing after 25 pages we quit
-					print "#### Couldn't get any new results. Quitting.... ####\n";
-					exit;
-				}
-			}
-			else{
-				$ncollisions=0;
-				#print "### GOT NEW DATA ####\n"
-			}
+		if($maxresults == 0){
+			exit 0;
 		}
 
-
-	}while($? == 0);
-
-	if($? != 0){
-		print "#### ERROR: \$? was: $? ####\n";
-		print "#### \$phase: $phase, \$cur: $cur, \$letterkey: $letterkey, \$numkey: $numkey, \$heur: $heur\n";
+		$maxresults--;
 	}
+	else{
+		$maxresults= -1;
+	}
+
+	ParseConfigFile();
+
+		undef @domain;
+
+		$_= $ARGV[1];
+
+		if($_ =~ m/^\s*\.*([-a-zA-Z0-9.]+)/){
+			$czone= $1;
+		}
+		else{
+			next;
+		}
+
+		print "######## DOMAIN: $czone ########\n";
+
+
+		GetDomainsFromBing(\@domain, $czone, 0, $maxresults);	
+
+		#print "#### IMPORTANT: WILL NOW SEARCH FOR DOMAINS WITHIN SPECIFIC SUBDOMAINS\n";
+		undef @remsites;
+		undef @levsites;
+		$continue=1;
+
+		$domlevel=1;
+		GenDomListLevel(\@domain, \@levsites, $czone, $domlevel, -1);
+
+
+		while($#levsites >= 0 && $continue == 1){
+			#print "#### LEVEL: $domlevel, TOTAL: $#levsites\n\n#LIST:\n";
+
+			for($jj= 0; $jj <= $#levsites && $continue == 1; $jj++){
+				$newczone= $levsites[$jj];
+
+				GetDomainsFromBing(\@domain, $newczone, $domlevel, $maxresults);
+				if($maxresults >= 0 && $#domain>=$maxresults){
+					$continue=0;
+				}
+				else{
+					$continue=1;
+				}
+			}
+
+			$domlevel++;
+			undef @levsites;
+			GenDomListLevel(\@domain, \@levsites, $czone, $domlevel, -1);
+		}  # While lev > 0;
 
 	exit;
 }
+elsif($ARGV[0] eq "get-dns-zones"){
+	@revname=`whoami`;
+	$user= $revname[0];
+	chomp($user);
+	@revname=`hostname`;
+	$hostname= $revname[0];
+	chomp($hostname);
+
+	
+	while($line=<STDIN>){
+		if($line=~ m/^\s*$/){
+			next;
+		}
+		if($line=~ m/^\s*#/){
+			print "$line";
+		}
+		elsif($line=~ m/^\s*([^#\s]+)/){
+			$zone=$1;
+			@revname=`date --iso-8601=seconds -u`;
+			$datetime=$revname[0];
+			$datetime=~ s/[ :+]//g;
+			chomp($datetime);
+			$filename="$zone-$datetime-$hostname-$user.txt";
+			open FILE, ">$filename" or die $!;
+
+
+			close FILE;
+		}
+	}
+}
 elsif($ARGV[0] eq "get-dns-root-zone" || $ARGV[0] eq "get-root-zone"){
+	ParseConfigFile();
+
 	# --user-agent "Mozilla/4.0"  works fine most of the time. curl || wget original headers cause trouble.
 	$useragent=GetRandomUserAgent();
 
-	@revname=`curl -s --user-agent "$useragent" "https://www.iana.org/domains/root/db"`;
+	@revname=`$wwwclient $wwwclient_sopt $wwwclient_agnt"$useragent" "https://www.iana.org/domains/root/db"`;
 
 	if($? == 0){
 		foreach $line (@revname){
@@ -797,10 +1848,11 @@ elsif($ARGV[0] eq "get-dns-root-zone" || $ARGV[0] eq "get-root-zone"){
 	exit;
 }
 elsif($ARGV[0] eq "get-dns-root-zone-raw" || $ARGV[0] eq "get-root-zone-raw"){
+	ParseConfigFile();
 	# --user-agent "Mozilla/4.0"  works fine most of the time. curl || wget original headers cause trouble.
 	$useragent=GetRandomUserAgent();
 
-	@revname=`curl -s --user-agent "$useragent" "https://data.iana.org/TLD/tlds-alpha-by-domain.txt"`;
+	@revname=`$wwwclient $wwwclient_sopt $wwwclient_agnt"$useragent" "https://data.iana.org/TLD/tlds-alpha-by-domain.txt"`;
 
 	if($? == 0){
 		foreach $line (@revname){
