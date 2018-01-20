@@ -3454,6 +3454,641 @@ $REGEX="<input type=\"submit\" class='btn btn--alt' value=\"Next\" />";
 
 
 
+
+sub GetDomainsFromAsk{
+#		GetDomainsFromCrawler(\@domain, $czone, $level, $maxresults);	
+		my($pdomain, $pzone, $plevel, $pmaxresults) = @_;
+		my $czone=$pzone;
+
+		$MAXREMOVEDSITES=25;
+
+# Now set from the config file
+#		$MAXTIMEPERIOD=10;
+
+#		$maxtime=$MAXTIMEPERIOD;
+
+#		if($maxtime < 5){
+#			$maxtime=5;
+#		}
+
+		$MAXCNNORESULTS=125;
+		$MINCNNORESULTS= 10;
+
+		$limcnnoresults= $MAXCNNORESULTS/($plevel+1);
+
+		if($limcnnoresults < $MINCNNORESULTS){
+			$limcnnoresults= $MINCNNORESULTS;
+		}
+
+		$MAXCCOLLISIONS=150;
+		$MINCCOLISSIONS= 10;
+		$limccollisions= $MAXCCOLLISIONS/($plevel+1);
+
+		if($limccollisions < $MINCCOLISSIONS){
+			$limccollisions= $MINCCOLISSIONS;
+		}
+
+
+		# This triggers a change in search string after cumulative number of pages that resulted
+		# in 100% collisions
+		$cphaseonesubone= $limccollisions/3;
+		if($cphaseonesubone<4){
+			$cphaseonesubone=4;
+		}
+
+		# This triggers changes in subphases that should change faster
+		$csubphase= $limccollisions/4;
+		if($csubphase < 4){
+			$csubphase=4;
+		}
+
+		$MAXBLANKPAGE= 25;
+		$MINBLANKPAGE= 5;
+
+		$limblankpage= $MAXBLANKPAGE/($plevel+1);
+
+		if($limblankpage < $MINBLANKPAGE){
+			$limblankpage= $MINBLANKPAGE;
+		}
+
+
+		$maxresults= $pmaxresults;
+
+		$cur= 1;
+		$nresults=0;
+		$fpzeromatch=0;
+		$nzeromatch=0;
+		$czeromatch=0;
+		$ncollisions=0;
+		$ccollisions=0;
+		$cnnoresults=0;
+		$continue=1;
+		$phase=0;
+		$subphase=0;
+		$heur="";
+		$sitesstr="";
+		$ftstr="";
+		$remsites="";
+		$totalqueries=0;
+		$naccessdenied=0;
+
+
+		do{   # Iteration for each page
+			$accessdenied=0;
+			$matches=0;
+			$totalmatches=0;
+			$collisions=0;
+			$hasnext=0;
+			$getvariables=0;
+
+			# We assume there were no results. If there are, we reset $noresults to 0
+			$noresults=1;
+
+			# --user-agent "Mozilla/4.0"  works fine most of the time. curl || wget original headers cause trouble.
+			$useragent=GetRandomUserAgent();
+
+
+			if($cur == 1){
+				$nextparams="";
+				$numres=30;
+			}
+
+# ?q=site%3A$czone$sitesstr$ftstr$heur"`;
+			if($wwwclient eq "curl"){
+				if($cur == 1){
+					if($wwwclient eq "curl"){
+#print "#COMANDO: \"$wwwclient $wwwclient_sopt $wwwclient_tout $wwwclient_agnt\"$useragent\" -d q=\"site:$czone$sitesstr$ftstr$heur\" -d b=\"\" \"https://duckduckgo.com/html/\"\n";
+
+						@revname=`$wwwclient $wwwclient_sopt $wwwclient_tout $wwwclient_agnt"$useragent" -d q="site:$czone$sitesstr$ftstr$heur" -d b="" "https://duckduckgo.com/html/"`;
+					}
+				}
+				else{
+					@revname=`$wwwclient $wwwclient_sopt $wwwclient_tout $wwwclient_agnt"$useragent" -d q="site%3A$czone$sitesstr$ftstr$heur" -d s=$numres  -d nextParams="$nextparams" -d v=l -d o=json -d dc=$cur  -d api="/d.js" -d kl=us-en "https://duckduckgo.com/html/"`;
+				}
+			}
+
+#curl -o ipv661.html -d q="ipv6" -d s=30  -d nextParams="" -d v=l -d o=json -d dc=61  -d api="/d.js" -d kl=us-en https://duckduckgo.com/html/
+
+
+			$totalqueries++;
+				
+			if($? == 0){
+				foreach $line (@revname){
+
+#print "LINE: $line\n";
+					if($line=~ m/<div id="accessDenied">/){
+						$accessdenied=1;
+					}
+
+					if($line=~ m/<ul class="PartialWebPagination/){
+						$getvariables=1;
+					}
+
+$REGEX="<input type=\"submit\" class='btn btn--alt' value=\"Next\" />";
+
+					if($line=~ m/$REGEX/){
+#print "#DEBUG: MATCHNEXT\n";
+						$hasnext=1;
+					}
+
+					if($getvariables == 1){
+						if($line=~ m/<a href="(\/web\?[^"]+)">(?<=\d">)/){
+							$url= "https://www.ask.com$1";
+						}
+
+						if($line=~ m//
+					}
+
+					if($line=~ m/<a\s+rel="nofollow"\s+class="result__a"\s+href="https?:\/\/([^\/"]+)/){
+						$noresults=0;
+						$totalmatches++;
+						$grabbeddomain= $1;
+#print "MATCHED: $grabbeddomain ###############################################\n";
+						if($grabbeddomain !~ m/$czone(:\d+)?/){
+							#print "##### DEBUG: Discarded $grabbeddomain\n";
+							next;
+						}
+
+						$matches++;
+						$nzeromatch=0;
+						$czeromatch=0;
+#print "# DEBUG: Lei dominio $grabbeddomain\n";
+
+						for($i=0; $i<= $#$pdomain; $i++){
+#print "# Comparing $pdomain->[$i] ($i) against $grabbeddomain\n";
+							if($pdomain->[$i] eq $grabbeddomain){
+#print "# Was dupplicate\n";
+								$collisions++;
+								last;
+							}
+						}
+
+						if($i > $#$pdomain){
+#print "# Added\n";
+							if($maxresults < 0 || ($maxresults >= 0 &&  $#$pdomain < $maxresults)){
+								$pdomain->[$#$pdomain + 1]=$grabbeddomain;
+								print "$grabbeddomain\n";
+								$nresults++;
+							}
+							else{
+								$continue=0;
+								last;
+							}
+						}
+
+						if($maxresults >= 0 && $#$pdomain >=$maxresults){
+							$continue=0;
+							last;
+						} 
+					} # URL (search result)
+				}
+
+#if($noresults == 1){
+#print "Didnt' match next. This is the document\n";
+#foreach $line (@revname){
+#print "#LINE: $line\n";
+#}
+#}
+
+				#  There are a number of posible results:
+				#
+				# 1) We didn't get any results:
+				#     a) because search engine banned us (condition: no matches, but no "no results" page)
+				#        ACTION: Wait for some time, and retry with same query string and same "results page"
+				#     b) Because the query string didn't yield results (condition: "no results" page)
+				#        ACTION: First couple of times, wait a bit, and retry. Otherwise, change the query string. And
+				#                if we hit the threshold of "no results", quit.
+				# 2) We got results:
+				#     a) Some were new results
+				#        ACTION: Keep searching
+				#     b) All were collisions
+				#        ACTION: If we hit threshold, change query string. Otherwise, keep searching
+
+				$trydifferent=0;
+
+				# totalmatches == 0 is the same as noresults=1
+				if($totalmatches == 0){
+					if($accessdenied == 1){
+						$naccessdenied++;
+
+						if($naccessdenied > $limblankpage){
+							print "# DuckDuckGo has banned us (totalqueries: $totalqueries). Quitting....\n";
+							exit;
+						}
+
+						sleep(60+$naccessdenied * 60);
+					}
+					else{
+
+						#print "#### DEBUG: GOT NO RESULTS ####\n";
+						if($nzeromatch == 0){
+							$fpzeromatch=$cur;  # Record "when" this happened
+						}
+
+						$nzeromatch++;
+
+						# The continue = 0 condition was set above, anyway
+						if($cnnoresults > $limcnnoresults){
+							# If we get "no results" after 25 pages we quit
+							# print "#### Bing showed no results for our query, after retries. Quitting.... ####\n";
+							$continue=0;
+						}
+						else{
+							# Before we were trying the same query. But it does not really make sense.
+							$trydifferent=1;
+						}
+					}
+				}
+				else{
+					# We did get search results
+
+					# If all were collisions, count the number of collisions to exit on threshold.
+					if($collisions >= $matches){
+						#print "#### DEBUG: GOT ALL COLLISIONS ####\n";
+						$ncollisions++;
+						$ccollisions++;  # Cumulative colissions even across changes in search string
+
+						if( ($phase >= 2 && $ccollisions > $limccollisions) || ($plevel > 0 && $phase > 0 && $ccollisions > $limccollisions)){
+							# If we get nothing after 100 pages (across change of query strings), and we are in 
+							# phase 2 or more, we quit
+							# print "#### Couldn't get any new results. Quitting.... ####\n";
+							$continue=0;
+						}
+
+						if($phase == 0){
+							if($subphase == 0){
+								if($ncollisions > $cphaseonesubone){
+									$trydifferent=1;
+								}
+							}
+							else{
+								if($ncollisions > $csubphase){
+									$trydifferent=1;
+								}								
+							}
+						}
+						elsif($phase == 1){
+							if($ncollisions > $cphaseonesubone){
+								$trydifferent=1;
+							}
+						}
+						elsif($phase == 2){
+							if($ncollisions > $csubphase){
+								$trydifferent=1;
+							}
+						}
+						else{
+							if($ncollisions > $csubphase){
+								$trydifferent=1;
+							}
+						}
+
+						$cur++;
+					}
+					else{
+						$difmatch=$totalmatches-$matches;
+						# Not all results were collisions. So get the next search results.
+						$cur++;
+						$ncollisions=0;
+						$ccollisions=0;
+						#print "### GOT NEW DATA ####\n"
+					}
+
+					# If last search didn't have "Next results", we have no other option than changing the query stringg
+					if($hasnext == 0){
+						#print "#### DEBUG: NO NEXT RESULTS ####\n";
+						$trydifferent=1;
+					}
+
+				}  # if/else on whether there were matches
+
+				if($trydifferent == 1){
+					# subfase0: no pongo nada extra
+					# subfase1: tipos de archivos
+					# subfase2: elimino sites
+					# subfase3: elimino sites sin www;
+					# subfase4: tipos de archivo + elimino sites	
+					# subfase5: tipos de archivo ´+ sites sin www
+
+					if($subphase == 0){
+						$subphase=1;
+						$ftindex=0;
+						$ftstr="+filetype%3A$filetypesstr[$ftindex]";
+						$ncollisions=0;
+						$cur=1; # Since we change the search keys, we retrieve the first page of results
+					}
+					elsif($subphase == 1){
+						if($ftindex >= $#filetypesstr){
+							$ftstr="";
+							$ftindex=0;
+							$subphase=2;
+							undef @remsites;
+							$sitesstr=GetRemSitesString($pdomain, $czone, 0);
+						}
+						else{
+							$ftindex++;
+							$ftstr="+filetype%3A$filetypesstr[$ftindex]";
+						}
+
+						$ncollisions=0;
+						$cur=1; # Since we change the search keys, we retrieve the first page of results
+					}
+					elsif($subphase == 2){
+						$subphase=3;
+						undef @remsites;
+						$sitesstr=GetRemSitesString($pdomain, $czone, 1);
+						$ncollisions=0;
+						$cur=1; # Since we change the search keys, we retrieve the first page of results
+					}
+					elsif($subphase == 3){
+						$subphase=4;
+						undef @remsites;
+						$sitesstr=GetRemSitesString($pdomain, $czone, 0);
+						$ftindex=0;
+						$ftstr="+filetype%3A$filetypesstr[$ftindex]";
+						$ncollisions=0;
+						$cur=1; # Since we change the search keys, we retrieve the first page of results
+					}
+					elsif($subphase == 4){
+						if($ftindex >= $#filetypesstr){
+							$subphase=5;
+							$ftindex=0;
+							$ftstr="+filetype%3A$filetypesstr[$ftindex]";
+							undef @remsites;
+							$sitesstr=GetRemSitesString($pdomain, $czone, 1);
+						}
+						else{
+							$ftindex++;
+							$ftstr="+filetype%3A$filetypesstr[$ftindex]";
+						}
+
+						$ncollisions=0;
+						$cur=1; # Since we change the search keys, we retrieve the first page of results
+					}
+					elsif($subphase ==5){
+						if($ftindex < $#filetypesstr){
+							$ftindex++;
+							$ftstr="+filetype%3A$filetypesstr[$ftindex]";
+							$ncollisions=0;
+							$cur=1; # Since we change the search keys, we retrieve the first page of results
+						}
+						else{
+							$ftstr="";
+							$ftindex=0;
+							$sitesstr="";
+							$subphase=0;
+
+							if($phase == 0){
+								# print "#### Phase 1  ####\n";
+								$phase=1;
+								$letterkey="a";
+								$heur="+$letterkey";
+								$ncollisions=0;
+								$cur=1; # Since we change the search keys, we retrieve the first page of results
+							}
+							elsif($phase == 1){
+								# In phase 1 we search for the domain name and one letter
+								if($letterkey eq "z"){
+									$letterkey="a";
+									$numkey="0";
+									$heur="+$numkey";
+									$ncollisions=0;
+									$phase=2;
+									$cur=1; # Since we change the search keys, we retrieve the first page of results
+									# print "#### Phase 2  ####\n";
+								}
+								else{
+									$letterkey++;
+									$ncollisions=0;
+									$heur="+$letterkey";
+									$cur=1; # Since we change the search keys, we retrieve the first page of results
+								}
+							}
+							elsif($phase == 2){
+								# In phase 2 we search for the domain name and a number
+
+								if($numkey >= 10001){
+									$letterkey="a";
+									$numkey=0;
+									$heur="+$letterkey+$numkey";
+									$ncollisions=0;
+									$phase=3;
+									$cur=1; # Since we change the search keys, we retrieve the first page of results
+									# print "#### Phase 3  ####\n";
+								}
+								else{
+									$numkey++;
+									$ncollisions=0;
+									$cur=1; # Since we change the search keys, we retrieve the first page of results
+									$heur="+$numkey";
+								}
+							}
+							else{
+								# In phase #3, we search for the domainname, plus a letter and a number
+								if($numkey > 10000){
+									if($letterkey eq "z"){
+										# print "#### Tried my best. Quitting.... ####\n";
+										$continue=0;
+									}
+									else{
+										$letterkey++;
+										$numkey=0;
+										$cur=1; # Since we change the search keys, we retrieve the first page of results
+										$heur="+$letterkey+$numkey";
+										$ncollisions=0;
+									}
+								}
+								else{
+									$numkey++;
+									$ncollisions=0;
+									$cur=1; # Since we change the search keys, we retrieve the first page of results
+									$heur="+$letterkey+$numkey";
+								}
+							} #end oh phase 
+						} # end of else in subphase 5
+
+					} #end of subphase
+
+				}  # End of "trydifferent"
+			}  # End of $? (result of wget)
+
+
+			# XXX Teoma will block us if we query too fast. Still need to tune this to fly low enough
+			sleep($cur);
+		}while($? == 0 && $continue == 1);
+
+
+		if($maxresults >= 0 && $#$pdomain >= $maxresults){
+			return;
+		}
+
+
+		# We will now exclude next level domains
+
+		undef @remsites;
+
+		GenDomListLevel($pdomain, \@remsites, $czone, 1, $MAXREMOVEDSITES);
+
+		$continue=1;
+
+		for($jjj= 0; $jjj <= $#remsites && $continue == 1; $jjj++){
+			$cur= 1;
+
+			$sitesstr= GenRemListStr(\@remsites, $jjj);
+			$trydifferent=0;
+
+			do{   # Iteration for each page
+				$matches=0;
+				$totalmatches=0;
+				$collisions=0;
+				$hasnext=0;
+				$noresults=1;
+				$accessdenied=0;
+
+				$useragent=GetRandomUserAgent();
+
+				$sitesstr=~ s/\+/ /g;
+				$sitesstr=~ s/%3A/:/g;
+				$ftstr=~ s/\+/ /g;
+				$ftstr=~ s/%3A/:/g;
+				$heur=~ s/\+/ /g;
+
+				if($cur == 1){
+					$nextparams="";
+					$numres=30;
+				}
+
+				# ?q=site%3A$czone$sitesstr$ftstr$heur"`;
+				if($wwwclient eq "curl"){
+					@revname=`$wwwclient $wwwclient_sopt $wwwclient_tout $wwwclient_agnt"$useragent" -d q="site%3A$czone$sitesstr$ftstr$heur" -d s=$numres  -d nextParams="$nextparams" -d v=l -d o=json -d dc=$cur  -d api="/d.js" -d kl=us-en "https://duckduckgo.com/html/"`;
+				}
+
+				$totalqueries++;
+
+				if($? == 0){
+					foreach $line (@revname){
+						if($continue == 0){
+							last;
+						}
+
+						if($line=~ m/<div id="accessDenied">/){
+							$accessdenied=1;
+						}
+
+						if($line=~ m/<input type="submit" class='btn btn--alt' value="Next" \/>/){
+							$hasnext=1;
+						}
+
+						if($hasnext == 1){
+							if($line=~ m/<input\s+type="hidden"\s+name="s"\s+value="(\d+)"\s*\/>/){
+								$numres= $1;
+							}
+							elsif($line=~ m/<input\s+type="hidden"\s+name="nextParams"\s+value="([^"]*)"\s*\/>/){
+								$nextparams=$1;
+							}
+							elsif($line=~ m/<input\s+type="hidden"\s+name="dc"\s+value="\d+"\s*\/>/){
+								$cur=$1;
+							}
+						}
+
+						if($line=~ m/<a\s+rel="nofollow"\s+class="result__a"\s+href="https?:\/\/([^\/"])+/){
+#print "# DEBUG: MATCHIE RESULTADO: $1\n";
+							$noresults=0;;
+							$totalmatches++;
+							$grabbeddomain= $1;
+
+							if($grabbeddomain !~ m/$czone(:\d+)?/){
+								next;
+							}
+
+							$matches++;
+							$nzeromatch=0;
+
+							for($k=0; $k<= $#$pdomain; $k++){
+								if($pdomain->[$k] eq $grabbeddomain){
+									$collisions++;
+									last;
+								}
+							}
+
+
+							if($k > $#$pdomain){
+								if($maxresults < 0 || ($maxresults >= 0 &&  $#$pdomain < $maxresults)){
+									$pdomain->[$#$pdomain + 1]=$grabbeddomain;
+									print "$grabbeddomain\n";
+									$nresults++;
+								}
+								else{
+									$continue=0;
+								}
+							}
+
+							if($maxresults >= 0 && $#$pdomain>=$maxresults){
+								$continue=0;
+							} 
+						} # while() that reads lines
+					}  # foreach $line
+
+					$trydifferent=0;
+
+					if($totalmatches == 0){
+						if($accessdenied == 1){
+							$naccessdenied++;
+
+							# XXX: Should keep track of # of queries
+							if($naccessdenied > $limblankpage){
+								print "# DuckDuckGo has banned us (page results: $totalqueries). Quitting....\n";
+								exit;
+							}
+
+							sleep(60+$naccessdenied * 60);
+						}
+						else{
+							$trydifferent=1;
+						}
+					}
+					else{
+						# We did get search results
+
+						# If all were collisions, count the number of collisions to exit on threshold.
+						if($collisions >= $matches){
+							#print "#### DEBUG: GOT ALL COLLISIONS ####\n";
+							$ncollisions++;
+
+							if($ncollisions >= 10){
+								$trydifferent=1;
+							} 
+
+							$cur++;
+						}
+						else{
+							$difmatch=$totalmatches-$matches;
+							# Not all results were collisions. So get the next search results.
+							$cur++;
+							$ncollisions=0;
+						}
+
+						# If last search didn't have "Next results", we have no other option than changing the query stringg
+						if($hasnext == 0){
+							#print "#### DEBUG: NO NEXT RESULTS ####\n";
+							$trydifferent=1;
+						}
+					}  # if/else on whether there were matches
+				}  # End of $? (result of wget)
+
+				# XXX Teoma will block us if we query too fast. Still need to tune this to fly low enough
+				sleep($cur);
+			}while($? == 0 && $trydifferent == 0);
+
+			if($#remsites < ($MAXREMOVEDSITES-1)){
+				# If list is not complete, attempt to complete it
+				GenDomListLevel($pdomain, \@remsites, $czone, 1, $MAXREMOVEDSITES);
+			}
+		} # for that adds new removed sites;
+}
+
+
+
 # Function GetORG()
 #
 # Obtains the organization corresponding to an autonomous system number (ASN)
