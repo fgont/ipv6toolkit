@@ -6021,9 +6021,6 @@ int load_top_ports_entries(struct port_list *tcp_port_list, struct port_list *ud
 
 		port= atoi(charptr);
 
-		if(port >= MAX_PORT_RANGE)
-			continue;
-
 		if((charptr = strtok_r(NULL, ",", &lasts)) == NULL){
 			continue;
 		}
@@ -6247,7 +6244,7 @@ int	add_to_scan_list(struct scan_list *scan_list, struct scan_entry *new_entry){
 		return(FALSE);
 	}
 
-puts("VOy a chequear duplicada");
+
 	/* Do not add this entry if it is a duplicate */
 	if(is_scan_entry_duplicate(scan_list, new_entry)){
 		return(TRUE);
