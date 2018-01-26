@@ -1,7 +1,7 @@
 /*
  * addr6: A tool to decode IPv6 addresses
  *
- * Copyright (C) 2013-2016 Fernando Gont (fgont@si6networks.com)
+ * Copyright (C) 2013-2018 Fernando Gont (fgont@si6networks.com)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -81,7 +81,7 @@ int main(int argc, char **argv){
 	unsigned int		naccept=0;
 
 	/* Filter based on prefix length */
-	uint8_t				dpreflen;
+	uint8_t				dpreflen=128; /* To avoid warnings */
 	struct in6_addr		dummyipv6;
 
 	static struct option longopts[] = {
@@ -511,14 +511,19 @@ int main(int argc, char **argv){
 				}
 
 				if((ul_res = strtoul(pref, &endptr, 10)) == ULONG_MAX){
-					perror("Error in 'retransmit' parameter");
+					perror("Error in '--block-dup-preflen' option");
 					exit(EXIT_FAILURE);
 				}
 
-				if(endptr != pref)
+				if(endptr != pref){
 					dpreflen = ul_res;
+					block_duplicate_preflen_f= TRUE;
+				}
+				else{
+					puts("Error in '--block-dup-preflen' option");
+					exit(EXIT_FAILURE);
+				}
 
-				block_duplicate_preflen_f= TRUE;
 				break;
 
 			case 'v':	/* Be verbose */
@@ -910,7 +915,8 @@ void print_dec_address_script(struct decode6 *addr){
 	char *iidisatap="isatap";
 	char *iidmbeddedipv4="embedded-ipv4";
 	char *iidembeddedport="embedded-port";
-	char *iidembeddedportrev="embedded-port-rev";
+	char *iidembeddedportfwd="port-fwd";
+	char *iidembeddedportrev="port-rev";
 	char *iidlowbyte="low-byte";
 	char *iidembeddedipv4_32="embedded-ipv4-32";
 	char *iidembeddedipv4_64="embedded-ipv4-64";
@@ -1027,10 +1033,17 @@ void print_dec_address_script(struct decode6 *addr){
 
 					case IID_EMBEDDEDPORT:
 						iidtype= iidembeddedport;
-						break;
 
-					case IID_EMBEDDEDPORTREV:
-						iidtype= iidembeddedportrev;
+						switch(addr->iidsubtype){
+							case IID_EMBEDDEDPORT:
+								iidsubtype= iidembeddedportfwd;
+								break;
+
+							case IID_EMBEDDEDPORTREV:
+								iidsubtype= iidembeddedportrev;
+								break;
+						}
+
 						break;
 
 					case IID_LOWBYTE:
@@ -1184,7 +1197,7 @@ void print_help(void){
 	     "  --verbose, -v             Be verbose\n"
 	     "  --help, -h                Print help for the addr6 tool\n"
 	     "\n"
-	     " Programmed by Fernando Gont for SI6 Networks <http://www.si6networks.com>\n"
+	     " Programmed by Fernando Gont for SI6 Networks <https://www.si6networks.com>\n"
 	     " Please send any bug reports to <fgont@si6networks.com>\n"
 	);
 }
@@ -1364,9 +1377,9 @@ void print_stats(struct stats6 *stats){
 
 	totaliids= stats->ucastglobal + stats->ucastlinklocal + stats->ucastsitelocal + stats->ucastuniquelocal + \
 	           stats->ucast6to4;
-
+   
 	if(totaliids){
-		puts("** IPv6 Interface IDs **\n");
+		puts("** IPv6 Unicast IIDs (excl. Loopback, IPv4-mapped, IPv4-compat, & Teredo) **\n");
 
 		printf("Total IIDs analyzed: %u\n", totaliids);
 		printf("IEEE-based: %7u (%.2f%%)\t\tLow-byte:        %7u (%.2f%%)\n",\
