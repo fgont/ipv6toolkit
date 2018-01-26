@@ -54,10 +54,12 @@ struct stats6{
 	unsigned int	iidembeddedipv4_32;
 	unsigned int	iidembeddedipv4_64;
 	unsigned int	iidembeddedport;
+	unsigned int	iidembeddedportfwd;
 	unsigned int	iidembeddedportrev;
 	unsigned int	iidlowbyte;
 	unsigned int	iidpatternbytes;
 	unsigned int	iidrandom;
+	unsigned int	iidteredo;
 
 	unsigned int	mscopereserved;
 	unsigned int	mscopeinterface;

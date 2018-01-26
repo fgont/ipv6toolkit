@@ -253,16 +253,17 @@ void decode_ipv6_address(struct decode6 *addr){
 		else if(IN6_IS_ADDR_TEREDO(&(addr->ip6)) || IN6_IS_ADDR_TEREDO_LEGACY(&(addr->ip6))){
 			addr->subtype= UCAST_TEREDO;
 			addr->scope= SCOPE_GLOBAL;
+			addr->iidtype=IID_TEREDO;
 
 			/* If the U or G bytes are set, the IID type is unknown */
 			if(ntohl(addr->ip6.s6_addr32[2]) & 0x03000000){
-				addr->iidtype= IID_TEREDO_UNKNOWN;
+				addr->iidsubtype= IID_TEREDO_UNKNOWN;
 			}
 			else if(ntohs(addr->ip6.s6_addr32[2]) & 0x3cff0000){
-				addr->iidtype= IID_TEREDO_RFC5991;
+				addr->iidsubtype= IID_TEREDO_RFC5991;
 			}
 			else{
-				addr->iidtype= IID_TEREDO_RFC4380;
+				addr->iidsubtype= IID_TEREDO_RFC4380;
 			}
 		}
 		else{
@@ -270,45 +271,52 @@ void decode_ipv6_address(struct decode6 *addr){
 			addr->scope= SCOPE_GLOBAL;
 		}
 
-		if(addr->subtype==UCAST_GLOBAL || addr->subtype==UCAST_V4MAPPED || addr->subtype==UCAST_V4COMPAT || \
+		/*
+
+			XXX: We used to exclude loopback and Teredo from the analysis of IID. Now we do it for all. The user can
+		    use filters to exclude specific address types.
+
+		    if(addr->subtype==UCAST_GLOBAL || addr->subtype==UCAST_V4MAPPED || addr->subtype==UCAST_V4COMPAT || \
 			addr->subtype==UCAST_LINKLOCAL || addr->subtype==UCAST_SITELOCAL || addr->subtype==UCAST_UNIQUELOCAL ||\
 			addr->subtype == UCAST_6TO4){
+		 */
 
-			if( (addr->ip6.s6_addr32[2] & htonl(0x020000ff)) == htonl(0x020000ff) && 
-				(addr->ip6.s6_addr32[3] & htonl(0xff000000)) == htonl(0xfe000000)){
-				addr->iidtype= IID_MACDERIVED;
-				addr->iidsubtype= (ntohl(addr->ip6.s6_addr32[2]) >> 8) & 0xfffdffff;
-			}
-			else if((addr->ip6.s6_addr32[2] & htonl(0xfdffffff)) == htonl(0x00005efe)){
-				/* We assume the u bit can be 0 o 1, but the i/g bit must be 0 */
-				addr->iidtype= IID_ISATAP;
-			}
-			else if(addr->ip6.s6_addr32[2] == 0 && (addr->ip6.s6_addr32[3] & htonl(0xff000000)) != 0 && (ntohl(addr->ip6.s6_addr32[3]) & 0x0000ffff) != 0){
-				addr->iidtype= IID_EMBEDDEDIPV4;
-				addr->iidsubtype= IID_EMBEDDEDIPV4_32;
-			}
-			else if(addr->ip6.s6_addr32[2] == 0 && \
-			          ((addr->ip6.s6_addr32[3] & htonl(0xff000000)) == 0 && is_service_port(ntohl(addr->ip6.s6_addr32[3]) & 0x0000ffff))){
-				addr->iidtype= IID_EMBEDDEDPORT;
-			}
-			else if(addr->ip6.s6_addr32[2] == 0 && \
+		if( (addr->ip6.s6_addr32[2] & htonl(0x020000ff)) == htonl(0x020000ff) && 
+			(addr->ip6.s6_addr32[3] & htonl(0xff000000)) == htonl(0xfe000000)){
+			addr->iidtype= IID_MACDERIVED;
+			addr->iidsubtype= (ntohl(addr->ip6.s6_addr32[2]) >> 8) & 0xfffdffff;
+		}
+		else if((addr->ip6.s6_addr32[2] & htonl(0xfdffffff)) == htonl(0x00005efe)){
+			/* We assume the u bit can be 0 o 1, but the i/g bit must be 0 */
+			addr->iidtype= IID_ISATAP;
+		}
+		else if(addr->ip6.s6_addr32[2] == 0 && (addr->ip6.s6_addr32[3] & htonl(0xff000000)) != 0 && (ntohl(addr->ip6.s6_addr32[3]) & 0x0000ffff) != 0){
+			addr->iidtype= IID_EMBEDDEDIPV4;
+			addr->iidsubtype= IID_EMBEDDEDIPV4_32;
+		}
+		else if(addr->ip6.s6_addr32[2] == 0 && \
+		          ((addr->ip6.s6_addr32[3] & htonl(0xff000000)) == 0 && is_service_port(ntohl(addr->ip6.s6_addr32[3]) & 0x0000ffff))){
+			addr->iidtype= IID_EMBEDDEDPORT;
+			addr->iidsubtype= IID_EMBEDDEDPORT;
+		}
+		else if(addr->ip6.s6_addr32[2] == 0 && \
 			        	         ((addr->ip6.s6_addr32[3] & htonl(0x0000ff00)) == 0 && is_service_port(ntohl(addr->ip6.s6_addr32[3]) >> 16))){
-				addr->iidtype= IID_EMBEDDEDPORTREV;
-			}
-			else if(addr->ip6.s6_addr32[2] == 0 && (addr->ip6.s6_addr32[3] & htonl(0xff000000)) == 0 && (ntohl(addr->ip6.s6_addr32[3]) & 0x0000ffff) != 0){
-				addr->iidtype= IID_LOWBYTE;
-			}
-			else if( (ntohl(addr->ip6.s6_addr32[2]) >> 16) <= 0x255 && (ntohl(addr->ip6.s6_addr32[2]) & 0x0000ffff) <= 0x255 && \
-					 (ntohl(addr->ip6.s6_addr32[3]) >> 16) <= 0x255 && (ntohl(addr->ip6.s6_addr32[3]) & 0x0000ffff) <= 0x255){
-				addr->iidtype= IID_EMBEDDEDIPV4;
-				addr->iidsubtype= IID_EMBEDDEDIPV4_64;
-			}
-			else if( zero_byte_iid(&(addr->ip6)) > 2 ){
-				addr->iidtype= IID_PATTERN_BYTES;
-			}
-			else{
-				addr->iidtype= IID_RANDOM;
-			}
+			addr->iidtype= IID_EMBEDDEDPORT;
+			addr->iidsubtype= IID_EMBEDDEDPORTREV;
+		}
+		else if(addr->ip6.s6_addr32[2] == 0 && (addr->ip6.s6_addr32[3] & htonl(0xff000000)) == 0 && (ntohl(addr->ip6.s6_addr32[3]) & 0x0000ffff) != 0){
+			addr->iidtype= IID_LOWBYTE;
+		}
+		else if( (ntohl(addr->ip6.s6_addr32[2]) >> 16) <= 0x255 && (ntohl(addr->ip6.s6_addr32[2]) & 0x0000ffff) <= 0x255 && \
+				 (ntohl(addr->ip6.s6_addr32[3]) >> 16) <= 0x255 && (ntohl(addr->ip6.s6_addr32[3]) & 0x0000ffff) <= 0x255){
+			addr->iidtype= IID_EMBEDDEDIPV4;
+			addr->iidsubtype= IID_EMBEDDEDIPV4_64;
+		}
+		else if( zero_byte_iid(&(addr->ip6)) > 2 ){
+			addr->iidtype= IID_PATTERN_BYTES;
+		}
+		else{
+			addr->iidtype= IID_RANDOM;
 		}
 	}
 }

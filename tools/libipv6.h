@@ -175,10 +175,16 @@ struct filters{
 #define PCAP_ICMPV6_ERQNSNA_FILTER	"icmp6 and ((ip6[40]==129 and ip6[41]==0) or ((ip6[40]==135 or ip6[40]==136) and ip6[41]==0 and ip6[7]==255))"
 #define PCAP_ICMPV6_ERRORNSNA_FILTER	"icmp6 and ((ip6[40]==4) or ((ip6[7]==255 and ip6[41]==0) and (ip6[40]==135 or ip6[40]==136)))"
 #define PCAP_TCP_NSNA_FILTER		"(ip6 and tcp) or (icmp6 and ip6[7]==255 and ip6[41]==0 and (ip6[40]==135 or ip6[40]==136))"
+#define PCAP_UDP_NSNA_FILTER		"(ip6 and (udp or icmp6))"
+
+/*
 #define PCAP_UDP_NSNA_FILTER		"(ip6 and (udp or icmp6)) or (icmp6 and ip6[7]==255 and ip6[41]==0 and (ip6[40]==135 or ip6[40]==136))"
+*/
+#define PCAP_TCP_UDP_NSNA_FILTER	"(ip6 and (tcp or udp or icmp6))"
+
+/*
 #define PCAP_TCP_UDP_NSNA_FILTER	"(ip6 and (tcp or udp or icmp6)) or (icmp6 and ip6[7]==255 and ip6[41]==0 and (ip6[40]==135 or ip6[40]==136))"
-
-
+*/
 
 
 /* Constants used for Router Discovery */
@@ -226,7 +232,7 @@ struct dlt_null
 
 /* IPv6 options
 
-   Most stacks define "struct ip_opt" for this purpose. But ias has proved to be painful to use this 
+   Most stacks define "struct ip_opt" for this purpose. But it has proved to be painful to use this 
    structure in Mac OS, since its definition seems to depend on the Xcode version, which is hard 
    (if at all possible) to check at compile time. As a workaround, we define our own data type for 
    IPv6 options
@@ -599,7 +605,9 @@ struct iface_list{
 #define IID_TEREDO_RFC4380		512
 #define IID_TEREDO_RFC5991		1024
 #define IID_TEREDO_UNKNOWN		2048
-#define IID_UNSPECIFIED			4096
+#define IID_TEREDO				4096
+#define IID_UNSPECIFIED			8192
+
 
 
 
@@ -961,7 +969,8 @@ struct iface_entry  *find_matching_address(struct iface_data *, struct iface_lis
 void				generate_slaac_address(struct in6_addr *, struct ether_addr *, struct in6_addr *);
 int					get_if_addrs(struct iface_data *);
 int					get_local_addrs(struct iface_data *);
-int					get_ipv6_address(struct in6_addr *, char *);
+/* XXX Looks like this had been removed */
+/* int					get_ipv6_address(struct in6_addr *, char *); */
 int			 		get_ipv6_target(struct target_ipv6 *);
 int					inc_sdev(uint32_t *, unsigned int, uint32_t *, double *);
 int					init_iface_data(struct iface_data *);
