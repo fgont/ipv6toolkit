@@ -1,7 +1,7 @@
 /*
  * libipv6 : An IPv6 library for Linux, Mac OS, and BSD systems
  *
- * Copyright (C) 2011-2016 Fernando Gont <fgont@si6networks.com>
+ * Copyright (C) 2011-2017 Fernando Gont <fgont@si6networks.com>
  *
  * Programmed by Fernando Gont for SI6 Networks <http://www.si6networks.com>
  *
@@ -148,7 +148,7 @@ void decode_ipv6_address(struct decode6 *addr){
 		addr->iidsubtype= IID_UNSPECIFIED;
 
 		if((addr->ip6.s6_addr32[0] & htonl(0xff000000)) == htonl(0xff000000)){
-			if((addr->ip6.s6_addr32[0] & htonl(0xfff00000)) == htonl(0xff00)){
+			if((addr->ip6.s6_addr32[0] & htonl(0xfff00000)) == htonl(0xff000000)){
 				addr->subtype= MCAST_PERMANENT;
 			}
 			else if((addr->ip6.s6_addr32[0] & htonl(0xfff00000)) == htonl(0xff100000)){
@@ -280,7 +280,7 @@ void decode_ipv6_address(struct decode6 *addr){
 				addr->iidsubtype= (ntohl(addr->ip6.s6_addr32[2]) >> 8) & 0xfffdffff;
 			}
 			else if((addr->ip6.s6_addr32[2] & htonl(0xfdffffff)) == htonl(0x00005efe)){
-				/* We assume the u bit can be o o 1, but the i/g bit must be 0 */
+				/* We assume the u bit can be 0 o 1, but the i/g bit must be 0 */
 				addr->iidtype= IID_ISATAP;
 			}
 			else if(addr->ip6.s6_addr32[2] == 0 && (addr->ip6.s6_addr32[3] & htonl(0xff000000)) != 0 && (ntohl(addr->ip6.s6_addr32[3]) & 0x0000ffff) != 0){
@@ -482,6 +482,51 @@ struct ether_addr ether_multicast(const struct in6_addr *ipv6addr){
 
 	return ether;
 }
+
+
+/*
+ * Function: ether_ntop()
+ *
+ * Convert binary Ethernet Address into printable foramt (an ASCII string)
+ */
+
+int ether_ntop(const struct ether_addr *ether, char *ascii, size_t s){
+	unsigned int r;
+
+	if(s < ETHER_ADDR_PLEN)
+		return 0;
+
+	r=snprintf(ascii, s, "%02x:%02x:%02x:%02x:%02x:%02x", ether->a[0], ether->a[1], ether->a[2], ether->a[3], \
+											ether->a[4], ether->a[5]);
+
+	if(r != 17)
+		return 0;
+
+	return 1;
+}
+
+
+/*
+ * Function: ether_to_ipv6_linklocal()
+ *
+ * Generates an IPv6 link-local address (with modified EUI-64 identifiers) based on
+ * an Ethernet address.
+ */
+
+void ether_to_ipv6_linklocal(struct ether_addr *etheraddr, struct in6_addr *ipv6addr){
+	ipv6addr->s6_addr32[0]= htonl(0xfe800000); /* Link-local unicast prefix */
+	ipv6addr->s6_addr32[1]= htonl(0x00000000);
+
+	ipv6addr->s6_addr[8]= etheraddr->a[0] | 0x02;
+	ipv6addr->s6_addr[9]= etheraddr->a[1];
+	ipv6addr->s6_addr[10]= etheraddr->a[2];
+	ipv6addr->s6_addr[11]= 0xff;
+	ipv6addr->s6_addr[12]= 0xfe;
+	ipv6addr->s6_addr[13]= etheraddr->a[3];
+	ipv6addr->s6_addr[14]= etheraddr->a[4];
+	ipv6addr->s6_addr[15]= etheraddr->a[5];
+}
+
 
 
 /*
@@ -853,50 +898,6 @@ int find_ipv6_router_full(pcap_t *pfd, struct iface_data *idata){
 		return 0;
 }
 
-
-
-/*
- * Function: ether_ntop()
- *
- * Convert binary Ethernet Address into printable foramt (an ASCII string)
- */
-
-int ether_ntop(const struct ether_addr *ether, char *ascii, size_t s){
-	unsigned int r;
-
-	if(s < ETHER_ADDR_PLEN)
-		return 0;
-
-	r=snprintf(ascii, s, "%02x:%02x:%02x:%02x:%02x:%02x", ether->a[0], ether->a[1], ether->a[2], ether->a[3], \
-											ether->a[4], ether->a[5]);
-
-	if(r != 17)
-		return 0;
-
-	return 1;
-}
-
-
-/*
- * Function: ether_to_ipv6_linklocal()
- *
- * Generates an IPv6 link-local address (with modified EUI-64 identifiers) based on
- * an Ethernet address.
- */
-
-void ether_to_ipv6_linklocal(struct ether_addr *etheraddr, struct in6_addr *ipv6addr){
-	ipv6addr->s6_addr32[0]= htonl(0xfe800000); /* Link-local unicast prefix */
-	ipv6addr->s6_addr32[1]= htonl(0x00000000);
-
-	ipv6addr->s6_addr[8]= etheraddr->a[0] | 0x02;
-	ipv6addr->s6_addr[9]= etheraddr->a[1];
-	ipv6addr->s6_addr[10]= etheraddr->a[2];
-	ipv6addr->s6_addr[11]= 0xff;
-	ipv6addr->s6_addr[12]= 0xfe;
-	ipv6addr->s6_addr[13]= etheraddr->a[3];
-	ipv6addr->s6_addr[14]= etheraddr->a[4];
-	ipv6addr->s6_addr[15]= etheraddr->a[5];
-}
 
 
 
