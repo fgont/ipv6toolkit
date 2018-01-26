@@ -471,6 +471,35 @@ int dns_str2wire(char *str, unsigned int slen, char *wire, unsigned int wlen){
 }
 
 
+/*
+ * Function: inet_ntof()
+ *
+ * Convert binary IPv6 address into printable formt (an ASCII string) of fixed length
+ */
+
+char * inet_ntof(int family, const void *src, char *dst, socklen_t size){
+	unsigned int r;
+	const struct in6_addr *v6;
+
+	v6= src;
+
+	if(family != AF_INET6)
+		return NULL;
+
+	if(size < INET6_ADDRSTRLEN)
+		return NULL;
+
+	r=snprintf(dst, size, "%04x:%04x:%04x:%04x:%04x:%04x:%04x:%04x", ntohl(v6->s6_addr32[0]) >> 16, ntohl(v6->s6_addr32[0]) & 0x0000ffff,\
+																	ntohl(v6->s6_addr32[1]) >> 16, ntohl(v6->s6_addr32[1]) & 0x0000ffff,\
+																	ntohl(v6->s6_addr32[2]) >> 16, ntohl(v6->s6_addr32[2]) & 0x0000ffff,\
+																	ntohl(v6->s6_addr32[3]) >> 16, ntohl(v6->s6_addr32[3]) & 0x0000ffff);
+
+	if(r == 39)
+		return dst;
+	else
+		return NULL;
+}
+
 
 /*
  * Function: ether_multicast()

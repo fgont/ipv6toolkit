@@ -973,6 +973,7 @@ int					get_local_addrs(struct iface_data *);
 /* int					get_ipv6_address(struct in6_addr *, char *); */
 int			 		get_ipv6_target(struct target_ipv6 *);
 int					inc_sdev(uint32_t *, unsigned int, uint32_t *, double *);
+char *				inet_ntof(int family, const void *src, char *dst, socklen_t size);
 int					init_iface_data(struct iface_data *);
 int					init_filters(struct filters *);
 uint16_t			in_chksum(void *, void *, size_t, uint8_t);

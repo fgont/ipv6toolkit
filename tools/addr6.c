@@ -51,7 +51,7 @@ void					print_stats(struct stats6 *);
 
 unsigned char			stdin_f=FALSE, addr_f=FALSE, verbose_f=FALSE, decode_f=FALSE, block_duplicate_f=FALSE;
 unsigned char			block_duplicate_preflen_f=FALSE, stats_f=FALSE, filter_f=FALSE, canonic_f=FALSE;
-unsigned char			print_unique_preflen_f= FALSE;
+unsigned char			fixed_f=FALSE, print_unique_preflen_f= FALSE;
 unsigned char			reverse_f=FALSE;
 char					line[MAX_LINE_SIZE];
 
@@ -66,6 +66,7 @@ int main(int argc, char **argv){
 	char				*ptr, *pref, *charptr, *lasts, *endptr;
 	unsigned long		ul_res;
 	char				pv6addr[INET6_ADDRSTRLEN];
+	char				prefstr[5]; /* Buffer to store a prefix such as /128 */
 	unsigned int		accept_type=0, block_type=0, accept_scope=0, block_scope=0, accept_itype=0, block_itype=0;
 	unsigned int		accept_utype=0, block_utype=0;
 
@@ -91,11 +92,12 @@ int main(int argc, char **argv){
 		{"stdin", no_argument, 0, 'i'},
 		{"print-canonic", no_argument, 0, 'c'},
 		{"print-decode", no_argument, 0, 'd'},
+		{"print-fixed", no_argument, 0, 'f'},
 		{"print-reverse", no_argument, 0, 'r'},
 		{"print-stats", no_argument, 0, 's'},
 		{"block-dup", no_argument, 0, 'q'},
 		{"print-unique", no_argument, 0, 'Q'},
-		{"print-unique-preflen", required_argument, 0, 'x'},
+		{"print-uni-preflen", required_argument, 0, 'x'},
 		{"block-dup-preflen", required_argument, 0, 'p'},
 		{"accept", required_argument, 0, 'j'},
 		{"accept-type", required_argument, 0, 'b'},
@@ -112,7 +114,7 @@ int main(int argc, char **argv){
 		{0, 0, 0,  0 },
 	};
 
-	char shortopts[]= "a:icrdsqQx:p:j:b:k:w:g:J:B:K:W:G:vh";
+	char shortopts[]= "a:icrdfsqQx:p:j:b:k:w:g:J:B:K:W:G:vh";
 
 	char option;
 
@@ -142,6 +144,10 @@ int main(int argc, char **argv){
 
 			case 'c':	/* Print addresses in canonic form */
 				canonic_f= TRUE;
+				break;
+
+			case 'f':	/* Print addresses with fixed length */
+				fixed_f= TRUE;
 				break;
 
 			case 'd':	/* Decode IPv6 addresses */
@@ -601,8 +607,14 @@ int main(int argc, char **argv){
 		exit(EXIT_FAILURE);
 	}
 
+	if(canonic_f && fixed_f){
+		puts("Cannot employ --print-canonic and --print-fixed simultaneously");
+		exit(EXIT_FAILURE);
+	}
+
 	/* By default, addr6 decodes IPv6 addresses */
-	if(!block_duplicate_f && !block_duplicate_preflen_f && !print_unique_preflen_f && !filter_f && !stats_f && !canonic_f && !reverse_f)
+	if(!block_duplicate_f && !block_duplicate_preflen_f && !print_unique_preflen_f && !filter_f && !stats_f &&\
+		 !canonic_f && !fixed_f && !reverse_f)
 		decode_f=TRUE;
 
 	if(block_duplicate_f || block_duplicate_preflen_f || print_unique_preflen_f){
@@ -703,21 +715,26 @@ int main(int argc, char **argv){
 				else{
 					if(print_unique_preflen_f){
 						sanitize_ipv6_prefix(&(addr.ip6), dpreflen);
-						if(inet_ntop(AF_INET6, &(addr.ip6), pv6addr, sizeof(pv6addr)) == NULL){
-							puts("inet_ntop(): Error converting IPv6 address to presentation format");
-							exit(EXIT_FAILURE);
-						}
-
-						printf("%s/%u\n", pv6addr, (unsigned int)dpreflen);
+						snprintf(prefstr, sizeof(prefstr), "/%u", (unsigned int) dpreflen);
 					}
 					else{
+						prefstr[0]=0; /* zero-terminate the prefix string, since we don't need to print a prefix */
+					}
+
+					if(!fixed_f){
 						if(inet_ntop(AF_INET6, &(addr.ip6), pv6addr, sizeof(pv6addr)) == NULL){
 							puts("inet_ntop(): Error converting IPv6 address to presentation format");
 							exit(EXIT_FAILURE);
 						}
-
-						printf("%s\n", pv6addr);
 					}
+					else{
+						if(inet_ntof(AF_INET6, &(addr.ip6), pv6addr, sizeof(pv6addr)) == NULL){
+							puts("inet_ntop(): Error converting IPv6 address to fixed format");
+							exit(EXIT_FAILURE);
+						}
+					}
+
+					printf("%s%s\n", pv6addr, prefstr);
 				}
 			}
 		}
@@ -1243,6 +1260,7 @@ void print_help(void){
 	     "  --print-reverse, -r       Print reversed IPv6 address\n"
 	     "  --print-decode, -d        Decode IPv6 addresses\n"
 	     "  --print-stats, -s         Print statistics about IPv6 addresses\n"
+	     "  --print-uni-preflen, -p   Print unique prefixes of a given length\n"
 	     "  --block-dup, -q           Discard duplicate IPv6 addresses\n"
 	     "  --block-dup-preflen, -p   Discard duplicate IPv6 addresses\n"
 	     "  --accept, -j              Accept IPv6 addresses from specified IPv6 prefix\n"

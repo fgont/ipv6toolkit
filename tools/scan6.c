@@ -6012,7 +6012,7 @@ int load_top_ports_entries(struct port_list *tcp_port_list, struct port_list *ud
 		charptr= (char *)line;
 
 		/* Skip any whitespaces */
-		while(charptr < ( (char *)line + lines) && *charptr == ' ')
+		while(charptr < ( (char *)line + lines) && (*charptr == ' ' || *charptr == '\t'))
 			charptr++;
 
 		if((charptr = strtok_r(charptr, ",", &lasts)) == NULL){

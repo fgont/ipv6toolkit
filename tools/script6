@@ -3496,7 +3496,7 @@ sub GetDomainsFromAsk{
 			$cphaseonesubone=4;
 		}
 
-		# This triggers changes in subphases that should change faster
+		# This triggers changes in subphases that should changrelay.bestofpost.com.e faster
 		$csubphase= $limccollisions/4;
 		if($csubphase < 4){
 			$csubphase=4;
@@ -3596,7 +3596,8 @@ $REGEX="<input type=\"submit\" class='btn btn--alt' value=\"Next\" />";
 							$url= "https://www.ask.com$1";
 						}
 
-						if($line=~ m//
+# XXX: MUST WORK HERE
+#						if($line=~ m//
 					}
 
 					if($line=~ m/<a\s+rel="nofollow"\s+class="result__a"\s+href="https?:\/\/([^\/"]+)/){
@@ -4117,19 +4118,20 @@ elsif($ARGV[0] eq "get-aaaa"){
 			$aaaa_f=0;
 			chomp($domain);
 
-			if($domain =~ m/(\S+)/){
+print "# READ: $domain\n";
+			# If the line cotains a comment at the end of the line, remove it
+			if($domain =~ m/^\s*([-a-zA-Z0-9_.]+)/){
 				$domcmd= $1;
 			}
 			else{
-				next;
-			}
-
-			if($domcmd =~ m/^\S*#/){
+print "# Skipped (all comments or blank)\n";;
 				next;
 			}
 
 			while(1){
 				undef @dig;
+
+print "# DO: dig $domcmd aaaa\n";
 				@dig=`dig $domcmd aaaa 2>&1`;
 				$answer_f=0;
 
@@ -4142,6 +4144,7 @@ elsif($ARGV[0] eq "get-aaaa"){
 
 						# Detect the "ANSWER" portion of the dig command
 						if($line =~ m/;; ANSWER SECTION:/){
+print "#Answer section\n";
 							$answer_f=1;
 						}
 
@@ -4150,6 +4153,7 @@ elsif($ARGV[0] eq "get-aaaa"){
 					elsif($answer_f == 1){
 						# If we are in the answer portion, look for AAAA records
 						if($line =~ m/^\s*$/){
+print "# Last (blank line). Getout of current command\n";
 							last;
 						}
 
@@ -4175,28 +4179,27 @@ elsif($ARGV[0] eq "get-aaaa"){
 
 				# If we didn't find any AAAA records, and the domain name does not start with "www",
 				# add the "www" suffix and see if there are any AAAA records.
-				if($domcmd =~ m/www\.[a-zA-Z_0-9.]/){
+				if($domcmd =~ m/www\.[-a-zA-Z_0-9.]+/){
 					last;
 				}
 				else{
+print "# Now trying www.$domcmd\n";
 					$domcmd= "www.$domcmd";
 				}
 			}
 		}
 	}
 	else{
+			# Get AAAA for a domain name given as a parameter
 			$domain= $ARGV[1];
 			$aaaa_f=0;
 			chomp($domain);
 
-			if($domain =~ m/(\S+)/){
+			# If the line cotains a comment at the end of the line, remove it
+			if($domain =~ m/^\s*([-a-zA-Z0-9_.]+)/){
 				$domcmd= $1;
 			}
 			else{
-				next;
-			}
-
-			if($domcmd =~ m/^\S*#/){
 				next;
 			}
 
@@ -4265,18 +4268,12 @@ elsif($ARGV[0] eq "get-mx"){
 
 			chomp($domain);
 
-			# Only non-empty lines are useful to us
-			if($domain =~ m/(\S+)/){
+			# If the line cotains a comment at the end of the line, remove it
+			if($domain =~ m/^\s*([-a-zA-Z0-9_.]+)/){
 				$domcmd= $1;
 			}
 			else{
 				next;
-			}
-
-			# If the line cotains a comment at the end of the line, remove it
-		    # XXX should be improved. First regex above already eliminates this
-			if($domcmd =~ m/^\s*(\S+)\s*#/){
-				$domcmd= $1;
 			}
 
 			# If the domain contains a "www" prefix, remove it.
@@ -4328,18 +4325,12 @@ elsif($ARGV[0] eq "get-mx"){
 
 			chomp($domain);
 
-			# Only non-empty lines are useful to us
-			if($domain =~ m/(\S+)/){
+			# If the line cotains a comment at the end of the line, remove it
+			if($domain =~ m/^\s*([-a-zA-Z0-9_.]+)/){
 				$domcmd= $1;
 			}
 			else{
 				next;
-			}
-
-			# If the line cotains a comment at the end of the line, remove it
-		    # XXX should be improved. First regex above already eliminates this
-			if($domcmd =~ m/^\s*(\S+)\s*#/){
-				$domcmd= $1;
 			}
 
 			# If the domain contains a "www" prefix, remove it.
@@ -4391,19 +4382,16 @@ elsif($ARGV[0] eq "get-ns"){
 			$ns_f=0;
 			chomp($domain);
 
-			if($domain =~ m/(\S+)/){
+			# If the line cotains a comment at the end of the line, remove it
+			# If the line cotains a comment at the end of the line, remove it
+			if($domain =~ m/^\s*([-a-zA-Z0-9_.]+)/){
 				$domcmd= $1;
 			}
 			else{
 				next;
 			}
 
-			# Skip lines that only contain comments
-			if($domcmd =~ m/^\s*#/){
-				next;
-			}
-
-			# If domainname is preceded by "www." strip it (we want base domains)
+			# If the domain contains a "www" prefix, remove it.
 			if($domcmd =~ m/www\.(\S+)/){
 				$domcmd = $1;
 			}
@@ -4451,15 +4439,11 @@ elsif($ARGV[0] eq "get-ns"){
 			$ns_f=0;
 			chomp($domain);
 
-			if($domain =~ m/(\S+)/){
+			# If the line cotains a comment at the end of the line, remove it
+			if($domain =~ m/^\s*([-a-zA-Z0-9_.]+)/){
 				$domcmd= $1;
 			}
 			else{
-				next;
-			}
-
-			# Skip lines that only contain comments
-			if($domcmd =~ m/^\s*#/){
 				next;
 			}
 
