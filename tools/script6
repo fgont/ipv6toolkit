@@ -4118,20 +4118,17 @@ elsif($ARGV[0] eq "get-aaaa"){
 			$aaaa_f=0;
 			chomp($domain);
 
-print "# READ: $domain\n";
 			# If the line cotains a comment at the end of the line, remove it
 			if($domain =~ m/^\s*([-a-zA-Z0-9_.]+)/){
 				$domcmd= $1;
 			}
 			else{
-print "# Skipped (all comments or blank)\n";;
 				next;
 			}
 
 			while(1){
 				undef @dig;
 
-print "# DO: dig $domcmd aaaa\n";
 				@dig=`dig $domcmd aaaa 2>&1`;
 				$answer_f=0;
 
@@ -4144,7 +4141,6 @@ print "# DO: dig $domcmd aaaa\n";
 
 						# Detect the "ANSWER" portion of the dig command
 						if($line =~ m/;; ANSWER SECTION:/){
-print "#Answer section\n";
 							$answer_f=1;
 						}
 
@@ -4153,7 +4149,6 @@ print "#Answer section\n";
 					elsif($answer_f == 1){
 						# If we are in the answer portion, look for AAAA records
 						if($line =~ m/^\s*$/){
-print "# Last (blank line). Getout of current command\n";
 							last;
 						}
 
@@ -4179,11 +4174,10 @@ print "# Last (blank line). Getout of current command\n";
 
 				# If we didn't find any AAAA records, and the domain name does not start with "www",
 				# add the "www" suffix and see if there are any AAAA records.
-				if($domcmd =~ m/www\.[-a-zA-Z_0-9.]+/){
+				if($domcmd =~ m/^www\.[-a-zA-Z_0-9.]+/){
 					last;
 				}
 				else{
-print "# Now trying www.$domcmd\n";
 					$domcmd= "www.$domcmd";
 				}
 			}
@@ -4250,7 +4244,7 @@ print "# Now trying www.$domcmd\n";
 
 				# If we didn't find any AAAA records, and the domain name does not start with "www",
 				# add the "www" suffix and see if there are any AAAA records.
-				if($domcmd =~ m/www\.[a-zA-Z_0-9.]/){
+				if($domcmd =~ m/^www\.[-a-zA-Z_0-9.]+/){
 					last;
 				}
 				else{
@@ -4277,7 +4271,7 @@ elsif($ARGV[0] eq "get-mx"){
 			}
 
 			# If the domain contains a "www" prefix, remove it.
-			if($domcmd =~ m/www\.(\S+)/){
+			if($domcmd =~ m/^www\.(\S+)/){
 				$domcmd = $1;
 			}
 
@@ -4334,7 +4328,7 @@ elsif($ARGV[0] eq "get-mx"){
 			}
 
 			# If the domain contains a "www" prefix, remove it.
-			if($domcmd =~ m/www\.(\S+)/){
+			if($domcmd =~ m/^www\.(\S+)/){
 				$domcmd = $1;
 			}
 
@@ -4392,7 +4386,7 @@ elsif($ARGV[0] eq "get-ns"){
 			}
 
 			# If the domain contains a "www" prefix, remove it.
-			if($domcmd =~ m/www\.(\S+)/){
+			if($domcmd =~ m/^www\.(\S+)/){
 				$domcmd = $1;
 			}
 
@@ -4448,7 +4442,7 @@ elsif($ARGV[0] eq "get-ns"){
 			}
 
 			# If domainname is preceded by "www." strip it (we want base domains)
-			if($domcmd =~ m/www\.(\S+)/){
+			if($domcmd =~ m/^www\.(\S+)/){
 				$domcmd = $1;
 			}
 
