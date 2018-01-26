@@ -4485,6 +4485,51 @@ elsif($ARGV[0] eq "get-ns"){
 
 	}
 }
+elsif($ARGV[0] eq "get-dns6-rev-batch" || $ARGV[0] eq "get-dns6-rev-batch"){
+	$resolverfile="/etc/resolv.conf";
+	
+	if($#ARGV == 0){
+		open FILE, "$resolverfile" or die $!;
+
+		while(<FILE>){
+			if($_ =~ m/^\s*nameserver\s+([-a-zA-Z0-9.:_]+)/i){
+				$dnsresolver=$1;
+				last;
+			}
+		}
+
+		close FILE;
+
+		if(!$dnsresolver){
+			$dnsresolver="8.8.8.8";
+		}
+	}
+	else{
+		if($ARGV[1] =~ m/([-a-zA-Z0-9.:_]+)/){
+			$dnsresolver= $1;
+		}
+	}
+
+	while($prefix=<STDIN>){
+		chomp($prefix);
+
+		# This should be replaced by a proper regex to match an IPv6 address
+		if($prefix !~ m/[-a-zA-Z0-9.:_]+\/\d+/){
+			next;
+		}
+
+		undef @revname;
+		@revname=`/usr/local/bin/dns6 $dnsresolver $prefix 2>&1`;
+
+		print "#### PREFIX: $prefix ####\n\n";
+
+		foreach $line (@revname){
+			print "$line";
+		}
+
+		print "\n\n";
+	}
+}
 elsif($ARGV[0] eq "get-suffix-for-tld"){
 	if($#ARGV > 1){
 		print "Syntax: script6 get-iso2-for-country COUNTRY\n";
@@ -5231,6 +5276,7 @@ elsif($ARGV[0] eq "get-webcrawler"){
 	exit;
 }
 
+# XXX
 elsif($ARGV[0] eq "get-dns-zones"){
 	@revname=`whoami`;
 	$user= $revname[0];
