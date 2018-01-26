@@ -51,6 +51,7 @@ void					print_stats(struct stats6 *);
 
 unsigned char			stdin_f=FALSE, addr_f=FALSE, verbose_f=FALSE, decode_f=FALSE, block_duplicate_f=FALSE;
 unsigned char			block_duplicate_preflen_f=FALSE, stats_f=FALSE, filter_f=FALSE, canonic_f=FALSE;
+unsigned char			print_unique_preflen_f= FALSE;
 unsigned char			reverse_f=FALSE;
 char					line[MAX_LINE_SIZE];
 
@@ -82,6 +83,7 @@ int main(int argc, char **argv){
 
 	/* Filter based on prefix length */
 	uint8_t				dpreflen=128; /* To avoid warnings */
+
 	struct in6_addr		dummyipv6;
 
 	static struct option longopts[] = {
@@ -93,6 +95,7 @@ int main(int argc, char **argv){
 		{"print-stats", no_argument, 0, 's'},
 		{"block-dup", no_argument, 0, 'q'},
 		{"print-unique", no_argument, 0, 'Q'},
+		{"print-unique-preflen", required_argument, 0, 'x'},
 		{"block-dup-preflen", required_argument, 0, 'p'},
 		{"accept", required_argument, 0, 'j'},
 		{"accept-type", required_argument, 0, 'b'},
@@ -109,7 +112,7 @@ int main(int argc, char **argv){
 		{0, 0, 0,  0 },
 	};
 
-	char shortopts[]= "a:icrdsqQp:j:b:k:w:g:J:B:K:W:G:vh";
+	char shortopts[]= "a:icrdsqQx:p:j:b:k:w:g:J:B:K:W:G:vh";
 
 	char option;
 
@@ -526,6 +529,33 @@ int main(int argc, char **argv){
 
 				break;
 
+			case 'x':	/* Generate unique prefixes of specified length */
+				if(print_unique_preflen_f){
+					puts("Error: Cannot specify multiple --print-unique-preflen options");
+					exit(EXIT_FAILURE);
+				}
+
+				if((pref=strtok_r(optarg, "/", &lasts)) == NULL){
+					puts("Error in '--print-unique-preflen' option");
+					exit(EXIT_FAILURE);
+				}
+
+				if((ul_res = strtoul(pref, &endptr, 10)) == ULONG_MAX){
+					perror("Error in '--print-unique-preflen' option");
+					exit(EXIT_FAILURE);
+				}
+
+				if(endptr != pref){
+					dpreflen = ul_res;
+					print_unique_preflen_f= TRUE;
+				}
+				else{
+					puts("Error in '--print-unique-preflen' option");
+					exit(EXIT_FAILURE);
+				}
+
+				break;
+
 			case 'v':	/* Be verbose */
 				verbose_f++;
 				break;
@@ -562,15 +592,20 @@ int main(int argc, char **argv){
 	}
 
 	if(block_duplicate_f && block_duplicate_preflen_f){
-		puts("Cannot employ --print-unique and --print-unique-prefix options simultaneously");
+		puts("Cannot employ --block-dup and --block-dup-preflen options simultaneously");
 		exit(EXIT_FAILURE);
 	}
 	
+	if(print_unique_preflen_f && (block_duplicate_f || block_duplicate_preflen_f)){
+		puts("Cannot employ --print-unique-preflen with --block-dup or --block-dup-preflen options simultaneously");
+		exit(EXIT_FAILURE);
+	}
+
 	/* By default, addr6 decodes IPv6 addresses */
-	if(!block_duplicate_f && !block_duplicate_preflen_f && !filter_f && !stats_f && !canonic_f && !reverse_f)
+	if(!block_duplicate_f && !block_duplicate_preflen_f && !print_unique_preflen_f && !filter_f && !stats_f && !canonic_f && !reverse_f)
 		decode_f=TRUE;
 
-	if(block_duplicate_f || block_duplicate_preflen_f){
+	if(block_duplicate_f || block_duplicate_preflen_f || print_unique_preflen_f){
 		if(!init_host_list(&hlist)){
 			puts("Not enough memory when initializing internal host list");
 			exit(EXIT_FAILURE);
@@ -612,7 +647,7 @@ int main(int argc, char **argv){
 				if(block_duplicate_f && is_ip6_in_hashed_list(&hlist, &(addr.ip6))){
 					continue;
 				}
-				else if(block_duplicate_preflen_f){
+				else if(block_duplicate_preflen_f || print_unique_preflen_f){
 					dummyipv6= addr.ip6;
 					sanitize_ipv6_prefix(&dummyipv6, dpreflen);
 
@@ -646,7 +681,7 @@ int main(int argc, char **argv){
 						exit(EXIT_FAILURE);
 					}
 				}
-				else if(block_duplicate_preflen_f){
+				else if(block_duplicate_preflen_f || print_unique_preflen_f){
 					dummyipv6= addr.ip6;
 					sanitize_ipv6_prefix(&dummyipv6, dpreflen);
 
@@ -666,12 +701,23 @@ int main(int argc, char **argv){
 						print_ipv6_address_rev(&(addr.ip6));
 				}
 				else{
-					if(inet_ntop(AF_INET6, &(addr.ip6), pv6addr, sizeof(pv6addr)) == NULL){
-						puts("inet_ntop(): Error converting IPv6 address to presentation format");
-						exit(EXIT_FAILURE);
-					}
+					if(print_unique_preflen_f){
+						sanitize_ipv6_prefix(&(addr.ip6), dpreflen);
+						if(inet_ntop(AF_INET6, &(addr.ip6), pv6addr, sizeof(pv6addr)) == NULL){
+							puts("inet_ntop(): Error converting IPv6 address to presentation format");
+							exit(EXIT_FAILURE);
+						}
 
-					printf("%s\n", pv6addr);
+						printf("%s/%u\n", pv6addr, (unsigned int)dpreflen);
+					}
+					else{
+						if(inet_ntop(AF_INET6, &(addr.ip6), pv6addr, sizeof(pv6addr)) == NULL){
+							puts("inet_ntop(): Error converting IPv6 address to presentation format");
+							exit(EXIT_FAILURE);
+						}
+
+						printf("%s\n", pv6addr);
+					}
 				}
 			}
 		}
@@ -1330,67 +1376,33 @@ unsigned int is_ip6_in_hashed_list(struct hashed_host_list *hlist, struct in6_ad
 void print_stats(struct stats6 *stats){
 	unsigned int	totaliids=0;
 	puts("\n** IPv6 General Address Analysis **\n");
-	printf("Total IPv6 addresses: %u\n", stats->total);
+	printf("Total IPv6 addresses: %lu\n", stats->total);
 
 	if(stats->total){
-		printf("Unicast: %7u (%.2f%%)\t\tMulticast: %7u (%.2f%%)\n", stats->ipv6unicast, \
+		printf("Unicast:      %11lu (%6.2f%%)\tMulticast:    %11lu (%6.2f%%)\n", stats->ipv6unicast, \
 				((float)(stats->ipv6unicast)/stats->total) * 100, stats->ipv6multicast, ((float)(stats->ipv6multicast)/stats->total) * 100);
-		printf("Unspec.: %7u (%.2f%%)\n\n", stats->ipv6unspecified, ((float)(stats->ipv6unspecified)/stats->total) * 100);
+		printf("Unspec.:      %11lu (%6.2f%%)\n\n", stats->ipv6unspecified, ((float)(stats->ipv6unspecified)/stats->total) * 100);
 	}
 
 	if(stats->ipv6unicast){
 		puts("** IPv6 Unicast Addresses **\n");
-		printf("Loopback:     %7u (%.2f%%)\t\tIPv4-mapped:  %7u (%.2f%%)\n",\
+		printf("Loopback:     %11lu (%6.2f%%)\tIPv4-mapped:  %11lu (%6.2f%%)\n",\
 				stats->ucastloopback, ((float)(stats->ucastloopback)/stats->ipv6unicast) * 100, stats->ucastv4mapped, \
 				((float)(stats->ucastv4mapped)/stats->ipv6unicast) * 100);
 
-		printf("IPv4-compat.: %7u (%.2f%%)\t\tLink-local:   %7u (%.2f%%)\n", stats->ucastv4compat, \
+		printf("IPv4-compat.: %11lu (%6.2f%%)\tLink-local:   %11lu (%6.2f%%)\n", stats->ucastv4compat, \
 				((float)(stats->ucastv4compat)/stats->ipv6unicast) * 100, stats->ucastlinklocal, \
 				((float)(stats->ucastlinklocal)/stats->ipv6unicast) * 100);
 
-		printf("Site-local:   %7u (%.2f%%)\t\tUnique-local: %7u (%.2f%%)\n", stats->ucastsitelocal, \
+		printf("Site-local:   %11lu (%6.2f%%)\tUnique-local: %11lu (%6.2f%%)\n", stats->ucastsitelocal, \
 				((float)(stats->ucastsitelocal)/stats->ipv6unicast) * 100, stats->ucastuniquelocal, \
 				((float)(stats->ucastuniquelocal)/stats->ipv6unicast) * 100);
 
-		printf("6to4:         %7u (%.2f%%)\t\tTeredo:       %7u (%.2f%%)\n", stats->ucast6to4, \
+		printf("6to4:         %11lu (%6.2f%%)\tTeredo:       %11lu (%6.2f%%)\n", stats->ucast6to4, \
 				((float)(stats->ucast6to4)/stats->ipv6unicast) * 100, stats->ucastteredo, \
 				((float)(stats->ucastteredo)/stats->ipv6unicast) * 100);
 
-		printf("Global:       %7u (%.2f%%)\n\n", stats->ucastglobal, ((float)(stats->ucastglobal)/stats->ipv6unicast) * 100);
-	}
-
-	if(stats->ipv6multicast){
-		puts("** IPv6 Multicast Addresses **\n");
-		puts("+ Multicast Address Types +");
-		printf("Permanent:   %7u (%.2f%%)\t\tNon-permanent  %7u (%.2f%%)\n",\
-				stats->mcastpermanent, ((float)(stats->mcastpermanent)/stats->ipv6multicast) * 100, stats->mcastnonpermanent, \
-				((float)(stats->mcastnonpermanent)/stats->ipv6multicast) * 100);
-
-		printf("Invalid:     %7u (%.2f%%)\t\tUnicast-based: %7u (%.2f%%)\n", stats->mcastinvalid, \
-				((float)(stats->mcastinvalid)/stats->ipv6multicast) * 100, stats->mcastunicastbased, \
-				((float)(stats->mcastunicastbased)/stats->ipv6multicast) * 100);
-
-		printf("Embedded-RP: %7u (%.2f%%)\t\tUnknown:       %7u (%.2f%%)\n\n", stats->mcastembedrp, \
-				((float)(stats->mcastembedrp)/stats->ipv6multicast) * 100, stats->mcastunknown, \
-				((float)(stats->mcastunknown)/stats->ipv6multicast) * 100);
-
-		puts("+ Multicast Address Scopes +");
-
-		printf("Reserved:    %7u (%.2f%%)\t\tInterface:     %7u (%.2f%%)\n",\
-				stats->mscopereserved, ((float)(stats->mscopereserved)/stats->ipv6multicast) * 100, stats->mscopeinterface, \
-				((float)(stats->mscopeinterface)/stats->ipv6multicast) * 100);
-
-		printf("Link:        %7u (%.2f%%)\t\tAdmin:         %7u (%.2f%%)\n", stats->mnscopelink, \
-				((float)(stats->mnscopelink)/stats->ipv6multicast) * 100, stats->mscopeadmin, \
-				((float)(stats->mscopeadmin)/stats->ipv6multicast) * 100);
-
-		printf("Site:        %7u (%.2f%%)\t\tOrganization:  %7u (%.2f%%)\n", stats->mscopesite, \
-				((float)(stats->mscopesite)/stats->ipv6multicast) * 100, stats->mscopeorganization, \
-				((float)(stats->mscopeorganization)/stats->ipv6multicast) * 100);
-
-		printf("Global:      %7u (%.2f%%)\t\tUnassigned:    %7u (%.2f%%)\n\n", stats->mscopeadmin, \
-				((float)(stats->mscopeadmin)/stats->ipv6multicast) * 100, stats->mscopesite, \
-				((float)(stats->mscopesite)/stats->ipv6multicast) * 100);
+		printf("Global:       %11lu (%6.2f%%)\n\n", stats->ucastglobal, ((float)(stats->ucastglobal)/stats->ipv6unicast) * 100);
 	}
 
 	/*
@@ -1402,29 +1414,63 @@ void print_stats(struct stats6 *stats){
 	totaliids= stats->ipv6unicast;
 
 	if(totaliids){
-		puts("** IPv6 Unicast Interface Identifiers **\n");
+		puts("+ IPv6 Unicast Interface Identifiers +\n");
 
 		printf("Total IIDs analyzed: %u\n", totaliids);
-		printf("IEEE-based: %7u (%.2f%%)\t\tLow-byte:        %7u (%.2f%%)\n",\
+		printf("IEEE-based: %11lu (%6.2f%%)\tLow-byte:        %11lu (%6.2f%%)\n",\
 				stats->iidmacderived, ((float)(stats->iidmacderived)/totaliids) * 100, stats->iidlowbyte, 
 				((float)(stats->iidlowbyte)/totaliids) * 100);
 
-		printf("Embed-IPv4: %7u (%.2f%%)\t\tEmbed-IPv4 (64): %7u (%.2f%%)\n", stats->iidembeddedipv4_32, \
+		printf("Embed-IPv4: %11lu (%6.2f%%)\tEmbed-IPv4 (64): %11lu (%6.2f%%)\n", stats->iidembeddedipv4_32, \
 				((float)(stats->iidembeddedipv4_32)/totaliids) * 100, stats->iidembeddedipv4_64, \
 				((float)(stats->iidembeddedipv4_64)/totaliids) * 100);
 
-		printf("Embed-port: %7u (%.2f%%)\t\tEmbed-port (r):  %7u (%.2f%%)\n", stats->iidembeddedport, \
+		printf("Embed-port: %11lu (%6.2f%%)\tEmbed-port (r):  %11lu (%6.2f%%)\n", stats->iidembeddedport, \
 				((float)(stats->iidembeddedport)/totaliids) * 100, stats->iidembeddedportrev, \
 				((float)(stats->iidembeddedportrev)/totaliids) * 100);
 
-
-		printf("ISATAP:     %7u (%.2f%%)\t\tByte-pattern:    %7u (%.2f%%)\n", stats->iidisatap, \
-				((float)(stats->iidisatap)/totaliids) * 100, stats->iidpatternbytes, \
-				((float)(stats->iidpatternbytes)/totaliids) * 100);
-
-		printf("Randomized: %7u (%.2f%%)\t\tByte-pattern:    %7u (%.2f%%)\n\n", stats->iidrandom, \
-				((float)(stats->iidrandom)/totaliids) * 100, stats->iidteredo, \
+		printf("ISATAP:     %11lu (%6.2f%%)\tTeredo:          %11lu (%6.2f%%)\n", stats->iidisatap, \
+				((float)(stats->iidisatap)/totaliids) * 100, stats->iidteredo, \
 				((float)(stats->iidteredo)/totaliids) * 100);
+
+
+		printf("Randomized: %11lu (%6.2f%%)\tByte-pattern:    %11lu (%6.2f%%)\n\n", stats->iidrandom, \
+				((float)(stats->iidrandom)/totaliids) * 100, stats->iidpatternbytes, \
+				((float)(stats->iidpatternbytes)/totaliids) * 100);
+	}
+
+	if(stats->ipv6multicast){
+		puts("** IPv6 Multicast Addresses **\n");
+		puts("+ Multicast Address Types +");
+		printf("Permanent:   %11lu (%.2f%%)\tNon-permanent  %11lu (%.2f%%)\n",\
+				stats->mcastpermanent, ((float)(stats->mcastpermanent)/stats->ipv6multicast) * 100, stats->mcastnonpermanent, \
+				((float)(stats->mcastnonpermanent)/stats->ipv6multicast) * 100);
+
+		printf("Invalid:     %11lu (%.2f%%)\tUnicast-based: %11lu (%.2f%%)\n", stats->mcastinvalid, \
+				((float)(stats->mcastinvalid)/stats->ipv6multicast) * 100, stats->mcastunicastbased, \
+				((float)(stats->mcastunicastbased)/stats->ipv6multicast) * 100);
+
+		printf("Embedded-RP: %11lu (%.2f%%)\tUnknown:       %11lu (%.2f%%)\n\n", stats->mcastembedrp, \
+				((float)(stats->mcastembedrp)/stats->ipv6multicast) * 100, stats->mcastunknown, \
+				((float)(stats->mcastunknown)/stats->ipv6multicast) * 100);
+
+		puts("+ Multicast Address Scopes +");
+
+		printf("Reserved:    %11lu (%.2f%%)\tInterface:     %11lu (%.2f%%)\n",\
+				stats->mscopereserved, ((float)(stats->mscopereserved)/stats->ipv6multicast) * 100, stats->mscopeinterface, \
+				((float)(stats->mscopeinterface)/stats->ipv6multicast) * 100);
+
+		printf("Link:        %11lu (%.2f%%)\tAdmin:         %11lu (%.2f%%)\n", stats->mnscopelink, \
+				((float)(stats->mnscopelink)/stats->ipv6multicast) * 100, stats->mscopeadmin, \
+				((float)(stats->mscopeadmin)/stats->ipv6multicast) * 100);
+
+		printf("Site:        %11lu (%.2f%%)\tOrganization:  %11lu (%.2f%%)\n", stats->mscopesite, \
+				((float)(stats->mscopesite)/stats->ipv6multicast) * 100, stats->mscopeorganization, \
+				((float)(stats->mscopeorganization)/stats->ipv6multicast) * 100);
+
+		printf("Global:      %11lu (%.2f%%)\tUnassigned:    %11lu (%.2f%%)\n\n", stats->mscopeadmin, \
+				((float)(stats->mscopeadmin)/stats->ipv6multicast) * 100, stats->mscopesite, \
+				((float)(stats->mscopesite)/stats->ipv6multicast) * 100);
 	}
 }
 

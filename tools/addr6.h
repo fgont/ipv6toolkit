@@ -2,7 +2,7 @@
 #define MAX_LINE_SIZE			250
 #define MAX_TYPE_SIZE			25
 #define MAX_LIST_ENTRIES		65535
-#define MAX_HOST_ENTRIES		4000000
+#define MAX_HOST_ENTRIES		4000000000
 
 
 /* Filter Constants */
@@ -18,58 +18,58 @@ struct hashed_host_entry{
 
 struct hashed_host_list{
 	struct hashed_host_entry	**host;			/* Double-linked list of host entries */
-	unsigned int		nhosts;			/* Current number of host entries */
-	unsigned int		maxhosts;		/* Maximum number of host entries */
+	unsigned long		nhosts;			/* Current number of host entries */
+	unsigned long		maxhosts;		/* Maximum number of host entries */
 	uint16_t			key_l;			/* Low-order word of the hash key */
 	uint16_t			key_h;			/* High-order word of the hash key */
 };
 
 
 struct stats6{
-	unsigned int	total;
-	unsigned int	ipv6unspecified;
-	unsigned int	ipv6multicast;
-	unsigned int	ipv6unicast;
+	unsigned long	total;
+	unsigned long	ipv6unspecified;
+	unsigned long	ipv6multicast;
+	unsigned long	ipv6unicast;
 
-	unsigned int 	ucastloopback;
-	unsigned int	ucastv4mapped;
-	unsigned int	ucastv4compat;
-	unsigned int	ucastlinklocal;
-	unsigned int    ucastsitelocal;
-	unsigned int	ucastuniquelocal;
-	unsigned int	ucast6to4;
-	unsigned int	ucastteredo;
-	unsigned int	ucastglobal;
+	unsigned long 	ucastloopback;
+	unsigned long	ucastv4mapped;
+	unsigned long	ucastv4compat;
+	unsigned long	ucastlinklocal;
+	unsigned long    ucastsitelocal;
+	unsigned long	ucastuniquelocal;
+	unsigned long	ucast6to4;
+	unsigned long	ucastteredo;
+	unsigned long	ucastglobal;
 
-	unsigned int	mcastpermanent;
-	unsigned int	mcastnonpermanent;
-	unsigned int	mcastinvalid;
-	unsigned int	mcastunicastbased;
-	unsigned int	mcastembedrp;
-	unsigned int	mcastunknown;
+	unsigned long	mcastpermanent;
+	unsigned long	mcastnonpermanent;
+	unsigned long	mcastinvalid;
+	unsigned long	mcastunicastbased;
+	unsigned long	mcastembedrp;
+	unsigned long	mcastunknown;
 
-	unsigned int	iidmacderived;
-	unsigned int	iidisatap;
-	unsigned int	iidmbeddedipv4;     /* This one is currently unused */
-	unsigned int	iidembeddedipv4_32;
-	unsigned int	iidembeddedipv4_64;
-	unsigned int	iidembeddedport;
-	unsigned int	iidembeddedportfwd;
-	unsigned int	iidembeddedportrev;
-	unsigned int	iidlowbyte;
-	unsigned int	iidpatternbytes;
-	unsigned int	iidrandom;
-	unsigned int	iidteredo;
+	unsigned long	iidmacderived;
+	unsigned long	iidisatap;
+	unsigned long	iidmbeddedipv4;     /* This one is currently unused */
+	unsigned long	iidembeddedipv4_32;
+	unsigned long	iidembeddedipv4_64;
+	unsigned long	iidembeddedport;
+	unsigned long	iidembeddedportfwd;
+	unsigned long	iidembeddedportrev;
+	unsigned long	iidlowbyte;
+	unsigned long	iidpatternbytes;
+	unsigned long	iidrandom;
+	unsigned long	iidteredo;
 
-	unsigned int	mscopereserved;
-	unsigned int	mscopeinterface;
-	unsigned int	mnscopelink;
-	unsigned int	mscopeadmin;
-	unsigned int	mscopesite;
-	unsigned int	mscopeorganization;
-	unsigned int	mscopeglobal;
-	unsigned int	mscopeunassigned;
-	unsigned int	mscopeunspecified;
+	unsigned long	mscopereserved;
+	unsigned long	mscopeinterface;
+	unsigned long	mnscopelink;
+	unsigned long	mscopeadmin;
+	unsigned long	mscopesite;
+	unsigned long	mscopeorganization;
+	unsigned long	mscopeglobal;
+	unsigned long	mscopeunassigned;
+	unsigned long	mscopeunspecified;
 };
 
 
