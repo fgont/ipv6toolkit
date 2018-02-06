@@ -2,7 +2,7 @@
  * jumbo6: A security assessment tool that exploits potential flaws in the
  *         processing of IPv6 Jumbo payloads
  *
- * Copyright (C) 2011-2015 Fernando Gont <fgont@si6networks.com>
+ * Copyright (C) 2011-2018 Fernando Gont <fgont@si6networks.com>
  *
  * Programmed by Fernando Gont for SI6 Networks <http://www.si6networks.com>
  *
@@ -1150,8 +1150,8 @@ int valid_icmp6_response(struct iface_data *idata, struct pcap_pkthdr *pkthdr, c
 			/* The packet length is the minimum of what we capured, and what is specified in the
 			   IPv6 Total Lenght field
 			 */
-			if( pkt_end > ((unsigned char *)pkt_icmp6 + pkt_ipv6->ip6_plen) )
-				pkt_end = (unsigned char *)pkt_icmp6 + pkt_ipv6->ip6_plen;
+			if( pkt_end > ((unsigned char *)pkt_icmp6 + ntohs(pkt_ipv6->ip6_plen)) )
+				pkt_end = (unsigned char *)pkt_icmp6 + ntohs(pkt_ipv6->ip6_plen);
 
 			/*
 			   Discard the packet if it is not of the minimum size to contain an ICMPv6 
@@ -1172,8 +1172,8 @@ int valid_icmp6_response(struct iface_data *idata, struct pcap_pkthdr *pkthdr, c
 			/* The packet length is the minimum of what we capured, and what is specified in the
 			   IPv6 Total Lenght field
 			 */
-			if( pkt_end > ((unsigned char *)pkt_icmp6 + pkt_ipv6->ip6_plen) )
-				pkt_end = (unsigned char *)pkt_icmp6 + pkt_ipv6->ip6_plen;
+			if( pkt_end > ((unsigned char *)pkt_icmp6 + ntohs(pkt_ipv6->ip6_plen)) )
+				pkt_end = (unsigned char *)pkt_icmp6 + ntohs(pkt_ipv6->ip6_plen);
 
 			/*
 			   Discard the packet if it is not of the minimum size to contain an ICMPv6 

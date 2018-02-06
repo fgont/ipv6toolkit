@@ -2,7 +2,7 @@
  * ni6: A security assessment tool that exploits potential flaws
  *      in the processing of ICMPv6 Node Information messages
  *
- * Copyright (C) 2011-2015 Fernando Gont <fgont@si6networks.com>
+ * Copyright (C) 2011-2018 Fernando Gont <fgont@si6networks.com>
  *
  * Programmed by Fernando Gont for SI6 Networks <http://www.si6networks.com>
  *
@@ -1400,8 +1400,8 @@ int	print_ni_addr(struct iface_data *idata, const u_char *pktdata, struct pcap_p
 	pkt_ni= (struct icmp6_nodeinfo *) ((char *) pkt_ipv6 + sizeof(struct ip6_hdr));
 	pkt_end = (unsigned char *) pktdata + pkthdr->caplen;
 
-	if( pkt_end > ((unsigned char *)pkt_ni + pkt_ipv6->ip6_plen) )
-		pkt_end = (unsigned char *)pkt_ni + pkt_ipv6->ip6_plen;
+	if( pkt_end > ((unsigned char *)pkt_ni + ntohs(pkt_ipv6->ip6_plen)) )
+		pkt_end = (unsigned char *)pkt_ni + ntohs(pkt_ipv6->ip6_plen);
 
 	if(!is_eq_in6_addr(&(pkt_ipv6->ip6_dst), &(idata->srcaddr)))
 		return 0;
@@ -1486,8 +1486,8 @@ int	print_ni_noop(struct iface_data *idata, const u_char *pktdata, struct pcap_p
 	pkt_ni= (struct icmp6_nodeinfo *) ((char *) pkt_ipv6 + sizeof(struct ip6_hdr));
 	pkt_end = (unsigned char *) pktdata + pkthdr->caplen;
 
-	if( pkt_end > ((unsigned char *)pkt_ni + pkt_ipv6->ip6_plen) )
-		pkt_end = (unsigned char *)pkt_ni + pkt_ipv6->ip6_plen;
+	if( pkt_end > ((unsigned char *)pkt_ni + ntohs(pkt_ipv6->ip6_plen)) )
+		pkt_end = (unsigned char *)pkt_ni + ntohs(pkt_ipv6->ip6_plen);
 
 	if(!is_eq_in6_addr(&(pkt_ipv6->ip6_dst), &(idata->srcaddr)))
 		return 0;
@@ -1542,8 +1542,8 @@ int	print_ni_addr6(struct iface_data *idata, const u_char *pktdata, struct pcap_
 	pkt_ni= (struct icmp6_nodeinfo *) ((char *) pkt_ipv6 + sizeof(struct ip6_hdr));
 	pkt_end = (unsigned char *) pktdata + pkthdr->caplen;
 
-	if( pkt_end > ((unsigned char *)pkt_ni + pkt_ipv6->ip6_plen) )
-		pkt_end = (unsigned char *)pkt_ni + pkt_ipv6->ip6_plen;
+	if( pkt_end > ((unsigned char *)pkt_ni + ntohs(pkt_ipv6->ip6_plen)) )
+		pkt_end = (unsigned char *)pkt_ni + ntohs(pkt_ipv6->ip6_plen);
 
 	if(!is_eq_in6_addr(&(pkt_ipv6->ip6_dst), &(idata->srcaddr)))
 		return 0;
@@ -1631,8 +1631,8 @@ int	print_ni_name(struct iface_data *idata, const u_char *pktdata, struct pcap_p
 	pkt_ni= (struct icmp6_nodeinfo *) ((char *) pkt_ipv6 + sizeof(struct ip6_hdr));
 	pkt_end = (unsigned char *) pktdata + pkthdr->caplen;
 
-	if( pkt_end > ((unsigned char *)pkt_ni + pkt_ipv6->ip6_plen) )
-		pkt_end = (unsigned char *)pkt_ni + pkt_ipv6->ip6_plen;
+	if( pkt_end > ((unsigned char *)pkt_ni + ntohs(pkt_ipv6->ip6_plen)) )
+		pkt_end = (unsigned char *)pkt_ni + ntohs(pkt_ipv6->ip6_plen);
 
 	if(!is_eq_in6_addr(&(pkt_ipv6->ip6_dst), &(idata->srcaddr)))
 		return 0;

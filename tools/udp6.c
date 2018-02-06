@@ -2,7 +2,7 @@
  * udp6 : A security assessment tool that exploits potential flaws in the
  *        processing of UDP/IPv6 packets
  *
- * Copyright (C) 2011-2015 Fernando Gont <fgont@si6networks.com>
+ * Copyright (C) 2011-2018 Fernando Gont <fgont@si6networks.com>
  *
  * Programmed by Fernando Gont for SI6 Networks <http://www.si6networks.com>
  *
@@ -1488,8 +1488,8 @@ void send_packet(struct iface_data *idata, const u_char *pktdata, struct pcap_pk
 		/* The packet length is the minimum of what we capured, and what is specified in the
 		   IPv6 Total Lenght field
 		 */
-		if( pkt_end > ((unsigned char *)pkt_ipv6 + sizeof(struct ip6_hdr) + pkt_ipv6->ip6_plen) )
-			pkt_end = (unsigned char *)pkt_ipv6 + sizeof(struct ip6_hdr) + pkt_ipv6->ip6_plen;
+		if( pkt_end > ((unsigned char *)pkt_ipv6 + sizeof(struct ip6_hdr) + ntohs(pkt_ipv6->ip6_plen)) )
+			pkt_end = (unsigned char *)pkt_ipv6 + sizeof(struct ip6_hdr) + ntohs(pkt_ipv6->ip6_plen);
 
 
 		pkt_ipv6addr = &(pkt_ipv6->ip6_src);
@@ -1955,8 +1955,8 @@ int is_valid_udp_datagram(struct iface_data *idata, const u_char *pktdata, struc
 	/* The packet length is the minimum of what we capured, and what is specified in the
 	   IPv6 Total Lenght field
 	 */
-	if( pkt_end > ((unsigned char *)pkt_udp + pkt_ipv6->ip6_plen) )
-		pkt_end = (unsigned char *)pkt_udp + pkt_ipv6->ip6_plen;
+	if( pkt_end > ((unsigned char *)pkt_udp + ntohs(pkt_ipv6->ip6_plen)) )
+		pkt_end = (unsigned char *)pkt_udp + ntohs(pkt_ipv6->ip6_plen);
 
 	/*
 	   Discard the packet if it is not of the minimum size to contain a UDP header

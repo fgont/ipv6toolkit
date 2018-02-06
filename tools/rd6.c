@@ -2,7 +2,7 @@
  * rd6: A security assessment tool that exploits potential flaws in the
  *      processing of ICMPv6 Redirect messages
  *
- * Copyright (C) 2011-2015 Fernando Gont
+ * Copyright (C) 2011-2018 Fernando Gont
  *
  * Programmed by Fernando Gont for SI6 Networks <http://www.si6networks.com>
  *
@@ -1538,8 +1538,8 @@ void send_packet(struct iface_data *idata, const u_char *pktdata, struct pcap_pk
 		/* The packet length is the minimum of what we capured, and what is specified in the
 		   IPv6 Total Lenght field
 		 */
-		if( pkt_end > ((unsigned char *)pkt_ipv6 + sizeof(struct ip6_hdr) + pkt_ipv6->ip6_plen) )
-			pkt_end = (unsigned char *)pkt_ipv6 + sizeof(struct ip6_hdr) + pkt_ipv6->ip6_plen;
+		if( pkt_end > ((unsigned char *)pkt_ipv6 + sizeof(struct ip6_hdr) + ntohs(pkt_ipv6->ip6_plen)) )
+			pkt_end = (unsigned char *)pkt_ipv6 + sizeof(struct ip6_hdr) + ntohs(pkt_ipv6->ip6_plen);
 
 		pkt_ipv6addr = &(pkt_ipv6->ip6_src);
 

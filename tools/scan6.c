@@ -1,7 +1,7 @@
 /*
  * scan6: An IPv6 Scanning Tool
  *
- * Copyright (C) 2011-2016 Fernando Gont <fgont@si6networks.com>
+ * Copyright (C) 2011-2018 Fernando Gont <fgont@si6networks.com>
  *
  * Programmed by Fernando Gont for SI6 Networks <http://www.si6networks.com>
  *

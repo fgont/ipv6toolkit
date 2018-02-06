@@ -2,7 +2,7 @@
  * frag6: A security assessment tool that exploits potential flaws in the
  *        processing of IPv6 fragments
  *
- * Copyright (C) 2011-2015 Fernando Gont (fgont@si6networks.com)
+ * Copyright (C) 2011-2018 Fernando Gont (fgont@si6networks.com)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -2400,8 +2400,8 @@ int valid_icmp6_response(struct iface_data *idata, struct pcap_pkthdr *pkthdr, c
 	/* The packet length is the minimum of what we capured, and what is specified in the
 	   IPv6 Total Lenght field
 	 */
-	if( pkt_end > ((unsigned char *)pkt_icmp6 + pkt_ipv6->ip6_plen) )
-		pkt_end = (unsigned char *)pkt_icmp6 + pkt_ipv6->ip6_plen;
+	if( pkt_end > ((unsigned char *)pkt_icmp6 + ntohs(pkt_ipv6->ip6_plen)) )
+		pkt_end = (unsigned char *)pkt_icmp6 + ntohs(pkt_ipv6->ip6_plen);
 
 	switch(pkt_icmp6->icmp6_type){
 		case ICMP6_ECHO_REPLY:
@@ -2563,8 +2563,8 @@ int valid_icmp6_response2(struct iface_data *idata, struct pcap_pkthdr *pkthdr, 
 	/* The packet length is the minimum of what we capured, and what is specified in the
 	   IPv6 Total Lenght field
 	 */
-	if( pkt_end > ((unsigned char *)pkt_icmp6 + pkt_ipv6->ip6_plen) )
-		pkt_end = (unsigned char *)pkt_icmp6 + pkt_ipv6->ip6_plen;
+	if( pkt_end > ((unsigned char *)pkt_icmp6 + ntohs(pkt_ipv6->ip6_plen)) )
+		pkt_end = (unsigned char *)pkt_icmp6 + ntohs(pkt_ipv6->ip6_plen);
 
 	switch(pkt_icmp6->icmp6_type){
 		case ICMP6_ECHO_REPLY:

@@ -1,7 +1,7 @@
 /*
  * libipv6 : An IPv6 library for Linux, Mac OS, and BSD systems
  *
- * Copyright (C) 2011-2017 Fernando Gont <fgont@si6networks.com>
+ * Copyright (C) 2011-2018 Fernando Gont <fgont@si6networks.com>
  *
  * Programmed by Fernando Gont for SI6 Networks <http://www.si6networks.com>
  *
@@ -768,8 +768,8 @@ int find_ipv6_router_full(pcap_t *pfd, struct iface_data *idata){
 			/* The packet length is the minimum of what we capured, and what is specified in the
 			   IPv6 Total Lenght field
 			 */
-			if( pkt_end > ((unsigned char *)pkt_ra + pkt_ipv6->ip6_plen) )
-				pkt_end = (unsigned char *)pkt_ra + pkt_ipv6->ip6_plen;
+			if( pkt_end > ((unsigned char *)pkt_ra + ntohs(pkt_ipv6->ip6_plen)) )
+				pkt_end = (unsigned char *)pkt_ra + ntohs(pkt_ipv6->ip6_plen);
 
 			/*
 			   Discard the packet if it is not of the minimum size to contain a Router Advertisement
@@ -1241,8 +1241,8 @@ int ipv6_to_ether(pcap_t *pfd, struct iface_data *idata, struct in6_addr *target
 			/* The packet length is the minimum of what we capured, and what is specified in the
 			   IPv6 Total Lenght field
 			 */
-			if( pkt_end > ((unsigned char *)pkt_na+ pkt_ipv6->ip6_plen) )
-				pkt_end = (unsigned char *)pkt_na + pkt_ipv6->ip6_plen;
+			if( pkt_end > ((unsigned char *)pkt_na + ntohs(pkt_ipv6->ip6_plen)) )
+				pkt_end = (unsigned char *)pkt_na + ntohs(pkt_ipv6->ip6_plen);
 
 			/*
 			   Discard the packet if it is not of the minimum size to contain a Neighbor Advertisement
@@ -4410,8 +4410,8 @@ int find_ipv6_router(pcap_t *pfd, struct ether_addr *hsrcaddr, struct in6_addr *
 			/* The packet length is the minimum of what we capured, and what is specified in the
 			   IPv6 Total Lenght field
 			 */
-			if( pkt_end > ((unsigned char *)pkt_ra + pkt_ipv6->ip6_plen) )
-				pkt_end = (unsigned char *)pkt_ra + pkt_ipv6->ip6_plen;
+			if( pkt_end > ((unsigned char *)pkt_ra + ntohs(pkt_ipv6->ip6_plen)) )
+				pkt_end = (unsigned char *)pkt_ra + ntohs(pkt_ipv6->ip6_plen);
 
 			/*
 			   Discard the packet if it is not of the minimum size to contain a Neighbor Advertisement

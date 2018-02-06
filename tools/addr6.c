@@ -97,7 +97,7 @@ int main(int argc, char **argv){
 		{"print-stats", no_argument, 0, 's'},
 		{"block-dup", no_argument, 0, 'q'},
 		{"print-unique", no_argument, 0, 'Q'},
-		{"print-uni-preflen", required_argument, 0, 'x'},
+		{"print-uni-preflen", required_argument, 0, 'P'},
 		{"block-dup-preflen", required_argument, 0, 'p'},
 		{"accept", required_argument, 0, 'j'},
 		{"accept-type", required_argument, 0, 'b'},
@@ -114,7 +114,7 @@ int main(int argc, char **argv){
 		{0, 0, 0,  0 },
 	};
 
-	char shortopts[]= "a:icrdfsqQx:p:j:b:k:w:g:J:B:K:W:G:vh";
+	char shortopts[]= "a:icrdfsqQP:p:j:b:k:w:g:J:B:K:W:G:vh";
 
 	char option;
 
@@ -535,7 +535,7 @@ int main(int argc, char **argv){
 
 				break;
 
-			case 'x':	/* Generate unique prefixes of specified length */
+			case 'P':	/* Generate unique prefixes of specified length */
 				if(print_unique_preflen_f){
 					puts("Error: Cannot specify multiple --print-unique-preflen options");
 					exit(EXIT_FAILURE);
@@ -1260,7 +1260,7 @@ void print_help(void){
 	     "  --print-reverse, -r       Print reversed IPv6 address\n"
 	     "  --print-decode, -d        Decode IPv6 addresses\n"
 	     "  --print-stats, -s         Print statistics about IPv6 addresses\n"
-	     "  --print-uni-preflen, -p   Print unique prefixes of a given length\n"
+	     "  --print-uni-preflen, -P   Print unique prefixes of a specified length\n"
 	     "  --block-dup, -q           Discard duplicate IPv6 addresses\n"
 	     "  --block-dup-preflen, -p   Discard duplicate IPv6 addresses\n"
 	     "  --accept, -j              Accept IPv6 addresses from specified IPv6 prefix\n"
