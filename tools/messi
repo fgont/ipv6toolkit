@@ -1,0 +1,423 @@
+#!/usr/bin/perl
+
+# Puedo especificar dos cosas:
+# 1) Hints: Direcciones y/o dominios
+# 2) Filtros: Direcciones y/o dominios
+#
+# Si son hints, las uso para explorar. Si son filtros, los resultados 
+# tienen que pertenecer a los filtros
+# 
+# # Cosas para hacer:
+#
+# ** Si especifico Dominios como Hints: **
+# 1) Busco esos dominios en los buscadores
+# 2) Para todos los dominios encontrados, busco A, AAAA, NS, MX
+# 3) Incluyo dominios de otras zonas. Pero no sigo buscando en esas zonas.
+# 4) De todo lo que encontre, obtengo direcciones, y tomo los /48 (salvo que el usuario haya decidido trabajar con /64)
+# 5) Solo si trabajo con /48: Hago traceroute a todas las direcciones, y solo me quedo con aquellas que estan en los /48 anteriores.
+# 6) A cada prefijo (/48 o /64) le hago dnsrevenum6
+# 7) Si hay dominios nuevos, aplico la misma logica (desde #1)
+#
+#
+# ** Si especifico dominios como filtros **
+# Cada vez que obtengo un dominio de algun tipo, me fijo si está en la lista/zona. Si no lo está, lo descarto.
+#
+# 
+# ** Si especifico prefijos como Hints **
+#
+# Hago dnsrevenum6.
+#
+#e especifico zona de DNS **
+# 1) Buscar con los buscadores en esas zonas
+#    Obtengo direcciones IPv6 de todos los dominios encontrados
+#    Hago traceroute a esas direcciones
+#
+
+
+
+
+sub AddToQueue{
+	($qref, $qdomain) = @_;
+	$qfound=0;
+
+	# Go through list of all domains
+	for($w=0; $w<= $#$qref; $w++){
+		if($qref->[$w] eq $qdomain){
+			$qfound=1;
+			break;
+		}
+	}
+
+	if( !$qfound){
+		$qref->[$#$qref + 1] = $qdomain;
+		return(1);
+	}
+
+	return(0);
+}
+
+sub IsInQueue{
+	($qref, $qdomain) = @_;
+
+	# Go through list of all domains
+	for($w=0; $w<= $#$qref; $w++){
+		if($qref->[$w] eq $qdomain){
+			return(1);
+		}
+	}
+
+	return(0);
+}
+
+
+$dns6revenum="dnsrevenum6";
+# Obtain resolver;
+	$resolverfile="/etc/resolv.conf";
+	
+#	if($#ARGV == 0){
+		open FILE, "$resolverfile" or die $!;
+
+		while(<FILE>){  
+			if($_ =~ m/^\s*nameserver\s+([-a-zA-Z0-9.:_]+)/i){
+				$dnsresolver=$1;
+				last;
+			}
+		}
+
+		close FILE;
+
+		if(!$dnsresolver){
+			$dnsresolver="8.8.8.8";
+		}
+#	}
+#	else{
+#		if($ARGV[1] =~ m/([-a-zA-Z0-9.:_]+)/){
+#			$dnsresolver= $1;
+#		}
+#	}
+
+
+
+# These are the results
+@domains=();
+$ndomains=0;
+
+@addresses=();
+$naddreses=0;
+
+
+@addrhint=();
+$paddrhint=0;
+$raddrhint=0;
+
+@domainhint=();
+$pdomainhint=0;
+$rdomainhint=0;
+
+@addrfilter=();
+$raddrfilter=0;
+$paddrfilter=0;
+
+@domainfilter=();
+$rdomainfilter=0;
+$pdomainfilter=0;
+
+
+for($i=0; $i<= $#ARGV; $i++){
+	if($ARGV[$i] =~ m/^-F(\S+)/){
+		$filter= $1;
+		if($filter =~ m/((?:(?:(?:[0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4})|(?:(?:(?:[0-9a-fA-F]{1,4}:){1,4}|:):(?:(?:(?:1[0-9]{2}|2(?:[0-4][0-9]|5[0-9])|[0-9]{1,2})\.){3}(?:(?:1[0-9]{2}|2(?:[0-4][0-9]|5[0-9])|[0-9]{1,2}))))|(?:(?:(?:(?:[0-9a-fA-F]{1,4}:)(?::[0-9a-fA-F]{1,4}){1,7})|(?:(?:[0-9a-fA-F]{1,4}:){2}(?::[0-9a-fA-F]{1,4}){1,6})|(?:(?:[0-9a-fA-F]{1,4}:){3}(?::[0-9a-fA-F]{1,4}){1,5})|(?:(?:[0-9a-fA-F]{1,4}:){4}(?::[0-9a-fA-F]{1,4}){1,4})|(?:(?:[0-9a-fA-F]{1,4}:){5}(?::[0-9a-fA-F]{1,4}){1,3})|(?:(?:[0-9a-fA-F]{1,4}:){6}(?::[0-9a-fA-F]{1,4}){1,2})|(?:[0-9a-fA-F]{1,4}:){1,7}:)|(?::(?:(?::[0-9a-fA-F]{1,4}){1,7}|:))))\/(1([0-1][0-9]|2[0-8])|[1-9]?[0-9]))/){
+print "Voy a meter filtro dire: $1\n";
+			AddToQueue(\@addrfilter, $1);
+
+		} #([-a-zA-Z0-9_.]+)
+		elsif($filter =~ m/((?:[-0-9_a-zA-Z]+)(?:\.[-0-9_a-zA-Z]+)*\.?)/){
+print "Voy a meter filtro dominio: $1\n";
+			AddToQueue(\@domainfilter, $1);
+		}
+	}
+
+	if($ARGV[$i] =~ m/^-H(\S+)/){
+		$filter= $1;
+		if($filter =~ m/((?:(?:(?:[0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4})|(?:(?:(?:[0-9a-fA-F]{1,4}:){1,4}|:):(?:(?:(?:1[0-9]{2}|2(?:[0-4][0-9]|5[0-9])|[0-9]{1,2})\.){3}(?:(?:1[0-9]{2}|2(?:[0-4][0-9]|5[0-9])|[0-9]{1,2}))))|(?:(?:(?:(?:[0-9a-fA-F]{1,4}:)(?::[0-9a-fA-F]{1,4}){1,7})|(?:(?:[0-9a-fA-F]{1,4}:){2}(?::[0-9a-fA-F]{1,4}){1,6})|(?:(?:[0-9a-fA-F]{1,4}:){3}(?::[0-9a-fA-F]{1,4}){1,5})|(?:(?:[0-9a-fA-F]{1,4}:){4}(?::[0-9a-fA-F]{1,4}){1,4})|(?:(?:[0-9a-fA-F]{1,4}:){5}(?::[0-9a-fA-F]{1,4}){1,3})|(?:(?:[0-9a-fA-F]{1,4}:){6}(?::[0-9a-fA-F]{1,4}){1,2})|(?:[0-9a-fA-F]{1,4}:){1,7}:)|(?::(?:(?::[0-9a-fA-F]{1,4}){1,7}|:))))\/(1([0-1][0-9]|2[0-8])|[1-9]?[0-9]))/){
+			AddToQueue(\@addrhint, $1);
+		}
+		elsif($filter =~ m/((?:[-0-9_a-zA-Z]+)(?:\.[-0-9_a-zA-Z]+)*\.?)/){
+			AddToQueue(\@domainhint, $1);
+		}
+	}
+}
+
+
+$addrfilterstr="";
+for($i=0; $i<= $#addrfilter; $i++){
+	$addrfilterstr= $addrfilterstr . " -j $addrfilter[$i]";
+}
+
+
+print "Filter string: $addrfilterstr\n";
+#print "Address filters\n";
+#for($i=0; $i<=$#addrfilter; $i++){
+#	print "$addrfilter[$i]\n";
+#}
+
+#print "Domain filters\n";
+#for($i=0; $i<=$#domainfilter; $i++){
+#	print "$domainfilter[$i]\n";
+#}
+
+#print "Address Hint\n";
+#for($i=0; $i<=$#addrhint; $i++){
+#	print "$addrhint[$i]\n";
+#}
+#
+#print "Domain Hint\n";
+#for($i=0; $i<=$#domainhint; $i++){
+#	print "$domainhint[$i]\n";
+#}
+
+
+	$k=$#domainhint;
+#print "Hago bing\n";
+	for($i=0; $i<=$k; $i++){
+#		print "voy a hacer: script6 get-bing $domainhint[$i] 2>&1\n";
+		@revname=`script6 get-bing-tt $domainhint[$i] 2>&1`;
+		foreach $candomain (@revname){
+#print "Lei: $candomain\n";
+			$candomain= lc(chomp($candomain));
+			$candomain= join('.', split /\./, $candomain);
+			if($#domainfilter >= 0){
+				for($j=0; $j <= $#domainfilter; $j++){
+					if( $candomain =~ m/$domainfilter[$j]$/){
+						if(AddToQueue(\@domains, $candomain)){
+							print "DOMAIN: $candomain\n";
+							$flag=1;
+						}
+
+						AddToQueue(\@domainhint, $candomain);			
+					}
+				}
+			}
+			else{
+				$candomain=lc($candomain);
+				if(AddToQueue(\@domains, $candomain)){
+					print "DOMAIN: $candomain\n";
+					$flag=1;
+				}
+
+				AddToQueue(\@domainhint, $candomain);	
+			}
+		}
+	}
+	
+
+
+
+
+do{
+	$flag=0;
+
+#print "Obtengo MX y NS\n";
+	for($i=$rdomaihint; $i<=$#domainhint; $i++){
+		@revname=`script6 get-ns $domainhint[$i] 2>&1`;
+		foreach $line (@revname){
+			if($line =~ m/^([^#]+)/){
+#				print "Lei dominio: $1\n";
+				$candomain=lc($1);
+				chomp($candomain);
+				$candomain= join('.', split /\./, $candomain);
+				if($#domainfilter >= 0){
+					for($j=0; $j <= $#domainfilter; $j++){
+						if( $candomain =~ m/$domainfilter[$j]$/){
+							if(AddToQueue(\@domains, $candomain)){
+								print "DOMAIN: $candomain\n";
+								$flag=1;						
+							}
+
+							AddToQueue(\@domainhint, $candomain)
+						}
+					}
+				}
+				else{
+					if(AddToQueue(\@domains, $candomain)){
+						print "DOMAIN: $candomain\n";
+						$flag=1;						
+					}
+
+					AddToQueue(\@domainhint, $candomain)
+				}
+			}
+		}
+
+		@revname=`script6 get-mx $domainhint[$i] 2>&1`;
+		foreach $line (@revname){
+			if($line =~ m/^([^#]+)/){
+#				print "Lei dominio: $1\n";
+				$candomain=lc($1);
+				chomp($candomain);
+				$candomain= join('.', split /\./, $candomain);
+
+				if($#domainfilter>=0){
+					for($j=0; $j <= $#domainfilter; $j++){
+						if( $candomain =~ m/$domainfilter[$j]$/){
+							if(AddToQueue(\@domains, $candomain)){
+								print "DOMAIN: $candomain\n";
+								$flag=1;
+							}
+
+							AddToQueue(\@domainhint, $candomain)
+						}
+					}
+				}
+				else{
+					if(AddToQueue(\@domains, $candomain)){
+						print "DOMAIN: $candomain\n";
+						$flag=1;
+					}
+
+					AddToQueue(\@domainhint, $candomain)
+				}
+			}
+		}		
+	}
+
+	$rdomainhint=$i;
+
+#print "Hago AAAA\n";
+	for($i=$pdomainhint; $i<=$#domainhint; $i++){
+		@revname=`script6 get-aaaa $domainhint[$i] 2>&1`;
+		foreach $line (@revname){
+			if($line =~ m/^([^#]+)/){
+#				print "Lei direccion: $1\n";
+				$caddr=$1;
+				chomp($caddr);
+
+				if($#addrfilter>=0){
+					$filter= `addr6 -a $caddr $addrfilterstr`;
+
+					if($filter eq "ACCEPT"){
+						if(AddToQueue(\@addresses, $caddr)){
+							print "IPV6: $caddr\n";
+							$flag=1;
+						}
+
+						$fcaddr= `addr6 -a $caddr -P 48`;
+
+						if(AddToQueue(\@addrhint, $fcaddr)){
+							$flag=1;
+						}				
+					}
+					else{
+print "rechace $caddr\n";
+					}
+				}
+				else{
+					if(AddToQueue(\@addresses, $caddr)){
+						print "IPV6: $caddr\n";
+						$flag=1;
+					}
+
+
+					$fcaddr= `addr6 -a $caddr -P 48`;
+					if(AddToQueue(\@addrhint, $fcaddr)){
+						$flag=1;
+					}	
+				}
+			}
+		}			
+
+	}
+
+	$pdomainhint=$1;
+
+	
+#	print "Viy a hacer dnsrevenum para $#addrhint	 prefijos\n";
+#	if($raddrhint>$#addrhint){
+#		print "no hace falta";
+#	}
+	for($i=$raddrhint; $i<=$#addrhint; $i++){
+		$prefix=$addrhint[$i];
+		if($prefix !~ m/[0-9A-Fa-f:]+\/\d+/){
+			$prefix= `addr6 -a $prefix -P 48`;
+
+			if(AddToQueue(\@addrhint, $prefix)){
+				$flag=1;
+			}
+		}
+
+# 	print "Voy a ejecutar $dns6revenum $dnsresolver $prefix\n";
+		@revname=`$dns6revenum $dnsresolver $prefix 2>&1`;
+
+		foreach $line (@revname){
+#	print "$line\n";
+			if($line =~ m/((?:(?:[0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4})|(?:(?:(?:[0-9a-fA-F]{1,4}:){1,4}|:):(?:(?:(?:1[0-9]{2}|2(?:[0-4][0-9]|5[0-9])|[0-9]{1,2})\.){3}(?:(?:1[0-9]{2}|2(?:[0-4][0-9]|5[0-9])|[0-9]{1,2}))))|(?:(?:(?:(?:[0-9a-fA-F]{1,4}:)(?::[0-9a-fA-F]{1,4}){1,7})|(?:(?:[0-9a-fA-F]{1,4}:){2}(?::[0-9a-fA-F]{1,4}){1,6})|(?:(?:[0-9a-fA-F]{1,4}:){3}(?::[0-9a-fA-F]{1,4}){1,5})|(?:(?:[0-9a-fA-F]{1,4}:){4}(?::[0-9a-fA-F]{1,4}){1,4})|(?:(?:[0-9a-fA-F]{1,4}:){5}(?::[0-9a-fA-F]{1,4}){1,3})|(?:(?:[0-9a-fA-F]{1,4}:){6}(?::[0-9a-fA-F]{1,4}){1,2})|(?:[0-9a-fA-F]{1,4}:){1,7}:)|(?::(?:(?::[0-9a-fA-F]{1,4}){1,7}|:))))/){
+
+#	print "ENcontre dire: $1\n";
+				$caddr=$1;
+				chomp($caddr);
+
+				if($#addrfilter>=0){
+					$filter= `addr6 -a $caddr $addrfilterstr`;
+
+					if($filter eq "ACCEPT"){
+						if(AddToQueue(\@addresses, $caddr)){
+							print "IPv6: $caddr\n";
+							$flag=1;
+						}
+
+						$fcaddr= `addr6 -a $caddr -P 48`;
+						AddtoQueue(\@addrhint, $fcaddr);
+					}
+					else{
+print "rechace $caddr\n";
+
+					}
+				}
+				else{
+					if(AddToQueue(\@addresses, $caddr)){
+						print "IPv6: $caddr\n";
+						$flag=1;
+					}
+
+					$fcaddr= `addr6 -a $caddr -P 48`;
+					AddToQueue(\@addrhint, $fcaddr);
+				}
+			}
+
+			if($line =~ m/^Found:\s+\S+\s+is\s+(\S+)/){
+				$candomain=lc($1);
+				chomp($candomain);
+				$candomain= join('.', split /\./, $candomain);
+
+				if($#domainfilter>=0){
+					for($j=0; $j <= $#domainfilter; $j++){
+						if( $candomain =~ m/$domainfilter[$j]$/){
+							if(AddToQueue(\@domains, $candomain)){
+								print "DOMAIN: $candomain\n";
+								$flag=1;
+							}
+
+							if(AddToQueue(\@domainhint, $candomain)){
+								$flag=1;		
+							}
+						}
+					}
+				}
+				else{
+					if(AddToQueue(\@domains, $candomain)){
+						print "DOMAIN: $candomain\n";
+						$flag=1;
+					}
+
+					if(AddToQueue(\@domainhint, $candomain)){
+						$flag=1;		
+					}
+				}
+			}
+		}
+	}
+
+	$raddrhint=$i;
+
+}while($flag || $raddrhint <= $#addrhint || $rdomainhint <= $#domainhint);
+

@@ -51,8 +51,10 @@ void					print_stats(struct stats6 *);
 
 unsigned char			stdin_f=FALSE, addr_f=FALSE, verbose_f=FALSE, decode_f=FALSE, block_duplicate_f=FALSE;
 unsigned char			block_duplicate_preflen_f=FALSE, stats_f=FALSE, filter_f=FALSE, canonic_f=FALSE;
-unsigned char			fixed_f=FALSE, print_unique_preflen_f= FALSE;
+unsigned char			fixed_f=FALSE, print_unique_preflen_f= FALSE, pattern_f=FALSE, response_f=FALSE;
 unsigned char			reverse_f=FALSE;
+unsigned int			pstart, pend;
+unsigned int			caddr=0, naddr=0;
 char					line[MAX_LINE_SIZE];
 
 extern char			*optarg;
@@ -70,17 +72,19 @@ int main(int argc, char **argv){
 	unsigned int		accept_type=0, block_type=0, accept_scope=0, block_scope=0, accept_itype=0, block_itype=0;
 	unsigned int		accept_utype=0, block_utype=0;
 
-	unsigned char		accepted_f=FALSE, acceptfilters_f=FALSE;
+	unsigned char		accepted_f=FALSE, acceptfilters_f=FALSE, duplicate_f=FALSE, flag_f=FALSE;
 
 	/* Block Filters */
-	struct in6_addr 	block[MAX_BLOCK];
-	uint8_t			blocklen[MAX_BLOCK];
+	struct in6_addr 	block[MAX_BLOCK], *ptable;
+	
+	uint32_t			*pcounter, pthres, pratio;
+	uint8_t				blocklen[MAX_BLOCK];
 	unsigned int		nblock=0;
 
 	/* Accept Filters */
 	struct in6_addr		accept[MAX_ACCEPT];
 	uint8_t				acceptlen[MAX_ACCEPT];
-	unsigned int		naccept=0;
+	unsigned int		naccept=0, i, j, k;
 
 	/* Filter based on prefix length */
 	uint8_t				dpreflen=128; /* To avoid warnings */
@@ -95,6 +99,8 @@ int main(int argc, char **argv){
 		{"print-fixed", no_argument, 0, 'f'},
 		{"print-reverse", no_argument, 0, 'r'},
 		{"print-stats", no_argument, 0, 's'},
+		{"print-pattern", required_argument, 0, 'x'},
+		{"print-response", no_argument, 0, 'R'},
 		{"block-dup", no_argument, 0, 'q'},
 		{"print-unique", no_argument, 0, 'Q'},
 		{"print-uni-preflen", required_argument, 0, 'P'},
@@ -114,7 +120,7 @@ int main(int argc, char **argv){
 		{0, 0, 0,  0 },
 	};
 
-	char shortopts[]= "a:icrdfsqQP:p:j:b:k:w:g:J:B:K:W:G:vh";
+	char shortopts[]= "a:icrdfsx:RqQP:p:j:b:k:w:g:J:B:K:W:G:vh";
 
 	char option;
 
@@ -562,6 +568,59 @@ int main(int argc, char **argv){
 
 				break;
 
+			case 'x':	/* Print pattern */
+				pattern_f=1;
+
+				if(sscanf(optarg, "/%u:/%u:%u%%", &pstart, &pend, &pratio) == 3){
+					if(pstart % 8 != 0 || pend % 8 != 0){
+						puts("Must specify range as /n1:/n2:p% where n1 and n2 are multiples of 8, and p is percentage");
+						exit(EXIT_FAILURE);
+					}
+
+					pstart= pstart/8;
+
+					if(pstart > 0)
+						pstart= pstart - 1;
+
+					pend= pend/8;
+
+					if(pend > 0)
+						pend= pend - 1;
+
+				}
+				else if(sscanf(optarg, "%u:%u:%u%%", &pstart, &pend, &pratio) != 3){
+					puts("Must specify range as n1:n2:, where n1 and n2 are smaller than 16, and p is a percentage");
+					exit(EXIT_FAILURE);
+				}
+
+				if(pstart >= pend || pstart > 15 || pend > 15){
+					puts("Inappropriate range for prefix analysis");
+					exit(EXIT_FAILURE);
+				}
+
+				if(pratio <= 0 || pratio > 100){
+					puts("Error: percentage must be larger than 0 and smaller (or equal) to 100\n");
+					exit(EXIT_FAILURE);
+				}
+
+				printf("N1: %u, N2: %u\n", pstart, pend);
+
+				if( (ptable= malloc(16 * MAX_ADDR_PATTERN)) == NULL){
+					puts("Not enough memory");
+					exit(EXIT_FAILURE);
+				}
+
+				if( (pcounter= malloc(sizeof(uint32_t) * MAX_ADDR_PATTERN)) == NULL){
+					puts("Not enough memory");
+					exit(EXIT_FAILURE);
+				}
+
+				break;
+
+			case 'R':	/* Be verbose */
+				response_f=TRUE;
+				break;
+
 			case 'v':	/* Be verbose */
 				verbose_f++;
 				break;
@@ -583,18 +642,24 @@ int main(int argc, char **argv){
 	/* Catch simultaneous use of incompatible addresses */
 
 	if(stdin_f && addr_f){
-		puts("Cannot specify both '-a' and '-s' at the same time (try only one of them at a time)");
+		puts("Cannot specify both '-a' and '-i' at the same time (try only one of them at a time)");
 		exit(EXIT_FAILURE);
 	}
 
 	if(!stdin_f && !addr_f){
-		puts("Must specify an IPv6 address with '-a', or set '-s' to read addresses from stdin");
+		puts("Must specify an IPv6 address with '-a', or set '-i' to read addresses from stdin");
 		exit(EXIT_FAILURE);
 	}
 
-	if(stats_f && !stdin_f){
-		puts("Cannot obtain statistics based on a single IPv6 address (should be using '-i')");
-		exit(EXIT_FAILURE);
+	if(!stdin_f){
+		if(stats_f){
+			puts("Cannot obtain statistics based on a single IPv6 address (should be using '-i')");
+			exit(EXIT_FAILURE);
+		}
+		else if(pattern_f){
+			puts("Cannot analyze pattern based on a single IPv6 address (should be using '-i')");
+			exit(EXIT_FAILURE);
+		}
 	}
 
 	if(block_duplicate_f && block_duplicate_preflen_f){
@@ -628,6 +693,7 @@ int main(int argc, char **argv){
 		memset(&stats, 0, sizeof(stats));
 	}
 
+
 	if(stdin_f){
 		while(fgets(line, MAX_LINE_SIZE, stdin) != NULL){
 			r= read_prefix(line, Strnlen(line, MAX_LINE_SIZE), &ptr);
@@ -646,32 +712,46 @@ int main(int argc, char **argv){
 
 				if(nblock){
 					if(match_ipv6(block, blocklen, nblock, &(addr.ip6))){
+						if(response_f)
+							puts("REJECT");
+
 						continue;
 					}
 				}
 
 				if(block_type || block_scope || block_itype || block_utype){
 					if( (block_type & addr.type) || (block_utype & addr.subtype)\
-						 || (block_scope & addr.scope) || (block_itype & addr.iidtype))
+						 || (block_scope & addr.scope) || (block_itype & addr.iidtype)){
+						if(response_f)
+							puts("REJECT");
+
 						continue;
+					}
 				}
 
 				if(block_duplicate_f && is_ip6_in_hashed_list(&hlist, &(addr.ip6))){
+					if(response_f)
+						puts("REJECT");
+
 					continue;
 				}
 				else if(block_duplicate_preflen_f || print_unique_preflen_f){
 					dummyipv6= addr.ip6;
 					sanitize_ipv6_prefix(&dummyipv6, dpreflen);
 
-					if(is_ip6_in_hashed_list(&hlist, &dummyipv6))
+					if(is_ip6_in_hashed_list(&hlist, &dummyipv6)){
+						if(response_f)
+							puts("REJECT");
+
 						continue;
+					}
 				}
 
 				accepted_f=0;
 
 				if(naccept){
 					if(match_ipv6(accept, acceptlen, naccept, &(addr.ip6)))
-						accepted_f= 1;
+						accepted_f= TRUE;
 				}
 
 				if(!accepted_f && (accept_type || accept_scope || accept_itype || accept_utype)){
@@ -680,9 +760,12 @@ int main(int argc, char **argv){
 						accepted_f= TRUE;
 				}
 
-				if(acceptfilters_f && !accepted_f)
-					continue;
+				if(acceptfilters_f && !accepted_f){
+					if(response_f)
+						puts("REJECT");
 
+					continue;
+				}
 				/*
 				   If we got here, and block_duplicate_f is TRUE, then this address is unique, and we must add it to
 				   the hashed list.
@@ -703,6 +786,11 @@ int main(int argc, char **argv){
 					}
 				}
 
+				if(filter_f && response_f){
+					puts("ACCEPT");
+					continue;
+				}
+
 				if(stats_f){
 					stat_ipv6_address(&addr, &stats);
 				}
@@ -711,6 +799,50 @@ int main(int argc, char **argv){
 				}
 				else if(reverse_f){
 						print_ipv6_address_rev(&(addr.ip6));
+				}
+				else if(pattern_f){
+					/* Analyze address pattern */
+					if(caddr >= MAX_ADDR_PATTERN){
+						puts("Too many addresses for pattern analysis. Filter them out in smaller subsets, and retry");
+						exit(EXIT_FAILURE);
+					}
+
+					*(ptable+caddr)=addr.ip6;
+
+/*
+					puts("Direcciones hasta ahora");
+					for(i=0; i<=caddr; i++){
+						if(inet_ntof(AF_INET6, ptable+caddr, pv6addr, sizeof(pv6addr)) == NULL){
+							puts("inet_ntof(): Error converting IPv6 address to fixed presentation format");
+							exit(EXIT_FAILURE);
+						}
+
+						printf("Addresss #%u: %s\n", i, pv6addr);
+					}
+
+					puts("");
+*/
+					/* Initialize counters for this address to 0 */
+					for(i=0; i<16; i++){
+						*(pcounter + (caddr * 16) + i)=0;
+					}
+
+					/* Compute differences in bytes */
+					for(naddr=0; naddr < caddr; naddr++){
+						for(j=0; j<4; j++){
+							for(k=0; k<4; k++){
+
+/*printf("Comparo: %08x con %08x\n", (ntohl((ptable+naddr)->s6_addr32[j]) & (0xff000000>>(k*8))) , (ntohl((ptable+caddr)->s6_addr32[j]) & (0xff000000>>(k*8))));*/
+								if(	(ntohl((ptable+naddr)->s6_addr32[j]) & (0xff000000>>(k*8))) != (ntohl((ptable+caddr)->s6_addr32[j]) & (0xff000000>>(k*8)))){
+									/* If the bytes were different, increment counters for both addresses */
+									(*(pcounter + (naddr * 16) + j * 4 + k))++;
+									(*(pcounter + (caddr * 16) + j * 4 + k))++;
+								}
+							}
+						}
+					}
+
+					caddr++;
 				}
 				else{
 					if(print_unique_preflen_f){
@@ -721,14 +853,14 @@ int main(int argc, char **argv){
 						prefstr[0]=0; /* zero-terminate the prefix string, since we don't need to print a prefix */
 					}
 
-					if(!fixed_f){
-						if(inet_ntop(AF_INET6, &(addr.ip6), pv6addr, sizeof(pv6addr)) == NULL){
-							puts("inet_ntop(): Error converting IPv6 address to presentation format");
+					if(fixed_f){
+						if(inet_ntof(AF_INET6, &(addr.ip6), pv6addr, sizeof(pv6addr)) == NULL){
+							puts("inet_ntof(): Error converting IPv6 address to fixed presentation format");
 							exit(EXIT_FAILURE);
 						}
 					}
 					else{
-						if(inet_ntof(AF_INET6, &(addr.ip6), pv6addr, sizeof(pv6addr)) == NULL){
+						if(inet_ntop(AF_INET6, &(addr.ip6), pv6addr, sizeof(pv6addr)) == NULL){
 							puts("inet_ntop(): Error converting IPv6 address to fixed format");
 							exit(EXIT_FAILURE);
 						}
@@ -742,20 +874,188 @@ int main(int argc, char **argv){
 		if(stats_f){
 			print_stats(&stats);
 		}
+
+		else if(pattern_f){
+			pthres= ((unsigned long) caddr * (100 - pratio)) / 100;
+
+			for(i=0; i < caddr; i++){
+				flag_f=0;
+
+				for(j=pstart; j<= pend; j++){
+					if(*(pcounter + i * 16 + j) <= pthres){
+						flag_f=1;
+					}
+				}
+
+				/*
+					If flag is set to 1, we identified some pattern -- the search space can be reduced
+				   We just need to avoid specifying the same range twice
+				*/
+
+				duplicate_f=0;
+
+				if(flag_f == 1){
+					/* We go around comparing the current address with al the previous ones */
+					for(j=0; (j<i) && !duplicate_f; j++){
+						for(k=pstart; k<=pend; k++){
+							/* In order for prefix to be duplicate:
+							   Both counters must be below threshold and be equal, or both must be or threshold
+							 */
+
+							if(*(pcounter + i * 16 + k) <= pthres){
+								if(*(pcounter + j * 16 + k) > pthres){
+									break;
+								}
+								else if((ntohl((ptable+i)->s6_addr32[k/4]) & (0xff000000>>((k%4)*8))) != (ntohl((ptable+j)->s6_addr32[k/4])\
+								 & (0xff000000>>((k%4)*8)))){
+									break;
+								}
+							}
+							else if(*(pcounter + j * 16 + k) <= pthres){
+								break;
+							}
+						}
+
+						if(k>pend){
+							duplicate_f=1;
+						}
+					}
+
+					if(!duplicate_f){
+						/* The address in 'i' is a unique range */
+						for(k=0;k<16; k++){
+							if(*(pcounter + i * 16 + k) <= pthres){							
+								/* (ntohl((ptable+i)->s6_addr32[k/4]) & (0xff000000>>((k%4)*8))) >> ( (3 - (k%4)) * 8) */
+								printf("%02x%s", ((ntohl((ptable+i)->s6_addr32[k/4]) & (0xff000000>>((k%4)*8)))   >> ( (3 - (k%4)) * 8)),   \
+												(k<15)?";":"\n");
+							}
+							else{
+								printf("0x00-0xff%s", (k<15)?";":"\n");
+							}
+						}
+					}
+				}
+			}
+
+/*
+			for(i=0; i < caddr; i++){
+				for(j=0; j<16; j++){
+					if(j==0){
+						printf("A%08x: ", i);
+					}
+					else if(j==8){
+						printf("\n           ");
+					}
+
+
+					printf("%08x ", *(pcounter + i * 16 + j));
+
+					if(j==15){
+						printf("\n\n");
+					}
+				}
+			}
+*/
+
+	puts("");
+			for(i=0; i < caddr; i++){
+				for(j=0; j<16; j++){
+					if(j==0){
+						printf("A%08x: ", i);
+					}
+					else if(j==8){
+						printf("\n           ");
+					}
+
+
+					printf("%08x ", *(pcounter + i * 16 + j));
+
+					if(j==15){
+						printf("\n\n");
+					}
+				}
+			}
+		}
 	}
 	else{
-		/* If we were not asked to decode the address, we should print it on stdout */
-		if(decode_f){
+		if(filter_f || decode_f)
 			decode_ipv6_address(&addr);
-			print_dec_address_script(&addr);
+
+
+		if(nblock){
+			if(match_ipv6(block, blocklen, nblock, &(addr.ip6))){
+				if(response_f)
+					puts("REJECT");
+
+				exit(EXIT_SUCCESS);
+			}
 		}
-		else if(canonic_f){
-			if(print_ipv6_address("", &(addr.ip6)) != EXIT_SUCCESS)
-				exit(EXIT_FAILURE);
+
+		if(block_type || block_scope || block_itype || block_utype){
+			if( (block_type & addr.type) || (block_utype & addr.subtype)\
+				 || (block_scope & addr.scope) || (block_itype & addr.iidtype)){
+				if(response_f)
+					puts("REJECT");		
+		
+				exit(EXIT_SUCCESS);
+			}
+		}
+
+		accepted_f=FALSE;
+
+		if(naccept){
+			if(match_ipv6(accept, acceptlen, naccept, &(addr.ip6)))
+				accepted_f= TRUE;
+		}
+
+		if(!accepted_f && (accept_type || accept_scope || accept_itype || accept_utype)){
+			if( (accept_type & addr.type) || (accept_utype & addr.subtype)\
+				 || (accept_scope & addr.scope) || (accept_itype & addr.iidtype))
+				accepted_f= TRUE;
+		}
+
+		if(acceptfilters_f && !accepted_f){
+			if(response_f)
+				puts("REJECT");
+
+			exit(EXIT_SUCCESS);
+		}
+
+		if(filter_f && accepted_f){
+			puts("ACCEPT");
+			exit(EXIT_SUCCESS);
+		}
+
+		if(print_unique_preflen_f){
+			sanitize_ipv6_prefix(&(addr.ip6), dpreflen);
+			snprintf(prefstr, sizeof(prefstr), "/%u", (unsigned int) dpreflen);
+		}
+		else{
+			prefstr[0]=0; /* zero-terminate the prefix string, since we don't need to print a prefix */
+		}
+
+		if(decode_f){
+			print_dec_address_script(&addr);
 		}
 		else if(reverse_f){
 			if(print_ipv6_address_rev(&(addr.ip6)) != EXIT_SUCCESS)
 				exit(EXIT_FAILURE);
+		}
+		else if(fixed_f){
+			if(inet_ntof(AF_INET6, &(addr.ip6), pv6addr, sizeof(pv6addr)) == NULL){
+				puts("inet_ntof(): Error converting IPv6 address to fixed presentation format");
+				exit(EXIT_FAILURE);
+			}
+
+			printf("%s%s\n", pv6addr, prefstr);
+		}
+		else{
+			if(inet_ntop(AF_INET6, &(addr.ip6), pv6addr, sizeof(pv6addr)) == NULL){
+				puts("inet_ntop(): Error converting IPv6 address to fixed format");
+				exit(EXIT_FAILURE);
+			}
+
+			printf("%s%s\n", pv6addr, prefstr);
 		}
 	}
 
@@ -1256,6 +1556,7 @@ void print_help(void){
 	puts("\nOPTIONS:\n"
 	     "  --address, -a             IPv6 address to be decoded\n"
 	     "  --stdin, -i               Read IPv6 addresses from stdin (standard input)\n"
+		 "  --print-fixed, -f         Print addresses in expanded/fixed format\n"
 	     "  --print-canonic, -c       Print IPv6 addresses in canonic form\n"
 	     "  --print-reverse, -r       Print reversed IPv6 address\n"
 	     "  --print-decode, -d        Decode IPv6 addresses\n"

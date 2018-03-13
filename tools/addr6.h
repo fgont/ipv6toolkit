@@ -3,7 +3,8 @@
 #define MAX_TYPE_SIZE			25
 #define MAX_LIST_ENTRIES		65535
 #define MAX_HOST_ENTRIES		4000000000
-
+#define MAX_ADDR_PATTERN		10000000
+#define MAX_ADDR_FILTERS		MAX_ADDR_PATTERN/100
 
 /* Filter Constants */
 #define MAX_BLOCK			50
