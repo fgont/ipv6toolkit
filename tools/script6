@@ -276,7 +276,7 @@ sub TLDForRIR{
 					}
 					elsif(!$iso2){
 						if($line=~/<td\s+class="cc-(?:white|grey)">([^<*]+)[*\s]*<\/td>/){
-							$iso2=$1;
+							$iso2=lc($1);
 						}
 					}
 					elsif(!$iso3){
@@ -290,7 +290,7 @@ sub TLDForRIR{
 
 							if($rir=~ m/$trir/i){
 								if($iso2 eq "GB" || $iso2 eq "gb"){
-									print "UK\n";
+									print "uk\n";
 								}
 								else{
 									print "$iso2\n";
