@@ -565,6 +565,439 @@ sub GetRandomUserAgent{
 
 
 
+sub GetDomainsFromBingDict{
+#		GetDomainsFromCrawler(\@domain, $czone, $level, $maxresults);	
+		my($pdomain, $pzone, $plevel, $pmaxresults, $dictfp) = @_;
+		my $czone=$pzone;
+
+		$MAXREMOVEDSITES=25;
+
+# Now set from the config file
+#		$MAXTIMEPERIOD=10;
+
+#		$maxtime=$MAXTIMEPERIOD;
+
+#		if($maxtime < 5){
+#			$maxtime=5;
+#		}
+
+		$MAXCNNORESULTS=125;
+		$MINCNNORESULTS= 10;
+
+		$limcnnoresults= $MAXCNNORESULTS/($plevel+1);
+
+		if($limcnnoresults < $MINCNNORESULTS){
+			$limcnnoresults= $MINCNNORESULTS;
+		}
+
+		$MAXCCOLLISIONS= 20;
+		$MINCCOLISSIONS= 10;
+		$limccollisions= $MAXCCOLLISIONS/($plevel+1);
+
+		if($limccollisions < $MINCCOLISSIONS){
+			$limccollisions= $MINCCOLISSIONS;
+		}
+
+
+		# This triggers a change in search string after cumulative number of pages that resulted
+		# in 100% collisions
+		$cphaseonesubone= $limccollisions/3;
+		if($cphaseonesubone<4){
+			$cphaseonesubone=4;
+		}
+
+		# This triggers changes in subphases that should change faster
+		$csubphase= $limccollisions/4;
+		if($csubphase < 10){
+			$csubphase=10;
+		}
+
+		$MAXBLANKPAGE= 25;
+		$MINBLANKPAGE= 5;
+
+		$limblankpage= $MAXBLANKPAGE/($plevel+1);
+
+		if($limblankpage < $MINBLANKPAGE){
+			$limblankpage= $MINBLANKPAGE;
+		}
+
+
+		$maxresults= $pmaxresults;
+
+		$cur= 1;
+		$nresults=0;
+		$fpzeromatch=0;
+		$nzeromatch=0;
+		$czeromatch=0;
+		$ncollisions=0;
+		$ccollisions=0;
+		$cnnoresults=0;
+		$continue=1;
+		$phase=0;
+		$subphase=0;
+		$heur="";
+		$sitesstr="";
+		$ftstr="";
+		$remsites="";
+		$totalqueries=0;
+
+		do{   # Iteration for each page
+			$matches=0;
+			$totalmatches=0;
+			$collisions=0;
+			$hasnext=0;
+			$noresults=0;
+			$trydifferent=0;
+
+			# --user-agent "Mozilla/4.0"  works fine most of the time. curl || wget original headers cause trouble.
+			$useragent=GetRandomUserAgent();
+
+			$stringcommand="$wwwclient $wwwclient_sopt $wwwclient_tout $wwwclient_agnt\"$useragent\" \"https://www.bing.com/search?q=site%3A$czone$sitesstr$heur&first=$cur\"";
+			print "# $stringcommand\n";
+
+
+			@revname=`$wwwclient $wwwclient_sopt $wwwclient_tout $wwwclient_agnt"$useragent" "https://www.bing.com/search?q=site%3A$czone$sitesstr$heur&first=$cur"`;
+
+
+			$totalqueries++;
+
+			if($? == 0){
+				foreach $line (@revname){
+					if($line=~ m/<div class="sw_next">[^<]+<\/div><\/a>/){
+						$hasnext=1;
+					}
+
+					if($line=~ m/<ol id="b_results" role="main" aria-label="[^"]+"><li class="b_no">\s*<h1>/){
+						$noresults=1;
+						$cnnoresults++;
+
+#						if($cnnoresults >= $limcnnoresults){
+#							$continue=0;
+#						}
+
+						# If got no results, try a different word
+						$trydifferent=1;
+
+					}
+
+					while(!$trydifferent && $continue && $line =~ s/<h2[^>]*><a href="https?[^"\/]*\/\/([^"\/]*)//){
+						$totalmatches++;
+						$grabbeddomain= $1;
+
+
+						if($grabbeddomain !~ m/$czone(:\d+)?/){
+							#print "##### DEBUG: Discarded $grabbeddomain\n";
+							next;
+						}
+
+						$matches++;
+						$nzeromatch=0;
+						$czeromatch=0;
+
+						for($i=0; $i<= $#$pdomain; $i++){
+							if($pdomain->[$i] eq $grabbeddomain){
+								$collisions++;
+								last;
+							}
+						}
+
+						if($i > $#$pdomain){
+							if($maxresults < 0 || ($maxresults >= 0 &&  $#$pdomain < $maxresults)){
+								$pdomain->[$#$pdomain + 1]=$grabbeddomain;
+								print "$grabbeddomain\n";
+								$nresults++;
+							}
+							else{
+								$continue=0;
+							}
+						}
+
+						if($maxresults >= 0 && $#$pdomain >=$maxresults){
+							$continue=0;
+						} 
+					}
+				}
+
+				#  There are a number of posible results:
+				#
+				# 1) We didn't get any results:
+				#     a) because search engine banned us (condition: no matches, but no "no results" page)
+				#        ACTION: Wait for some time, and retry with same query string and same "results page"
+				#     b) Because the query string didn't yield results (condition: "no results" page)
+				#        ACTION: First couple of times, wait a bit, and retry. Otherwise, change the query string. And
+				#                if we hit the threshold of "no results", quit.
+				# 2) We got results:
+				#     a) Some were new results
+				#        ACTION: Keep searching
+				#     b) All were collisions
+				#        ACTION: If we hit threshold, change query string. Otherwise, keep searching
+
+				$trydifferent=0;
+
+				if($totalmatches == 0){
+					#print "#### DEBUG: GOT NO MATCHES ####\n";
+					if($noresults == 1){
+						#print "#### DEBUG: GOT NO RESULTS ####\n";
+						if($nzeromatch == 0){
+							$fpzeromatch=$cur;  # Record "when" this happened
+						}
+
+						$nzeromatch++;
+
+						# The continue = 0 condition was set above, anyway
+						#if($cnnoresults > $limcnnoresults){
+							# If we get "no results" after 25 pages we quit
+							# print "#### Bing showed no results for our query, after retries. Quitting.... ####\n";
+						#	$continue=0;
+						#}
+						#else{
+							# Before we were trying the same query. But it does not really make sense.
+						#	$trydifferent=1;
+						#}
+
+						# When working with dictionaries, it is expected that some wrods do not yield any results
+						$trydifferent=1;
+					}
+					else{
+						#print "#### DEBUG: GOT BLANK PAGE ####\n";
+
+						# If we dn't even get a page that says "no results", we assume we have been banned. Back off, and retry.
+						if($nzeromatch == 0){
+							$fpzeromatch=$cur;  # Record "when" this happened
+							#print "# Offset: $fpzeromatch\n";
+						}
+
+						$nzeromatch++;
+						$czeromatch++;
+
+						# If it is the first time the main regex fails, chances are that bing has "banned" us. Wait a bit, and retry.
+						#print "#### DEBUG: SLEEP A BIT ####\n";
+						sleep(rand(($nzeromatch)*15));
+
+						#if($nzeromatch > $limblankpage || $czeromatch  > $limblankpage){
+							# If we get nothing after 25 pages we quit
+							#print "#### Bing has banned us. Quitting.... ####\n";
+							#$continue=0;
+						#}
+
+						if($nzeromatch > $limblankpage){
+							# If we get nothing after 25 pages we quit
+							$trydifferent=1;
+						}
+
+						if($plevel > 0 && $nzeromatch > 2){
+							$trydifferent=1;
+						}
+					}
+				}
+				else{
+					# We did get search results
+
+					# If all were collisions, count the number of collisions to exit on threshold.
+					if($collisions >= $matches){
+						#print "#### DEBUG: GOT ALL COLLISIONS ####\n";
+						$ncollisions++;
+						$ccollisions++;  # Cumulative colissions even across changes in search string
+
+						if($ncollisions > $csubphase){
+							$trydifferent=1;
+						}
+
+						$cur= $cur+ $totalmatches;
+					}
+					else{
+						$difmatch=$totalmatches-$matches;
+						# Not all results were collisions. So get the next search results.
+						$cur= $cur+$totalmatches;
+						$ncollisions=0;
+						$ccollisions=0;
+						#print "### GOT NEW DATA ####\n"
+					}
+
+					# If last search didn't have "Next results", we have no other option than changing the query stringg
+					if($hasnext == 0){
+						#print "#### DEBUG: NO NEXT RESULTS ####\n";
+						$trydifferent=1;
+					}
+
+				}  # if/else on whether there were matches
+
+				if($trydifferent == 1){
+					# subfase0: no pongo nada extra
+					# subfase1: tipos de archivos
+					# subfase2: elimino sites
+					# subfase3: elimino sites sin www;
+					# subfase4: tipos de archivo + elimino sites	
+					# subfase5: tipos de archivo ´+ sites sin www
+
+					while($dictword=<$dictfp>){
+						if( $dictword =~ m/[^0-9|\/]+/){
+							break;
+						}
+					}
+
+					if(!$dictword){
+						return;
+					}
+
+					$heur="+$1";
+
+					$trydifferent=0;
+				}  # End of "trydifferent"
+			}  # End of $? (result of wget)
+		}while($? == 0 && $continue == 1);
+
+
+		if($maxresults > 0 && $#$pdomain >= $maxresults){
+			return;
+		}
+
+
+		# We will now exclude next level domains
+
+		undef @remsites;
+
+		GenDomListLevel($pdomain, \@remsites, $czone, 1, $MAXREMOVEDSITES);
+
+		$continue=1;
+
+		for($jjj= 0; $jjj <= $#remsites && $continue == 1; $jjj++){
+			$cur= 1;
+
+			$sitesstr= GenRemListStr(\@remsites, $jjj);
+			$trydifferent=0;
+
+			do{   # Iteration for each page
+				$matches=0;
+				$totalmatches=0;
+				$collisions=0;
+				$hasnext=0;
+				$noresults=0;
+
+				$useragent=GetRandomUserAgent();
+
+
+				$stringcommand="$wwwclient $wwwclient_sopt $wwwclient_tout $wwwclient_agnt\"$useragent\" \"https://www.bing.com/search?q=site%3A$czone$sitesstr&first=$cur\"";
+				print "# $stringcommand\n";
+
+
+				@revname=`$wwwclient $wwwclient_sopt $wwwclient_tout $wwwclient_agnt"$useragent" "https://www.bing.com/search?q=site%3A$czone$sitesstr&first=$cur"`;
+
+				$totalqueries++;
+
+				if($? == 0){
+					foreach $line (@revname){
+						if($continue == 0){
+							last;
+						}
+
+						if($line=~ m/<div class="sw_next">[^<]+<\/div><\/a>/){
+							$hasnext=1;
+						}
+
+						if($line=~ m/<ol id="b_results" role="main" aria-label="[^"]+"><li class="b_no">\s*<h1>/){
+							$noresults=1;
+						}
+
+						while($continue && $line =~ s/<h2[^>]*><a href="https?[^"\/]*\/\/([^"\/]*)//){
+							$totalmatches++;
+							$grabbeddomain= $1;
+
+							if($grabbeddomain !~ m/$czone(:\d+)?/){
+								next;
+							}
+
+							$matches++;
+							$nzeromatch=0;
+
+							for($k=0; $k<= $#$pdomain; $k++){
+								if($pdomain->[$k] eq $grabbeddomain){
+									$collisions++;
+									last;
+								}
+							}
+
+
+							if($k > $#$pdomain){
+								if($maxresults < 0 || ($maxresults >= 0 &&  $#$pdomain < $maxresults)){
+									$pdomain->[$#$pdomain + 1]=$grabbeddomain;
+									print "$grabbeddomain\n";
+									$nresults++;
+								}
+								else{
+									$continue=0;
+								}
+							}
+
+							if($maxresults >= 0 && $#$pdomain>=$maxresults){
+								$continue=0;
+							} 
+						} # while() that reads lines
+					}  # foreach $line
+
+					$trydifferent=0;
+
+					if($totalmatches == 0){
+						if($noresults == 1){
+							$trydifferent=1;
+						}
+						else{
+							#print "#### DEBUG: GOT BLANK PAGE ####\n";
+							$nzeromatch++;
+
+							# If it is the first time the main regex fails, chances are that bing has "banned" us. Wait a bit, and retry.
+							#print "#### DEBUG: SLEEP A BIT ####\n";
+							sleep(rand(($nzeromatch)*20));
+
+							if($nzeromatch > 5){
+								#	print "#### Bing has banned us. Quitting.... ####\n";
+								$trydifferent=1;
+							}
+						}
+					}
+					else{
+						# We did get search results
+
+						# If all were collisions, count the number of collisions to exit on threshold.
+						if($collisions >= $matches){
+							#print "#### DEBUG: GOT ALL COLLISIONS ####\n";
+							$ncollisions++;
+
+							if($ncollisions >= 10){
+								$trydifferent=1;
+							} 
+
+							$cur= $cur+ $totalmatches;
+						}
+						else{
+							$difmatch=$totalmatches-$matches;
+							# Not all results were collisions. So get the next search results.
+							$cur= $cur+$totalmatches;
+							$ncollisions=0;
+						}
+
+						# If last search didn't have "Next results", we have no other option than changing the query stringg
+						if($hasnext == 0){
+							#print "#### DEBUG: NO NEXT RESULTS ####\n";
+							$trydifferent=1;
+						}
+					}  # if/else on whether there were matches
+				}  # End of $? (result of wget)
+			}while($? == 0 && $trydifferent == 0);
+
+			if($#remsites < ($MAXREMOVEDSITES-1)){
+				# If list is not complete, attempt to complete it
+				GenDomListLevel($pdomain, \@remsites, $czone, 1, $MAXREMOVEDSITES);
+			}
+		} # for that adds new removed sites;
+}
+
+
+
+
+
+
+
 sub GetDomainsFromBing{
 #		GetDomainsFromCrawler(\@domain, $czone, $level, $maxresults);	
 		my($pdomain, $pzone, $plevel, $pmaxresults) = @_;
@@ -1127,6 +1560,16 @@ sub GetDomainsFromBing{
 }
 
 
+
+
+
+
+
+
+
+
+
+
 sub GetDomainsFromBingbis{
 #		GetDomainsFromCrawler(\@domain, $czone, $level, $maxresults);	
 		my($pdomain, $pzone, $plevel, $pmaxresults) = @_;
@@ -1687,6 +2130,8 @@ sub GetDomainsFromBingbis{
 			}
 		} # for that adds new removed sites;
 }
+
+
 
 
 sub GetDomainsFromBingTT{
@@ -5052,7 +5497,7 @@ elsif($ARGV[0] eq "get-dns6-rev-batch" || $ARGV[0] eq "get-dns6-rev-batch"){
 		print "\n\n";
 	}
 }
-elsif($ARGV[0] eq "get-suffix-for-tld"){
+elsif($ARGV[0] eq "get-suffix-for-tld" || $ARGV[0] eq "get-suffixes-for-tld"){
 	if($#ARGV > 1){
 		print "Syntax: script6 get-iso2-for-country COUNTRY\n";
 		exit 1;
@@ -5528,6 +5973,96 @@ elsif($ARGV[0] eq "get-bing"){
 			else{
 				$continue=1;
 			}
+		}
+
+		$domlevel++;
+		undef @levsites;
+		GenDomListLevel(\@domain, \@levsites, $czone, $domlevel, -1);
+	}  # While lev > 0;
+
+	exit;
+}
+elsif($ARGV[0] eq "get-bing-dict"){
+
+# XXX: Como es lo del - y +?
+# curl  -s   --max-time 10   --user-agent "Mozilla/5.0 (Macintosh; Intel Mac OS 
+#X 10_9_2) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/36.0.1944.0 Safari/537.3
+#6" "https://www.bing.com/search?q=site%3Asantanderrio.com.ar+-site%3apersonas.sa
+#ntanderrio.com.ar+-site%3acash.santanderrio.com.ar&first=81"
+
+	#
+	# $ARGV[0]: get-bin-dict
+	# $ARGV[1]: domain
+	# $ARGV[2]: dictionary
+	# $ARGV[3]: maxsites
+
+	if($#ARGV < 1 || $#ARGV > 3){
+		print "Syntax: script6 get-bing DOMAIN [MAXRESULTS]\n";
+		exit 1;
+	}
+
+	if($#ARGV == 3){
+		$maxresults= $ARGV[3];
+
+		if($maxresults == 0){
+			exit 0;
+		}
+
+		$maxresults--;
+	}
+	else{
+		$maxresults= -1;
+	}
+
+	$dictfile= $ARGV[2];
+
+	ParseConfigFile();
+	undef @domain;
+
+	$_= $ARGV[1];
+
+	if($_ =~ m/^\s*\.*([-a-zA-Z0-9._]+)/){
+		$czone= $1;
+	}
+	else{
+		next;
+	}
+
+
+
+	print "######## DOMAIN: $czone ########\n";
+
+#	open FILE, "$dictfile" or die $!;
+	open my $dictfp, '<', $dictfile or die $!;
+	GetDomainsFromBingDict(\@domain, $czone, 0, $maxresults, $dictfp);	
+	close $dictfp;
+
+	#print "#### IMPORTANT: WILL NOW SEARCH FOR DOMAINS WITHIN SPECIFIC SUBDOMAINS\n";
+	undef @remsites;
+	undef @levsites;
+	$continue=1;
+
+	$domlevel=1;
+	GenDomListLevel(\@domain, \@levsites, $czone, $domlevel, -1);
+
+	while($#levsites >= 0 && $continue == 1){
+		#print "#### LEVEL: $domlevel, TOTAL: $#levsites\n\n#LIST:\n";
+
+		for($jj= 0; $jj <= $#levsites && $continue == 1; $jj++){
+			$newczone= $levsites[$jj];
+
+			#	open FILE, "$dictfile" or die $!;
+			open my $dictfp, '<', $dictfile or die $!;
+
+			GetDomainsFromBingDict(\@domain, $newczone, $domlevel, $maxresults, $dictfp);
+			if($maxresults >= 0 && $#domain>=$maxresults){
+				$continue=0;
+			}
+			else{
+				$continue=1;
+			}
+
+			close $dictfp;
 		}
 
 		$domlevel++;
