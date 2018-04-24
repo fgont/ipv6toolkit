@@ -834,8 +834,10 @@ sub GetDomainsFromBingDict{
 					$dictkeyword="";
 					while($dictword=<$dictfp>){
 #print "# Lei: $dictword";
-						if( $dictword =~ m/([a-zA-Záéíóú]+[a-zA-Z0-9áéíóú]*)/){
-$dictkeyword=$1;
+#						if( $dictword =~ m/([^\/0-9\s]+[^\/0-9]*)/){
+						if( $dictword =~ m/([^\/0-9\n]+)/){
+							$dictkeyword=$1;
+							$dictkeyword=~ s/ /%20/g;
 #print "# Palabra leida: $dictkeyword\n";
 							last;
 						}
@@ -843,7 +845,7 @@ $dictkeyword=$1;
 
 					if(!$dictword){
 #print "# Error al leer palabra\n";
-						return;
+						$continue=0;
 					}
 					else{
 #print "# Palabra seleccionada: $dictkeyword\n";
@@ -855,15 +857,17 @@ $dictkeyword=$1;
 					$trydifferent=0;
 				}  # End of "trydifferent"
 			}  # End of $? (result of wget)
-		}while($? == 0 && $continue == 1);
 
-		if($? != 0){
-			print "# \$? was different from 0 (\$?== $?)\n";
-		}
+			if($? != 0){
+				print "# \$? was different from 0 (\$?== $?)\n";
+			}
 
-		if($continue != 1){
-			print "# \$continue was different from 1 (\$continue== $continue)\n";
-		}
+		}while($continue == 1);
+#	was: }while($? == 0 && $continue == 1);
+
+#		if($continue != 1){
+#			print "# \$continue was different from 1 (\$continue== $continue)\n";
+#		}
 
 		if($maxresults > 0 && $#$pdomain >= $maxresults){
 			return;
