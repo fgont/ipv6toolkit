@@ -19,6 +19,7 @@ Usage: script6 COMMAND [PARAMETERS]
    get-alexa-domains: Obtain list of domain names from Alexa's file
    get-majestic-domains: Obtain list of domain names from Majestic's file
    get-bing: Search for domains with the Bing search engine
+   get-bing-dict: Search for domains with Bing using a dictionary
    get-bing-batch: Search for domains with Bing (from STDIN)
    get-teoma: Search for domains with the Teoma search engine
    get-teoma-batch: Search domains with the Teoma search engine (STDIN)
@@ -652,8 +653,8 @@ sub GetDomainsFromBingDict{
 			# --user-agent "Mozilla/4.0"  works fine most of the time. curl || wget original headers cause trouble.
 			$useragent=GetRandomUserAgent();
 
-			$stringcommand="$wwwclient $wwwclient_sopt $wwwclient_tout $wwwclient_agnt\"$useragent\" \"https://www.bing.com/search?q=site%3A$czone$sitesstr$heur&first=$cur\"";
-			print "# $stringcommand\n";
+#			$stringcommand="$wwwclient $wwwclient_sopt $wwwclient_tout $wwwclient_agnt\"$useragent\" \"https://www.bing.com/search?q=site%3A$czone$sitesstr$heur&first=$cur\"";
+#			print "# $stringcommand\n";
 
 
 			@revname=`$wwwclient $wwwclient_sopt $wwwclient_tout $wwwclient_agnt"$useragent" "https://www.bing.com/search?q=site%3A$czone$sitesstr$heur&first=$cur"`;
@@ -830,23 +831,39 @@ sub GetDomainsFromBingDict{
 					# subfase4: tipos de archivo + elimino sites	
 					# subfase5: tipos de archivo ´+ sites sin www
 
+					$dictkeyword="";
 					while($dictword=<$dictfp>){
-						if( $dictword =~ m/[^0-9|\/]+/){
-							break;
+#print "# Lei: $dictword";
+						if( $dictword =~ m/([a-zA-Záéíóú]+[a-zA-Z0-9áéíóú]*)/){
+$dictkeyword=$1;
+#print "# Palabra leida: $dictkeyword\n";
+							last;
 						}
 					}
 
 					if(!$dictword){
+#print "# Error al leer palabra\n";
 						return;
 					}
+					else{
+#print "# Palabra seleccionada: $dictkeyword\n";
+					}
 
-					$heur="+$1";
+					$heur="+$dictkeyword";
+					$cur=1;
 
 					$trydifferent=0;
 				}  # End of "trydifferent"
 			}  # End of $? (result of wget)
 		}while($? == 0 && $continue == 1);
 
+		if($? != 0){
+			print "# \$? was different from 0 (\$?== $?)\n";
+		}
+
+		if($continue != 1){
+			print "# \$continue was different from 1 (\$continue== $continue)\n";
+		}
 
 		if($maxresults > 0 && $#$pdomain >= $maxresults){
 			return;
@@ -877,8 +894,8 @@ sub GetDomainsFromBingDict{
 				$useragent=GetRandomUserAgent();
 
 
-				$stringcommand="$wwwclient $wwwclient_sopt $wwwclient_tout $wwwclient_agnt\"$useragent\" \"https://www.bing.com/search?q=site%3A$czone$sitesstr&first=$cur\"";
-				print "# $stringcommand\n";
+#				$stringcommand="$wwwclient $wwwclient_sopt $wwwclient_tout $wwwclient_agnt\"$useragent\" \"https://www.bing.com/search?q=site%3A$czone$sitesstr&first=$cur\"";
+#				print "# $stringcommand\n";
 
 
 				@revname=`$wwwclient $wwwclient_sopt $wwwclient_tout $wwwclient_agnt"$useragent" "https://www.bing.com/search?q=site%3A$czone$sitesstr&first=$cur"`;
@@ -5983,21 +6000,14 @@ elsif($ARGV[0] eq "get-bing"){
 	exit;
 }
 elsif($ARGV[0] eq "get-bing-dict"){
-
-# XXX: Como es lo del - y +?
-# curl  -s   --max-time 10   --user-agent "Mozilla/5.0 (Macintosh; Intel Mac OS 
-#X 10_9_2) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/36.0.1944.0 Safari/537.3
-#6" "https://www.bing.com/search?q=site%3Asantanderrio.com.ar+-site%3apersonas.sa
-#ntanderrio.com.ar+-site%3acash.santanderrio.com.ar&first=81"
-
 	#
 	# $ARGV[0]: get-bin-dict
 	# $ARGV[1]: domain
 	# $ARGV[2]: dictionary
 	# $ARGV[3]: maxsites
 
-	if($#ARGV < 1 || $#ARGV > 3){
-		print "Syntax: script6 get-bing DOMAIN [MAXRESULTS]\n";
+	if($#ARGV < 2 || $#ARGV > 3){
+		print "Syntax: script6 get-bing-dict DOMAIN DICTIONARY [MAXRESULTS]\n";
 		exit 1;
 	}
 
