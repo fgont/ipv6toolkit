@@ -5518,6 +5518,50 @@ elsif($ARGV[0] eq "get-dns6-rev-batch" || $ARGV[0] eq "get-dns6-rev-batch"){
 		print "\n\n";
 	}
 }
+elsif($ARGV[0] eq "get-sublister-batch" || $ARGV[0] eq "get-sublist3r-batch"){
+	if($#ARGV != 1){
+		print "Usage: script6 get-sublister-batch SUBLISTERPATH\n";
+		exit(1);
+	}
+
+	@revname=`whoami`;
+	$user= $revname[0];
+	chomp($user);
+	@revname=`hostname`;
+	$hostname= $revname[0];
+	chomp($hostname);
+
+	while($domain=<STDIN>){
+		chomp($domain);
+
+		# Skip lines with comments
+		if($domain =~ m/^\s*#/){
+			next;
+		}
+
+		$domain=~ s/[^-a-zA-Z0-9._]//g;
+
+		@revname=`date --iso-8601=seconds -u`;
+		$datetime=$revname[0];
+		$datetime=~ s/[ :+]//g;
+		chomp($datetime);
+		$filename="$domain-$datetime-$hostname-$user.txt";
+		#open FILE, ">$filename" or die $!;
+		#close FILE;
+
+
+		undef @revname;
+		@revname=`$ARGV[1] -d $domain -o $filename 2>&1`;
+
+#		print "#### DOMAIN: $domain ####\n\n";
+#
+#		foreach $line (@revname){
+#			print "$line";
+#		}
+
+#		print "\n\n";
+	}
+}
 elsif($ARGV[0] eq "get-suffix-for-tld" || $ARGV[0] eq "get-suffixes-for-tld"){
 	if($#ARGV > 1){
 		print "Syntax: script6 get-iso2-for-country COUNTRY\n";
@@ -6039,7 +6083,8 @@ elsif($ARGV[0] eq "get-bing-dict"){
 		$czone= $1;
 	}
 	else{
-		next;
+		print "Invalid DNS zone\n";
+		exit(1);
 	}
 
 
@@ -6083,6 +6128,83 @@ elsif($ARGV[0] eq "get-bing-dict"){
 		undef @levsites;
 		GenDomListLevel(\@domain, \@levsites, $czone, $domlevel, -1);
 	}  # While lev > 0;
+
+	exit;
+}
+elsif($ARGV[0] eq "get-bing-dict-batch"){
+	if($#ARGV < 1 ){
+		print "usage: script6 get-bing-dict-batch DICTIONARY [MAXRESULTS]\n";
+		exit(1);
+	}
+
+	if($#ARGV > 1){
+		$maxresults= $ARGV[2];
+		$maxresults--;
+
+		if($maxresults < 0){
+			exit(0);
+		}
+	}
+	else{
+		$maxresults= -1;
+	}
+
+	$dictfile= $ARGV[1];
+	ParseConfigFile();
+
+	while(<STDIN>){
+
+
+		undef @domain;
+
+		if($_ =~ m/^\s*\.*([-a-zA-Z0-9.]+)/){
+			$czone= $1;
+		}
+		else{
+			next;
+		}
+
+		print "######## DOMAIN: $czone ########\n";
+
+
+		open my $dictfp, '<', $dictfile or die $!;
+		GetDomainsFromBingDict(\@domain, $czone, 0, $maxresults, $dictfp);	
+		close $dictfp;
+
+		#print "#### IMPORTANT: WILL NOW SEARCH FOR DOMAINS WITHIN SPECIFIC SUBDOMAINS\n";
+		undef @remsites;
+		undef @levsites;
+		$continue=1;
+
+		$domlevel=1;
+		GenDomListLevel(\@domain, \@levsites, $czone, $domlevel, -1);
+
+
+		while($#levsites >= 0 && $continue == 1){
+			#print "#### LEVEL: $domlevel, TOTAL: $#levsites\n\n#LIST:\n";
+
+			for($jj= 0; $jj <= $#levsites && $continue == 1; $jj++){
+				$newczone= $levsites[$jj];
+
+				#	open FILE, "$dictfile" or die $!;
+				open my $dictfp, '<', $dictfile or die $!;
+
+				GetDomainsFromBingDict(\@domain, $newczone, $domlevel, $maxresults, $dictfp);
+				if($maxresults >= 0 && $#domain>=$maxresults){
+					$continue=0;
+				}
+				else{
+					$continue=1;
+				}
+
+				close $dictfp;
+			}
+
+			$domlevel++;
+			undef @levsites;
+			GenDomListLevel(\@domain, \@levsites, $czone, $domlevel, -1);
+		}  # While lev > 0;
+	};  # while(<STDIN>)
 
 	exit;
 }
