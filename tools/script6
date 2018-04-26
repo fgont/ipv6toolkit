@@ -516,8 +516,6 @@ sub GenRemListStr{
 }
 
 
-
-
 sub GetRandomUserAgent{
 	$uagent[0]="Mozilla/5.0 (Windows NT 6.1; WOW64; rv:40.0) Gecko/20100101 Firefox/40.1";
 	$uagent[1]="Mozilla/5.0 (Windows NT 6.3; rv:36.0) Gecko/20100101 Firefox/36.0";
@@ -655,7 +653,7 @@ sub GetDomainsFromBingDict{
 			$useragent=GetRandomUserAgent();
 
 			$stringcommand="$wwwclient $wwwclient_sopt $wwwclient_tout $wwwclient_agnt\"$useragent\" \"https://www.bing.com/search?q=site%3A$czone$sitesstr$heur&first=$cur\"";
-#			print "# $stringcommand\n";
+			print "# $stringcommand\n";
 
 
 			@revname=`$wwwclient $wwwclient_sopt $wwwclient_tout $wwwclient_agnt"$useragent" "https://www.bing.com/search?q=site%3A$czone$sitesstr$heur&first=$cur"`;
@@ -834,6 +832,7 @@ sub GetDomainsFromBingDict{
 
 					$dictkeyword="";
 					while($dictword=<$dictfp>){
+						chomp($dictword);
 						$lineno++;
 
 #print "# Lei: $dictword";
