@@ -860,6 +860,7 @@ sub GetDomainsFromBingDict{
 
 			if($? != 0){
 				print "# \$? was different from 0 (\$?== $?)\n";
+				$totalqueries--;
 			}
 
 		}while($continue == 1);
@@ -900,7 +901,6 @@ sub GetDomainsFromBingDict{
 
 #				$stringcommand="$wwwclient $wwwclient_sopt $wwwclient_tout $wwwclient_agnt\"$useragent\" \"https://www.bing.com/search?q=site%3A$czone$sitesstr&first=$cur\"";
 #				print "# $stringcommand\n";
-
 
 				@revname=`$wwwclient $wwwclient_sopt $wwwclient_tout $wwwclient_agnt"$useragent" "https://www.bing.com/search?q=site%3A$czone$sitesstr&first=$cur"`;
 
@@ -1004,7 +1004,13 @@ sub GetDomainsFromBingDict{
 						}
 					}  # if/else on whether there were matches
 				}  # End of $? (result of wget)
-			}while($? == 0 && $trydifferent == 0);
+#			}while($? == 0 && $trydifferent == 0);
+
+				if($? != 0){
+					print "# \$? was different from 0 (\$?== $?)\n";
+					$totalqueries--;
+				}
+			}while($trydifferent == 0);
 
 			if($#remsites < ($MAXREMOVEDSITES-1)){
 				# If list is not complete, attempt to complete it
@@ -1012,10 +1018,6 @@ sub GetDomainsFromBingDict{
 			}
 		} # for that adds new removed sites;
 }
-
-
-
-
 
 
 
@@ -1438,8 +1440,13 @@ sub GetDomainsFromBing{
 
 				}  # End of "trydifferent"
 			}  # End of $? (result of wget)
-		}while($? == 0 && $continue == 1);
 
+			if($? != 0){
+				print "# \$? was different from 0 (\$?== $?)\n";
+				$totalqueries--;
+			}
+#		}while($? == 0 && $continue == 1);
+		}while($continue == 1);
 
 		if($maxresults > 0 && $#$pdomain >= $maxresults){
 			return;
@@ -1571,7 +1578,13 @@ sub GetDomainsFromBing{
 						}
 					}  # if/else on whether there were matches
 				}  # End of $? (result of wget)
-			}while($? == 0 && $trydifferent == 0);
+
+				if($? != 0){
+					print "# \$? was different from 0 (\$?== $?)\n";
+					$totalqueries--;
+				}
+
+			}while($trydifferent == 0);
 
 			if($#remsites < ($MAXREMOVEDSITES-1)){
 				# If list is not complete, attempt to complete it
@@ -1579,14 +1592,6 @@ sub GetDomainsFromBing{
 			}
 		} # for that adds new removed sites;
 }
-
-
-
-
-
-
-
-
 
 
 
@@ -2010,8 +2015,13 @@ sub GetDomainsFromBingbis{
 
 				}  # End of "trydifferent"
 			}  # End of $? (result of wget)
-		}while($? == 0 && $continue == 1);
 
+			if($? != 0){
+				print "# \$? was different from 0 (\$?== $?)\n";
+				$totalqueries--;
+			}
+#		}while($? == 0 && $continue == 1);
+		}while($continue == 1);
 
 		if($maxresults > 0 && $#$pdomain >= $maxresults){
 			return;
@@ -2143,7 +2153,12 @@ sub GetDomainsFromBingbis{
 						}
 					}  # if/else on whether there were matches
 				}  # End of $? (result of wget)
-			}while($? == 0 && $trydifferent == 0);
+
+				if($? != 0){
+					print "# \$? was different from 0 (\$?== $?)\n";
+					$totalqueries--;
+				}
+			}while($trydifferent == 0);
 
 			if($#remsites < ($MAXREMOVEDSITES-1)){
 				# If list is not complete, attempt to complete it
@@ -2579,7 +2594,12 @@ sub GetDomainsFromBingTT{
 				}  # End of "trydifferent"
 
 			}  # End of $? (result of wget)
-		}while($? == 0 && $continue == 1);
+
+			if($? != 0){
+				print "# \$? was different from 0 (\$?== $?)\n";
+				$totalqueries--;
+			}
+		}while($continue == 1);
 
 
 		if($maxresults > 0 && $#$pdomain >= $maxresults){
@@ -2720,7 +2740,13 @@ sub GetDomainsFromBingTT{
 					return;
 				}
 				}  # End of $? (result of wget)
-			}while($? == 0 && $trydifferent == 0);
+
+				if($? != 0){
+					print "# \$? was different from 0 (\$?== $?)\n";
+					$totalqueries--;
+				}
+#			}while($? == 0 && $trydifferent == 0);
+			}while($trydifferent == 0);
 
 			if($#remsites < ($MAXREMOVEDSITES-1)){
 				# If list is not complete, attempt to complete it
