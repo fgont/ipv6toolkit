@@ -570,6 +570,7 @@ sub GetDomainsFromBingDict{
 #		GetDomainsFromCrawler(\@domain, $czone, $level, $maxresults);	
 		my($pdomain, $pzone, $plevel, $pmaxresults, $dictfp) = @_;
 		my $czone=$pzone;
+		$lineno=0;
 
 		$MAXREMOVEDSITES=25;
 
@@ -833,6 +834,8 @@ sub GetDomainsFromBingDict{
 
 					$dictkeyword="";
 					while($dictword=<$dictfp>){
+						$lineno++;
+
 #print "# Lei: $dictword";
 #						if( $dictword =~ m/([^\/0-9\s]+[^\/0-9]*)/){
 						if( $dictword =~ m/([^\/0-9\n]+)/){
@@ -845,6 +848,7 @@ sub GetDomainsFromBingDict{
 
 					if(!$dictword){
 #print "# Error al leer palabra\n";
+						print "# Finished dictionary! (last keyword: $dictkeyword, line: $lineno\n";
 						$continue=0;
 					}
 					else{
