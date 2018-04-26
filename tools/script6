@@ -654,7 +654,7 @@ sub GetDomainsFromBingDict{
 			# --user-agent "Mozilla/4.0"  works fine most of the time. curl || wget original headers cause trouble.
 			$useragent=GetRandomUserAgent();
 
-#			$stringcommand="$wwwclient $wwwclient_sopt $wwwclient_tout $wwwclient_agnt\"$useragent\" \"https://www.bing.com/search?q=site%3A$czone$sitesstr$heur&first=$cur\"";
+			$stringcommand="$wwwclient $wwwclient_sopt $wwwclient_tout $wwwclient_agnt\"$useragent\" \"https://www.bing.com/search?q=site%3A$czone$sitesstr$heur&first=$cur\"";
 #			print "# $stringcommand\n";
 
 
@@ -861,9 +861,8 @@ sub GetDomainsFromBingDict{
 					$trydifferent=0;
 				}  # End of "trydifferent"
 			}  # End of $? (result of wget)
-
-			if($? != 0){
-				print "# \$? was different from 0 (\$?== $?)\n";
+			else{
+				print "# \$? was different from 0 (\$?== $?, command: '$stringcommand')\n";
 				$totalqueries--;
 			}
 
@@ -903,7 +902,7 @@ sub GetDomainsFromBingDict{
 				$useragent=GetRandomUserAgent();
 
 
-#				$stringcommand="$wwwclient $wwwclient_sopt $wwwclient_tout $wwwclient_agnt\"$useragent\" \"https://www.bing.com/search?q=site%3A$czone$sitesstr&first=$cur\"";
+				$stringcommand="$wwwclient $wwwclient_sopt $wwwclient_tout $wwwclient_agnt\"$useragent\" \"https://www.bing.com/search?q=site%3A$czone$sitesstr&first=$cur\"";
 #				print "# $stringcommand\n";
 
 				@revname=`$wwwclient $wwwclient_sopt $wwwclient_tout $wwwclient_agnt"$useragent" "https://www.bing.com/search?q=site%3A$czone$sitesstr&first=$cur"`;
@@ -1008,12 +1007,11 @@ sub GetDomainsFromBingDict{
 						}
 					}  # if/else on whether there were matches
 				}  # End of $? (result of wget)
-#			}while($? == 0 && $trydifferent == 0);
-
-				if($? != 0){
-					print "# \$? was different from 0 (\$?== $?)\n";
+				else{
+					print "# \$? was different from 0 (\$?== $?, command: '$stringcommand')\n";
 					$totalqueries--;
 				}
+#			}while($? == 0 && $trydifferent == 0);
 			}while($trydifferent == 0);
 
 			if($#remsites < ($MAXREMOVEDSITES-1)){
@@ -1111,6 +1109,7 @@ sub GetDomainsFromBing{
 			# --user-agent "Mozilla/4.0"  works fine most of the time. curl || wget original headers cause trouble.
 			$useragent=GetRandomUserAgent();
 
+			$stringcommand="$wwwclient $wwwclient_sopt $wwwclient_tout $wwwclient_agnt\"$useragent\" \"https://www.bing.com/search?q=site%3A$czone$sitesstr$ftstr$heur&first=$cur\"";
 			@revname=`$wwwclient $wwwclient_sopt $wwwclient_tout $wwwclient_agnt"$useragent" "https://www.bing.com/search?q=site%3A$czone$sitesstr$ftstr$heur&first=$cur"`;
 
 			$totalqueries++;
@@ -1444,9 +1443,8 @@ sub GetDomainsFromBing{
 
 				}  # End of "trydifferent"
 			}  # End of $? (result of wget)
-
-			if($? != 0){
-				print "# \$? was different from 0 (\$?== $?)\n";
+			else{
+				print "# \$? was different from 0 (\$?== $?, command: '$stringcommand')\n";
 				$totalqueries--;
 			}
 #		}while($? == 0 && $continue == 1);
@@ -1480,6 +1478,7 @@ sub GetDomainsFromBing{
 
 				$useragent=GetRandomUserAgent();
 
+				$stringcommand="$wwwclient $wwwclient_sopt $wwwclient_tout $wwwclient_agnt\"$useragent\" \"https://www.bing.com/search?q=site%3A$czone$sitesstr&first=$cur\"";
 				@revname=`$wwwclient $wwwclient_sopt $wwwclient_tout $wwwclient_agnt"$useragent" "https://www.bing.com/search?q=site%3A$czone$sitesstr&first=$cur"`;
 
 				$totalqueries++;
@@ -1582,9 +1581,8 @@ sub GetDomainsFromBing{
 						}
 					}  # if/else on whether there were matches
 				}  # End of $? (result of wget)
-
-				if($? != 0){
-					print "# \$? was different from 0 (\$?== $?)\n";
+				else{
+					print "# \$? was different from 0 (\$?== $?, command: '$stringcommand')\n";
 					$totalqueries--;
 				}
 
