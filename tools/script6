@@ -20,7 +20,9 @@ Usage: script6 COMMAND [PARAMETERS]
    get-majestic-domains: Obtain list of domain names from Majestic's file
    get-bing: Search for domains with the Bing search engine
    get-bing-dict: Search for domains with Bing using a dictionary
-   get-bing-batch: Search for domains with Bing (from STDIN)
+   get-bing-batch: Search for domains with Bing (STDIN)
+   get-crt: Search for domains with crt.sh
+   get-crt-batch: Search for domains with crt.sh (STDIN)
    get-teoma: Search for domains with the Teoma search engine
    get-teoma-batch: Search domains with the Teoma search engine (STDIN)
    get-suffix-for-tld: Obtain known suffixes for TLD
@@ -560,6 +562,46 @@ sub GetRandomUserAgent{
 	$uagent[40]="Mozilla/5.0 (Windows NT 5.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/35.0.2117.157 Safari/537.36";
 
 	return ($uagent[rand($#uagent+1)%($#uagent+1)]);
+}
+
+
+
+sub GetDomainsFromCrt{
+	my($pdomain, $pzone, $pmaxresults) = @_;
+	$useragent=GetRandomUserAgent();
+
+	do{
+		@lines=`$wwwclient $wwwclient_sopt $wwwclient_agnt"$useragent" "https://crt.sh/?q=%.$czone&output=json"`;
+
+		if($? == 0){
+			foreach $line (@lines){
+				while($line=~ s/{"issuer_ca_id":\d+\s*,\s*"issuer_name":"[^"]*"\s*,\s*"name_value":"([^"]+)","min_cert_id":\d+,"min_entry_timestamp":"[^"]+","not_before":"[^"]+","not_after":"[^"]+"}//){
+					$grabbeddomain=$1;
+
+					# Wildcards are not allwed in valid domains
+					if($grabbeddomain=~ m/\*/){
+						next;
+					}
+
+					if($grabbeddomain!~ m/$pzone/){
+						next;
+					}
+
+
+					for($i=0; $i<= $#$pdomain; $i++){
+						if($pdomain->[$i] eq $grabbeddomain){
+							last;
+						}
+					}
+
+					if($i > $#$pdomain){
+						$pdomain->[$#$pdomain + 1]=$grabbeddomain;
+						print "$grabbeddomain\n";
+					}
+				}
+			} # foreach $line;
+		}   # if $? == 0
+	}while($? != 0);		
 }
 
 
@@ -5871,6 +5913,57 @@ elsif($ARGV[0] eq "get-rir-database"){
 			} # foreach $line;
 		}   # if $? == 0
 }
+elsif($ARGV[0] eq "get-crt" || $ARGV[0] eq "get-crt.sh" || $ARGV[0] eq "get-cert-transparency" || $ARGV[0] eq "get-cert-transp"){
+	if($#ARGV != 1){
+		print "usage: script6 get-cert-transparency DOMAIN\n";
+		exit(1);
+	}
+
+	$czone= $ARGV[1];
+	if($czone =~ m/^\s*\.*([-a-zA-Z0-9.]+)/){
+		$czone= $1;
+	}
+
+	undef @domain;
+
+	ParseConfigFile();
+	GetDomainsFromCrt(\@domain, $czone, $maxresults);	
+}
+elsif($ARGV[0] eq "get-crt-batch"){
+	if($#ARGV >=1 ){
+		$maxresults= $ARGV[1];
+		$maxresults--;
+
+		if($maxresults < 0){
+			exit 0;
+		}
+	}
+	else{
+		$maxresults= -1;
+	}
+
+	ParseConfigFile();
+
+	while(<STDIN>){
+
+
+		undef @domain;
+
+		if($_ =~ m/^\s*\.*([-a-zA-Z0-9.]+)/){
+			$czone= $1;
+		}
+		else{
+			next;
+		}
+
+		print "######## DOMAIN: $czone ########\n";
+
+
+		GetDomainsFromCrt(\@domain, $czone, $maxresults);	
+	}
+}
+
+
 elsif($ARGV[0] eq "get-bing-batch"){
 	if($#ARGV >=1 ){
 		$maxresults= $ARGV[1];
