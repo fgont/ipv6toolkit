@@ -575,8 +575,11 @@ sub GetDomainsFromCrt{
 	my($pdomain, $pzone, $pmaxresults) = @_;
 	$useragent=GetRandomUserAgent();
 
+	# XXX Ugly hack to override the default (usually small) timeout value
+	$wwwclient_tout=~ s/\d+/120/;
+
 	do{
-		@lines=`$wwwclient $wwwclient_sopt $wwwclient_agnt"$useragent" "https://crt.sh/?q=%.$czone&output=json"`;
+		@lines=`$wwwclient $wwwclient_sopt $wwwclient_tout $wwwclient_agnt"$useragent" "https://crt.sh/?q=%.$czone&output=json"`;
 
 		if($? == 0){
 			foreach $line (@lines){
