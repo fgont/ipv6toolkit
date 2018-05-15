@@ -215,50 +215,54 @@ sub Iso2ForRIR{
 		my ($trir)= $_[0];
 
 		$useragent=GetRandomUserAgent();
-		@lines=`$wwwclient $wwwclient_sopt $wwwclient_agnt"$useragent" "https://www.nro.net/about-the-nro/list-of-country-codes-and-rirs-ordered-by-country-code/"`;
 
-		my @domains;
-		$start=0;
+		do{
+			@lines=`$wwwclient $wwwclient_sopt $wwwclient_agnt"$useragent" "https://www.nro.net/about-the-nro/list-of-country-codes-and-rirs-ordered-by-country-code/"`;
 
-		if($? == 0){
-			foreach $line (@lines){
-				if($start == 0 && $line =~ m/\s*<td\s+class="cc-head">Region<\/td>/){
-					$start=1;
-				}
-				elsif($start == 1){
-					if(!$country){
-						if($line=~/<td\s+class="cc-(?:white|grey)">([^<*]+)[*\s]*<\/td>/){
-							$country=$1;
-						}
-					}
-					elsif(!$iso2){
-						if($line=~/<td\s+class="cc-(?:white|grey)">([^<*]+)[*\s]*<\/td>/){
-							$iso2=$1;
-						}
-					}
-					elsif(!$iso3){
-						if($line=~/<td\s+class="cc-(?:white|grey)">([^<*]+)[*\s]*<\/td>/){
-							$iso3=$1;
-						}
-					}
-					elsif(!$rir){
-						if($line=~/<td\s+class="cc-(?:white|grey)">([^<*]+)[*\s]*<\/td>/){
-							$rir=$1;
+			$retcode= $?;
+			my @domains;
+			$start=0;
 
-							if($rir=~ m/$trir/i){
-								print "$iso2\n";
+			if($retcode == 0){
+				foreach $line (@lines){
+					if($start == 0 && $line =~ m/\s*<td\s+class="cc-head">Region<\/td>/){
+						$start=1;
+					}
+					elsif($start == 1){
+						if(!$country){
+							if($line=~/<td\s+class="cc-(?:white|grey)">([^<*]+)[*\s]*<\/td>/){
+								$country=$1;
 							}
+						}
+						elsif(!$iso2){
+							if($line=~/<td\s+class="cc-(?:white|grey)">([^<*]+)[*\s]*<\/td>/){
+								$iso2=$1;
+							}
+						}
+						elsif(!$iso3){
+							if($line=~/<td\s+class="cc-(?:white|grey)">([^<*]+)[*\s]*<\/td>/){
+								$iso3=$1;
+							}
+						}
+						elsif(!$rir){
+							if($line=~/<td\s+class="cc-(?:white|grey)">([^<*]+)[*\s]*<\/td>/){
+								$rir=$1;
 
-							undef $country;
-							undef $iso2;
-							undef $iso3;
-							undef $rir;
+								if($rir=~ m/$trir/i){
+									print "$iso2\n";
+								}
+
+								undef $country;
+								undef $iso2;
+								undef $iso3;
+								undef $rir;
+							}
 						}
 					}
-				}
 
-			} # foreach $line;
-		}   # if $? == 0
+				} # foreach $line;
+			}   # if $? == 0
+		}while($retcode != 0);
 }
 
 
@@ -266,12 +270,15 @@ sub TLDForRIR{
 		my ($trir)= $_[0];
 
 		$useragent=GetRandomUserAgent();
+
+	do{
 		@lines=`$wwwclient $wwwclient_sopt $wwwclient_agnt"$useragent" "https://www.nro.net/about-the-nro/list-of-country-codes-and-rirs-ordered-by-country-code/"`;
 
 		my @domains;
 		$start=0;
+		$retcode=$?;
 
-		if($? == 0){
+		if($retcode == 0){
 			foreach $line (@lines){
 				if($start == 0 && $line =~ m/\s*<td\s+class="cc-head">Region<\/td>/){
 					$start=1;
@@ -315,6 +322,7 @@ sub TLDForRIR{
 
 			} # foreach $line;
 		}   # if $? == 0
+	}while($retcode != 0);
 }
 
 sub CountryForContinent{
@@ -333,17 +341,22 @@ sub CountryForContinent{
 
 
 sub GetASN{
-	@revname=`addr6 -a $_[0] -r`;
 
-	if($? == 0){
-		chomp($revname[0]);
-		$queryname= $revname[0] . ".origin6.asn.cymru.com.";
-		@reverse=`host -t TXT $queryname`;
+	do{
+		@revname=`addr6 -a $_[0] -r`;
 
-		if($reverse[0] =~ m/\"\s*((\d+)\s*)\s+|"/){
-			return($2);
+		$retcode=$?;
+
+		if($retcode == 0){
+			chomp($revname[0]);
+			$queryname= $revname[0] . ".origin6.asn.cymru.com.";
+			@reverse=`host -t TXT $queryname`;
+
+			if($reverse[0] =~ m/\"\s*((\d+)\s*)\s+|"/){
+				return($2);
+			}
 		}
-	}
+	}while($retcode != 0);
 
 	return("");
 }
@@ -581,7 +594,9 @@ sub GetDomainsFromCrt{
 	do{
 		@lines=`$wwwclient $wwwclient_sopt $wwwclient_tout $wwwclient_agnt"$useragent" "https://crt.sh/?q=%.$czone&output=json"`;
 
-		if($? == 0){
+		$retcode= $?;
+
+		if($retcode == 0){
 			foreach $line (@lines){
 				while($line=~ s/{"issuer_ca_id":\d+\s*,\s*"issuer_name":"[^"]*"\s*,\s*"name_value":"([^"]+)","min_cert_id":\d+,"min_entry_timestamp":"[^"]+","not_before":"[^"]+","not_after":"[^"]+"}//){
 					$grabbeddomain=$1;
@@ -609,7 +624,7 @@ sub GetDomainsFromCrt{
 				}
 			} # foreach $line;
 		}   # if $? == 0
-	}while($? != 0);		
+	}while($retcode != 0);		
 }
 
 
@@ -910,7 +925,7 @@ sub GetDomainsFromBingDict{
 				}  # End of "trydifferent"
 			}  # End of $? (result of wget)
 			else{
-				print "# \$? was different from 0 (\$?== $?, command: '$stringcommand')\n";
+				#print "# \$? was different from 0 (\$?== $?, command: '$stringcommand')\n";
 				$totalqueries--;
 			}
 
@@ -1055,7 +1070,7 @@ sub GetDomainsFromBingDict{
 					}  # if/else on whether there were matches
 				}  # End of $? (result of wget)
 				else{
-					print "# \$? was different from 0 (\$?== $?, command: '$stringcommand')\n";
+					# print "# \$? was different from 0 (\$?== $?, command: '$stringcommand')\n";
 					$totalqueries--;
 				}
 #			}while($? == 0 && $trydifferent == 0);
@@ -1491,7 +1506,7 @@ sub GetDomainsFromBing{
 				}  # End of "trydifferent"
 			}  # End of $? (result of wget)
 			else{
-				print "# \$? was different from 0 (\$?== $?, command: '$stringcommand')\n";
+#				print "# \$? was different from 0 (\$?== $?, command: '$stringcommand')\n";
 				$totalqueries--;
 			}
 #		}while($? == 0 && $continue == 1);
@@ -1629,7 +1644,7 @@ sub GetDomainsFromBing{
 					}  # if/else on whether there were matches
 				}  # End of $? (result of wget)
 				else{
-					print "# \$? was different from 0 (\$?== $?, command: '$stringcommand')\n";
+#					print "# \$? was different from 0 (\$?== $?, command: '$stringcommand')\n";
 					$totalqueries--;
 				}
 
@@ -2066,7 +2081,7 @@ sub GetDomainsFromBingbis{
 			}  # End of $? (result of wget)
 
 			if($? != 0){
-				print "# \$? was different from 0 (\$?== $?)\n";
+#				print "# \$? was different from 0 (\$?== $?)\n";
 				$totalqueries--;
 			}
 #		}while($? == 0 && $continue == 1);
@@ -2204,7 +2219,7 @@ sub GetDomainsFromBingbis{
 				}  # End of $? (result of wget)
 
 				if($? != 0){
-					print "# \$? was different from 0 (\$?== $?)\n";
+#					print "# \$? was different from 0 (\$?== $?)\n";
 					$totalqueries--;
 				}
 			}while($trydifferent == 0);
@@ -2645,7 +2660,7 @@ sub GetDomainsFromBingTT{
 			}  # End of $? (result of wget)
 
 			if($? != 0){
-				print "# \$? was different from 0 (\$?== $?)\n";
+#				print "# \$? was different from 0 (\$?== $?)\n";
 				$totalqueries--;
 			}
 		}while($continue == 1);
@@ -2791,7 +2806,7 @@ sub GetDomainsFromBingTT{
 				}  # End of $? (result of wget)
 
 				if($? != 0){
-					print "# \$? was different from 0 (\$?== $?)\n";
+#					print "# \$? was different from 0 (\$?== $?)\n";
 					$totalqueries--;
 				}
 #			}while($? == 0 && $trydifferent == 0);
@@ -5952,12 +5967,16 @@ elsif($ARGV[0] eq "get-crt-batch"){
 
 	ParseConfigFile();
 
-	while(<STDIN>){
+	while($czone=<STDIN>){
 
 
 		undef @domain;
 
-		if($_ =~ m/^\s*\.*([-a-zA-Z0-9.]+)/){
+		if($czone=~ m/^\s*#/){
+			next;
+		}
+
+		if($czone =~ m/^\s*\.*([-a-zA-Z0-9.]+)/){
 			$czone= $1;
 		}
 		else{
@@ -7664,6 +7683,50 @@ elsif($ARGV[0] eq "get-routers-traceroute6" || $ARGV[0] eq "get-routers" || $ARG
 			close FILTER;
 		}
 
+	}
+}
+elsif($ARGV[0] eq "get-domain-level"){
+
+	if($#ARGV != 1){
+		print "Usage: script6 get-domain-level LEVEL\n";
+		exit(1);
+	}
+
+	$level= $ARGV[1];
+
+	if($level < 1){
+		print "Error: Invalid domain level\n";
+		exit(1);
+	}
+
+	$level=$level-1;
+
+	while($domain=<STDIN>){
+		chomp($domain);
+
+		if($domain=~/^\s*#/){
+			next;
+		}
+
+		@revarray=();
+#		$revdomain= join(".", reverse split /\./, $domain);
+		@revarray= reverse split /\./, $domain;
+
+		if($#revarray >= $level){
+			$revdomain= join(".", @revarray[0..$level]);
+			$grabbeddomain= join(".", reverse split /\./, $revdomain);
+
+			for($i=0; $i<= $#domains; $i++){
+				if($domains[$i] eq $grabbeddomain){
+					last;
+				}
+			}
+
+			if($i > $#domains){
+				$domains[$#domains + 1]=$grabbeddomain;
+				print "$grabbeddomain\n";
+			}
+		}		
 	}
 }
 else{
