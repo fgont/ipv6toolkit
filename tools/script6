@@ -7734,7 +7734,33 @@ elsif($ARGV[0] eq "create-dict" || $ARGV[0] eq "create-dictionary" || $ARGV[0] e
 	@keywords=(); 
 
 	while($line=<STDIN>){
-		if( $line =~ m/^\s*([^\/#\n]+)/){
+		chomp($line);
+
+		if( $line =~ m/^\s*([^\/#\r\n]+)/){
+			$dictword=$1;
+			$dictword=~ s/\r//g;
+	#		$dictword=~ s/ /%20/g;
+
+			for($i=0; $i<= $#keywords; $i++){
+				if($keywords[$i] eq $dictword){
+					last;
+				}
+			}
+
+			if($i > $#keywords){
+				$keywords[$#keywords + 1]=$dictword;
+				print "$dictword\n";
+			}
+		}
+	}
+}
+elsif($ARGV[0] eq "create-dict-no-spaces" || $ARGV[0] eq "create-dictionary-no-spaces" || $ARGV[0] eq "create-dic-no-spaces"){
+	@keywords=(); 
+
+	while($line=<STDIN>){
+		chomp($line);
+
+		if( $line =~ m/^\s*([^\/#\r\n\s]+)/){
 			$dictword=$1;
 			$dictword=~ s/\r//g;
 	#		$dictword=~ s/ /%20/g;
@@ -7756,6 +7782,8 @@ elsif($ARGV[0] eq "create-dict-discarded" || $ARGV[0] eq "create-dictionary-disc
 	@keywords=(); 
 
 	while($line=<STDIN>){
+		chomp($line);
+
 		if( $line =~ m/^\s*([^\/0-9#\n]+)/){
 			$dictword=$1;
 
