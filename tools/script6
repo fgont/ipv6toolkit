@@ -40,6 +40,7 @@ Usage: script6 COMMAND [PARAMETERS]
    get-root-zone-raw: Obtain list of all TLDs from IANA (raw format)
    get-trace6: Perform traceroute6 (with EHs) to a given destination
    get-trace6-stats: Get statistics for trace results read from STDIN
+   create-dict: Extracts words from STDIN to create a dictionary
 ";
 
 
@@ -7727,6 +7728,53 @@ elsif($ARGV[0] eq "get-domain-level"){
 				print "$grabbeddomain\n";
 			}
 		}		
+	}
+}
+elsif($ARGV[0] eq "create-dict" || $ARGV[0] eq "create-dictionary" || $ARGV[0] eq "create-dic"){
+	@keywords=(); 
+
+	while($line=<STDIN>){
+		if( $line =~ m/^\s*([^\/#\n]+)/){
+			$dictword=$1;
+			$dictword=~ s/\r//g;
+	#		$dictword=~ s/ /%20/g;
+
+			for($i=0; $i<= $#keywords; $i++){
+				if($keywords[$i] eq $dictword){
+					last;
+				}
+			}
+
+			if($i > $#keywords){
+				$keywords[$#keywords + 1]=$dictword;
+				print "$dictword\n";
+			}
+		}
+	}
+}
+elsif($ARGV[0] eq "create-dict-discarded" || $ARGV[0] eq "create-dictionary-discarded" || $ARGV[0] eq "create-dic-discarded"){
+	@keywords=(); 
+
+	while($line=<STDIN>){
+		if( $line =~ m/^\s*([^\/0-9#\n]+)/){
+			$dictword=$1;
+
+			for($i=0; $i<= $#keywords; $i++){
+				if($keywords[$i] eq $dictword){
+					last;
+				}
+			}
+
+			if($i > $#keywords){
+				$keywords[$#keywords + 1]=$dictword;
+			}
+			else{
+				print "$dictword\n";
+			}
+		}
+		else{
+			print "#$dictword (didnt match regex)\n";
+		}
 	}
 }
 else{
