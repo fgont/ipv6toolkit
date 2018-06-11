@@ -593,7 +593,8 @@ sub GetDomainsFromCrt{
 	$wwwclient_tout=~ s/\d+/120/;
 
 	do{
-		@lines=`$wwwclient $wwwclient_sopt $wwwclient_tout $wwwclient_agnt"$useragent" "https://crt.sh/?q=%.$czone&output=json"`;
+		@lines=`$wwwclient $wwwclient_sopt $wwwclient_agnt"$useragent" "https://crt.sh/?q=%.$czone&output=json"`;
+#		@lines=`$wwwclient $wwwclient_sopt $wwwclient_tout $wwwclient_agnt"$useragent" "https://crt.sh/?q=%.$czone&output=json"`;
 
 		$retcode= $?;
 
