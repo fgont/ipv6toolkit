@@ -1,4 +1,4 @@
-#!/usr/bin/perl
+#!/usr/bin/env perl
 
 # Puedo especificar dos cosas:
 # 1) Hints: Direcciones y/o dominios

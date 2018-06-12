@@ -1,4 +1,4 @@
-#!/usr/bin/perl -w
+#!/usr/bin/env perl -w
 #
 # script6: A tool to make complex IPv6 tasks easy
 #

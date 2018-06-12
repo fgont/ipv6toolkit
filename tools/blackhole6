@@ -1,4 +1,4 @@
-#!/usr/bin/perl
+#!/usr/bin/env perl
 #
 # blackhole6: A tool to make complex IPv6 tasks easy
 #
