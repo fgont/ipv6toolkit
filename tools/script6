@@ -41,6 +41,7 @@ Usage: script6 COMMAND [PARAMETERS]
    get-trace6: Perform traceroute6 (with EHs) to a given destination
    get-trace6-stats: Get statistics for trace results read from STDIN
    create-dict: Extracts words from STDIN to create a dictionary
+   get-unique-domains: Creates a list of unique domains from STDIN
 ";
 
 
@@ -7803,6 +7804,33 @@ elsif($ARGV[0] eq "create-dict-discarded" || $ARGV[0] eq "create-dictionary-disc
 		}
 		else{
 			print "#$dictword (didnt match regex)\n";
+		}
+	}
+}
+elsif($ARGV[0] eq "get-unique-domains"){
+	@keywords=(); 
+
+	while($line=<STDIN>){
+		chomp($line);
+
+		if( $line =~ m/^\s*([^\/#\r\n]+)/){
+			$dictword=$1;
+			$dictword=~ s/\r//g;
+			$dictword=lc($dictword);
+			$dictword=~ s/\.$//;
+
+	#		$dictword=~ s/ /%20/g;
+
+			for($i=0; $i<= $#keywords; $i++){
+				if($keywords[$i] eq $dictword){
+					last;
+				}
+			}
+
+			if($i > $#keywords){
+				$keywords[$#keywords + 1]=$dictword;
+				print "$dictword\n";
+			}
 		}
 	}
 }
