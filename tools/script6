@@ -5451,6 +5451,113 @@ elsif($ARGV[0] eq "get-mx"){
 
 	}
 }
+elsif($ARGV[0] eq "get-ptr"){
+	if($#ARGV == 0){
+		while($domain=<STDIN>){
+				# This variable set to 1 indicates that we already found the MX records
+			$mx_f=0;
+
+			chomp($domain);
+
+			# If the line cotains a comment at the end of the line, remove it
+			if($domain =~ m/^\s*([0-9a-zA-Z.:]+)/){
+				$domcmd= $1;
+			}
+			else{
+				next;
+			}
+
+			@dig=`dig -x $domcmd 2>&1`;
+
+			$answer_f=0;
+			foreach $line (@dig){
+				# Detect the "ANSWER" portion of the dig command
+				if($answer_f == 0){
+					if($line =~ m/^dig: /){
+						print "# Error for $domcmd: $line";
+						last;
+					}
+
+					if($line =~ m/\;\; ANSWER SECTION:/){
+						$answer_f=1; # Found the ANSWER section
+					}
+
+					next;  
+				}
+				elsif($answer_f == 1){
+					# If we are in the answer portion, look for MX records
+					if($line =~ m/^\s*$/){
+						# Empty line marks end of ANSWER section
+						last;
+					}
+
+					elsif($line =~ m/(\S+)\s+\d+\s+IN\s+PTR\s+(\S+)/){
+						# FIrst 
+						if($mx_f == 0){
+							print "# $domcmd ($1)\n";
+						}
+
+						print "$2\n";      # MX record
+						$mx_f = 1;
+					}
+				}
+			}
+		}
+	}
+	else{
+			$domain= $ARGV[1];
+				# This variable set to 1 indicates that we already found the MX records
+			$mx_f=0;
+
+			chomp($domain);
+
+			# If the line cotains a comment at the end of the line, remove it
+			if($domain =~ m/^\s*([0-9a-zA-Z.:]+)/){
+				$domcmd= $1;
+			}
+			else{
+				next;
+			}
+
+
+			@dig=`dig -x $domcmd 2>&1`;
+
+			$answer_f=0;
+			foreach $line (@dig){
+				# Detect the "ANSWER" portion of the dig command
+				if($answer_f == 0){
+					if($line =~ m/^dig: /){
+						print "# Error for $domcmd: $line";
+						last;
+					}
+
+					if($line =~ m/\;\; ANSWER SECTION:/){
+						$answer_f=1; # Found the ANSWER section
+					}
+
+					next;  
+				}
+				elsif($answer_f == 1){
+					# If we are in the answer portion, look for MX records
+					if($line =~ m/^\s*$/){
+						# Empty line marks end of ANSWER section
+						last;
+					}
+
+					elsif($line =~ m/(\S+)\s+\d+\s+IN\s+PTR\s+(\S+)/){
+						# FIrst 
+						if($mx_f == 0){
+							print "# $domcmd ($1)\n";
+						}
+
+						print "$2\n";      # MX record
+						$mx_f = 1;
+					}
+				}
+			}
+
+	}
+}
 elsif($ARGV[0] eq "get-ns"){
 	if($#ARGV == 0){
 		while($domain=<STDIN>){
@@ -7859,6 +7966,13 @@ elsif($ARGV[0] eq "get-ipv6-from-dnsrevenum6" || $ARGV[0] eq "get-ipv6-addrs-fro
 			$domain=~ s/\r//g;
 			$domain=lc($domain);
 			print "$ipv6address\n";
+		}
+	}
+}
+elsif($ARGV[0] eq "get-domain-from-script6-get" || $ARGV[0] eq "get-domains-from-script6-get" || $ARGV[0] eq "get-domain-from-script6"){
+	while($line=<STDIN>){
+		if($line=~ m/^#\s+(\S+)\s+\(\S+\)/){
+			print "$1\n";
 		}
 	}
 }
