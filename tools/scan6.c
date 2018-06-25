@@ -1,7 +1,7 @@
 /*
  * scan6: An IPv6 Scanning Tool
  *
- * Copyright (C) 2011-2018 Fernando Gont <fgont@si6networks.com>
+ * Copyright (C) 2011-2016 Fernando Gont <fgont@si6networks.com>
  *
  * Programmed by Fernando Gont for SI6 Networks <http://www.si6networks.com>
  *
@@ -239,7 +239,7 @@ unsigned char			tgt_vendor_f=FALSE, tgt_vm_f=FALSE, tgt_bruteforce_f=FALSE, tgt_
 unsigned char			tgt_knowniids_f=FALSE, tgt_knowniidsfile_f=FALSE, knownprefixes_f=FALSE;
 unsigned char			vm_vbox_f=FALSE, vm_vmware_f=FALSE, vm_vmware_esx_f=FALSE, vm_vmware_vsphere_f=FALSE, vm_vmwarem_f=FALSE, v4hostaddr_f=FALSE;
 unsigned char			v4hostprefix_f=FALSE, sort_ouis_f=FALSE, rnd_probes_f=FALSE, inc_f=FALSE, end_f=FALSE, endpscan_f=FALSE;
-unsigned char			donesending_f=FALSE, nomoreaddr_f=FALSE, globalscan_f=TRUE;
+unsigned char			donesending_f=FALSE, nomoreaddr_f=FALSE;
 unsigned char			onlink_f=FALSE, pps_f=FALSE, bps_f=FALSE, tcpflags_f=FALSE, rhbytes_f=FALSE, srcport_f=FALSE, dstport_f=FALSE, probetype;
 unsigned char			loop_f=FALSE, sleep_f=FALSE, smart_f=FALSE, portscan_f=FALSE, droppacket_f=FALSE, pscantype;
 uint16_t				srcport, dstport;
@@ -318,7 +318,6 @@ int main(int argc, char **argv){
 		{"tgt-vendor", required_argument, 0, 'K'},
 		{"tgt-iids-file", required_argument, 0, 'w'},
 		{"tgt-iid", required_argument, 0, 'W'},
-		{"global-scan", no_argument, 0, 'M'},
 		{"prefixes-file", required_argument, 0, 'm'},
 		{"ipv4-host", required_argument, 0, 'Q'},
 		{"sort-ouis", no_argument, 0, 'T'},
@@ -333,7 +332,7 @@ int main(int argc, char **argv){
 		{0, 0, 0,  0 }
 	};
 
-	char shortopts[]= "i:s:d:u:U:H:y:S:D:Lp:Z:o:a:X:P:j:G:qetx:O:fFV:bB:gk:K:w:W:Mm:Q:TNI:r:lz:c:vh";
+	char shortopts[]= "i:s:d:u:U:H:y:S:D:Lp:Z:o:a:X:P:j:G:qetx:O:fFV:bB:gk:K:w:W:m:Q:TNI:r:lz:c:vh";
 
 	char option;
 
@@ -1392,10 +1391,6 @@ int main(int argc, char **argv){
 				tgt_knowniids_f=TRUE;
 				break;
 
-			case 'M':	/* Global Scan */
-				globalscan_f=TRUE;
-				break;
-
 			case 'm':	/* Known prefixes file */
 				strncpy(knownprefixesfile, optarg, MAX_FILENAME_SIZE-1);
 				knownprefixesfile[MAX_FILENAME_SIZE-1]=0;
@@ -1619,827 +1614,6 @@ int main(int argc, char **argv){
 			exit(EXIT_FAILURE);
 		}
 	}
-
-
-
-
-
-
-
-
-
-	if(portscan_f){
-		if(loadalltopports_f){
-			if(load_top_ports_entries(&tcp_port_list, &udp_port_list, IPPROTO_ALL, nalltopports) == FALSE){
-				puts("Problem loading TCP top ports");
-				exit(EXIT_FAILURE);
-			}
-		}
-		else{
-			if(loadtcptopports_f){
-				if(load_top_ports_entries(&tcp_port_list, &udp_port_list, IPPROTO_TCP, ntcptopports) == FALSE){
-					puts("Problem loading TCP top ports");
-					exit(EXIT_FAILURE);
-				}
-			}
-			if(loadudptopports_f){
-				if(load_top_ports_entries(&tcp_port_list, &udp_port_list, IPPROTO_UDP, nudptopports) == FALSE){
-					puts("Problem loading UDP top ports");
-					exit(EXIT_FAILURE);
-				}
-			}
-		}
-
-		if(tcp_port_list.nport){
-			/* Load service names */
-			if(!load_port_table(tcp_port_table, "tcp", MAX_PORT_RANGE)){
-				puts("Error while loading port number descriptions");
-				exit(EXIT_FAILURE);
-			}
-
-			/* Link service names to port_list structure */
-			tcp_port_list.port_table= tcp_port_table;
-
-			/* We currently support only SYN scans for TCP */
-			tcpflags_f= TRUE;
-			tcpflags= TH_SYN;
-		}
-
-		if(udp_port_list.nport){
-			/* Load service names */
-			if(!load_port_table(udp_port_table, "udp", MAX_PORT_RANGE)){
-				puts("Error while loading port number descriptions");
-				exit(EXIT_FAILURE);
-			}
-
-			/* LInk service names to port_list structure */
-			udp_port_list.port_table= udp_port_table;
-		}
-	}
-
-	if(loop_f && !dst_f){
-		puts("Loop mode '-l' set, but no targets ('-d') specified!");
-		puts("Note: '-l' option changed since IPv6 toolkit v1.3.4!");
-	}
-
-	if(dst_f && !(tgt_ipv4mapped32_f || tgt_ipv4mapped64_f || tgt_lowbyte_f || tgt_oui_f || tgt_vendor_f || \
-			tgt_vm_f || tgt_range_f || tgt_portembedded_f || tgt_knowniids_f || tgt_knowniidsfile_f)){
-
-		tgt_bruteforce_f=TRUE;
-	}
-
-	if( (tgt_ipv4mapped32_f || tgt_ipv4mapped64_f) && !v4hostaddr_f){
-		puts("Error: Must IPv4 host address/prefix (with '--ipv4-host') if '--tgt-ipv4-embedded' is set");
-		exit(EXIT_FAILURE);
-	}
-
-	if(scan_local_f && (idata.type != DLT_EN10MB || (idata.flags & IFACE_TUNNEL))){
-		puts("Error cannot apply local scan on a loopback or tunnel interface");
-		exit(EXIT_FAILURE);
-	}
-
-	if(!print_f){
-		print_local_f=TRUE;
-		print_global_f=TRUE;
-	}
-
-	if(!probe_f){
-		probe_unrec_f=TRUE;
-		probe_echo_f=TRUE;
-
-		/* For remote scans we use a single probe type */
-		probetype=PROBE_ICMP6_ECHO;
-	}
-
-	/*
-	   If a Source Address (and *not* a "source prefix") has been specified, we need to incorporate such address
-	   in our iface_data structure.
-	 */
-	if(idata.srcaddr_f && !idata.srcprefix_f){
-		if(IN6_IS_ADDR_LINKLOCAL(&(idata.srcaddr))){
-			idata.ip6_local=idata.srcaddr;
-			idata.ip6_local_flag=TRUE;
-		}
-		else{
-			if( (idata.ip6_global.prefix[idata.ip6_global.nprefix] = malloc(sizeof(struct prefix_entry))) \
-													== NULL){
-				if(idata.verbose_f){
-					puts("Not enough memory while saving global address");
-				}
-				exit(EXIT_FAILURE);
-			}
-
-			(idata.ip6_global.prefix[idata.ip6_global.nprefix])->ip6=idata.srcaddr;
-			idata.ip6_global.nprefix++;
-			idata.ip6_global_flag=1;
-		}
-	}
-
-	if((idata.ip6_local_flag && idata.ip6_global_flag) && !idata.srcaddr_f)
-		localaddr_f=TRUE;
-
-	if(scan_local_f){
-		host_local.nhosts=0;
-		host_local.maxhosts= MAX_IPV6_ENTRIES;
-		host_local.host= host_locals;
-
-		if(probe_echo_f){
-			if(multi_scan_local(idata.pfd, &idata, &(idata.ip6_local), PROBE_ICMP6_ECHO, ALL_NODES_MULTICAST_ADDR,\
-						&host_local) == -1){
-				if(idata.verbose_f)
-					puts("Error while learning link-local addresses with ICMPv6 Echo Requests");
-
-				exit(EXIT_FAILURE);
-			}
-		}
-
-
-		if(probe_unrec_f){
-			if(multi_scan_local(idata.pfd, &idata, &(idata.ip6_local), PROBE_UNREC_OPT, ALL_NODES_MULTICAST_ADDR,\
-						 &host_local) == -1){
-				if(idata.verbose_f)
-					puts("Error while learning link-local addresses with Unrecognized options");
-
-				exit(EXIT_FAILURE);
-			}
-		}
-
-		if(print_local_f){
-			if(idata.verbose_f)
-				puts("Link-local addresses:");
-
-			if(print_unique_f){
-				if(print_unique_host_entries(&host_local, print_type) == -1){
-					if(idata.verbose_f)
-						puts("Error while printing global addresses");
-
-					exit(EXIT_FAILURE);
-				}
-			}
-			else{
-				if(print_host_entries(&host_local, print_type) == -1){
-					if(idata.verbose_f)
-						puts("Error while printing global addresses");
-
-					exit(EXIT_FAILURE);
-				}
-			}
-		}
-
-		if(print_global_f){
-			host_global.nhosts=0;
-			host_global.maxhosts= MAX_IPV6_ENTRIES;
-			host_global.host= host_globals;
-
-			if(probe_echo_f){
-				if(find_local_globals(idata.pfd, &idata, PROBE_ICMP6_ECHO, ALL_NODES_MULTICAST_ADDR,\
-							&host_global) == -1){
-					if(idata.verbose_f)
-						puts("Error while learning link-local addresses with ICMPv6 Echo Requests");
-
-					exit(EXIT_FAILURE);
-				}
-			}
-
-			if(probe_unrec_f){
-				if(find_local_globals(idata.pfd, &idata, PROBE_UNREC_OPT, ALL_NODES_MULTICAST_ADDR,\
-							 &host_global) == -1){
-					if(idata.verbose_f)
-						puts("Error while learning link-local addresses with Unrecognized options");
-
-					exit(EXIT_FAILURE);
-				}
-			}
-
-			host_candidate.nhosts=0;
-			host_candidate.maxhosts= MAX_IPV6_ENTRIES;
-			host_candidate.host= host_candidates;
-
-			if(create_candidate_globals(&idata, &host_local, &host_global, &host_candidate) == -1){
-				if(idata.verbose_f)
-					puts("Error while creating candidate global addresses");
-
-				exit(EXIT_FAILURE);
-			}
-
-			if(validate_host_entries(idata.pfd, &idata, &host_candidate, &host_global) == -1){
-				if(idata.verbose_f)
-					puts("Error while validating global entries");
-
-				exit(EXIT_FAILURE);
-			}
-
-			if(idata.verbose_f)
-				puts("\nGlobal addresses:");
-
-			if(print_unique_f){
-				if(print_unique_host_entries(&host_global, print_type) == -1){
-					if(idata.verbose_f)
-						puts("Error while printing global addresses");
-
-					exit(EXIT_FAILURE);
-				}
-			}
-			else{
-				if(print_host_entries(&host_global, print_type) == -1){
-					if(idata.verbose_f)
-						puts("Error while printing global addresses");
-
-					exit(EXIT_FAILURE);		
-				}
-			}
-		}
-	}
-
-	/* Perform a port-scan */
-	else if(globalscan_f){
-		/* Smart entries are the first ones to be included */
-		if(smart_list.ntarget){
-			if(!load_smart_entries(&scan_list, &smart_list)){
-				puts("Couldn't load smart entries");
-				exit(EXIT_FAILURE);
-			}
-		}
-
-		if(tgt_knowniids_f){
-			if(!load_knowniid_entries(&scan_list, &prefix_list, &iid_list)){
-				puts("Couldn't load known IID IPv6 addresses");
-				exit(EXIT_FAILURE);
-			}
-		}
-
-		if(tgt_knowniidsfile_f){
-			if(!load_knowniidfile_entries(&scan_list, &prefix_list, knowniids_fp)){
-				puts("Couldn't load known IID IPv6 addresses");
-				exit(EXIT_FAILURE);
-			}
-
-			fclose(knowniids_fp);
-		}
-
-		if(tgt_portembedded_f){
-			for(i=0; i < prefix_list.ntarget; i++){
-				if(!load_embeddedport_entries(&scan_list, prefix_list.target[i])){
-					puts("Couldn't load embedded-port IPv6 addresses");
-					exit(EXIT_FAILURE);
-				}
-			}
-		}
-
-		if(tgt_lowbyte_f){
-			for(i=0; i < prefix_list.ntarget; i++){
-				if(!load_lowbyte_entries(&scan_list, prefix_list.target[i])){
-					puts("Couldn't load prefixes for low-byte IPv6 addresses");
-					exit(EXIT_FAILURE);
-				}
-			}
-		}
-
-		if(tgt_ipv4mapped32_f){
-			for(i=0; i < prefix_list.ntarget; i++){
-				if(!load_ipv4mapped32_entries(&scan_list, prefix_list.target[i], &v4host)){
-					puts("Couldn't load prefixes for IPv4-embeded (32-bit) IPv6 addresses");
-					exit(EXIT_FAILURE);
-				}
-			}
-		}
-
-		if(tgt_ipv4mapped64_f){
-			for(i=0; i < prefix_list.ntarget; i++){
-				if(!load_ipv4mapped64_entries(&scan_list, prefix_list.target[i], &v4host)){
-					puts("Couldn't load prefixes for IPv4-embeded (64-bit) IPv6 addresses");
-					exit(EXIT_FAILURE);
-				}
-			}
-		}
-
-		if(tgt_vm_f){
-			for(i=0; i < prefix_list.ntarget; i++){
-				if(!load_vm_entries(&scan_list, prefix_list.target[i], &v4host)){
-					puts("Couldn't load prefix for IEEE OUI");
-					exit(EXIT_FAILURE);
-				}
-			}
-		}
-
-		if(tgt_oui_f){
-			for(i=0; i < prefix_list.ntarget; i++){
-				if(!load_oui_entries(&scan_list, prefix_list.target[i], &oui)){
-					puts("Couldn't load prefix for IEEE OUI");
-					exit(EXIT_FAILURE);
-				}
-			}			
-		}
-
-		if(tgt_vendor_f){
-			for(i=0; i < prefix_list.ntarget; i++){
-				if(!load_vendor_entries(&scan_list, prefix_list.target[i], vendor)){
-					puts("Couldn't load prefixes for the specified vendor");
-					exit(EXIT_FAILURE);
-				}
-			}
-		}
-
-		if(tgt_bruteforce_f){
-			for(i=0; i < prefix_list.ntarget; i++){
-				if(!load_bruteforce_entries(&scan_list, prefix_list.target[i])){
-					puts("Couldn't load prefixes for the specified destination prefix");
-					exit(EXIT_FAILURE);
-				}
-			}
-		}
-
-		/* scan_list.ctarget= scan_list.first; */
-
-		puts(SI6_TOOLKIT);
-		puts( "scan6: An advanced IPv6 scanning tool\n");
-
-		if(idata.verbose_f && !bps_f && !pps_f){
-			puts("Rate-limiting probe packets to 1000 pps (override with the '-r' option if necessary)");
-		}
-
-		if(idata.verbose_f){
-			printf("Target address ranges (%d)\n", scan_list.ntarget);
-
-			if(!print_scan_entries(&scan_list)){
-				puts("Error while printing target address ranges");
-				exit(EXIT_FAILURE);
-			}
-		}
-
-		if(!scan_local_f && !idata.ip6_global_flag){
-			if(idata.verbose_f){
-				puts("Cannot obtain a global address to scan remote network");
-			}
-
-			exit(EXIT_FAILURE);
-		}
-
-		if(idata.verbose_f){
-			if(tcp_port_list.nport){
-				printf("Target TCP ports: ");
-				print_port_entries(&tcp_port_list);
-				puts("");
-			}
-
-			if(udp_port_list.nport){
-				printf("Target UDP ports: ");
-				print_port_entries(&udp_port_list);
-				puts("");
-			}
-		}
-
-		if(tcp_port_list.nport){
-			if(udp_port_list.nport){
-				/* Allow both TCP and UDP packets */
-				if(pcap_compile(idata.pfd, &pcap_filter, PCAP_TCP_UDP_NSNA_FILTER, PCAP_OPT, PCAP_NETMASK_UNKNOWN) == -1){
-					if(idata.verbose_f>1)
-						printf("pcap_compile(): %s\n", pcap_geterr(idata.pfd));
-
-					exit(EXIT_FAILURE);
-				}
-			}
-			else{
-				/* Allow only TCP packets */
-				if(pcap_compile(idata.pfd, &pcap_filter, PCAP_TCP_NSNA_FILTER, PCAP_OPT, PCAP_NETMASK_UNKNOWN) == -1){
-					if(idata.verbose_f>1)
-						printf("pcap_compile(): %s\n", pcap_geterr(idata.pfd));
-
-					exit(EXIT_FAILURE);
-				}
-			}
-		}
-		else{
-			if(udp_port_list.nport){
-				/* Allow only UDP packets */
-				if(pcap_compile(idata.pfd, &pcap_filter, PCAP_UDP_NSNA_FILTER, PCAP_OPT, PCAP_NETMASK_UNKNOWN) == -1){
-					if(idata.verbose_f>1)
-						printf("pcap_compile(): %s\n", pcap_geterr(idata.pfd));
-
-					exit(EXIT_FAILURE);
-				}
-			}
-			/* There is no "else" here, since port scanning is triggered by specifying some proto/port */
-		}
-
-		/* Set initial contents of the attack packet */
-		init_packet_data(&idata);
-
-/*
-		if(pcap_setfilter(idata.pfd, &pcap_filter) == -1){
-			if(idata.verbose_f>1)
-				printf("pcap_setfilter(): %s\n", pcap_geterr(idata.pfd));
-
-			exit(EXIT_FAILURE);
-		}
-*/
-		pcap_freecode(&pcap_filter);
-
-		FD_ZERO(&sset);
-		FD_SET(idata.fd, &sset);
-
-
-		/* One loop for each address */
-
-		nomoreaddr_f= FALSE;
-
-		while(!nomoreaddr_f){
-			if(tcp_port_list.nport){
-				pscantype= IPPROTO_TCP;
-				port_list= &tcp_port_list;
-				port_results= tcp_results;
-			}
-			else if(udp_port_list.nport){
-				pscantype= IPPROTO_UDP;
-				port_list= &udp_port_list;
-				port_results= udp_results;
-			}
-			else{
-				/* Should never happen */
-				puts("Error: Port scan selected, but no target TCP or UDP ports");
-			}
-
-			endpscan_f= FALSE;
-			end_f= FALSE;
-			donesending_f= FALSE;
-
-			/* Check whether the current scan_entry is within range. Otherwise, get the next target */
-			if( !is_target_in_range(&scan_list)){
-				if(!get_next_target(&scan_list)){
-					/* donesending_f=TRUE; */
-					nomoreaddr_f= TRUE;
-					continue;
-				}
-			}
-
-			/* Reset the port entries */
-			if(tcp_port_list.nport)
-				reset_port_list(&tcp_port_list);
-
-			if(udp_port_list.nport)
-				reset_port_list(&udp_port_list);
-
-
-			/* endpscan_f is set when all protocols have been scanned */
-			while(!endpscan_f){
-				lastprobe.tv_sec= 0;	
-				lastprobe.tv_usec=0;
-				idata.pending_write_f=TRUE;	
-
-				/* end_f is set when donesending_f and proper time has elapsed */
-				while(!end_f){
-					rset= sset;
-					wset= sset;
-					eset= sset;
-
-					if(!donesending_f){
-						timeout.tv_sec= pktinterval / 1000000 ;	
-						timeout.tv_usec= pktinterval % 1000000;
-					}
-					else{
-	#if defined(sun) || defined(__sun) || defined(__linux__)
-						timeout.tv_sec= pktinterval / 1000000 ;	
-						timeout.tv_usec= pktinterval % 1000000;
-	#else
-						timeout.tv_usec=0;
-						timeout.tv_sec= PSCAN_TIMEOUT;
-	#endif
-					}
-
-					/*
-						Check for readability and exceptions. We only check for writeability if there is pending data
-						to send (the pcap descriptor will usually be writeable!).
-					 */
-					if((sel=select(idata.fd+1, &rset, (idata.pending_write_f?&wset:NULL), &eset, &timeout)) == -1){
-						if(errno == EINTR){
-							continue;
-						}
-						else{
-							perror("scan6:");
-							exit(EXIT_FAILURE);
-						}
-					}
-
-					if(gettimeofday(&curtime, NULL) == -1){
-						if(idata.verbose_f)
-							perror("scan6");
-
-						exit(EXIT_FAILURE);
-					}
-
-					/* Check whether we have finished probing all ports */
-					if(donesending_f){
-						if(is_time_elapsed(&curtime, &lastprobe, SELECT_TIMEOUT * 1000000)){
-							end_f=TRUE;
-						}
-					}
-
-	#if !defined(sun) && !defined(__sun) && !defined(__linux__)
-					/*
-					   If we didn't check for writeability in the previous call to select(), we must do it now. Otherwise, we might
-					   block when trying to send a packet.
-					 */
-					if(!donesending_f && !idata.pending_write_f){
-						wset= sset;
-
-						timeout.tv_usec=0;
-						timeout.tv_sec= 0;
-
-						if( (sel=select(idata.fd+1, NULL, &wset, NULL, &timeout)) == -1){
-							if(errno == EINTR){
-								continue;
-							}
-							else{
-								perror("scan6:");
-								exit(EXIT_FAILURE);
-							}
-						}
-
-						idata.pending_write_f= TRUE;
-					}
-	#endif
-
-
-	#if defined(sun) || defined(__sun) || defined(__linux__)
-					if(TRUE){
-	#else
-					if(sel && FD_ISSET(idata.fd, &rset)){
-	#endif
-						/* Must process incoming packet */
-						error_f=FALSE;
-
-						if((result=pcap_next_ex(idata.pfd, &pkthdr, &pktdata)) == -1){
-							if(idata.verbose_f)
-								printf("Error while reading packet in main loop: pcap_next_ex(): %s", pcap_geterr(idata.pfd));
-
-							exit(EXIT_FAILURE);
-						}
-
-						if(result == 1 && pktdata != NULL){
-							pkt_ether = (struct ether_header *) pktdata;
-							pkt_ipv6 = (struct ip6_hdr *)((char *) pkt_ether + idata.linkhsize);
-							pkt_end = (unsigned char *) pktdata + pkthdr->caplen;
-
-
-							if( (pkt_end -  pktdata) < (idata.linkhsize + MIN_IPV6_HLEN)){
-								continue;
-							}
-
-							/* Skip IPv6 EHs if present */
-							ulhtype= pkt_ipv6->ip6_nxt;
-							pkt_eh= (struct ip6_eh *)  ((char *) pkt_ipv6 + sizeof(struct ip6_hdr));
-
-							droppacket_f= FALSE;
-
-							while(ulhtype != IPPROTO_ICMPV6 && ulhtype != IPPROTO_TCP && ulhtype != IPPROTO_UDP && !droppacket_f){
-								if(ulhtype == IPPROTO_FRAGMENT){
-									if( ((unsigned char *)pkt_eh + sizeof(struct ip6_frag)) > pkt_end){
-										droppacket_f= TRUE;
-										break;
-									}
-
-									fh= (struct ip6_frag *)	((char *) pkt_eh);
-
-									if(fh->ip6f_offlg & IP6F_OFF_MASK){
-										droppacket_f= TRUE;
-										break;
-									}
-
-									ulhtype= fh->ip6f_nxt;
-									pkt_eh = (struct ip6_eh *) ((char *) fh + sizeof(struct ip6_frag));
-								}
-								else{
-									if( ((unsigned char *)pkt_eh + sizeof(struct ip6_eh)) > pkt_end){
-										droppacket_f=TRUE;
-										break;
-									}
-
-									ulhtype= pkt_eh->eh_nxt;
-									pkt_eh= (struct ip6_eh *) ( (char *) pkt_eh + (pkt_eh->eh_len + 1) * 8);
-								}
-
-								if( (unsigned char *)pkt_eh >= pkt_end){
-									droppacket_f= TRUE;
-									break;
-								}
-							}
-
-							if(droppacket_f){
-								continue;
-							}
-
-							pkt_icmp6 = (struct icmp6_hdr *) ((char *) pkt_eh);
-							pkt_tcp= (struct tcp_hdr *) ((char *) pkt_eh);
-							pkt_udp= (struct udp_hdr *) ((char *) pkt_eh);
-							pkt_ns= (struct nd_neighbor_solicit *) ((char *) pkt_eh);
-
-							if(ulhtype == IPPROTO_ICMPV6){
-								if( idata.type == DLT_EN10MB && !(idata.flags & IFACE_LOOPBACK) && pkt_icmp6->icmp6_type == ND_NEIGHBOR_SOLICIT){
-									if( (pkt_end - (unsigned char *) pkt_ns) < sizeof(struct nd_neighbor_solicit))
-										continue;
-
-									/* 
-										If the addresses that we're using are not actually configured on the local system
-										(i.e., they are "spoofed", we must check whether it is a Neighbor Solicitation for 
-										one of our addresses, and respond with a Neighbor Advertisement. Otherwise, the kernel
-										will take care of that.
-									 */
-									if(is_ip6_in_address_list(&(idata.ip6_global), &(pkt_ns->nd_ns_target)) || \
-										is_eq_in6_addr(&(pkt_ns->nd_ns_target), &(idata.ip6_local))){
-											if(send_neighbor_advert(&idata, idata.pfd, pktdata) == -1){
-												if(idata.verbose_f)
-													puts("Error sending Neighbor Advertisement message");
-
-												exit(EXIT_FAILURE);
-											}
-									}
-								}
-								else if( pkt_icmp6->icmp6_type == ICMP6_DST_UNREACH && \
-	 								pkt_icmp6->icmp6_code == ICMP6_DST_UNREACH_NOPORT){
-
-									/* We are interested in the embedded payload */
-									pkt_ipv6=  (struct ip6_hdr *) ((char *) pkt_icmp6 + sizeof(struct icmp6_hdr));
-
-									if( ((unsigned char *)pkt_ipv6 + sizeof(struct ip6_hdr)) > pkt_end){
-										continue;
-									}
-
-									if(!is_eq_in6_addr(&(pkt_ipv6->ip6_dst), &(idata.dstaddr))){
-										continue;
-									}
-
-									ulhtype= pkt_ipv6->ip6_nxt;
-									pkt_eh= (struct ip6_eh *)  ((char *) pkt_ipv6 + sizeof(struct ip6_hdr));
-
-									droppacket_f= FALSE;
-
-									while(ulhtype != IPPROTO_ICMPV6 && ulhtype != IPPROTO_TCP && ulhtype != IPPROTO_UDP && !droppacket_f){
-										if(ulhtype == IPPROTO_FRAGMENT){
-											if( ((unsigned char *)pkt_eh + sizeof(struct ip6_frag)) > pkt_end){
-												droppacket_f= TRUE;
-												break;
-											}
-
-											fh= (struct ip6_frag *)	((char *) pkt_eh);
-
-											if(fh->ip6f_offlg & IP6F_OFF_MASK){
-												droppacket_f= TRUE;
-												break;
-											}
-
-											ulhtype= fh->ip6f_nxt;
-											pkt_eh = (struct ip6_eh *) ((char *) fh + sizeof(struct ip6_frag));
-										}
-										else{
-											/* If the EH is smaller than the minimum EH, we drop the packet */
-											if( ((unsigned char *)pkt_eh + sizeof(struct ip6_eh)) > pkt_end){
-												droppacket_f=TRUE;
-												break;
-											}
-
-											ulhtype= pkt_eh->eh_nxt;
-											pkt_eh= (struct ip6_eh *) ( (char *) pkt_eh + (pkt_eh->eh_len + 1) * 8);
-										}
-
-										if( (unsigned char *)pkt_eh >= pkt_end){
-											droppacket_f= TRUE;
-											break;
-										}
-									}
-
-									if(droppacket_f || ulhtype != IPPROTO_UDP){
-										continue;
-									}
-
-									pkt_udp= (struct udp_hdr *) ((char *) pkt_eh);
-
-									printf("%s # UDP # %5u # CLOSED\n", pv6addr, ntohs(pkt_udp->uh_dport));
-									if(inet_ntof(AF_INET6, &(pkt_ipv6->ip6_src), pv6addr, sizeof(pv6addr)) == NULL){
-										puts("inet_ntof(): Error converting IPv6 address to fixed presentation format");
-										exit(EXIT_FAILURE);
-									}
-
-								}
-							}
-							/* We only bother to process TCP segments if we are currently sending TCP segments */
-							else if(ulhtype == IPPROTO_TCP){
-							/*	if(!is_eq_in6_addr(&(idata.dstaddr), &(pkt_ipv6->ip6_src)))
-									continue;
-*/
-								if(srcport_f){
-									if(pkt_tcp->th_dport != htons(srcport))
-										continue;
-								}
-
-								if(in_chksum(pkt_ipv6, pkt_tcp, pkt_end-((unsigned char *)pkt_tcp), IPPROTO_TCP) != 0)
-									continue;
-
-								if(inet_ntof(AF_INET6, &(pkt_ipv6->ip6_src), pv6addr, sizeof(pv6addr)) == NULL){
-									puts("inet_ntof(): Error converting IPv6 address to fixed presentation format");
-									exit(EXIT_FAILURE);
-								}
-
-
-								/* Record the port number -- XXX might use the port-setting techniques from path6 */
-								if(pkt_tcp->th_flags & TH_RST && verbose_f){
-									printf("%s # TCP # %5u # CLOSED\n", pv6addr, ntohs(pkt_tcp->th_sport));
-								}
-								else if(pkt_tcp->th_flags & TH_SYN){
-									printf("%s # TCP # %5u # OPEN\n", pv6addr, ntohs(pkt_tcp->th_sport));
-								}
-							}
-						}
-					}
-
-					if(!donesending_f && !idata.pending_write_f && is_time_elapsed(&curtime, &lastprobe, pktinterval)){
-						idata.pending_write_f=TRUE;
-						continue;
-					}
-
-	#if defined(sun) || defined(__sun) || defined(__linux__)
-					if(!donesending_f && idata.pending_write_f){
-	#else
-					if(!donesending_f && idata.pending_write_f && FD_ISSET(idata.fd, &wset)){
-	#endif
-						idata.pending_write_f=FALSE;
-
-						/* Check whether the current scan_entry is within range. Otherwise, get the next target */
-						if( !is_port_in_range(port_list)){
-							if(!get_next_port(port_list)){
-								if(gettimeofday(&lastprobe, NULL) == -1){
-									if(idata.verbose_f)
-										perror("scan6");
-
-									exit(EXIT_FAILURE);
-								}
-
-								donesending_f=TRUE;
-								continue;
-							}
-						}
-
-						if(!send_pscan_probe(&idata, &scan_list, port_list, &(idata.srcaddr), pscantype)){
-								exit(EXIT_FAILURE);
-						}
-
-						if(gettimeofday(&lastprobe, NULL) == -1){
-							if(idata.verbose_f)
-								perror("scan6");
-
-							exit(EXIT_FAILURE);
-						}
-
-						if(!get_next_port(port_list)){
-							donesending_f=TRUE;
-							continue;
-						}
-					}
-
-					if(FD_ISSET(idata.fd, &eset)){
-						if(idata.verbose_f)
-							puts("scan6: Found exception on libpcap descriptor");
-
-						exit(EXIT_FAILURE);
-					}
-				}
-
-
-				/* We always start with TCP scans (if there are any target ports) */
-				if(pscantype== IPPROTO_TCP){
-					if(udp_port_list.nport){
-						pscantype= IPPROTO_UDP;
-						port_list= &udp_port_list;
-						port_results= udp_results;
-					}
-					else{
-						endpscan_f= TRUE;
-					}
-				}
-				else{
-					endpscan_f= TRUE;
-				}
-			}
-
-
-			if(!get_next_target(&scan_list)){
-				nomoreaddr_f=TRUE;
-				continue;
-			}
-
-			puts("");
-		}
-
-		exit(EXIT_SUCCESS);
-	}
-
-
-
-
-
-
-
-
-
 
 
 
@@ -6446,8 +5620,8 @@ int valid_icmp6_response(struct iface_data *idata, unsigned char type, struct pc
 			/* The packet length is the minimum of what we capured, and what is specified in the
 			   IPv6 Total Lenght field
 			 */
-			if( pkt_end > ((unsigned char *)pkt_icmp6 + ntohs(pkt_ipv6->ip6_plen)) )
-				pkt_end = (unsigned char *)pkt_icmp6 + ntohs(pkt_ipv6->ip6_plen);
+			if( pkt_end > ((unsigned char *)pkt_icmp6 + pkt_ipv6->ip6_plen) )
+				pkt_end = (unsigned char *)pkt_icmp6 + pkt_ipv6->ip6_plen;
 
 			/*
 			   Discard the packet if it is not of the minimum size to contain an ICMPv6 
@@ -6465,8 +5639,8 @@ int valid_icmp6_response(struct iface_data *idata, unsigned char type, struct pc
 			/* The packet length is the minimum of what we capured, and what is specified in the
 			   IPv6 Total Lenght field
 			 */
-			if( pkt_end > ((unsigned char *)pkt_icmp6 + ntohs(pkt_ipv6->ip6_plen)) )
-				pkt_end = (unsigned char *)pkt_icmp6 + ntohs(pkt_ipv6->ip6_plen);
+			if( pkt_end > ((unsigned char *)pkt_icmp6 + pkt_ipv6->ip6_plen) )
+				pkt_end = (unsigned char *)pkt_icmp6 + pkt_ipv6->ip6_plen;
 
 			/*
 			   Discard the packet if it is not of the minimum size to contain an ICMPv6 
@@ -6552,8 +5726,8 @@ int valid_icmp6_response_remote(struct iface_data *idata, struct scan_list *scan
 			/* The packet length is the minimum of what we capured, and what is specified in the
 			   IPv6 Total Lenght field
 			 */
-			if( pkt_end > ((unsigned char *)pkt_icmp6 + ntohs(pkt_ipv6->ip6_plen)) )
-				pkt_end = (unsigned char *)pkt_icmp6 + ntohs(pkt_ipv6->ip6_plen);
+			if( pkt_end > ((unsigned char *)pkt_icmp6 + pkt_ipv6->ip6_plen) )
+				pkt_end = (unsigned char *)pkt_icmp6 + pkt_ipv6->ip6_plen;
 
 			/*
 			   Discard the packet if it is not of the minimum size to contain an ICMPv6 
@@ -6569,8 +5743,8 @@ int valid_icmp6_response_remote(struct iface_data *idata, struct scan_list *scan
 			/* The packet length is the minimum of what we capured, and what is specified in the
 			   IPv6 Total Lenght field
 			 */
-			if( pkt_end > ((unsigned char *)pkt_icmp6 + ntohs(pkt_ipv6->ip6_plen)) )
-				pkt_end = (unsigned char *)pkt_icmp6 + ntohs(pkt_ipv6->ip6_plen);
+			if( pkt_end > ((unsigned char *)pkt_icmp6 + pkt_ipv6->ip6_plen) )
+				pkt_end = (unsigned char *)pkt_icmp6 + pkt_ipv6->ip6_plen;
 
 			/*
 			   Discard the packet if it is not of the minimum size to contain an ICMPv6 
@@ -6838,14 +6012,14 @@ int load_top_ports_entries(struct port_list *tcp_port_list, struct port_list *ud
 		charptr= (char *)line;
 
 		/* Skip any whitespaces */
-		while(charptr < ( (char *)line + lines) && (*charptr == ' ' || *charptr == '\t'))
+		while(charptr < ( (char *)line + lines) && *charptr == ' ')
 			charptr++;
 
 		if((charptr = strtok_r(charptr, ",", &lasts)) == NULL){
 			continue;
 		}
 
-		port= (uint16_t) atoi(charptr);
+		port= atoi(charptr);
 
 		if((charptr = strtok_r(NULL, ",", &lasts)) == NULL){
 			continue;
