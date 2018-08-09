@@ -896,9 +896,16 @@ sub GetDomainsFromBingDict{
 					# subfase4: tipos de archivo + elimino sites	
 					# subfase5: tipos de archivo ´+ sites sin www
 
+					# XXX
+					$lastkeyword=$dictkeyword;
 					$dictkeyword="";
 					while($dictword=<$dictfp>){
 						chomp($dictword);
+
+						if($dictword =~ m/^\s*#/){
+							next;
+						}
+
 						$dictword=~ s/\r//g;
 						$lineno++;
 
@@ -914,7 +921,7 @@ sub GetDomainsFromBingDict{
 
 					if(!$dictword){
 #print "# Error al leer palabra\n";
-						print "# Finished dictionary! (last keyword: $dictkeyword, line: $lineno\n";
+						print "# Finished dictionary! (last keyword: $lastkeyword, line: $lineno)\n";
 						$continue=0;
 					}
 					else{
@@ -6386,6 +6393,57 @@ elsif($ARGV[0] eq "get-bing-dict"){
 
 	exit;
 }
+elsif($ARGV[0] eq "get-bing-dict-quick"){
+	#
+	# $ARGV[0]: get-bin-dict
+	# $ARGV[1]: domain
+	# $ARGV[2]: dictionary
+	# $ARGV[3]: maxsites
+
+	if($#ARGV < 2 || $#ARGV > 3){
+		print "Syntax: script6 get-bing-dict-quick DOMAIN DICTIONARY [MAXRESULTS]\n";
+		exit 1;
+	}
+
+	if($#ARGV == 3){
+		$maxresults= $ARGV[3];
+
+		if($maxresults == 0){
+			exit 0;
+		}
+
+		$maxresults--;
+	}
+	else{
+		$maxresults= -1;
+	}
+
+	$dictfile= $ARGV[2];
+
+	ParseConfigFile();
+	undef @domain;
+
+	$_= $ARGV[1];
+
+	if($_ =~ m/^\s*\.*([-a-zA-Z0-9._]+)/){
+		$czone= $1;
+	}
+	else{
+		print "Invalid DNS zone\n";
+		exit(1);
+	}
+
+
+
+	print "######## DOMAIN: $czone ########\n";
+
+#	open FILE, "$dictfile" or die $!;
+	open my $dictfp, '<', $dictfile or die $!;
+	GetDomainsFromBingDict(\@domain, $czone, 0, $maxresults, $dictfp);	
+	close $dictfp;
+
+	exit;
+}
 elsif($ARGV[0] eq "get-bing-dict-batch"){
 	if($#ARGV < 1 ){
 		print "usage: script6 get-bing-dict-batch DICTIONARY [MAXRESULTS]\n";
@@ -6459,6 +6517,49 @@ elsif($ARGV[0] eq "get-bing-dict-batch"){
 			undef @levsites;
 			GenDomListLevel(\@domain, \@levsites, $czone, $domlevel, -1);
 		}  # While lev > 0;
+	};  # while(<STDIN>)
+
+	exit;
+}
+elsif($ARGV[0] eq "get-bing-dict-quick-batch"){
+	if($#ARGV < 1 ){
+		print "usage: script6 get-bing-dict-quick-batch DICTIONARY [MAXRESULTS]\n";
+		exit(1);
+	}
+
+	if($#ARGV > 1){
+		$maxresults= $ARGV[2];
+		$maxresults--;
+
+		if($maxresults < 0){
+			exit(0);
+		}
+	}
+	else{
+		$maxresults= -1;
+	}
+
+	$dictfile= $ARGV[1];
+	ParseConfigFile();
+
+	while(<STDIN>){
+
+
+		undef @domain;
+
+		if($_ =~ m/^\s*\.*([-a-zA-Z0-9.]+)/){
+			$czone= $1;
+		}
+		else{
+			next;
+		}
+
+		print "######## DOMAIN: $czone ########\n";
+
+
+		open my $dictfp, '<', $dictfile or die $!;
+		GetDomainsFromBingDict(\@domain, $czone, 0, $maxresults, $dictfp);	
+		close $dictfp;
 	};  # while(<STDIN>)
 
 	exit;
