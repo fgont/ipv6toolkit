@@ -601,11 +601,18 @@ sub GetDomainsFromCrt{
 
 		if($retcode == 0){
 			foreach $line (@lines){
+				$line =~ s/\\"/'/g; # Replaces escaped double-qutes with single-quotes
+
 				while($line=~ s/{"issuer_ca_id":\d+\s*,\s*"issuer_name":"[^"]*"\s*,\s*"name_value":"([^"]+)","min_cert_id":\d+,"min_entry_timestamp":"[^"]+","not_before":"[^"]+","not_after":"[^"]+"}//){
 					$grabbeddomain=$1;
 
 					# Wildcards are not allwed in valid domains
 					if($grabbeddomain=~ m/\*/){
+						next;
+					}
+
+					# Remove "domains" that contain spaces
+					if($grabbeddomain=~ m/ /){
 						next;
 					}
 
@@ -629,7 +636,6 @@ sub GetDomainsFromCrt{
 		}   # if $? == 0
 	}while($retcode != 0);		
 }
-
 
 
 sub GetDomainsFromBingDict{
