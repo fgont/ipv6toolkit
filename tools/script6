@@ -7948,7 +7948,8 @@ elsif($ARGV[0] eq "get-domain-level"){
 					$domains[$#domains + 1]=$grabbeddomain;
 					print "$grabbeddomain\n";
 				}
-			}		
+			}
+		}
 	}
 }
 elsif($ARGV[0] eq "create-dict" || $ARGV[0] eq "create-dictionary" || $ARGV[0] eq "create-dic"){
