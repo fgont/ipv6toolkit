@@ -42,6 +42,7 @@ Usage: script6 COMMAND [PARAMETERS]
    get-trace6-stats: Get statistics for trace results read from STDIN
    create-dict: Extracts words from STDIN to create a dictionary
    get-unique-domains: Creates a list of unique domains from STDIN
+   get-domain-level: Creates a list of unique domains of a given level from STDIN\n
 ";
 
 
@@ -8032,7 +8033,8 @@ elsif($ARGV[0] eq "get-unique-domains"){
 	while($line=<STDIN>){
 		chomp($line);
 
-		if( $line =~ m/^\s*([^\/#\r\n]+)/){
+		if( $line =~ m/^\s*([-a-zA-Z0-9_.]+)/){
+#		if( $line =~ m/^\s*([^\/#\r\n]+)/){
 			$dictword=$1;
 			$dictword=~ s/\r//g;
 			$dictword=lc($dictword);
