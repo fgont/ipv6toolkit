@@ -5733,7 +5733,7 @@ elsif($ARGV[0] eq "get-dns6-rev-batch" || $ARGV[0] eq "get-dns6-rev-batch"){
 }
 elsif($ARGV[0] eq "get-sublister-batch" || $ARGV[0] eq "get-sublist3r-batch"){
 	if($#ARGV != 1){
-		print "Usage: script6 get-sublister-batch SUBLISTERPATH\n";
+		print "Usage: script6 $ARGV[0] SUBLISTERPATH\n";
 		exit(1);
 	}
 
@@ -5777,7 +5777,7 @@ elsif($ARGV[0] eq "get-sublister-batch" || $ARGV[0] eq "get-sublist3r-batch"){
 }
 elsif($ARGV[0] eq "get-suffix-for-tld" || $ARGV[0] eq "get-suffixes-for-tld"){
 	if($#ARGV > 1){
-		print "Syntax: script6 get-iso2-for-country COUNTRY\n";
+		print "Syntax: script6 $ARGV[0] TLD\n";
 		exit 1;
 	}
 
@@ -6061,7 +6061,7 @@ elsif($ARGV[0] eq "get-rir-database"){
 }
 elsif($ARGV[0] eq "get-crt" || $ARGV[0] eq "get-crt.sh" || $ARGV[0] eq "get-cert-transparency" || $ARGV[0] eq "get-cert-transp"){
 	if($#ARGV != 1){
-		print "usage: script6 get-cert-transparency DOMAIN\n";
+		print "usage: script6 $ARGV[0] DOMAIN\n";
 		exit(1);
 	}
 
@@ -6937,38 +6937,43 @@ elsif($ARGV[0] eq "get-dns-zones"){
 elsif($ARGV[0] eq "get-dns-root-zone" || $ARGV[0] eq "get-root-zone"){
 	ParseConfigFile();
 
-	# --user-agent "Mozilla/4.0"  works fine most of the time. curl || wget original headers cause trouble.
-	$useragent=GetRandomUserAgent();
+	do{
+		# --user-agent "Mozilla/4.0"  works fine most of the time. curl || wget original headers cause trouble.
+		$useragent=GetRandomUserAgent();
 
-	@revname=`$wwwclient $wwwclient_sopt $wwwclient_agnt"$useragent" "https://www.iana.org/domains/root/db"`;
+		@revname=`$wwwclient $wwwclient_sopt $wwwclient_agnt"$useragent" "https://www.iana.org/domains/root/db"`;
 
-	if($? == 0){
-		foreach $line (@revname){
-			while($line =~ s/\<span class="domain tld"><a href="\/domains\/root\/db\/([^.>"]+).html">//){
-				print "$1\n";
+		if($? == 0){
+			foreach $line (@revname){
+				while($line =~ s/\<span class="domain tld"><a href="\/domains\/root\/db\/([^.>"]+).html">//){
+					print "$1\n";
+				}
 			}
 		}
-	}
+	}while($? != 0);
 
-	exit;
+	exit(0);
 }
 elsif($ARGV[0] eq "get-dns-root-zone-raw" || $ARGV[0] eq "get-root-zone-raw"){
 	ParseConfigFile();
-	# --user-agent "Mozilla/4.0"  works fine most of the time. curl || wget original headers cause trouble.
-	$useragent=GetRandomUserAgent();
 
-	@revname=`$wwwclient $wwwclient_sopt $wwwclient_agnt"$useragent" "https://data.iana.org/TLD/tlds-alpha-by-domain.txt"`;
+	do{
+		# --user-agent "Mozilla/4.0"  works fine most of the time. curl || wget original headers cause trouble.
+		$useragent=GetRandomUserAgent();
 
-	if($? == 0){
-		foreach $line (@revname){
-			while($line =~ s/^\s*(\S+)//){
-				$domain=$1;
-				print "$domain\n";
+		@revname=`$wwwclient $wwwclient_sopt $wwwclient_agnt"$useragent" "https://data.iana.org/TLD/tlds-alpha-by-domain.txt"`;
+
+		if($? == 0){
+			foreach $line (@revname){
+				while($line =~ s/^\s*(\S+)//){
+					$domain=$1;
+					print "$domain\n";
+				}
 			}
 		}
-	}
+	}while($? != 0);
 
-	exit;
+	exit(0);
 }
 elsif($ARGV[0] eq "get-asn" || $ARGV[0] eq "get-asn6"){
 	@revname=`addr6 -a $ARGV[1] -r`;
