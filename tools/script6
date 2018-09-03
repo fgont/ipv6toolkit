@@ -7927,29 +7927,28 @@ elsif($ARGV[0] eq "get-domain-level"){
 	while($domain=<STDIN>){
 		chomp($domain);
 
-		if($domain=~/^\s*#/){
-			next;
-		}
+		if( $domain =~ m/^\s*([-a-zA-Z0-9_.]+)/){
+			$domain= $1;
 
-		@revarray=();
-#		$revdomain= join(".", reverse split /\./, $domain);
-		@revarray= reverse split /\./, $domain;
+			@revarray=();
+	#		$revdomain= join(".", reverse split /\./, $domain);
+			@revarray= reverse split /\./, $domain;
 
-		if($#revarray >= $level){
-			$revdomain= join(".", @revarray[0..$level]);
-			$grabbeddomain= join(".", reverse split /\./, $revdomain);
+			if($#revarray >= $level){
+				$revdomain= join(".", @revarray[0..$level]);
+				$grabbeddomain= join(".", reverse split /\./, $revdomain);
 
-			for($i=0; $i<= $#domains; $i++){
-				if($domains[$i] eq $grabbeddomain){
-					last;
+				for($i=0; $i<= $#domains; $i++){
+					if($domains[$i] eq $grabbeddomain){
+						last;
+					}
 				}
-			}
 
-			if($i > $#domains){
-				$domains[$#domains + 1]=$grabbeddomain;
-				print "$grabbeddomain\n";
-			}
-		}		
+				if($i > $#domains){
+					$domains[$#domains + 1]=$grabbeddomain;
+					print "$grabbeddomain\n";
+				}
+			}		
 	}
 }
 elsif($ARGV[0] eq "create-dict" || $ARGV[0] eq "create-dictionary" || $ARGV[0] eq "create-dic"){
@@ -8034,7 +8033,6 @@ elsif($ARGV[0] eq "get-unique-domains"){
 		chomp($line);
 
 		if( $line =~ m/^\s*([-a-zA-Z0-9_.]+)/){
-#		if( $line =~ m/^\s*([^\/#\r\n]+)/){
 			$dictword=$1;
 			$dictword=~ s/\r//g;
 			$dictword=lc($dictword);
