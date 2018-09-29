@@ -8091,7 +8091,7 @@ elsif($ARGV[0] eq "get-domain-from-script6-get" || $ARGV[0] eq "get-domains-from
 }
 elsif($ARGV[0] eq "get-domain-from-zonefile" || $ARGV[0] eq "get-domain-from-zone" || $ARGV[0] eq "get-domains-from-zonefile" || $ARGV[0] eq "get-domains-from-zone"){
 
-	undef($lastdomain);
+	$lastdomain="";
 
 	while($line=<STDIN>){
 		$line=lc($line);
