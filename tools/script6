@@ -8089,6 +8089,15 @@ elsif($ARGV[0] eq "get-domain-from-script6-get" || $ARGV[0] eq "get-domains-from
 		}
 	}
 }
+elsif($ARGV[0] eq "get-domain-from-zonefile" || $ARGV[0] eq "get-domain-from-zone" || $ARGV[0] eq "get-domains-from-zonefile" || $ARGV[0] eq "get-domains-from-zone"){
+	while($line=<STDIN>){
+		$line=lc($line);
+		if($line=~ m/^(\S+)\s+\d+\s+in\s+ns\s+\S+$/){
+			$domain= join(".", split /\./, $1);
+			print "$domain\n";
+		}
+	}
+}
 else{
 	print "$SI6_TOOLKIT\n";
 	print "$SCRIPT6\n";
