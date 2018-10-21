@@ -51,7 +51,7 @@ Usage: script6 COMMAND [PARAMETERS]
    get-trace6-stats: Get statistics for trace results read from STDIN
    create-dict: Extracts words from STDIN to create a dictionary
    get-unique-domains: Creates a list of unique domains from STDIN
-   get-domain-level: Creates a list of unique domains of a given level from STDIN\n
+   get-domain-level: Creates list of unique domains of a given level from STDIN\n
 ";
 
 
