@@ -19,8 +19,17 @@ Usage: script6 COMMAND [PARAMETERS]
    get-alexa-domains: Obtain list of domain names from Alexa's file
    get-majestic-domains: Obtain list of domain names from Majestic's file
    get-bing: Search for domains with the Bing search engine
+   get-bing-batch: Search for domains with the Bing search engine
    get-bing-dict: Search for domains with Bing using a dictionary
-   get-bing-batch: Search for domains with Bing (STDIN)
+   get-bing-dict-batch: Search for domains with Bing (STDIN)
+   get-bing4: Search for domains with the Bing search engine (IPv4)
+   get-bing4-batch: Search for domains with the Bing search engine (IPv4)
+   get-bing4-dict: Search for domains with Bing using a dictionary (IPv4)
+   get-bing4-dict-batch: Search for domains with Bing (STDIN) (IPv4)
+   get-bing6: Search for domains with the Bing search engine (IPv6)
+   get-bing6-batch: Search for domains with the Bing search engine (IPv6)
+   get-bing6-dict: Search for domains with Bing using a dictionary (IPv6)
+   get-bing6-dict-batch: Search for domains with Bing (STDIN) (IPv6)
    get-crt: Search for domains with crt.sh
    get-crt-batch: Search for domains with crt.sh (STDIN)
    get-teoma: Search for domains with the Teoma search engine
@@ -641,7 +650,7 @@ sub GetDomainsFromCrt{
 
 sub GetDomainsFromBingDict{
 #		GetDomainsFromCrawler(\@domain, $czone, $level, $maxresults);	
-		my($pdomain, $pzone, $plevel, $pmaxresults, $dictfp) = @_;
+		my($pdomain, $pzone, $plevel, $pmaxresults, $dictfp, $intprotocol) = @_;
 		my $czone=$pzone;
 		$lineno=0;
 
@@ -699,6 +708,19 @@ sub GetDomainsFromBingDict{
 
 		$maxresults= $pmaxresults;
 
+		if($intprotocol == 4){
+			$intprot="-4";
+			$sengine="www.bing.com";
+		}
+		elsif($intprotocol == 6){
+			$intprot="-6";
+			$sengine="www2.bing.com";
+		}
+		else{
+			$intprot="";
+			$sengine="www.bing.com";
+		}
+
 		$cur= 1;
 		$nresults=0;
 		$fpzeromatch=0;
@@ -727,9 +749,9 @@ sub GetDomainsFromBingDict{
 			# --user-agent "Mozilla/4.0"  works fine most of the time. curl || wget original headers cause trouble.
 			$useragent=GetRandomUserAgent();
 
-			$stringcommand="$wwwclient $wwwclient_sopt $wwwclient_tout $wwwclient_agnt\"$useragent\" \"https://www.bing.com/search?q=site%3A$czone$sitesstr$heur&first=$cur\"";
+			$stringcommand="$wwwclient $intprot $wwwclient_sopt $wwwclient_tout $wwwclient_agnt\"$useragent\" \"https://$sengine/search?q=site%3A$czone$sitesstr$heur&first=$cur\"";
 
-			@revname=`$wwwclient $wwwclient_sopt $wwwclient_tout $wwwclient_agnt"$useragent" "https://www.bing.com/search?q=site%3A$czone$sitesstr$heur&first=$cur"`;
+			@revname=`$wwwclient $intprot $wwwclient_sopt $wwwclient_tout $wwwclient_agnt"$useragent" "https://$sengine/search?q=site%3A$czone$sitesstr$heur&first=$cur"`;
 
 
 			$totalqueries++;
@@ -1104,7 +1126,7 @@ sub GetDomainsFromBingDict{
 
 sub GetDomainsFromBing{
 #		GetDomainsFromCrawler(\@domain, $czone, $level, $maxresults);	
-		my($pdomain, $pzone, $plevel, $pmaxresults) = @_;
+		my($pdomain, $pzone, $plevel, $pmaxresults, $intprotocol) = @_;
 		my $czone=$pzone;
 
 		$MAXREMOVEDSITES=25;
@@ -1161,6 +1183,21 @@ sub GetDomainsFromBing{
 
 		$maxresults= $pmaxresults;
 
+
+		if($intprotocol == 4){
+			$intprot="-4";
+			$sengine="www.bing.com";
+		}
+		elsif($intprotocol == 6){
+			$intprot="-6";
+			$sengine="www2.bing.com";
+		}
+		else{
+			$intprot="";
+			$sengine="www.bing.com";
+		}
+
+
 		$cur= 1;
 		$nresults=0;
 		$fpzeromatch=0;
@@ -1188,8 +1225,8 @@ sub GetDomainsFromBing{
 			# --user-agent "Mozilla/4.0"  works fine most of the time. curl || wget original headers cause trouble.
 			$useragent=GetRandomUserAgent();
 
-			$stringcommand="$wwwclient $wwwclient_sopt $wwwclient_tout $wwwclient_agnt\"$useragent\" \"https://www.bing.com/search?q=site%3A$czone$sitesstr$ftstr$heur&first=$cur\"";
-			@revname=`$wwwclient $wwwclient_sopt $wwwclient_tout $wwwclient_agnt"$useragent" "https://www.bing.com/search?q=site%3A$czone$sitesstr$ftstr$heur&first=$cur"`;
+			$stringcommand="$wwwclient $intprot $wwwclient_sopt $wwwclient_tout $wwwclient_agnt\"$useragent\" \"https://$sengine/search?q=site%3A$czone$sitesstr$ftstr$heur&first=$cur\"";
+			@revname=`$wwwclient $intprot $wwwclient_sopt $wwwclient_tout $wwwclient_agnt"$useragent" "https://$sengine/search?q=site%3A$czone$sitesstr$ftstr$heur&first=$cur"`;
 
 			$totalqueries++;
 
@@ -6115,7 +6152,7 @@ elsif($ARGV[0] eq "get-crt-batch"){
 }
 
 
-elsif($ARGV[0] eq "get-bing-batch"){
+elsif($ARGV[0] eq "get-bing-batch" || $ARGV[0] eq "get-bing4-batch" || $ARGV[0] eq "get-bing6-batch"){
 	if($#ARGV >=1 ){
 		$maxresults= $ARGV[1];
 		$maxresults--;
@@ -6126,6 +6163,16 @@ elsif($ARGV[0] eq "get-bing-batch"){
 	}
 	else{
 		$maxresults= -1;
+	}
+
+	if($ARGV[0] eq "get-bing4-batch"){
+		$ipprotocol=4;
+	}
+	elsif($ARGV[0] eq "get-bing6-batch"){
+		$ipprotocol=6;
+	}
+	else{
+		$ipprotocol=0;
 	}
 
 	ParseConfigFile();
@@ -6145,7 +6192,7 @@ elsif($ARGV[0] eq "get-bing-batch"){
 		print "######## DOMAIN: $czone ########\n";
 
 
-		GetDomainsFromBing(\@domain, $czone, 0, $maxresults);	
+		GetDomainsFromBing(\@domain, $czone, 0, $maxresults, $ipprotocol);	
 
 		#print "#### IMPORTANT: WILL NOW SEARCH FOR DOMAINS WITHIN SPECIFIC SUBDOMAINS\n";
 		undef @remsites;
@@ -6162,7 +6209,7 @@ elsif($ARGV[0] eq "get-bing-batch"){
 			for($jj= 0; $jj <= $#levsites && $continue == 1; $jj++){
 				$newczone= $levsites[$jj];
 
-				GetDomainsFromBing(\@domain, $newczone, $domlevel, $maxresults);
+				GetDomainsFromBing(\@domain, $newczone, $domlevel, $maxresults, $ipprotocol);
 				if($maxresults >= 0 && $#domain>=$maxresults){
 					$continue=0;
 				}
@@ -6251,9 +6298,9 @@ elsif($ARGV[0] eq "get-bing-tt"){
 
 	exit;
 }
-elsif($ARGV[0] eq "get-bing"){
+elsif($ARGV[0] eq "get-bing" || $ARGV[0] eq "get-bing4" || $ARGV[0] eq "get-bing6"){
 	if($#ARGV < 1 || $#ARGV > 2){
-		print "Syntax: script6 get-bing DOMAIN [MAXRESULTS]\n";
+		print "Syntax: script6 $ARGV[0] DOMAIN [MAXRESULTS]\n";
 		exit 1;
 	}
 
@@ -6270,6 +6317,16 @@ elsif($ARGV[0] eq "get-bing"){
 		$maxresults= -1;
 	}
 
+	if($ARGV[0] eq "get-bing4"){
+		$ipprotocol=4;
+	}
+	elsif($ARGV[0] eq "get-bing6"){
+		$ipprotocol=6;
+	}
+	else{
+		$ipprotocol=0;
+	}
+
 	ParseConfigFile();
 	undef @domain;
 
@@ -6284,7 +6341,7 @@ elsif($ARGV[0] eq "get-bing"){
 
 	print "######## DOMAIN: $czone ########\n";
 
-	GetDomainsFromBing(\@domain, $czone, 0, $maxresults);	
+	GetDomainsFromBing(\@domain, $czone, 0, $maxresults, $ipprotocol);	
 
 	#print "#### IMPORTANT: WILL NOW SEARCH FOR DOMAINS WITHIN SPECIFIC SUBDOMAINS\n";
 	undef @remsites;
@@ -6300,7 +6357,7 @@ elsif($ARGV[0] eq "get-bing"){
 		for($jj= 0; $jj <= $#levsites && $continue == 1; $jj++){
 			$newczone= $levsites[$jj];
 
-			GetDomainsFromBing(\@domain, $newczone, $domlevel, $maxresults);
+			GetDomainsFromBing(\@domain, $newczone, $domlevel, $maxresults, $ipprotocol);
 			if($maxresults >= 0 && $#domain>=$maxresults){
 				$continue=0;
 			}
@@ -6316,7 +6373,7 @@ elsif($ARGV[0] eq "get-bing"){
 
 	exit;
 }
-elsif($ARGV[0] eq "get-bing-dict"){
+elsif($ARGV[0] eq "get-bing-dict" || $ARGV[0] eq "get-bing4-dict" || $ARGV[0] eq "get-bing6-dict"){
 	#
 	# $ARGV[0]: get-bin-dict
 	# $ARGV[1]: domain
@@ -6324,7 +6381,7 @@ elsif($ARGV[0] eq "get-bing-dict"){
 	# $ARGV[3]: maxsites
 
 	if($#ARGV < 2 || $#ARGV > 3){
-		print "Syntax: script6 get-bing-dict DOMAIN DICTIONARY [MAXRESULTS]\n";
+		print "Syntax: script6 $ARGV[0] DOMAIN DICTIONARY [MAXRESULTS]\n";
 		exit 1;
 	}
 
@@ -6342,6 +6399,16 @@ elsif($ARGV[0] eq "get-bing-dict"){
 	}
 
 	$dictfile= $ARGV[2];
+
+	if($ARGV[0] eq "get-bing4-dict"){
+		$ipprotocol=4;
+	}
+	elsif($ARGV[0] eq "get-bing6-dict"){
+		$ipprotocol=6;
+	}
+	else{
+		$ipprotocol=0;
+	}
 
 	ParseConfigFile();
 	undef @domain;
@@ -6362,7 +6429,7 @@ elsif($ARGV[0] eq "get-bing-dict"){
 
 #	open FILE, "$dictfile" or die $!;
 	open my $dictfp, '<', $dictfile or die $!;
-	GetDomainsFromBingDict(\@domain, $czone, 0, $maxresults, $dictfp);	
+	GetDomainsFromBingDict(\@domain, $czone, 0, $maxresults, $dictfp, $ipprotocol);	
 	close $dictfp;
 
 	#print "#### IMPORTANT: WILL NOW SEARCH FOR DOMAINS WITHIN SPECIFIC SUBDOMAINS\n";
@@ -6382,7 +6449,7 @@ elsif($ARGV[0] eq "get-bing-dict"){
 			#	open FILE, "$dictfile" or die $!;
 			open my $dictfp, '<', $dictfile or die $!;
 
-			GetDomainsFromBingDict(\@domain, $newczone, $domlevel, $maxresults, $dictfp);
+			GetDomainsFromBingDict(\@domain, $newczone, $domlevel, $maxresults, $dictfp, $ipprotocol);
 			if($maxresults >= 0 && $#domain>=$maxresults){
 				$continue=0;
 			}
@@ -6400,7 +6467,7 @@ elsif($ARGV[0] eq "get-bing-dict"){
 
 	exit;
 }
-elsif($ARGV[0] eq "get-bing-dict-quick"){
+elsif($ARGV[0] eq "get-bing-dict-quick" || $ARGV[0] eq "get-bing4-dict-quick" || $ARGV[0] eq "get-bing6-dict-quick"){
 	#
 	# $ARGV[0]: get-bin-dict
 	# $ARGV[1]: domain
@@ -6408,7 +6475,7 @@ elsif($ARGV[0] eq "get-bing-dict-quick"){
 	# $ARGV[3]: maxsites
 
 	if($#ARGV < 2 || $#ARGV > 3){
-		print "Syntax: script6 get-bing-dict-quick DOMAIN DICTIONARY [MAXRESULTS]\n";
+		print "Syntax: script6 $ARGV[0] DOMAIN DICTIONARY [MAXRESULTS]\n";
 		exit 1;
 	}
 
@@ -6426,6 +6493,16 @@ elsif($ARGV[0] eq "get-bing-dict-quick"){
 	}
 
 	$dictfile= $ARGV[2];
+
+	if($ARGV[0] eq "get-bing4-dict-quick"){
+		$ipprotocol=4;
+	}
+	elsif($ARGV[0] eq "get-bing6-dict-quick"){
+		$ipprotocol=6;
+	}
+	else{
+		$ipprotocol=0;
+	}
 
 	ParseConfigFile();
 	undef @domain;
@@ -6446,14 +6523,14 @@ elsif($ARGV[0] eq "get-bing-dict-quick"){
 
 #	open FILE, "$dictfile" or die $!;
 	open my $dictfp, '<', $dictfile or die $!;
-	GetDomainsFromBingDict(\@domain, $czone, 0, $maxresults, $dictfp);	
+	GetDomainsFromBingDict(\@domain, $czone, 0, $maxresults, $dictfp, $ipprotocol);	
 	close $dictfp;
 
 	exit;
 }
-elsif($ARGV[0] eq "get-bing-dict-batch"){
+elsif($ARGV[0] eq "get-bing-dict-batch" || $ARGV[0] eq "get-bing4-dict-batch" || $ARGV[0] eq "get-bing6-dict-batch"){
 	if($#ARGV < 1 ){
-		print "usage: script6 get-bing-dict-batch DICTIONARY [MAXRESULTS]\n";
+		print "usage: script6 $ARGV[0] DICTIONARY [MAXRESULTS]\n";
 		exit(1);
 	}
 
@@ -6470,6 +6547,18 @@ elsif($ARGV[0] eq "get-bing-dict-batch"){
 	}
 
 	$dictfile= $ARGV[1];
+
+
+	if($ARGV[0] eq "get-bing4-dict-batch"){
+		$ipprotocol=4;
+	}
+	elsif($ARGV[0] eq "get-bing6-dict-batch"){
+		$ipprotocol=6;
+	}
+	else{
+		$ipprotocol=0;
+	}
+
 	ParseConfigFile();
 
 	while(<STDIN>){
@@ -6488,7 +6577,7 @@ elsif($ARGV[0] eq "get-bing-dict-batch"){
 
 
 		open my $dictfp, '<', $dictfile or die $!;
-		GetDomainsFromBingDict(\@domain, $czone, 0, $maxresults, $dictfp);	
+		GetDomainsFromBingDict(\@domain, $czone, 0, $maxresults, $dictfp, $ipprotocol);	
 		close $dictfp;
 
 		#print "#### IMPORTANT: WILL NOW SEARCH FOR DOMAINS WITHIN SPECIFIC SUBDOMAINS\n";
@@ -6509,7 +6598,7 @@ elsif($ARGV[0] eq "get-bing-dict-batch"){
 				#	open FILE, "$dictfile" or die $!;
 				open my $dictfp, '<', $dictfile or die $!;
 
-				GetDomainsFromBingDict(\@domain, $newczone, $domlevel, $maxresults, $dictfp);
+				GetDomainsFromBingDict(\@domain, $newczone, $domlevel, $maxresults, $dictfp, $ipprotocol);
 				if($maxresults >= 0 && $#domain>=$maxresults){
 					$continue=0;
 				}
@@ -6528,9 +6617,9 @@ elsif($ARGV[0] eq "get-bing-dict-batch"){
 
 	exit;
 }
-elsif($ARGV[0] eq "get-bing-dict-quick-batch"){
+elsif($ARGV[0] eq "get-bing-dict-quick-batch" || $ARGV[0] eq "get-bing4-dict-quick-batch" || $ARGV[0] eq "get-bing6-dict-quick-batch"){
 	if($#ARGV < 1 ){
-		print "usage: script6 get-bing-dict-quick-batch DICTIONARY [MAXRESULTS]\n";
+		print "usage: script6 $ARGV[0] DICTIONARY [MAXRESULTS]\n";
 		exit(1);
 	}
 
@@ -6547,6 +6636,17 @@ elsif($ARGV[0] eq "get-bing-dict-quick-batch"){
 	}
 
 	$dictfile= $ARGV[1];
+
+	if($ARGV[0] eq "get-bing4-dict-quick-batch"){
+		$ipprotocol=4;
+	}
+	elsif($ARGV[0] eq "get-bing6-dict-quick-batch"){
+		$ipprotocol=6;
+	}
+	else{
+		$ipprotocol=0;
+	}
+
 	ParseConfigFile();
 
 	while(<STDIN>){
@@ -6565,7 +6665,7 @@ elsif($ARGV[0] eq "get-bing-dict-quick-batch"){
 
 
 		open my $dictfp, '<', $dictfile or die $!;
-		GetDomainsFromBingDict(\@domain, $czone, 0, $maxresults, $dictfp);	
+		GetDomainsFromBingDict(\@domain, $czone, 0, $maxresults, $dictfp, $ipprotocol);	
 		close $dictfp;
 	};  # while(<STDIN>)
 
