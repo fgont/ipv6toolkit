@@ -62,6 +62,7 @@ use Socket();
 $dns6revenum= "dnsrevenum6";
 $wwwclient="";
 $country_database="";
+$dns_tld_database="";
 $dns_suffix_database="";
 $dns_dictionary_database="";
 $rir_database="";
@@ -84,6 +85,9 @@ sub ParseConfigFile{
 		}
 		elsif($_ =~ m/\s*DNS-Suffix-Database\s*=\s*([^\s]+)\s*/i){
 			$dns_suffix_database=$1;
+		}
+		elsif($_ =~ m/\s*DNS-TLD-Database\s*=\s*([^\s]+)\s*/i){
+			$dns_tld_database=$1;
 		}
 		elsif($_ =~ m/\s*DNS-Dictionary\s*=\s*([^\s]+)\s*/i){
 			$dns_dictionary_database=$1;
@@ -279,6 +283,33 @@ sub Iso2ForRIR{
 
 
 sub TLDForRIR{
+		my ($trir)= $_[0];
+
+		my @domains;
+
+		open FILE, "$dns_tld_database" or die $!;
+
+		while($line=<FILE>){
+			
+			if($line =~ m/\s*[^;]+;[^;]+;[^;]+;[^;\n\r]+/){
+				$country=$1;
+				$iso2=lc($2);
+				$iso3=$3;
+				$rir=$4;
+
+				if($rir=~ m/$trir/i){
+					if($iso2 eq "GB" || $iso2 eq "gb"){
+						print "uk\n";
+					}
+					else{
+						print "$iso2\n";
+					}
+				}
+			}
+		} # while
+}
+
+sub TLDForRIROnline{
 		my ($trir)= $_[0];
 
 		$useragent=GetRandomUserAgent();

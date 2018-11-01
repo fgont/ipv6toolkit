@@ -115,6 +115,8 @@ data/ipv6toolkit.conf:
            data/ipv6toolkit.conf 
 	echo Country-Database=$(PREFIX)/share/ipv6toolkit/country-data.csv >> \
            data/ipv6toolkit.conf
+	echo DNS-TLD-Database=$(PREFIX)/share/ipv6toolkit/dns-tld-database.csv >> \
+           data/ipv6toolkit.conf
 	echo DNS-Suffix-Database=$(PREFIX)/share/ipv6toolkit/public_suffix_list.dat >> \
            data/ipv6toolkit.conf
 	echo RIR-Database=$(PREFIX)/share/ipv6toolkit/rir-database.csv >> \
@@ -149,6 +151,9 @@ install: all
 
 	# Install the country information database
 	install -m0644 data/country-data.csv $(DATAPATH)
+
+	# Install the DNS TLD Database
+	install -m0644 data/dns-tld-database.csv $(DATAPATH)
 
 	# Install the DNS Suffixes database
 	install -m0644 data/public_suffix_list.dat $(DATAPATH)
@@ -191,7 +196,7 @@ uninstall:
 	rm -f $(ETCPATH)/ipv6toolkit.conf
 
 	# Remove the IEEE OUI database, service names database, top port numbers database, and
-    # country-data database
+    # other databases
 	rm -rf $(DATAPATH)
 
 	# Remove the manual pages

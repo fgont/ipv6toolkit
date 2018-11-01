@@ -122,6 +122,8 @@ data/ipv6toolkit.conf:
            data/ipv6toolkit.conf 
 	echo Country-Database=$(PREFIX)/share/ipv6toolkit/country-data.csv >> \
            data/ipv6toolkit.conf 
+	echo DNS-TLD-Database=$(PREFIX)/share/ipv6toolkit/dns-tld-database.csv >> \
+           data/ipv6toolkit.conf
 	echo DNS-Suffix-Database=$(PREFIX)/share/ipv6toolkit/public_suffix_list.dat >> \
            data/ipv6toolkit.conf
 	echo RIR-Database=$(PREFIX)/share/ipv6toolkit/rir-database.csv >> \
@@ -157,6 +159,9 @@ ifneq ($(OS),SunOS)
 
 	# Install the country information database
 	install -m0644 data/country-data.csv $(DATAPATH)
+
+	# Install the DNS TLD database
+	install -m0644 data/dns-tld-database.csv $(DATAPATH)
 
 	# Install the DNS Suffixes database
 	install -m0644 data/public_suffix_list.dat $(DATAPATH)
@@ -213,6 +218,9 @@ else
 
 	# Install the top port numbers database
 	install -m 0644 -f $(DATAPATH) data/country-data.csv
+
+	# Install the DNS TLD database
+	install -m 0644 -f $(DATAPATH) data/dns-tld-database.csv
 
 	# Install the DNS Suffixes database
 	install -m 0644 -f $(DATAPATH) data/public_suffix_list.dat
@@ -273,7 +281,7 @@ uninstall:
 	# Remove the configuration file
 	rm -f $(ETCPATH)/ipv6toolkit.conf
 
-	# Remove the IEEE OUI database, port number database and top port numbers database
+	# Remove the IEEE OUI database, port number database and other databases
 	rm -rf $(DATAPATH)
 
 	# Remove the manual pages
