@@ -122,6 +122,7 @@ sub ParseConfigFile{
 sub PrintConfigFile{
 	print "WWW-client: $wwwclient\n";
 	print "Country-Database=$country_database\n";
+	print "DNS-TLD-Database=$dns-tld-database\n";
 	print "DNS-Suffix-Database=$dns_suffix_database\n";
 	print "RIR-Database=$rir_database\n";
 	print "DNS-Dictionary=$dns_dictionary_database\n";
@@ -226,8 +227,28 @@ sub Iso3ForCountry{
 		close(FILE);
 }
 
-
 sub Iso2ForRIR{
+		my ($trir)= $_[0];
+
+		open FILE, "$dns_tld_database" or die $!;
+
+		while($line=<FILE>){
+			
+			if($line =~ m/\s*([^;]+);([^;]+);([^;]+);([^;\n\r]+)/){
+				$country=$1;
+				$iso2=lc($2);
+				$iso3=$3;
+				$rir=$4;
+
+				if($rir=~ m/$trir/i){
+					print "$iso2\n";
+				}
+			}
+		} # while
+}
+
+
+sub Iso2ForRIROnline{
 		my ($trir)= $_[0];
 
 		$useragent=GetRandomUserAgent();
@@ -285,13 +306,11 @@ sub Iso2ForRIR{
 sub TLDForRIR{
 		my ($trir)= $_[0];
 
-		my @domains;
-
 		open FILE, "$dns_tld_database" or die $!;
 
 		while($line=<FILE>){
 			
-			if($line =~ m/\s*[^;]+;[^;]+;[^;]+;[^;\n\r]+/){
+			if($line =~ m/\s*([^;]+);([^;]+);([^;]+);([^;\n\r]+)/){
 				$country=$1;
 				$iso2=lc($2);
 				$iso3=$3;
