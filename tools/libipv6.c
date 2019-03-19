@@ -477,7 +477,7 @@ int dns_str2wire(char *str, unsigned int slen, char *wire, unsigned int wlen){
  * Convert binary IPv6 address into printable formt (an ASCII string) of fixed length
  */
 
-char * inet_ntof(int family, const void *src, char *dst, socklen_t size){
+const char * inet_ntof(int family, const void *src, char *dst, socklen_t size){
 	unsigned int r;
 	const struct in6_addr *v6;
 
@@ -519,6 +519,37 @@ struct ether_addr ether_multicast(const struct in6_addr *ipv6addr){
 
 	return ether;
 }
+
+
+/*
+ * Function: inet_ntof()
+ *
+ * Print IPv6 address in fixed format.
+ */
+
+/* inet_ntof(AF_INET6, &(addr.ip6), pv6addr, sizeof(pv6addr)) == NULL */
+/*
+const char * inet_ntof(int addrfamily, const void *src, char *dst, socklen_t size){
+	unsigned int r;
+	const struct in6_addr	*p;
+
+	if(addrfamily != AF_INET6 || size < INET_ADDRSTRLEN){
+		return(NULL);
+	}
+
+	p= src;
+
+	r=snprintf(dst, size, "%04x:%04x:%04x:%04x:%04x:%04x:%04x:%x04", ntohs(p->s6_addr16[0]), ntohs(p->s6_addr16[1]), ntohs(p->s6_addr16[2]),\
+									 ntohs(p->s6_addr16[3]), ntohs(p->s6_addr16[4]), ntohs(p->s6_addr16[5]), ntohs(p->s6_addr16[6]),\
+									 ntohs(p->s6_addr16[7]));
+
+	if(r != 39)
+		return NULL;
+
+	return dst;
+}
+*/
+
 
 
 /*
@@ -1797,11 +1828,12 @@ void randomize_ipv6_addr(struct in6_addr *ipv6addr, struct in6_addr *prefix, uin
 	for(i=startrand; i<4; i++)
 		ipv6addr->s6_addr32[i]=random();
 
+	for(i=0; i < startrand; i++)
+		ipv6addr->s6_addr32[i]=0;
+
 	if(preflen%32){
 		mask=0xffffffff;
-
-		for(i=0; i<(preflen%32); i++)
-			mask= mask>>1;
+		mask= mask>>(preflen%32);
 
 		ipv6addr->s6_addr32[startrand]= ipv6addr->s6_addr32[startrand] & htonl(mask);
 	}
