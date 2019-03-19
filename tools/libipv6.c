@@ -1823,6 +1823,9 @@ void randomize_ipv6_addr(struct in6_addr *ipv6addr, struct in6_addr *prefix, uin
 	uint8_t startrand;	
 	unsigned int i;
 
+	/* XXX: seed */
+	srandom(time(NULL));
+
 	startrand= preflen/32;
 
 	for(i=startrand; i<4; i++)
