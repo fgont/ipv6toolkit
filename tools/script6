@@ -433,7 +433,7 @@ sub AddAddress{
 	my($iface, $addr, $len, $os) = @_;
 
 	@revname=`addr6 -A $addr/$len`;
-	$randomizedaddress=  @revname[0];
+	$randomizedaddress=  $revname[0];
     chomp($randomizedaddress);
 
 	if($os eq "linux"){
@@ -1823,7 +1823,7 @@ sub GetDomainsFromBing{
 
 
 
-sub GetDomainsFromBingbis{
+sub GetDomainsFromBingBis{ # bis
 #		GetDomainsFromCrawler(\@domain, $czone, $level, $maxresults);	
 		my($pdomain, $pzone, $plevel, $pmaxresults) = @_;
 		my $czone=$pzone;
@@ -1839,7 +1839,7 @@ sub GetDomainsFromBingbis{
 #			$maxtime=5;
 #		}
 
-		$MAXCNNORESULTS= 50;
+		$MAXCNNORESULTS= 25; #50
 		$MINCNNORESULTS= 5;
 
 		$limcnnoresults= $MAXCNNORESULTS/($plevel+1);
@@ -1848,7 +1848,7 @@ sub GetDomainsFromBingbis{
 			$limcnnoresults= $MINCNNORESULTS;
 		}
 
-		$MAXCCOLLISIONS= 50;
+		$MAXCCOLLISIONS= 25; # 50
 		$MINCCOLISSIONS= 5;
 		$limccollisions= $MAXCCOLLISIONS/($plevel+1);
 
@@ -6341,7 +6341,7 @@ elsif($ARGV[0] eq "get-bing-tt"){
 		exit 1;
 	}
 
-	$tstamp= time;
+#	$tstamp= time;
 #	if($#ARGV == 2){
 #		$maxresults= $ARGV[2];
 #
@@ -6370,40 +6370,40 @@ elsif($ARGV[0] eq "get-bing-tt"){
 
 	print "######## DOMAIN: $czone ########\n";
 
-	GetDomainsFromBingbis(\@domain, $czone, 0, $maxresults);	
+	GetDomainsFromBingTT(\@domain, $czone, 0, $maxresults);	# bis
 
 	#print "#### IMPORTANT: WILL NOW SEARCH FOR DOMAINS WITHIN SPECIFIC SUBDOMAINS\n";
-	undef @remsites;
-	undef @levsites;
-	$continue=1;
+#	undef @remsites;
+#	undef @levsites;
+#	$continue=1;
+#
+#	$domlevel=1;
+#	GenDomListLevel(\@domain, \@levsites, $czone, $domlevel, -1);
 
-	$domlevel=1;
-	GenDomListLevel(\@domain, \@levsites, $czone, $domlevel, -1);
-
-	while($#levsites >= 0 && $continue == 1){
+#	while($#levsites >= 0 && $continue == 1){
 		#print "#### LEVEL: $domlevel, TOTAL: $#levsites\n\n#LIST:\n";
 
-		for($jj= 0; $jj <= $#levsites && $continue == 1; $jj++){
-			if( (time - $tstamp) > 50){
+#		for($jj= 0; $jj <= $#levsites && $continue == 1; $jj++){
+#			if( (time - $tstamp) > 50){
 #print "expiro timer general\n";
-				exit(0);
-			}
+#				exit(0);
+#			}
 
-			$newczone= $levsites[$jj];
+#			$newczone= $levsites[$jj];
 
-			GetDomainsFromBingbis(\@domain, $newczone, $domlevel, $maxresults);
-			if($maxresults >= 0 && $#domain>=$maxresults){
-				$continue=0;
-			}
-			else{
-				$continue=1;
-			}
-		}
-
-		$domlevel++;
-		undef @levsites;
-		GenDomListLevel(\@domain, \@levsites, $czone, $domlevel, -1);
-	}  # While lev > 0;
+#			GetDomainsFromBingbis(\@domain, $newczone, $domlevel, $maxresults);
+#			if($maxresults >= 0 && $#domain>=$maxresults){
+#				$continue=0;
+#			}
+#			else{
+#				$continue=1;
+#			}
+#		}
+#
+#		$domlevel++;
+#		undef @levsites;
+#		GenDomListLevel(\@domain, \@levsites, $czone, $domlevel, -1);
+#	}  # While lev > 0;
 
 	exit;
 }
