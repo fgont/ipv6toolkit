@@ -1,7 +1,7 @@
 /*
  * addr6: A tool to decode IPv6 addresses
  *
- * Copyright (C) 2013-2018 Fernando Gont (fgont@si6networks.com)
+ * Copyright (C) 2013-2019 Fernando Gont (fgont@si6networks.com)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -76,6 +76,8 @@ int main(int argc, char **argv){
 
 	/* Block Filters */
 	struct in6_addr 	block[MAX_BLOCK], *ptable;
+	struct in6_addr		genaddr, randaddr;
+	uint8_t				genpref;
 	
 	uint32_t			*pcounter, pthres, pratio;
 	uint8_t				blocklen[MAX_BLOCK];
@@ -93,6 +95,7 @@ int main(int argc, char **argv){
 
 	static struct option longopts[] = {
 		{"address", required_argument, 0, 'a'},
+		{"gen-addr", required_argument, 0, 'A'},
 		{"stdin", no_argument, 0, 'i'},
 		{"print-canonic", no_argument, 0, 'c'},
 		{"print-decode", no_argument, 0, 'd'},
@@ -120,7 +123,7 @@ int main(int argc, char **argv){
 		{0, 0, 0,  0 },
 	};
 
-	char shortopts[]= "a:icrdfsx:RqQP:p:j:b:k:w:g:J:B:K:W:G:vh";
+	char shortopts[]= "a:A:icrdfsx:RqQP:p:j:b:k:w:g:J:B:K:W:G:vh";
 
 	char option;
 
@@ -142,6 +145,39 @@ int main(int argc, char **argv){
 				}
 		
 				addr_f= TRUE;
+				break;
+
+			case 'A':
+				if((charptr = strtok_r(optarg, "/", &lasts)) == NULL){
+					puts("Error in Prefix");
+					exit(EXIT_FAILURE);
+				}
+
+				if ( inet_pton(AF_INET6, charptr, &genaddr) <= 0){
+					puts("inet_pton(): Source Address not valid");
+					exit(EXIT_FAILURE);
+				}
+
+
+				if((charptr = strtok_r(NULL, " ", &lasts)) != NULL){
+					genpref = atoi(charptr);
+		
+					if(genpref>128){
+						puts("Prefix length error in IPv6 Source Address");
+						exit(EXIT_FAILURE);
+					}
+				}
+
+				randomize_ipv6_addr(&randaddr, &genaddr, genpref);
+
+				if(inet_ntop(AF_INET6, &randaddr, pv6addr, sizeof(pv6addr)) == NULL){
+					puts("inet_ntop(): Error converting IPv6 address to presentation format");
+					exit(EXIT_FAILURE);
+				}
+
+				puts(pv6addr);
+
+				exit(EXIT_SUCCESS);
 				break;
 
 			case 'i':  /* Read from stdin */
