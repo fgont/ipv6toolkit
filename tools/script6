@@ -682,6 +682,13 @@ sub GetRandomUserAgent{
 }
 
 
+sub SigIntHandler{
+	if($gotaddress){
+		DelAddress($iface, $gotaddress, $chpref, $chos);
+	}
+
+	exit 0;
+}
 
 sub GetDomainsFromCrt{
 	my($pdomain, $pzone, $pmaxresults) = @_;
@@ -6822,6 +6829,7 @@ elsif($ARGV[0] eq "get-bing-addr-dict-quick" || $ARGV[0] eq "get-bing6-addr-dict
 		$chpref=64;
 	}
 
+	$iface=$changeaddr[0];
 
 	@revname=`uname`;
 	$chos=$revname[0];
@@ -6837,6 +6845,8 @@ elsif($ARGV[0] eq "get-bing-addr-dict-quick" || $ARGV[0] eq "get-bing6-addr-dict
 	}
 
 #	print "IFACE: $changeaddr[0], ADDR: $chaddr, PREFLEN: $chpref, CHANGEINSANE: $changeinsane, OS: $chos\n";
+
+	$SIG{INT} = \&SigIntHandler;
 
 	$gotaddress=AddAddress($changeaddr[0], $chaddr, $chpref, $chos);
 #	print "Randomice: $gotaddress\n";
@@ -6918,6 +6928,7 @@ elsif($ARGV[0] eq "get-bing-addr-dict-batch" || $ARGV[0] eq "get-bing6-addr-dict
 		$chpref=64;
 	}
 
+	$iface=$changeaddr[0];
 
 	@revname=`uname`;
 	$chos=$revname[0];
@@ -6945,6 +6956,8 @@ elsif($ARGV[0] eq "get-bing-addr-dict-batch" || $ARGV[0] eq "get-bing6-addr-dict
 		$ipprotocol=6;
 	}
 	ParseConfigFile();
+
+	$SIG{INT} = \&SigIntHandler;
 
 	if(!$changeinsane){
 		$gotaddress=AddAddress($changeaddr[0], $chaddr, $chpref, $chos);
@@ -7071,6 +7084,7 @@ elsif($ARGV[0] eq "get-bing-addr-dict-quick-batch" || $ARGV[0] eq "get-bing6-add
 		$chpref=64;
 	}
 
+	$iface=$changeaddr[0];
 
 	@revname=`uname`;
 	$chos=$revname[0];
@@ -7099,6 +7113,8 @@ elsif($ARGV[0] eq "get-bing-addr-dict-quick-batch" || $ARGV[0] eq "get-bing6-add
 	}
 
 	ParseConfigFile();
+
+	$SIG{INT} = \&SigIntHandler;
 
 	if(!$changeinsane){
 		$gotaddress=AddAddress($changeaddr[0], $chaddr, $chpref, $chos);
