@@ -437,10 +437,10 @@ sub AddAddress{
     chomp($randomizedaddress);
 
 	if($os eq "linux"){
-		@revname=`ip -6 addr add $randomizedaddress/$len dev $iface`;
+		@revname=`ip -6 addr add $randomizedaddress/64 dev $iface`;
 	}
 	elsif($os eq "bsd"){
-		@revname=`ifconfig $iface inet6 $randomizedaddress/$len add`;
+		@revname=`ifconfig $iface inet6 $randomizedaddress/64 add`;
 	}
 
 	return($randomizedaddress);
@@ -451,10 +451,10 @@ sub DelAddress{
 	my($iface, $addr, $len, $os) = @_;
 
 	if($os eq "linux"){
-		@revname=`ip -6 addr del $randomizedaddress/$len dev $iface`;
+		@revname=`ip -6 addr del $randomizedaddress/64 dev $iface`;
 	}
 	elsif($os eq "bsd"){
-		@revname=`ifconfig $iface inet6 $randomizedaddress/$len delete`;
+		@revname=`ifconfig $iface inet6 $randomizedaddress/64 delete`;
 	}
 
 }
