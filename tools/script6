@@ -58,6 +58,7 @@ Usage: script6 COMMAND [PARAMETERS]
 # Pending: duckduckgo: get-duckduckgo, get-webcrawler-batch, get-webcrawler
 
 use Socket();
+use IPC::Open3;
 
 $dns6revenum= "dnsrevenum6";
 $wwwclient="";
@@ -695,50 +696,49 @@ sub GetDomainsFromCrt{
 	$useragent=GetRandomUserAgent();
 
 	# XXX Ugly hack to override the default (usually small) timeout value
-	$wwwclient_tout=~ s/\d+/120/;
+	$wwwclient_tout=~ s/\d+/240/;
 
-	do{
-		@lines=`$wwwclient $wwwclient_sopt $wwwclient_agnt"$useragent" "https://crt.sh/?q=%.$czone&output=json"`;
+
+	$command="$wwwclient $wwwclient_sopt $wwwclient_agnt\"$useragent\" \"https://crt.sh/?q=%.$czone&output=json\"";
 #		@lines=`$wwwclient $wwwclient_sopt $wwwclient_tout $wwwclient_agnt"$useragent" "https://crt.sh/?q=%.$czone&output=json"`;
+		
+	$pid = open3(\*CHLD_IN, \*CHLD_OUT, \*CHLD_ERR, $command, );
 
-		$retcode= $?;
+	while($line=<CHLD_OUT>){
+		$line =~ s/\\"/'/g; # Replaces escaped double-qutes with single-quotes
 
-		if($retcode == 0){
-			foreach $line (@lines){
-				$line =~ s/\\"/'/g; # Replaces escaped double-qutes with single-quotes
+		while($line=~ s/{"issuer_ca_id":\d+\s*,\s*"issuer_name":"[^"]*"\s*,\s*"name_value":"([^"]+)","min_cert_id":\d+,"min_entry_timestamp":"[^"]+","not_before":"[^"]+","not_after":"[^"]+"}//){
+			$grabbeddomain=$1;
 
-				while($line=~ s/{"issuer_ca_id":\d+\s*,\s*"issuer_name":"[^"]*"\s*,\s*"name_value":"([^"]+)","min_cert_id":\d+,"min_entry_timestamp":"[^"]+","not_before":"[^"]+","not_after":"[^"]+"}//){
-					$grabbeddomain=$1;
+			# Wildcards are not allwed in valid domains
+			if($grabbeddomain=~ m/\*/){
+				next;
+			}
 
-					# Wildcards are not allwed in valid domains
-					if($grabbeddomain=~ m/\*/){
-						next;
-					}
+			# Remove "domains" that contain spaces
+			if($grabbeddomain=~ m/ /){
+				next;
+			}
 
-					# Remove "domains" that contain spaces
-					if($grabbeddomain=~ m/ /){
-						next;
-					}
-
-					if($grabbeddomain!~ m/$pzone/){
-						next;
-					}
+			if($grabbeddomain!~ m/$pzone/){
+				next;
+			}
 
 
-					for($i=0; $i<= $#$pdomain; $i++){
-						if($pdomain->[$i] eq $grabbeddomain){
-							last;
-						}
-					}
-
-					if($i > $#$pdomain){
-						$pdomain->[$#$pdomain + 1]=$grabbeddomain;
-						print "$grabbeddomain\n";
-					}
+			for($i=0; $i<= $#$pdomain; $i++){
+				if($pdomain->[$i] eq $grabbeddomain){
+					last;
 				}
-			} # foreach $line;
-		}   # if $? == 0
-	}while($retcode != 0);		
+			}
+
+			if($i > $#$pdomain){
+				$pdomain->[$#$pdomain + 1]=$grabbeddomain;
+				print "$grabbeddomain\n";
+			}
+		}
+	} # foreach $line;
+
+	waitpid( $pid, 0 );
 }
 
 
