@@ -703,6 +703,8 @@ sub GetDomainsFromCrt{
 #		@lines=`$wwwclient $wwwclient_sopt $wwwclient_tout $wwwclient_agnt"$useragent" "https://crt.sh/?q=%.$czone&output=json"`;
 		
 	$pid = open3(\*CHLD_IN, \*CHLD_OUT, \*CHLD_ERR, $command, );
+	close(CHLD_IN);
+	close(CHLD_ERR);
 
 	while($line=<CHLD_OUT>){
 		$line =~ s/\\"/'/g; # Replaces escaped double-qutes with single-quotes
