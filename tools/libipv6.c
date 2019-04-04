@@ -2854,7 +2854,7 @@ int sel_next_hop(struct iface_data *idata){
 		rtm->rtm_msglen= sizeof(struct rt_msghdr) + sizeof(struct sockaddr_in6);
 		rtm->rtm_version= RTM_VERSION;
 		rtm->rtm_type= RTM_GET;
-		rtm->rtm_addrs= RTA_DST | RTA_IFP;
+		rtm->rtm_addrs= RTA_DST;
 		rtm->rtm_pid= pid= getpid();
 		rtm->rtm_seq= seq= random();
 
