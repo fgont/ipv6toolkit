@@ -692,7 +692,7 @@ sub SigIntHandler{
 }
 
 sub GetDomainsFromCrt{
-	my($pdomain, $pzone, $pmaxresults) = @_;
+	my($pdomain, $pzone, $pmaxresults, $filehandle) = @_;
 	$useragent=GetRandomUserAgent();
 
 	# XXX Ugly hack to override the default (usually small) timeout value
@@ -700,7 +700,6 @@ sub GetDomainsFromCrt{
 
 
 	$command="$wwwclient $wwwclient_sopt $wwwclient_agnt\"$useragent\" \"https://crt.sh/?q=%.$czone&output=json\"";
-#		@lines=`$wwwclient $wwwclient_sopt $wwwclient_tout $wwwclient_agnt"$useragent" "https://crt.sh/?q=%.$czone&output=json"`;
 		
 	$pid = open3(\*CHLD_IN, \*CHLD_OUT, \*CHLD_ERR, $command, );
 	close(CHLD_IN);
@@ -735,7 +734,7 @@ sub GetDomainsFromCrt{
 
 			if($i > $#$pdomain){
 				$pdomain->[$#$pdomain + 1]=$grabbeddomain;
-				print "$grabbeddomain\n";
+				print $filehandle "$grabbeddomain\n";
 			}
 		}
 	} # foreach $line;
@@ -6222,7 +6221,7 @@ elsif($ARGV[0] eq "get-crt" || $ARGV[0] eq "get-crt.sh" || $ARGV[0] eq "get-cert
 	undef @domain;
 
 	ParseConfigFile();
-	GetDomainsFromCrt(\@domain, $czone, $maxresults);	
+	GetDomainsFromCrt(\@domain, $czone, $maxresults, \*STDOUT);	
 }
 elsif($ARGV[0] eq "get-crt-batch"){
 	if($#ARGV >=1 ){
@@ -6258,10 +6257,60 @@ elsif($ARGV[0] eq "get-crt-batch"){
 		print "######## DOMAIN: $czone ########\n";
 
 
-		GetDomainsFromCrt(\@domain, $czone, $maxresults);	
+		GetDomainsFromCrt(\@domain, $czone, $maxresults, \*STDOUT);	
 	}
 }
 
+elsif($ARGV[0] eq "get-crt-batch-files"){
+
+	if($#ARGV >=1 ){
+		$maxresults= $ARGV[1];
+		$maxresults--;
+
+		if($maxresults < 0){
+			exit 0;
+		}
+	}
+	else{
+		$maxresults= -1;
+	}
+
+	ParseConfigFile();
+
+	@revname=`whoami`;
+	$user= $revname[0];
+	chomp($user);
+	@revname=`hostname`;
+	$hostname= $revname[0];
+	chomp($hostname);
+
+
+	while($czone=<STDIN>){
+		undef @domain;
+
+		if($czone=~ m/^\s*#/){
+			next;
+		}
+
+		if($czone =~ m/^\s*\.*([-a-zA-Z0-9.]+)/){
+			$czone= $1;
+		}
+		else{
+			next;
+		}
+
+		@revname=`date --iso-8601=seconds -u`;
+		$datetime=$revname[0];
+		$datetime=~ s/[ :+]//g;
+		chomp($datetime);
+		$filename="$czone-$datetime-$hostname-$user.txt";
+		open FILE, ">$filename" or die $!;
+
+		GetDomainsFromCrt(\@domain, $czone, $maxresults, \*FILE);
+		close FILE;	
+	}
+
+}
 
 elsif($ARGV[0] eq "get-bing-batch" || $ARGV[0] eq "get-bing4-batch" || $ARGV[0] eq "get-bing6-batch"){
 	if($#ARGV >=1 ){
