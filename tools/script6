@@ -6752,15 +6752,21 @@ elsif($ARGV[0] eq "get-dns6-rev-batch" || $ARGV[0] eq "get-dns6-rev-batch"){
 			next;
 		}
 
-		undef @revname;
-		@revname=`$dns6revenum $dnsresolver $prefix 2>&1`;
+		$command= "$dns6revenum $dnsresolver $prefix 2>&1";
+		$pid = open3(\*CHLD_IN, \*CHLD_OUT, \*CHLD_ERR, $command, );
+		close(CHLD_IN);
+		close(CHLD_ERR);
 
-		print "#### PREFIX: $prefix ####\n\n";
+		print "#### PREFIX: $prefix ####\n";
 
-		foreach $line (@revname){
-			print "$line";
+		while($line=<CHLD_OUT>){
+#			print "$line"; #32+7?
+			if($line=~m/^Found: ((?:[0-9a-fA-F:]){2,39})\s+is\s+([-a-zA-Z0-9.:_]+)\s*$/){
+				print "$2 # $1\n";
+			}
 		}
 
+		waitpid( $pid, 0 );
 		print "\n\n";
 	}
 }
