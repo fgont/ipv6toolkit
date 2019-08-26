@@ -6762,12 +6762,13 @@ elsif($ARGV[0] eq "get-dns6-rev-batch" || $ARGV[0] eq "get-dns6-rev-batch"){
 		while($line=<CHLD_OUT>){
 #			print "$line"; #32+7?
 			if($line=~m/^Found: ((?:[0-9a-fA-F:]){2,39})\s+is\s+([-a-zA-Z0-9.:_]+)\s*$/){
-				print "$2 # $1\n";
+				print "# $1\n";
+				print "$2\n";
 			}
 		}
 
 		waitpid( $pid, 0 );
-		print "\n\n";
+		print "\n";
 	}
 }
 elsif($ARGV[0] eq "get-sublister-batch" || $ARGV[0] eq "get-sublist3r-batch"){
