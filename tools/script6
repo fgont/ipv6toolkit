@@ -850,6 +850,11 @@ sub GetDomainsFromBingDict{
 		$remsites="";
 		$totalqueries=0;
 
+		# If we are doing mass search, we need a keyword to search for
+		if($czone eq ""){
+			$heur="+z";
+		}
+
 		do{   # Iteration for each page
 			$matches=0;
 			$totalmatches=0;
@@ -861,9 +866,16 @@ sub GetDomainsFromBingDict{
 			# --user-agent "Mozilla/4.0"  works fine most of the time. curl || wget original headers cause trouble.
 			$useragent=GetRandomUserAgent();
 
-			$stringcommand="$wwwclient $intprot $specaddr $wwwclient_sopt $wwwclient_tout $wwwclient_agnt\"$useragent\" \"https://$sengine/search?q=site%3A$czone$sitesstr$heur&first=$cur\"";
+			if($czone ne ""){
+				$stringcommand="$wwwclient $intprot $specaddr $wwwclient_sopt $wwwclient_tout $wwwclient_agnt\"$useragent\" \"https://$sengine/search?q=site%3A$czone$sitesstr$heur&first=$cur\"";
 
-			@revname=`$wwwclient $intprot $specaddr $wwwclient_sopt $wwwclient_tout $wwwclient_agnt"$useragent" "https://$sengine/search?q=site%3A$czone$sitesstr$heur&first=$cur"`;
+				@revname=`$wwwclient $intprot $specaddr $wwwclient_sopt $wwwclient_tout $wwwclient_agnt"$useragent" "https://$sengine/search?q=site%3A$czone$sitesstr$heur&first=$cur"`;
+			}
+			else{
+				$stringcommand="$wwwclient $intprot $specaddr $wwwclient_sopt $wwwclient_tout $wwwclient_agnt\"$useragent\" \"https://$sengine/search?q=$sitesstr$heur&first=$cur\"";
+
+				@revname=`$wwwclient $intprot $specaddr $wwwclient_sopt $wwwclient_tout $wwwclient_agnt"$useragent" "https://$sengine/search?q=$sitesstr$heur&first=$cur"`;
+			}
 
 
 			$totalqueries++;
@@ -892,7 +904,7 @@ sub GetDomainsFromBingDict{
 						$grabbeddomain= $1;
 
 
-						if($grabbeddomain !~ m/$czone(:\d+)?/){
+						if($czone ne "" && $grabbeddomain !~ m/$czone(:\d+)?/){
 							#print "##### DEBUG: Discarded $grabbeddomain\n";
 							next;
 						}
@@ -1115,10 +1127,16 @@ sub GetDomainsFromBingDict{
 
 				$useragent=GetRandomUserAgent();
 
+				if($czone ne ""){
+					$stringcommand="$wwwclient $wwwclient_sopt $wwwclient_tout $wwwclient_agnt\"$useragent\" \"https://www.bing.com/search?q=site%3A$czone$sitesstr&first=$cur\"";
 
-				$stringcommand="$wwwclient $wwwclient_sopt $wwwclient_tout $wwwclient_agnt\"$useragent\" \"https://www.bing.com/search?q=site%3A$czone$sitesstr&first=$cur\"";
+					@revname=`$wwwclient $wwwclient_sopt $wwwclient_tout $wwwclient_agnt"$useragent" "https://www.bing.com/search?q=site%3A$czone$sitesstr&first=$cur"`;
+				}
+				else{
+					$stringcommand="$wwwclient $wwwclient_sopt $wwwclient_tout $wwwclient_agnt\"$useragent\" \"https://www.bing.com/search?q=$sitesstr&first=$cur\"";
 
-				@revname=`$wwwclient $wwwclient_sopt $wwwclient_tout $wwwclient_agnt"$useragent" "https://www.bing.com/search?q=site%3A$czone$sitesstr&first=$cur"`;
+					@revname=`$wwwclient $wwwclient_sopt $wwwclient_tout $wwwclient_agnt"$useragent" "https://www.bing.com/search?q=$sitesstr&first=$cur"`;
+				}
 
 				$totalqueries++;
 
@@ -1140,7 +1158,7 @@ sub GetDomainsFromBingDict{
 							$totalmatches++;
 							$grabbeddomain= $1;
 
-							if($grabbeddomain !~ m/$czone(:\d+)?/){
+							if($czone ne "" && $grabbeddomain !~ m/$czone(:\d+)?/){
 								next;
 							}
 
@@ -1237,7 +1255,7 @@ sub GetDomainsFromBingDict{
 
 
 sub GetDomainsFromBing{
-#		GetDomainsFromCrawler(\@domain, $czone, $level, $maxresults);	
+#		GetDomainsFromCrawler(\@domain, $czone, $level, $maxresults, protocol);	
 		my($pdomain, $pzone, $plevel, $pmaxresults, $intprotocol) = @_;
 		my $czone=$pzone;
 
@@ -1337,8 +1355,14 @@ sub GetDomainsFromBing{
 			# --user-agent "Mozilla/4.0"  works fine most of the time. curl || wget original headers cause trouble.
 			$useragent=GetRandomUserAgent();
 
-			$stringcommand="$wwwclient $intprot $wwwclient_sopt $wwwclient_tout $wwwclient_agnt\"$useragent\" \"https://$sengine/search?q=site%3A$czone$sitesstr$ftstr$heur&first=$cur\"";
-			@revname=`$wwwclient $intprot $wwwclient_sopt $wwwclient_tout $wwwclient_agnt"$useragent" "https://$sengine/search?q=site%3A$czone$sitesstr$ftstr$heur&first=$cur"`;
+			if($czone ne ""){
+				$stringcommand="$wwwclient $intprot $wwwclient_sopt $wwwclient_tout $wwwclient_agnt\"$useragent\" \"https://$sengine/search?q=site%3A$czone$sitesstr$ftstr$heur&first=$cur\"";
+				@revname=`$wwwclient $intprot $wwwclient_sopt $wwwclient_tout $wwwclient_agnt"$useragent" "https://$sengine/search?q=site%3A$czone$sitesstr$ftstr$heur&first=$cur"`;
+			}
+			else{
+				$stringcommand="$wwwclient $intprot $wwwclient_sopt $wwwclient_tout $wwwclient_agnt\"$useragent\" \"https://$sengine/search?q=$sitesstr$ftstr$heur&first=$cur\"";
+				@revname=`$wwwclient $intprot $wwwclient_sopt $wwwclient_tout $wwwclient_agnt"$useragent" "https://$sengine/search?q=$sitesstr$ftstr$heur&first=$cur"`;
+			}
 
 			$totalqueries++;
 
@@ -1362,7 +1386,7 @@ sub GetDomainsFromBing{
 						$grabbeddomain= $1;
 
 
-						if($grabbeddomain !~ m/$czone(:\d+)?/){
+						if($czone ne "" && $grabbeddomain !~ m/$czone(:\d+)?/){
 							#print "##### DEBUG: Discarded $grabbeddomain\n";
 							next;
 						}
@@ -1706,8 +1730,14 @@ sub GetDomainsFromBing{
 
 				$useragent=GetRandomUserAgent();
 
-				$stringcommand="$wwwclient $wwwclient_sopt $wwwclient_tout $wwwclient_agnt\"$useragent\" \"https://www.bing.com/search?q=site%3A$czone$sitesstr&first=$cur\"";
-				@revname=`$wwwclient $wwwclient_sopt $wwwclient_tout $wwwclient_agnt"$useragent" "https://www.bing.com/search?q=site%3A$czone$sitesstr&first=$cur"`;
+				if($czone ne ""){
+					$stringcommand="$wwwclient $wwwclient_sopt $wwwclient_tout $wwwclient_agnt\"$useragent\" \"https://www.bing.com/search?q=site%3A$czone$sitesstr&first=$cur\"";
+					@revname=`$wwwclient $wwwclient_sopt $wwwclient_tout $wwwclient_agnt"$useragent" "https://www.bing.com/search?q=site%3A$czone$sitesstr&first=$cur"`;
+				}
+				else{
+					$stringcommand="$wwwclient $wwwclient_sopt $wwwclient_tout $wwwclient_agnt\"$useragent\" \"https://www.bing.com/search?q=$sitesstr&first=$cur\"";
+					@revname=`$wwwclient $wwwclient_sopt $wwwclient_tout $wwwclient_agnt"$useragent" "https://www.bing.com/search?q=$sitesstr&first=$cur"`;
+				}
 
 				$totalqueries++;
 
@@ -1729,7 +1759,7 @@ sub GetDomainsFromBing{
 							$totalmatches++;
 							$grabbeddomain= $1;
 
-							if($grabbeddomain !~ m/$czone(:\d+)?/){
+							if($czone ne "" && $grabbeddomain !~ m/$czone(:\d+)?/){
 								next;
 							}
 
@@ -1930,15 +1960,15 @@ sub GetDomainsFromBingByAddr{
 			# --user-agent "Mozilla/4.0"  works fine most of the time. curl || wget original headers cause trouble.
 			$useragent=GetRandomUserAgent();
 
-if($cur == 1){
-			$stringcommand="$wwwclient $intprot $wwwclient_sopt $wwwclient_tout $wwwclient_agnt\"$useragent\" \"https://$sengine/search?q=ip%3A$czone$sitesstr$ftstr$heur\"";
-			@revname=`$wwwclient $intprot $wwwclient_sopt $wwwclient_tout $wwwclient_agnt"$useragent" "https://$sengine/search?q=ip%3A$czone$sitesstr$ftstr$heur"`;
-}
-else{
+			if($cur == 1){
+						$stringcommand="$wwwclient $intprot $wwwclient_sopt $wwwclient_tout $wwwclient_agnt\"$useragent\" \"https://$sengine/search?q=ip%3A$czone$sitesstr$ftstr$heur\"";
+						@revname=`$wwwclient $intprot $wwwclient_sopt $wwwclient_tout $wwwclient_agnt"$useragent" "https://$sengine/search?q=ip%3A$czone$sitesstr$ftstr$heur"`;
+			}
+			else{
 
-			$stringcommand="$wwwclient $intprot $wwwclient_sopt $wwwclient_tout $wwwclient_agnt\"$useragent\" \"https://$sengine/search?q=ip%3A$czone$sitesstr$ftstr$heur&first=$cur\"";
-			@revname=`$wwwclient $intprot $wwwclient_sopt $wwwclient_tout $wwwclient_agnt"$useragent" "https://$sengine/search?q=ip%3A$czone$sitesstr$ftstr$heur&first=$cur"`;
-}
+						$stringcommand="$wwwclient $intprot $wwwclient_sopt $wwwclient_tout $wwwclient_agnt\"$useragent\" \"https://$sengine/search?q=ip%3A$czone$sitesstr$ftstr$heur&first=$cur\"";
+						@revname=`$wwwclient $intprot $wwwclient_sopt $wwwclient_tout $wwwclient_agnt"$useragent" "https://$sengine/search?q=ip%3A$czone$sitesstr$ftstr$heur&first=$cur"`;
+			}
 			$totalqueries++;
 
 			if($? == 0){
@@ -7241,6 +7271,8 @@ elsif($ARGV[0] eq "get-bing-batch" || $ARGV[0] eq "get-bing4-batch" || $ARGV[0] 
 			next;
 		}
 
+		$czone= join ".", split /\./, $czone;
+
 		print "######## DOMAIN: $czone ########\n";
 
 
@@ -7310,6 +7342,8 @@ elsif($ARGV[0] eq "get-bing-tt"){
 	else{
 		next;
 	}
+
+	$czone= join ".", split /\./, $czone;
 
 	print "######## DOMAIN: $czone ########\n";
 
@@ -7390,6 +7424,8 @@ elsif($ARGV[0] eq "get-bing" || $ARGV[0] eq "get-bing4" || $ARGV[0] eq "get-bing
 	else{
 		next;
 	}
+
+	$czone= join ".", split /\./, $czone;
 
 	print "######## DOMAIN: $czone ########\n";
 
@@ -7559,6 +7595,7 @@ elsif($ARGV[0] eq "get-bing-dict" || $ARGV[0] eq "get-bing4-dict" || $ARGV[0] eq
 		exit(1);
 	}
 
+	$czone= join ".", split /\./, $czone;
 
 
 	print "######## DOMAIN: $czone ########\n";
@@ -7653,6 +7690,7 @@ elsif($ARGV[0] eq "get-bing-dict-quick" || $ARGV[0] eq "get-bing4-dict-quick" ||
 		exit(1);
 	}
 
+	$czone= join ".", split /\./, $czone;
 
 
 	print "######## DOMAIN: $czone ########\n";
@@ -7708,6 +7746,8 @@ elsif($ARGV[0] eq "get-bing-dict-batch" || $ARGV[0] eq "get-bing4-dict-batch" ||
 		else{
 			next;
 		}
+
+		$czone= join ".", split /\./, $czone;
 
 		print "######## DOMAIN: $czone ########\n";
 
@@ -7796,6 +7836,8 @@ elsif($ARGV[0] eq "get-bing-dict-quick-batch" || $ARGV[0] eq "get-bing4-dict-qui
 		else{
 			next;
 		}
+
+		$czone= join ".", split /\./, $czone;
 
 		print "######## DOMAIN: $czone ########\n";
 
@@ -7902,6 +7944,7 @@ elsif($ARGV[0] eq "get-bing-addr-dict-quick" || $ARGV[0] eq "get-bing6-addr-dict
 		exit(1);
 	}
 
+	$czone= join ".", split /\./, $czone;
 
 
 	print "######## DOMAIN: $czone ########\n";
@@ -8001,6 +8044,8 @@ elsif($ARGV[0] eq "get-bing-addr-dict-batch" || $ARGV[0] eq "get-bing6-addr-dict
 		else{
 			next;
 		}
+
+		$czone= join ".", split /\./, $czone;
 
 		print "######## DOMAIN: $czone ########\n";
 
@@ -8158,6 +8203,8 @@ elsif($ARGV[0] eq "get-bing-addr-dict-quick-batch" || $ARGV[0] eq "get-bing6-add
 		else{
 			next;
 		}
+
+		$czone= join ".", split /\./, $czone;
 
 		print "######## DOMAIN: $czone ########\n";
 
