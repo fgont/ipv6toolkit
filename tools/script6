@@ -1346,7 +1346,15 @@ sub GetDomainsFromBing{
 		$continue=1;
 		$phase=0;
 		$subphase=0;
-		$heur="";
+
+		if($czone ne ""){
+			$heur="";
+		}
+		else{
+			$letterkey="a";
+			$heur="+$letterkey";
+		}
+
 		$sitesstr="";
 		$ftstr="";
 		$remsites="";
@@ -1950,8 +1958,11 @@ sub GetDomainsFromBingByAddr{
 		$phase=0;
 		$subphase=0;
 		$heur="";
-								$letterkey="z";
-								$heur="+$letterkey";
+
+		$letterkey="a";
+		$heur="+$letterkey";
+
+
 		$sitesstr="";
 		$ftstr="";
 		$remsites="";
