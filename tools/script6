@@ -4,7 +4,7 @@
 #
 
 
-$SI6_TOOLKIT="SI6 Networks IPv6 Toolkit v3.0";
+$SI6_TOOLKIT="SI6 Networks IPv6 Toolkit v4.0";
 $SCRIPT6="script6: A tool to make complex IPv6 tasks easy";
 $USAGE="\
 Usage: script6 COMMAND [PARAMETERS]
@@ -877,6 +877,7 @@ sub GetDomainsFromBingDict{
 				@revname=`$wwwclient $intprot $specaddr $wwwclient_sopt $wwwclient_tout $wwwclient_agnt"$useragent" "https://$sengine/search?q=$sitesstr$heur&first=$cur"`;
 			}
 
+# print "Envie: $stringcommand\n";
 
 			$totalqueries++;
 
@@ -951,7 +952,12 @@ sub GetDomainsFromBingDict{
 				#     b) All were collisions
 				#        ACTION: If we hit threshold, change query string. Otherwise, keep searching
 
-				$trydifferent=0;
+				if($lineno == 0 && $czone eq ""){
+					$trydifferent=1;
+				}
+				else{
+					$trydifferent=0;
+				}
 
 				if($totalmatches == 0){
 					#print "#### DEBUG: GOT NO MATCHES ####\n";
@@ -1053,6 +1059,7 @@ sub GetDomainsFromBingDict{
 					$lastkeyword=$dictkeyword;
 					$dictkeyword="";
 					while($dictword=<$dictfp>){
+						$lineno++;
 						chomp($dictword);
 
 						if($dictword =~ m/^\s*#/){
@@ -1060,7 +1067,7 @@ sub GetDomainsFromBingDict{
 						}
 
 						$dictword=~ s/\r//g;
-						$lineno++;
+
 
 #print "# Lei: $dictword";
 #						if( $dictword =~ m/([^\/0-9\s]+[^\/0-9]*)/){
@@ -1943,7 +1950,7 @@ sub GetDomainsFromBingByAddr{
 		$phase=0;
 		$subphase=0;
 		$heur="";
-								$letterkey="a";
+								$letterkey="z";
 								$heur="+$letterkey";
 		$sitesstr="";
 		$ftstr="";
@@ -2587,6 +2594,7 @@ else{
 
 
 
+# XXX Check (old unused function?)
 
 sub GetDomainsFromBingBis{ # bis
 #		GetDomainsFromCrawler(\@domain, $czone, $level, $maxresults);	
@@ -7885,6 +7893,7 @@ elsif($ARGV[0] eq "get-bing-addr-dict-quick" || $ARGV[0] eq "get-bing6-addr-dict
 
 	if($#changeaddr < 1 || $#changeaddr > 2){
 		print "binding address to be specified as IFACE#PREFIX#CHANGE\n";
+		exit(1);
 	}
 	elsif($#changeaddr == 2){
 		if($changeaddr[2] =~ m/insane/){
