@@ -9824,25 +9824,50 @@ elsif($ARGV[0] eq "get-zonefile-domains"){
 	while($line=<STDIN>){
 		$line=lc($line);
 
-		if(!$gotorg && $line =~ m/\s*\$origin\s+([-a-zA-Z0-9_.]+)$/){ #(?=\.)
-			$org= join(".", split /\./, $1);
-			$gotorg=1;
+		if(!$gotorg){
+			if($line =~ m/^\s*\$origin\s+([-a-zA-Z0-9_.]+)$/){
+				$org= join(".", split /\./, $1);
+				$gotorg=1;
+			}
+			elsif($line =~ m/^\s*([-a-zA-Z0-9_.]+)\s+\d+\s+in\s+soa\s+/){
+				$org= join(".", split /\./, $1);
+				$gotorg=1;
+			}
 		}
-		elsif($line=~ m/^\s*(\S+)\s+ns\s+\S+$/){
-			$domain= $1;
+		else{
+			if($org eq "com" && $line=~ m/^\s*(\S+)\s+ns\s+\S+$/){
+				$domain= $1;
 
-			if($domain =~ m/\.$/){
-				$domain= join(".", split /\./, $domain);
+				if($domain =~ m/\.$/){
+					$domain= join(".", split /\./, $domain);
+				}
+				else{
+					$domain= join(".", split /\./, $domain).".$org";
+				}
+
+
+
+				if($domain ne $lastdomain){
+					$lastdomain=$domain;
+					print "$domain\n";
+				}
 			}
-			else{
-				$domain= join(".", split /\./, $domain).".$org";
-			}
+			elsif($org ne "com" && $line=~ m/^(\S+)\s+\d+\s+in\s+ns\s+\S+$/){
+				$domain= $1;
+
+				if($domain =~ m/\.$/){
+					$domain= join(".", split /\./, $domain);
+				}
+				else{
+					$domain= join(".", split /\./, $domain).".$org";
+				}
 
 
 
-			if($domain ne $lastdomain){
-				$lastdomain=$domain;
-				print "$domain\n";
+				if($domain ne $lastdomain){
+					$lastdomain=$domain;
+					print "$domain\n";
+				}
 			}
 		}
 
@@ -9859,35 +9884,151 @@ elsif($ARGV[0] eq "get-zonefile-nameservers" || $ARGV[0] eq "get-zonefile-ns"){
 	while($line=<STDIN>){
 		$line=lc($line);
 
-		if(!$gotorg && $line =~ m/\s*\$origin\s+([-a-zA-Z0-9_.]+)$/){ #(?=\.)
-			$org= join(".", split /\./, $1);
-			$gotorg=1;
+		if(!$gotorg){
+			if($line =~ m/^\s*\$origin\s+([-a-zA-Z0-9_.]+)$/){
+				$org= join(".", split /\./, $1);
+				$gotorg=1;
+			}
+			elsif($line =~ m/^\s*([-a-zA-Z0-9_.]+)\s+\d+\s+in\s+soa\s+/){
+				$org= join(".", split /\./, $1);
+				$gotorg=1;
+			}
 		}
-		elsif($line=~ m/^\s*(\S+)\s+ns\s+(\S+)$/){
-			$domain= $1;
-			$ns= $2;
+		else{
+			if($org eq "com" && $line=~ m/^\s*(\S+)\s+ns\s+(\S+)$/){
+				$domain= $1;
+				$ns= $2;
 
-			if($domain =~ m/\.$/){
-				$domain= join(".", split /\./, $domain);
-			}
-			else{
-				$domain= join(".", split /\./, $domain).".$org";
-			}
+				if($domain =~ m/\.$/){
+					$domain= join(".", split /\./, $domain);
+				}
+				else{
+					$domain= join(".", split /\./, $domain).".$org";
+				}
 
-			if($ns =~ m/\.$/){
-				$ns = join(".", split /\./, $ns);
-			}
-			else{
-				$ns = join(".", split /\./, $ns).".$org";
-			}
+				if($ns =~ m/\.$/){
+					$ns = join(".", split /\./, $ns);
+				}
+				else{
+					$ns = join(".", split /\./, $ns).".$org";
+				}
 
-			if($domain ne $lastdomain){
-				$lastdomain=$domain;
-				print "# $domain\n";
+				if($domain ne $lastdomain){
+					$lastdomain=$domain;
+					print "# $domain\n";
+				}
+				if($ns ne $lastns){
+					$lastns= $ns;
+					print "$ns\n";
+				}
 			}
-			if($ns ne $lastns){
-				$lastns= $ns;
-				print "$ns\n";
+			elsif($org ne "com" && $line=~ m/^(\S+)\s+\d+\s+in\s+ns\s+(\S+)$/){
+				$domain= $1;
+				$ns= $2;
+
+				if($domain =~ m/\.$/){
+					$domain= join(".", split /\./, $domain);
+				}
+				else{
+					$domain= join(".", split /\./, $domain).".$org";
+				}
+
+				if($ns =~ m/\.$/){
+					$ns = join(".", split /\./, $ns);
+				}
+				else{
+					$ns = join(".", split /\./, $ns).".$org";
+				}
+
+				if($domain ne $lastdomain){
+					$lastdomain=$domain;
+					print "# $domain\n";
+				}
+				if($ns ne $lastns){
+					$lastns= $ns;
+					print "$ns\n";
+				}
+			}
+		}
+
+		$linenumber++;
+	}
+}
+elsif($ARGV[0] eq "get-zonefile-mailservers" || $ARGV[0] eq "get-zonefile-mx"){
+
+	$lastdomain="";
+	$lastns="";
+	$linenumber=0;
+	$gotorg=0;
+
+	while($line=<STDIN>){
+		$line=lc($line);
+
+		if(!$gotorg){
+			if($line =~ m/^\s*\$origin\s+([-a-zA-Z0-9_.]+)$/){
+				$org= join(".", split /\./, $1);
+				$gotorg=1;
+			}
+			elsif($line =~ m/^\s*([-a-zA-Z0-9_.]+)\s+\d+\s+in\s+soa\s+/){
+				$org= join(".", split /\./, $1);
+				$gotorg=1;
+			}
+		}
+		else{
+			# XXX: The .com zonefile does not really have MX records
+			if($org eq "com" && $line=~ m/^\s*(\S+)\s+mx\s+(\S+)$/){
+				$domain= $1;
+				$ns= $2;
+
+				if($domain =~ m/\.$/){
+					$domain= join(".", split /\./, $domain);
+				}
+				else{
+					$domain= join(".", split /\./, $domain).".$org";
+				}
+
+				if($ns =~ m/\.$/){
+					$ns = join(".", split /\./, $ns);
+				}
+				else{
+					$ns = join(".", split /\./, $ns).".$org";
+				}
+
+				if($domain ne $lastdomain){
+					$lastdomain=$domain;
+					print "# $domain\n";
+				}
+				if($ns ne $lastns){
+					$lastns= $ns;
+					print "$ns\n";
+				}
+			}
+			elsif($org ne "com" && $line=~ m/^(\S+)\s+\d+\s+in\s+mx\s+\d+\s+(\S+)$/){
+				$domain= $1;
+				$ns= $2;
+
+				if($domain =~ m/\.$/){
+					$domain= join(".", split /\./, $domain);
+				}
+				else{
+					$domain= join(".", split /\./, $domain).".$org";
+				}
+
+				if($ns =~ m/\.$/){
+					$ns = join(".", split /\./, $ns);
+				}
+				else{
+					$ns = join(".", split /\./, $ns).".$org";
+				}
+
+				if($domain ne $lastdomain){
+					$lastdomain=$domain;
+					print "# $domain\n";
+				}
+				if($ns ne $lastns){
+					$lastns= $ns;
+					print "$ns\n";
+				}
 			}
 		}
 
