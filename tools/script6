@@ -54,6 +54,8 @@ Usage: script6 COMMAND [PARAMETERS]
    get-unique-domains: Creates a list of unique domains from STDIN
    get-unique-ipv4-addresses: Creates a list of unique domains from STDIN
    get-domain-level: Creates list of unique domains of a given level from STDIN\n
+   get-zonefile-domains: Obtains the list of domains from a zone file\n
+   get-zonefile-nameservers: Obtains the list of nameservers from a zone file\n
 ";
 
 
@@ -437,7 +439,12 @@ sub AddAddress{
 
 	@revname=`addr6 -A $addr/$len`;
 	$randomizedaddress=  $revname[0];
-    chomp($randomizedaddress);
+        chomp($randomizedaddress);
+
+	if($randomizedaddress =~ m/^inet_pton\(\)/){
+		print "Invalid prefix: $addr/$len\n";
+		exit(1); # XXX
+	}
 
 	if($os eq "linux"){
 		@revname=`ip -6 addr add $randomizedaddress/64 dev $iface`;
@@ -9806,6 +9813,85 @@ elsif($ARGV[0] eq "get-domain-from-zonefile" || $ARGV[0] eq "get-domain-from-zon
 				print "$domain\n";
 			}
 		}
+	}
+}
+elsif($ARGV[0] eq "get-zonefile-domains"){
+
+	$lastdomain="";
+	$linenumber=0;
+	$gotorg=0;
+
+	while($line=<STDIN>){
+		$line=lc($line);
+
+		if(!$gotorg && $line =~ m/\s*\$origin\s+([-a-zA-Z0-9_.]+)$/){ #(?=\.)
+			$org= join(".", split /\./, $1);
+			$gotorg=1;
+		}
+		elsif($line=~ m/^\s*(\S+)\s+ns\s+\S+$/){
+			$domain= $1;
+
+			if($domain =~ m/\.$/){
+				$domain= join(".", split /\./, $domain);
+			}
+			else{
+				$domain= join(".", split /\./, $domain).".$org";
+			}
+
+
+
+			if($domain ne $lastdomain){
+				$lastdomain=$domain;
+				print "$domain\n";
+			}
+		}
+
+		$linenumber++;
+	}
+}
+elsif($ARGV[0] eq "get-zonefile-nameservers" || $ARGV[0] eq "get-zonefile-ns"){
+
+	$lastdomain="";
+	$lastns="";
+	$linenumber=0;
+	$gotorg=0;
+
+	while($line=<STDIN>){
+		$line=lc($line);
+
+		if(!$gotorg && $line =~ m/\s*\$origin\s+([-a-zA-Z0-9_.]+)$/){ #(?=\.)
+			$org= join(".", split /\./, $1);
+			$gotorg=1;
+		}
+		elsif($line=~ m/^\s*(\S+)\s+ns\s+(\S+)$/){
+			$domain= $1;
+			$ns= $2;
+
+			if($domain =~ m/\.$/){
+				$domain= join(".", split /\./, $domain);
+			}
+			else{
+				$domain= join(".", split /\./, $domain).".$org";
+			}
+
+			if($ns =~ m/\.$/){
+				$ns = join(".", split /\./, $ns);
+			}
+			else{
+				$ns = join(".", split /\./, $ns).".$org";
+			}
+
+			if($domain ne $lastdomain){
+				$lastdomain=$domain;
+				print "# $domain\n";
+			}
+			if($ns ne $lastns){
+				$lastns= $ns;
+				print "$ns\n";
+			}
+		}
+
+		$linenumber++;
 	}
 }
 else{
