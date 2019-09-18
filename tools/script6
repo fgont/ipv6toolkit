@@ -33,6 +33,9 @@ Usage: script6 COMMAND [PARAMETERS]
    get-bing6-dict-batch: Search for domains with Bing (STDIN) (IPv6)
    get-crt: Search for domains with crt.sh
    get-crt-batch: Search for domains with crt.sh (STDIN)
+   get-crt-batch-files: Search domains with crt.sh (STDIN)
+   get-crt6-batch: Search for domains with crt.sh (STDIN)
+   get-crt6-batch-files: Search domains with crt.sh (STDIN)
    get-teoma: Search for domains with the Teoma search engine
    get-teoma-batch: Search domains with the Teoma search engine (STDIN)
    get-suffix-for-tld: Obtain known suffixes for TLD
@@ -53,9 +56,9 @@ Usage: script6 COMMAND [PARAMETERS]
    create-dict: Extracts words from STDIN to create a dictionary
    get-unique-domains: Creates a list of unique domains from STDIN
    get-unique-ipv4-addresses: Creates a list of unique domains from STDIN
-   get-domain-level: Creates list of unique domains of a given level from STDIN\n
-   get-zonefile-domains: Obtains the list of domains from a zone file\n
-   get-zonefile-nameservers: Obtains the list of nameservers from a zone file\n
+   get-domain-level: Creates list of unique domains of a given level from STDIN
+   get-zonefile-domains: Obtains the list of domains from a zone file
+   get-zonefile-nameservers: Obtains the list of nameservers from a zone file
 ";
 
 
@@ -6215,8 +6218,8 @@ elsif($ARGV[0] eq "get-a"){
 							$aaaa_f = 1;
 						}
 						else{
-print "Lei linea dentro de answer: $line \n";
-							print "No matchie!\n";
+#print "Lei linea dentro de answer: $line \n";
+#							print "No matchie!\n";
 						}
 					}
 				}
