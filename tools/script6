@@ -709,46 +709,67 @@ sub GetDomainsFromCrt{
 
 
 	$command="$wwwclient $wwwclient_sopt $wwwclient_agnt\"$useragent\" \"https://crt.sh/?q=%.$czone&output=json\"";
-		
-	$pid = open3(\*CHLD_IN, \*CHLD_OUT, \*CHLD_ERR, $command, );
-	close(CHLD_IN);
-	close(CHLD_ERR);
+	$doagain_f=1;
+	$times= 0;
 
-	while($line=<CHLD_OUT>){
-		$line =~ s/\\"/'/g; # Replaces escaped double-qutes with single-quotes
+	do{
+		$pid = open3(\*CHLD_IN, \*CHLD_OUT, \*CHLD_ERR, $command, );
+		close(CHLD_IN);
+		close(CHLD_ERR);
 
-		while($line=~ s/{"issuer_ca_id":\d+\s*,\s*"issuer_name":"[^"]*"\s*,\s*"name_value":"([^"]+)","min_cert_id":\d+,"min_entry_timestamp":"[^"]+","not_before":"[^"]+","not_after":"[^"]+"}//){
-			$grabbeddomain=$1;
+		while($line=<CHLD_OUT>){
 
-			# Wildcards are not allwed in valid domains
-			if($grabbeddomain=~ m/\*/){
-				next;
+			# Check that we got a results page
+			if($doagain_f && $line =~ m/^\[[^]]*]$/){
+				$doagain_f=0;
 			}
 
-			# Remove "domains" that contain spaces
-			if($grabbeddomain=~ m/ /){
-				next;
-			}
+			$line =~ s/\\"/'/g; # Replaces escaped double-qutes with single-quotes
 
-			if($grabbeddomain!~ m/$pzone/){
-				next;
-			}
+			while($line=~ s/{"issuer_ca_id":\d+\s*,\s*"issuer_name":"[^"]*"\s*,\s*"name_value":"([^"]+)","min_cert_id":\d+,"min_entry_timestamp":"[^"]+","not_before":"[^"]+","not_after":"[^"]+"}//){
+				$grabbeddomain=$1;
+
+				# Wildcards are not allwed in valid domains
+				if($grabbeddomain=~ m/\*/){
+					next;
+				}
+
+				# at signs are not allwed in valid domains
+				if($grabbeddomain=~ m/@/){
+					next;
+				}
+
+				# Remove "domains" that contain spaces
+				if($grabbeddomain=~ m/ /){
+					next;
+				}
+
+				if($grabbeddomain!~ m/$pzone/){
+					next;
+				}
 
 
-			for($i=0; $i<= $#$pdomain; $i++){
-				if($pdomain->[$i] eq $grabbeddomain){
-					last;
+				for($i=0; $i<= $#$pdomain; $i++){
+					if($pdomain->[$i] eq $grabbeddomain){
+						last;
+					}
+				}
+
+				if($i > $#$pdomain){
+					$pdomain->[$#$pdomain + 1]=$grabbeddomain;
+					print $filehandle "$grabbeddomain\n";
 				}
 			}
+		} # foreach $line;
 
-			if($i > $#$pdomain){
-				$pdomain->[$#$pdomain + 1]=$grabbeddomain;
-				print $filehandle "$grabbeddomain\n";
-			}
+		waitpid( $pid, 0 );
+
+		if($doagain_f){
+			$times++;
+			sleep(10);
 		}
-	} # foreach $line;
 
-	waitpid( $pid, 0 );
+	}while($doagain_f && $times <= 5);
 }
 
 
