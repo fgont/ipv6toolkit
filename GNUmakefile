@@ -128,6 +128,8 @@ data/ipv6toolkit.conf:
            data/ipv6toolkit.conf
 	echo RIR-Database=$(PREFIX)/share/ipv6toolkit/rir-database.csv >> \
            data/ipv6toolkit.conf 
+	echo DNS-UKGOV-Database=$(PREFIX)/share/ipv6toolkit/dns-gov-uk-domains.csv >> \
+           data/ipv6toolkit.conf 
 	echo DNS-Dictionary=$(PREFIX)/share/ipv6toolkit/dns-dictionary.txt >> \
            data/ipv6toolkit.conf 
 
@@ -168,6 +170,9 @@ ifneq ($(OS),SunOS)
 
 	# Install the RIR database
 	install -m0644 data/rir-database.csv $(DATAPATH)
+
+	# Install the UK Gov Database
+	install -m0644 data/dns-gov-uk-domains.csv $(DATAPATH)
 
 	# Install the DNS Dictionary
 	install -m0644 data/dns-dictionary.txt $(DATAPATH)
@@ -227,6 +232,9 @@ else
 
 	# Install the RIR Database
 	install -m 0644 -f $(DATAPATH) data/rir-database.csv
+
+	# Install the UK Gov Database
+	install -m 0644 -f $(DATAPATH) data/dns-gov-uk-domains.csv 
 
 	# Install the DNS Dictionary
 	install -m 0644 -f $(DATAPATH) data/dns-dictionary.txt
