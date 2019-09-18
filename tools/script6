@@ -71,8 +71,8 @@ Usage: script6 COMMAND [PARAMETERS]
 
 use Socket();
 use IPC::Open3;
-use Net::IP;
-use Net::DNS;
+use Net::IP;           # Normally libnet-ip-perl (was: libio-socket-ip-perl)
+use Net::DNS;          # Normally libnet-dns-perl
 
 $dns6revenum= "dnsrevenum6";
 $wwwclient="";
@@ -6686,12 +6686,15 @@ elsif($ARGV[0] eq "get-a"){
 							$aaaa_f = 1;
 						}
 						else{
-#print "Lei linea dentro de answer: $line \n";
+# print "Lei linea dentro de answer: $line \n";
 #							print "No matchie!\n";
 						}
 					}
 				}
 			 
+
+				waitpid( $pid, 0 );
+
 
 				# If we found AAAA records, try the next domain
 				if($aaaa_f == 1){
@@ -6708,7 +6711,7 @@ elsif($ARGV[0] eq "get-a"){
 				}
 			}
 
-			waitpid( $pid, 0 );
+
 		}
 	}
 	else{
