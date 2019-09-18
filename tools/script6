@@ -10737,117 +10737,91 @@ elsif($ARGV[0] eq "portscan-tcp-dual" || $ARGV[0] eq "portscan-tcp-dualstack"){
 		}
 	}
 	else{
-			$line= $ARGV[1];
-			$line =~ s/[^-_0-9A-Za-z.]//g;
-			$line= lc($line);
-			$name=$line;
+		$line= $ARGV[1];
+		$line =~ s/[^-_0-9A-Za-z.]//g;
+		$line= lc($line);
+		$name=$line;
 
-		#	print "#Name: $name\n";
-
-			# Log progress every 100 ten lines
-		#	if($nline % 100 == 0){
-		#		print "WEB: total: $dweb, v4: $dwebv4, v6: $dwebv6, dual: $dwebdual\n";
-		#		print "MX: total: $dmx, v4: $dmxv4, v6: $dmxv6, dual: $dmxdual, fulldual: $dmxfulldual\n";
-		#		print "NS: total: $dns, v4: $dnsv4, v6: $dnsv6, dual: $dnsdual, fulldual: $dnsfulldual\n";
-		#		print "################################\n";
-		#	}
-		#	$nline++;
-
-			$hasv4=0;
-			$hasv6=0;
+		$hasv4=0;
+		$hasv6=0;
 
 
-		#****************************************
-		# AAAAA basado en A
 
+		$reply = $res->query($name, "AAAA");
 
-		#		print "\n\nAAAA:\n";
-				$reply = $res->query($name, "AAAA");
-
-				if ($reply) {
-				    foreach $rr ($reply->answer) {
-						if($rr->type eq "AAAA"){
-							if(!$hasv6){
-								print "# DOMAIN: $name\n";
-							}
-
-		#					print "AAAA: ", $rr->address\n";
-							$address=$rr->address;
-		#					print "COMANDO: nmap -6 -Pn -n --script-args script-intensity=0 --top-ports 1000 $address\n";
-							@lines=`nmap -6 -sS -Pn -n --script-args script-intensity=0 --top-ports 1000 $address`;
-							print "$name#$address#";
-
-							$resultsf=0;
-
-							foreach $line (@lines){
-								if($resultsf){
-									if($line =~ m/^(\d+\/(?:tcp|udp))\s+open/){
-										print "$1#";
-										$resultsf=2;
-									}
-								}
-								elsif($line =~ m/^PORT\s+STATE\s+SERVICE/){
-									$resultsf=1;
-								}
-							}
-
-							print "\n";
-
-							$hasv6=1;
-		#print "web: obtuve v6\n";
-						}
-				    }
+		if ($reply) {
+		    foreach $rr ($reply->answer) {
+			if($rr->type eq "AAAA"){
+				if(!$hasv6){
+					print "# DOMAIN: $name\n";
 				}
 
+				$address=$rr->address;
+	#			print "COMANDO: nmap -6 -Pn -n --script-args script-intensity=0 --top-ports 1000 $address\n";
+				@lines=`nmap -6 -sS -Pn -n --script-args script-intensity=0 --top-ports 1000 $address`;
+				print "$name#$address#";
 
-#				if(!$hasv6){
-#					next;
-				}
+				$resultsf=0;
 
-
-		#print "A RECORD	\n";
-				$reply = $res->query($name, "A");
-
-				if ($reply) {
-
-				    	foreach $rr ($reply->answer) {
-						if($rr->type eq "A"){
-
-							if(!$hasv6 && !$hasv4){
-								print "# DOMAIN: $name\n";
-							}
-		#			    	print "A: ", $rr->address, "(TTL: ", $rr->ttl, ")\n";
-
-							$hasipv4=1;
-
-		#					print "AAAA: ", $rr->address, "(TTL: ", $rr->ttl, ")\n";
-							$address=$rr->address;
-		#					print "COMANDO: nmap -Pn -n --script-args script-intensity=0 --top-ports 1000 $address\n";
-							@lines=`nmap  -sS -Pn -n --script-args script-intensity=0 --top-ports 1000 $address`;
-							print "$name#$address#";
-
-							$resultsf=0;
-
-							foreach $line (@lines){
-								if($resultsf){
-									if($line =~ m/^(\d+\/(?:tcp|udp))\s+open/){
-										print "$1#";
-										$resultsf=2;
-									}
-								}
-								elsif($line =~ m/^PORT\s+STATE\s+SERVICE/){
-									$resultsf=1;
-								}
-							}
-
-							print "\n";
-
-							$hasv4=1;
-
+				foreach $line (@lines){
+					if($resultsf){
+						if($line =~ m/^(\d+\/(?:tcp|udp))\s+open/){
+							print "$1#";
+							$resultsf=2;
 						}
 					}
+					elsif($line =~ m/^PORT\s+STATE\s+SERVICE/){
+						$resultsf=1;
+					}
 				}
-			
+
+				print "\n";
+
+				$hasv6=1;
+
+			}
+		    }
+		}
+
+
+		$reply = $res->query($name, "A");
+
+		if ($reply) {
+
+		    	foreach $rr ($reply->answer) {
+				if($rr->type eq "A"){
+					if(!$hasv6 && !$hasv4){
+						print "# DOMAIN: $name\n";
+					}
+
+					$hasipv4=1;
+
+					$address=$rr->address;
+
+					@lines=`nmap  -sS -Pn -n --script-args script-intensity=0 --top-ports 1000 $address`;
+					print "$name#$address#";
+
+					$resultsf=0;
+
+					foreach $line (@lines){
+						if($resultsf){
+							if($line =~ m/^(\d+\/(?:tcp|udp))\s+open/){
+								print "$1#";
+								$resultsf=2;
+							}
+						}
+						elsif($line =~ m/^PORT\s+STATE\s+SERVICE/){
+							$resultsf=1;
+						}
+					}
+
+					print "\n";
+
+					$hasv4=1;
+
+				}
+			}
+		}
 
 	}
 }
