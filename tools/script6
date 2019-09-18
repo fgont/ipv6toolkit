@@ -10611,7 +10611,7 @@ elsif($ARGV[0] eq "get-zonefile-mailservers" || $ARGV[0] eq "get-zonefile-mx"){
 		$linenumber++;
 	}
 }
-elsif($ARGV[0] eq "portscan-tcp-dual" || $ARGV[0] eq "portscan-tcp-dualstack"){){
+elsif($ARGV[0] eq "portscan-tcp-dual" || $ARGV[0] eq "portscan-tcp-dualstack"){
 	if($#ARGV == 0){
 		while($line=<STDIN>){
 			chomp($line);
