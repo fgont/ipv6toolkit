@@ -60,6 +60,7 @@ Usage: script6 COMMAND [PARAMETERS]
    get-dns6-rev-batch: Batch enumaration based on DNS reverse mappings
    get-root-zone: Obtain list of all TLDs from IANA
    get-root-zone-raw: Obtain list of all TLDs from IANA (raw format)
+   get-ukgov-zone: Obtains the list of domains for the uk.gov.uk zone
    get-trace6: Perform traceroute6 (with EHs) to a given destination
    get-trace6-stats: Get statistics for trace results read from STDIN
    create-dict: Extracts words from STDIN to create a dictionary
@@ -68,7 +69,6 @@ Usage: script6 COMMAND [PARAMETERS]
    get-domain-level: Creates list of unique domains of a given level from STDIN
    get-zonefile-domains: Obtains the list of domains from a zone file
    get-zonefile-nameservers: Obtains the list of nameservers from a zone file
-   get-ukgov-zone: Obtains the list of domains for the uk.gov.uk zone
 ";
 
 
@@ -151,7 +151,7 @@ sub PrintConfigFile{
 	print "DNS-TLD-Database=$dns_tld_database\n";
 	print "DNS-Suffix-Database=$dns_suffix_database\n";
 	print "RIR-Database=$rir_database\n";
-	print "DNS-UKGOV-Database=$ukgov_database\n";
+	print "DNS-UKGOV-Database=$dns_ukgov_database\n";
 	print "DNS-Dictionary=$dns_dictionary_database\n";
 	print "[NOTE] WWW-client run as '$wwwclient$wwwclient_sopt\[$wwwclient_tout\]$wwwclient_agnt\"\[sample agent\]\"'\n";
 }
