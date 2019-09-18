@@ -10612,6 +10612,8 @@ elsif($ARGV[0] eq "get-zonefile-mailservers" || $ARGV[0] eq "get-zonefile-mx"){
 	}
 }
 elsif($ARGV[0] eq "portscan-tcp-dual" || $ARGV[0] eq "portscan-tcp-dualstack"){
+	$res   = Net::DNS::Resolver->new;
+
 	if($#ARGV == 0){
 		while($line=<STDIN>){
 			chomp($line);
@@ -10717,8 +10719,6 @@ elsif($ARGV[0] eq "portscan-tcp-dual" || $ARGV[0] eq "portscan-tcp-dualstack"){
 
 		$hasv4=0;
 		$hasv6=0;
-
-
 
 		$reply = $res->query($name, "AAAA");
 
