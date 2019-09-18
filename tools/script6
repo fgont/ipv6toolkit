@@ -67,8 +67,8 @@ Usage: script6 COMMAND [PARAMETERS]
    get-unique-ipv4-addresses: Creates a list of unique IPv4 addresses from STDIN
    get-domain-level: Creates list of unique domains of a given level from STDIN
    get-zonefile-domains: Obtains the list of domains from a zone file
-   get-ukgov-zone: Obtains the list of domains for the uk.gov.uk zone
    get-zonefile-nameservers: Obtains the list of nameservers from a zone file
+   get-ukgov-zone: Obtains the list of domains for the uk.gov.uk zone
 ";
 
 
@@ -117,6 +117,7 @@ sub ParseConfigFile{
 		}
 		elsif($_ =~ m/\s*DNS-UKGOV-Database\s*=\s*([^\s]+)\s*/i){
 			$dns_ukgov_database=$1;
+			# Typically at: https://assets.publishing.service.gov.uk/government/uploads/system/uploads/attachment_data/file/744721/List_of_.gov.uk_domain_names_as_at_1_October_2018.csv
 		}
 	}
 
