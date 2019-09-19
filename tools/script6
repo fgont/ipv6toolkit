@@ -11,6 +11,7 @@ Usage: script6 COMMAND [PARAMETERS]
    COMMANDS:
    get-a: Get A records for domain name
    get-aaaa: Get AAAA records for domain name
+   get-addresses: Gets A and AAAA records for a domain name
    get-mx: Get X records for domain name
    get-ns: Get NS records fo domain name
    get-asn6: Get Autonomos System Number for IPv6 address
@@ -35,6 +36,7 @@ Usage: script6 COMMAND [PARAMETERS]
    get-bing6-addr-dict-batch: Search domains with Bing with cust. addr (batch)
    get-bing6-addr-dict-quick-batch: Search dom, w/ Bing w/ cust. addr (batch)
    get-bing-by-addr: Search domains for IPv4 address
+   get-bing-by-addr-quick: Search domains for IPv4 address (faster give-up)
    get-bing-by-addr-batch: Search domains for IPv4 address (batch)
    get-crt: Search for domains with crt.sh
    get-crt-batch: Search for domains with crt.sh (STDIN)
@@ -10817,6 +10819,119 @@ elsif($ARGV[0] eq "portscan-tcp-dual" || $ARGV[0] eq "portscan-tcp-dualstack"){
 
 					print "\n";
 
+					$hasv4=1;
+
+				}
+			}
+		}
+
+	}
+}
+
+elsif($ARGV[0] eq "get-addresses" || $ARGV[0] eq "get-addrs"){
+	$res   = Net::DNS::Resolver->new;
+
+	if($#ARGV == 0){
+		while($line=<STDIN>){
+			chomp($line);
+
+			if($line=~ m/^\s*#/){
+				next;
+			}
+
+			if($line=~ m/^\s+$/){
+				next;
+			}
+
+			$line =~ s/[^-_0-9A-Za-z.]//g;
+			$line= lc($line);
+			$name=$line;
+
+			$hasv4=0;
+			$hasv6=0;
+
+			$reply = $res->query($name, "AAAA");
+
+			if ($reply) {
+				foreach $rr ($reply->answer) {
+					if($rr->type eq "AAAA"){
+						if(!$hasv6){
+							print "# $name\n";
+						}
+
+						$address=$rr->address;
+
+						print "$address\n";
+						$hasv6=1;
+
+					}
+				}
+			}
+
+
+			$reply = $res->query($name, "A");
+
+			if ($reply) {
+
+				foreach $rr ($reply->answer) {
+					if($rr->type eq "A"){
+
+						if(!$hasv6 && !$hasv4){
+							print "# $name\n";
+						}
+
+						$hasipv4=1;
+
+						$address=$rr->address;
+						print "$address\n";
+						$hasv4=1;
+					}
+				}
+			}
+			
+		}
+	}
+	else{
+		$line= $ARGV[1];
+		$line =~ s/[^-_0-9A-Za-z.]//g;
+		$line= lc($line);
+		$name=$line;
+
+		$hasv4=0;
+		$hasv6=0;
+
+		$reply = $res->query($name, "AAAA");
+
+		if ($reply) {
+		    foreach $rr ($reply->answer) {
+			if($rr->type eq "AAAA"){
+				if(!$hasv6){
+					print "# $name\n";
+				}
+
+				$address=$rr->address;
+				print "$address\n";
+				$hasv6=1;
+
+			}
+		    }
+		}
+
+
+		$reply = $res->query($name, "A");
+
+		if ($reply) {
+
+		    	foreach $rr ($reply->answer) {
+				if($rr->type eq "A"){
+					if(!$hasv6 && !$hasv4){
+						print "# $name\n";
+					}
+
+					$hasipv4=1;
+
+					$address=$rr->address;
+					print "$address\n";
 					$hasv4=1;
 
 				}
