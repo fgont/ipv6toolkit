@@ -60,8 +60,7 @@ const u_char			*pktdata;
 struct in6_addr			*pkt_ipv6addr;    
 bpf_u_int32				my_netmask;
 bpf_u_int32				my_ip;
-struct bpf_program		pcap_filter;
-char					dev[64], errbuf[PCAP_ERRBUF_SIZE];
+char					dev[64];
 char					all_nodes_addr[]= ALL_NODES_MULTICAST_ADDR;
 
 unsigned char			buffer[65556];

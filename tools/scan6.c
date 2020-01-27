@@ -153,8 +153,7 @@ unsigned char				error_f;
 
 bpf_u_int32				my_netmask;
 bpf_u_int32				my_ip;
-struct bpf_program		pcap_filter;
-char 					dev[64], errbuf[PCAP_ERRBUF_SIZE];
+char 					dev[64];
 unsigned char			buffer[BUFFER_SIZE], buffrh[MIN_IPV6_HLEN + MIN_TCP_HLEN];
 char					line[LINE_BUFFER_SIZE];
 unsigned char			*v6buffer, *ptr, *startofprefixes;
@@ -268,10 +267,6 @@ uint16_t				service_ports_hex[]={0x21, 0x22, 0x23, 0x25, 0x49, 0x53, 0x80, 0x110
 uint16_t				service_ports_dec[]={21, 22, 23, 25, 49, 53, 80, 110, 123, 179, 220, 389, \
 						                 443, 547, 993, 995, 1194, 3306, 5060, 5061, 5432, 6446, 8080};
 
-
-/* IPv6 Address Resolution */
-sigjmp_buf				env;
-unsigned int			canjump;
 
 int main(int argc, char **argv){
 	extern char				*optarg;

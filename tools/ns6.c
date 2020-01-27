@@ -59,8 +59,7 @@ struct pcap_pkthdr	*pkthdr;
 const u_char		*pktdata;
 bpf_u_int32			my_netmask;
 bpf_u_int32			my_ip;
-struct bpf_program	pcap_filter;
-char 				dev[64], errbuf[PCAP_ERRBUF_SIZE];
+char 				dev[64];
 
 unsigned char		buffer[65556];
 unsigned char 		*v6buffer, *ptr, *startofprefixes;
