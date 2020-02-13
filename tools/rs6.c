@@ -54,7 +54,6 @@ void					usage(void);
 void					print_help(void);
 
 
-pcap_t					*pfd;
 struct pcap_pkthdr		*pkthdr;
 const u_char			*pktdata;
 struct in6_addr			*pkt_ipv6addr;    
@@ -748,8 +747,8 @@ void send_packet(struct iface_data *idata){
 			if(!idata->fragh_f){
 				ipv6->ip6_plen = htons((ptr - v6buffer) - MIN_IPV6_HLEN);
 
-				if((nw=pcap_inject(pfd, buffer, ptr - buffer)) == -1){
-					printf("pcap_inject(): %s\n", pcap_geterr(pfd));
+				if((nw=pcap_inject(idata->pfd, buffer, ptr - buffer)) == -1){
+					printf("pcap_inject(): %s\n", pcap_geterr(idata->pfd));
 					exit(EXIT_FAILURE);
 				}
     
@@ -804,8 +803,8 @@ void send_packet(struct iface_data *idata){
 
 					fipv6->ip6_plen = htons((fptr - fragbuffer) - MIN_IPV6_HLEN - ETHER_HDR_LEN);
 		
-					if((nw=pcap_inject(pfd, fragbuffer, fptr - fragbuffer)) == -1){
-						printf("pcap_inject(): %s\n", pcap_geterr(pfd));
+					if((nw=pcap_inject(idata->pfd, fragbuffer, fptr - fragbuffer)) == -1){
+						printf("pcap_inject(): %s\n", pcap_geterr(idata->pfd));
 						exit(EXIT_FAILURE);
 					}
 
