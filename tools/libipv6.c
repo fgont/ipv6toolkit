@@ -1816,9 +1816,12 @@ void randomize_ether_addr(struct ether_addr *ethaddr){
  * randomize_ipv6_addr()
  *
  * Select a random IPv6 from a given prefix.
+ *
+ * Caller needs to ensure that @prefix is zeroed (bitwise) beyond preflen.
  */
 
 void randomize_ipv6_addr(struct in6_addr *ipv6addr, struct in6_addr *prefix, uint8_t preflen){
+	const struct in6_addr prefix_cpy = *prefix;
 	uint32_t mask;
 	uint8_t startrand;	
 	unsigned int i;
@@ -1841,9 +1844,9 @@ void randomize_ipv6_addr(struct in6_addr *ipv6addr, struct in6_addr *prefix, uin
 		ipv6addr->s6_addr32[startrand]= ipv6addr->s6_addr32[startrand] & htonl(mask);
 	}
 
-	for(i=0; i<=(preflen/32); i++)
-		ipv6addr->s6_addr32[i]= ipv6addr->s6_addr32[i] | prefix->s6_addr32[i];
-
+	for(i=0; i<=(preflen/32); i++) {
+		ipv6addr->s6_addr32[i]= ipv6addr->s6_addr32[i] | prefix_cpy.s6_addr32[i];
+	}
 }
 
 
