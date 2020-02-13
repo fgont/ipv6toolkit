@@ -132,15 +132,15 @@ int main(int argc, char **argv){
 
 	static struct option longopts[] = {
 		{"interface", required_argument, 0, 'i'},
-		{"src-address", required_argument, 0, 's'},
-		{"dst-address", required_argument, 0, 'd'},
+		{"src-addr", required_argument, 0, 's'},
+		{"dst-addr", required_argument, 0, 'd'},
 		{"hop-limit", required_argument, 0, 'A'},
 		{"dst-opt-hdr", required_argument, 0, 'u'},
 		{"dst-opt-u-hdr", required_argument, 0, 'U'},
 		{"hbh-opt-hdr", required_argument, 0, 'H'},
 		{"frag-hdr", required_argument, 0, 'y'},
-		{"link-src-address", required_argument, 0, 'S'},
-		{"link-dst-address", required_argument, 0, 'D'},
+		{"link-src-addr", required_argument, 0, 'S'},
+		{"link-dst-addr", required_argument, 0, 'D'},
 		{"target-address", required_argument, 0, 't'},
 		{"source-lla-opt", required_argument, 0, 'E'},
 		{"add-slla-opt", no_argument, 0, 'e'},
@@ -1612,14 +1612,14 @@ void print_help(void){
     
 	puts("\nOPTIONS:\n"
 	     "  --interface, -i            Network interface\n"
-	     "  --src-address, -s          IPv6 Source Address\n"
-	     "  --dst-address, -d          IPv6 Destination Address\n"
+	     "  --src-addr, -s             IPv6 Source Address\n"
+	     "  --dst-addr, -d             IPv6 Destination Address\n"
 	     "  --frag-hdr. -y             Fragment Header\n"
 	     "  --dst-opt-hdr, -u          Destination Options Header (Fragmentable Part)\n"
 	     "  --dst-opt-u-hdr, -U        Destination Options Header (Unfragmentable Part)\n"
 	     "  --hbh-opt-hdr, -H          Hop by Hop Options Header\n"
-	     "  --link-src-address, -S     Link-layer Destination Address\n"
-	     "  --link-dst-address, -D     Link-layer Source Address\n"
+	     "  --link-src-addr, -S        Link-layer Destination Address\n"
+	     "  --link-dst-addr, -D        Link-layer Source Address\n"
 	     "  --target-address, -t       ND Target Address\n"
 	     "  --source-lla-opt, -E       Source link-layer address option\n"
 	     "  --add-slla-opt, -e         Add Source link-layer address option\n"

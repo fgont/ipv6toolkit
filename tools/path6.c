@@ -169,8 +169,8 @@ int main(int argc, char **argv){
 		{"interface", required_argument, 0, 'i'},
 		{"link-src-addr", required_argument, 0, 'S'},
 		{"link-dst-addr", required_argument, 0, 'D'},
-		{"src-address", required_argument, 0, 's'},
-		{"dst-address", required_argument, 0, 'd'},
+		{"src-addr", required_argument, 0, 's'},
+		{"dst-addr", required_argument, 0, 'd'},
 		{"dst-opt-hdr", required_argument, 0, 'u'},
 		{"dst-opt-u-hdr", required_argument, 0, 'U'},
 		{"hbh-opt-hdr", required_argument, 0, 'H'},
@@ -1395,10 +1395,10 @@ void print_help(void){
     
 	puts("\nOPTIONS:\n"
 	     "  --interface, -i           Network interface\n"
-	     "  --link-src-address, -S    Link-layer Destination Address\n"
-	     "  --link-dst-address, -D    Link-layer Source Address\n"
-	     "  --src-address, -s         IPv6 Source Address\n"
-	     "  --dst-address, -d         IPv6 Destination Address\n"
+	     "  --link-src-addr, -S       Link-layer Destination Address\n"
+	     "  --link-dst-addr, -D       Link-layer Source Address\n"
+	     "  --src-addr, -s            IPv6 Source Address\n"
+	     "  --dst-addr, -d            IPv6 Destination Address\n"
 	     "  --frag-hdr. -y            Fragment Header\n"
 	     "  --dst-opt-hdr, -u         Destination Options Header (Fragmentable Part)\n"
 	     "  --dst-opt-u-hdr, -U       Destination Options Header (Unfragmentable Part)\n"
