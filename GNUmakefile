@@ -48,7 +48,7 @@ SBINPATH= $(DESTDIR)$(PREFIX)/sbin
 SRCPATH= tools
 
 
-SBINTOOLS= blackhole6 flow6 frag6 icmp6 jumbo6 na6 ni6 ns6 path6 ra6 rd6 rs6 scan6 script6 tcp6 udp6
+SBINTOOLS= blackhole6 flow6 frag6 icmp6 jumbo6 mldq6 na6 ni6 ns6 path6 ra6 rd6 rs6 scan6 script6 tcp6 udp6
 BINTOOLS= addr6
 TOOLS= $(BINTOOLS) $(SBINTOOLS)
 LIBS= libipv6.o
@@ -72,6 +72,9 @@ icmp6: $(SRCPATH)/icmp6.c $(SRCPATH)/icmp6.h $(SRCPATH)/ipv6toolkit.h $(LIBS) $(
 
 jumbo6: $(SRCPATH)/jumbo6.c $(SRCPATH)/jumbo6.h $(SRCPATH)/ipv6toolkit.h $(LIBS) $(SRCPATH)/libipv6.h
 	$(CC) $(CPPFLAGS) $(CFLAGS) -o jumbo6 $(SRCPATH)/jumbo6.c $(LIBS) $(LDFLAGS)
+
+mldq6: $(SRCPATH)/mldq6.c $(SRCPATH)/mldq6.h $(SRCPATH)/ipv6toolkit.h $(LIBS) $(SRCPATH)/libipv6.h
+	$(CC) $(CPPFLAGS) $(CFLAGS) -o mldq6 $(SRCPATH)/mldq6.c $(LIBS) $(LDFLAGS)
 
 na6: $(SRCPATH)/na6.c $(SRCPATH)/na6.h $(SRCPATH)/ipv6toolkit.h $(LIBS) $(SRCPATH)/libipv6.h
 	$(CC) $(CPPFLAGS) $(CFLAGS) -o na6 $(SRCPATH)/na6.c $(LIBS) $(LDFLAGS)
@@ -196,6 +199,7 @@ else
 	install -m 0755 -f $(SBINPATH) icmp6
 	install -m 0755 -f $(SBINPATH) jumbo6
 	install -m 0755 -f $(SBINPATH) script6
+	install -m 0755 -f $(SBINPATH) mldq6
 	install -m 0755 -f $(SBINPATH) na6
 	install -m 0755 -f $(SBINPATH) ni6
 	install -m 0755 -f $(SBINPATH) ns6
@@ -248,6 +252,7 @@ else
 	install -m 0644 -f $(MANPATH)/man1 manuals/frag6.1
 	install -m 0644 -f $(MANPATH)/man1 manuals/icmp6.1
 	install -m 0644 -f $(MANPATH)/man1 manuals/jumbo6.1
+	install -m 0644 -f $(MANPATH)/man1 manuals/mldq6.1
 	install -m 0644 -f $(MANPATH)/man1 manuals/na6.1
 	install -m 0644 -f $(MANPATH)/man1 manuals/ni6.1
 	install -m 0644 -f $(MANPATH)/man1 manuals/ns6.1
@@ -275,6 +280,7 @@ uninstall:
 	rm -f $(SBINPATH)/icmp6
 	rm -f $(SBINPATH)/jumbo6
 	rm -f $(SBINPATH)/script6
+	rm -f $(SBINPATH)/mldq6
 	rm -f $(SBINPATH)/na6
 	rm -f $(SBINPATH)/ni6
 	rm -f $(SBINPATH)/ns6
@@ -299,6 +305,7 @@ uninstall:
 	rm -f $(MANPATH)/man1/frag6.1
 	rm -f $(MANPATH)/man1/icmp6.1
 	rm -f $(MANPATH)/man1/jumbo6.1
+	rm -f $(MANPATH)/man1/mldq6.1
 	rm -f $(MANPATH)/man1/na6.1
 	rm -f $(MANPATH)/man1/ni6.1
 	rm -f $(MANPATH)/man1/ns6.1
