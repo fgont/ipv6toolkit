@@ -3615,7 +3615,9 @@ int load_dst_and_pcap(struct iface_data *idata, unsigned int mode){
 	unsigned char		randpreflen;
 	char				errbuf[PCAP_ERRBUF_SIZE];
 
-	if(mode != LOAD_PCAP_ONLY && IN6_IS_ADDR_LINKLOCAL(&(idata->dstaddr))){
+	if(mode != LOAD_PCAP_ONLY &&
+	   (IN6_IS_ADDR_LINKLOCAL(&(idata->dstaddr)) ||
+	    IN6_IS_ADDR_MC_LINKLOCAL(&(idata->dstaddr)))) {
 		/* Special case where the Destination Address is a link-local address */
 		if(!idata->iface_f){
 			puts("Need to specify an interface ('-i' option) when Destination Address is link-local");
