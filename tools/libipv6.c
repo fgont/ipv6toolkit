@@ -66,12 +66,10 @@
 
 
 /* IPv6 Address Resolution */
-sigjmp_buf			env;
-unsigned int		canjump;
+static sigjmp_buf			env;
+static unsigned int			canjump;
 
-/* pcap variables */
-char				errbuf[PCAP_ERRBUF_SIZE];
-struct bpf_program	pcap_filter;
+
 
 #ifdef __linux__
 /* Netlink requests */
@@ -630,6 +628,7 @@ int ether_pton(const char *ascii, struct ether_addr *etheraddr, unsigned int s){
 
 int find_ipv6_router_full(pcap_t *pfd, struct iface_data *idata){
 	struct pcap_pkthdr			*pkthdr;
+	struct bpf_program	pcap_filter;
 	const u_char				*pktdata;
 	struct ether_header			*pkt_ether;
 	struct ip6_hdr				*pkt_ipv6;
@@ -4305,6 +4304,7 @@ int find_ipv6_router(pcap_t *pfd, struct ether_addr *hsrcaddr, struct in6_addr *
 					struct ether_addr *result_ether, struct in6_addr *result_ipv6){
 
 	struct pcap_pkthdr			*pkthdr;
+	struct bpf_program			pcap_filter;
 	const u_char				*pktdata;
 	struct ether_header			*pkt_ether;
 	struct ip6_hdr				*pkt_ipv6;

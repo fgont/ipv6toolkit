@@ -270,8 +270,8 @@ uint16_t				service_ports_dec[]={21, 22, 23, 25, 49, 53, 80, 110, 123, 179, 220,
 
 
 /* IPv6 Address Resolution */
-sigjmp_buf				env;
-unsigned int			canjump;
+static sigjmp_buf				env;
+static unsigned int				canjump;
 
 int main(int argc, char **argv){
 	extern char				*optarg;
