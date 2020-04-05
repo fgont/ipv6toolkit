@@ -19,7 +19,7 @@
 
 
 CC= gcc
-CFLAGS+= -Wall
+CFLAGS+= -Wall -fno-common
 LDFLAGS+= -lpcap -lm
 
 ifeq ($(shell uname),SunOS)
