@@ -636,7 +636,7 @@ struct	decode6{
 
 #ifndef IN6_IS_ADDR_TEREDO
 	#define IN6_IS_ADDR_TEREDO(a) \
-		(((uint32_t *) (a))[0] == htonl (0x20020000))
+		(((uint32_t *) (a))[0] == htonl (0x20010000))
 #endif
 
 #ifndef IN6_IS_ADDR_TEREDO_LEGACY
