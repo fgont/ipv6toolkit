@@ -123,12 +123,17 @@ struct filters{
 	#define PCAP_NETMASK_UNKNOWN	0xffffffff
 #endif
 
+/* XXX:
+At some point we were setting the timeout differently for different platforms. Should double-check, but doesn't seem to make sense.
+
 #if defined (__FreeBSD__) || defined(__NetBSD__) || defined (__OpenBSD__) || defined(__APPLE__) || defined(__FreeBSD_kernel__) || defined(sun) || defined(__sun)
 	#define	PCAP_TIMEOUT			1
 #else
 	#define	PCAP_TIMEOUT			0
 #endif
+*/
 
+#define	PCAP_TIMEOUT			1
 
 #define PCAP_IPV6_FILTER		"ip6"
 #define PCAP_TCPV6_FILTER		"ip6 and tcp"
