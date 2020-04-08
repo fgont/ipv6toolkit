@@ -41,64 +41,6 @@ This script takes no further arguments, and operates as follows:
 .RE
 
 
-\fBget\-alexa-domains\fR
-
-This script takes no further arguments, and operates as follows:
-
-.sp
-.RS 4
-.nf
-\+ It reads from standard input lines with the same format as those
-of Alexa's Top 1M web sites. That is, lines with the folowing syntax:
-.fi
-.RE
-
-.sp
-.RS 4
-.nf
-RANKING,DOMAIN_NAME
-.fi
-.RE
-
-.sp
-.RS 4
-.nf
-\+ It extracts the domainname from each line, and prints the corresponding
-domain name to standard output.
-.fi
-.RE
-
-This script is typically useful for extracting domain names from Alexa's
-Top 1M web sites file, such that they can be processed by other tools (e.g. the get\-aaaa
-command of script6).
-
-
-\fBget\-ns\fR
-
-This script takes no further arguments, and operates as follows:
-
-.sp
-.RS 4
-.nf
-\+ The tool reads domain names from standard-input (oner per line),
-\  and obtains the NS records for the corresponding domain.
-
-\+ Lines where the first non-blank character is the numeral sign (#)
-\  are consdered to contain comments, and hence are ignored.
-
-\+ The format of the resulting output is:
-.fi
-.RE
-
-.sp
-.RS 4
-.nf
-  # DOMAIN_NAME (CANONIC_NAME)
-  MX_RECORD_1
-  MX_RECORD_2
-.fi
-.RE
-
 
 \fBget\-mx\fR
 
@@ -126,6 +68,7 @@ This script takes no further arguments, and operates as follows:
 .fi
 .RE
 
+
 \fBget\-ns\fR
 
 This script takes no further arguments, and operates as follows:
@@ -147,10 +90,55 @@ This script takes no further arguments, and operates as follows:
 .RS 4
 .nf
   # DOMAIN_NAME (CANONIC_NAME)
-  MX_RECORD_1
-  MX_RECORD_2
+  NS_RECORD_1
+  NS_RECORD_2
 .fi
 .RE
+
+
+\fBget\-asn6\fR
+
+Obtain the Origin Autonomous System (AS) number corresponding to the specified address.
+.RE
+
+
+\fBget\-as6\fR
+
+Obtain information about the Origin Autonomous System (AS) corresponding  to the specified address.
+.RE
+
+
+\fBget\-alexa-domains\fR
+
+This script takes no further arguments, and operates as follows:
+
+.sp
+.RS 4
+.nf
+\+ It reads from standard input lines with the same format as those
+of Alexa's Top 1M web sites. That is, lines with the folowing syntax:
+.fi
+.RE
+
+.sp
+.RS 4
+.nf
+RANKING,DOMAIN_NAME
+.fi
+.RE
+
+.sp
+.RS 4
+.nf
+\+ It extracts the domain name from each line, and prints the 
+   corresponding domain name to standard output.
+.fi
+.RE
+
+This script is typically useful for extracting domain names from Alexa's
+Top 1M web sites file, such that they can be processed by other tools (e.g. the get\-aaaa
+command of script6).
+
 
 
 \fBget\-trace\-stats\fR
@@ -268,14 +256,14 @@ tool.
 
 $ script6 get-asn 2001:db8::1
 
-Obtain the Origin Autonomous System (AS) number for the IPv6 address 2001:db8::1.
+Obtain the Origin Autonomous System (AS) number corresponding to the IPv6 address 2001:db8::1.
 
 
 \fBExample #2\fR
 
 $ script6 get-as 2001:db8::1
 
-Obtain information about the Origin Autonomous System (AS) of the IPv6 address 2001:db8::1.
+Obtain information about the Origin Autonomous System (AS) corresponding to the IPv6 address 2001:db8::1.
 
 
 \fBExample #3\fR
@@ -301,8 +289,8 @@ Produce statistics based on the trace results from the file "trace-results.txt" 
 .BR blackhole6 (1)
 .BR path6 (1)
 
-draft\-gont\-v6ops\-ipv6\-ehs\-in\-real-world (available at: 
-.IR <http://tools.ietf.org/html/draft\-gont\-v6ops\-ipv6\-ehs\-in\-real\-world> )
+IETF RFC7872 (available at: 
+.IR <http://tools.ietf.org/html/rfc7872> )
 for a discussion of support of IPv6 Extension Headers in the public Internet.
 
 
