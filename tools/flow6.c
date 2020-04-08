@@ -157,8 +157,8 @@ int main(int argc, char **argv){
 
 	static struct option longopts[] = {
 		{"interface", required_argument, 0, 'i'},
-		{"src-address", required_argument, 0, 's'},
-		{"dst-address", required_argument, 0, 'd'},
+		{"src-addr", required_argument, 0, 's'},
+		{"dst-addr", required_argument, 0, 'd'},
 		{"hop-limit", required_argument, 0, 'A'},
 		{"link-src-addr", required_argument, 0, 'S'},
 		{"link-dst-addr", required_argument, 0, 'D'},
@@ -760,10 +760,10 @@ void print_help(void){
     
 	puts("\nOPTIONS:\n"
 	"  --interface, -i           Network interface\n"
-	"  --link-src-address, -S    Link-layer Destination Address\n"
-	"  --link-dst-address, -D    Link-layer Source Address\n"
-	"  --src-address, -s         IPv6 Source Address\n"
-	"  --dst-address, -d         IPv6 Destination Address\n"
+	"  --link-src-addr, -S       Link-layer Destination Address\n"
+	"  --link-dst-addr, -D       Link-layer Source Address\n"
+	"  --src-addr, -s            IPv6 Source Address\n"
+	"  --dst-addr, -d            IPv6 Destination Address\n"
 	"  --hop-limit, -A           IPv6 Hop Limit\n"
 	"  --protocol, -P            IPv6 Payload protocol (valid: TCP, UDP)\n"
 	"  --dst-port, -p            Transport Protocol Destination Port\n"

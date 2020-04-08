@@ -163,8 +163,8 @@ int main(int argc, char **argv){
 
 	static struct option longopts[] = {
 		{"interface", required_argument, 0, 'i'},
-		{"src-address", required_argument, 0, 's'},
-		{"dst-address", required_argument, 0, 'd'},
+		{"src-addr", required_argument, 0, 's'},
+		{"dst-addr", required_argument, 0, 'd'},
 		{"hop-limit", required_argument, 0, 'A'},
 		{"dst-opt-hdr", required_argument, 0, 'u'},
 		{"dst-opt-u-hdr", required_argument, 0, 'U'},
@@ -185,8 +185,8 @@ int main(int argc, char **argv){
 		{"route-opt", required_argument, 0, 'R'},
 		{"mtu-opt", required_argument, 0, 'M'},
 		{"rdnss-opt", required_argument, 0, 'N'},
-		{"link-src-address", required_argument, 0, 'S'},
-		{"link-dst-address", required_argument, 0, 'D'},
+		{"link-src-addr", required_argument, 0, 'S'},
+		{"link-dst-addr", required_argument, 0, 'D'},
 		{"flood-prefixes", required_argument, 0, 'f'},
 		{"flood-sources", required_argument, 0, 'F'},
 		{"flood-routes", required_argument, 0, 'w'},
@@ -1908,8 +1908,8 @@ void print_help(void){
 
 	puts("\nOPTIONS:\n"
 	     "  --interface, -i            Network interface\n"
-	     "  --src-address, -s          IPv6 Source Address\n"
-	     "  --dst-address, -d          IPv6 Destination Address (or IPv6 prefix when flooding)\n"
+	     "  --src-addr, -s             IPv6 Source Address\n"
+	     "  --dst-addr, -d             IPv6 Destination Address (or IPv6 prefix when flooding)\n"
 	     "  --frag-hdr. -y             Fragment Header\n"
 	     "  --dst-opt-hdr, -u          Destination Options Header (Fragmentable Part)\n"
 	     "  --dst-opt-u-hdr, -U        Destination Options Header (Unfragmentable Part)\n"
@@ -1927,8 +1927,8 @@ void print_help(void){
 	     "  --mtu-opt, -M              MTU option\n"
 	     "  --src-link-opt, -E         Source link-layer address option\n"
 	     "  --add-slla-opt, -e         Add Source link-layer address option\n"
-	     "  --link-src-address, -S     Link-layer Source Address\n"
-	     "  --link-dst-address, -D     Link-layer Destination Address\n"
+	     "  --link-src-addr, -S        Link-layer Source Address\n"
+	     "  --link-dst-addr, -D        Link-layer Destination Address\n"
 	     "  --route-opt, -R            Route Information option (Prefix/Len#pref#lifetime)\n"
 	     "  --rdnss-opt, -N            Recursive DNS Server option (lifetime#IPv6addr)\n"
 	     "  --flood-sources, -F        Number of Source Addresses to forge randomly\n"
