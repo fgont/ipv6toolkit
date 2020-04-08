@@ -2,7 +2,7 @@
  * na6: A security assessment tool for attack vectors based on
  *      ICMPv6 Neighbor Advertisement messages
  *
- * Copyright (C) 2011-2013 Fernando Gont <fgont@si6networks.com>
+ * Copyright (C) 2011-2019 Fernando Gont <fgont@si6networks.com>
  *
  * Programmed by Fernando Gont for SI6 Networks <http://www.si6networks.com>
  *
