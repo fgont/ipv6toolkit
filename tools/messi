@@ -33,12 +33,14 @@
 #    Hago traceroute a esas direcciones
 #
 
-
+use IPC::Open3;
 
 
 sub AddToQueue{
 	($qref, $qdomain) = @_;
 	$qfound=0;
+
+#print "voy a buscar en el queue: $qdomain\n";
 
 	# Go through list of all domains
 	for($w=0; $w<= $#$qref; $w++){
@@ -50,9 +52,11 @@ sub AddToQueue{
 
 	if( !$qfound){
 		$qref->[$#$qref + 1] = $qdomain;
+#print "Agregue: $qdomain\n";
 		return(1);
 	}
 
+#print "no agregue nada\n";
 	return(0);
 }
 
@@ -127,12 +131,12 @@ for($i=0; $i<= $#ARGV; $i++){
 	if($ARGV[$i] =~ m/^-F(\S+)/){
 		$filter= $1;
 		if($filter =~ m/((?:(?:(?:[0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4})|(?:(?:(?:[0-9a-fA-F]{1,4}:){1,4}|:):(?:(?:(?:1[0-9]{2}|2(?:[0-4][0-9]|5[0-9])|[0-9]{1,2})\.){3}(?:(?:1[0-9]{2}|2(?:[0-4][0-9]|5[0-9])|[0-9]{1,2}))))|(?:(?:(?:(?:[0-9a-fA-F]{1,4}:)(?::[0-9a-fA-F]{1,4}){1,7})|(?:(?:[0-9a-fA-F]{1,4}:){2}(?::[0-9a-fA-F]{1,4}){1,6})|(?:(?:[0-9a-fA-F]{1,4}:){3}(?::[0-9a-fA-F]{1,4}){1,5})|(?:(?:[0-9a-fA-F]{1,4}:){4}(?::[0-9a-fA-F]{1,4}){1,4})|(?:(?:[0-9a-fA-F]{1,4}:){5}(?::[0-9a-fA-F]{1,4}){1,3})|(?:(?:[0-9a-fA-F]{1,4}:){6}(?::[0-9a-fA-F]{1,4}){1,2})|(?:[0-9a-fA-F]{1,4}:){1,7}:)|(?::(?:(?::[0-9a-fA-F]{1,4}){1,7}|:))))\/(1([0-1][0-9]|2[0-8])|[1-9]?[0-9]))/){
-print "Voy a meter filtro dire: $1\n";
+#print "Voy a meter filtro dire: $1\n";
 			AddToQueue(\@addrfilter, $1);
 
 		} #([-a-zA-Z0-9_.]+)
 		elsif($filter =~ m/((?:[-0-9_a-zA-Z]+)(?:\.[-0-9_a-zA-Z]+)*\.?)/){
-print "Voy a meter filtro dominio: $1\n";
+#print "Voy a meter filtro dominio: $1\n";
 			AddToQueue(\@domainfilter, $1);
 		}
 	}
@@ -155,7 +159,6 @@ for($i=0; $i<= $#addrfilter; $i++){
 }
 
 
-print "Filter string: $addrfilterstr\n";
 #print "Address filters\n";
 #for($i=0; $i<=$#addrfilter; $i++){
 #	print "$addrfilter[$i]\n";
@@ -181,11 +184,22 @@ print "Filter string: $addrfilterstr\n";
 #print "Hago bing\n";
 	for($i=0; $i<=$k; $i++){
 #		print "voy a hacer: script6 get-bing $domainhint[$i] 2>&1\n";
-		@revname=`script6 get-bing-tt $domainhint[$i] 2>&1`;
-		foreach $candomain (@revname){
+
+		$command="script6 get-bing-tt $domainhint[$i] 2>&1";
+		$pid = open3(\*CHLD_IN, \*CHLD_OUT, \*CHLD_ERR, $command, );
+
+		while($candomain = <CHLD_OUT>){
+
+			chomp($candomain);
+			if($candomain =~ m/^\s*#/){
+#				print "salteo\n";
+				next;
+			}
 #print "Lei: $candomain\n";
-			$candomain= lc(chomp($candomain));
+			$candomain= lc($candomain);
+#print "Lei2: $candomain\n";
 			$candomain= join('.', split /\./, $candomain);
+#print "Lei-up: $candomain\n";
 			if($#domainfilter >= 0){
 				for($j=0; $j <= $#domainfilter; $j++){
 					if( $candomain =~ m/$domainfilter[$j]$/){
@@ -199,7 +213,9 @@ print "Filter string: $addrfilterstr\n";
 				}
 			}
 			else{
+#print "voy sin filtro\n";
 				$candomain=lc($candomain);
+#print "VOy a intentar ingresar: $candomain en el queue\n";
 				if(AddToQueue(\@domains, $candomain)){
 					print "DOMAIN: $candomain\n";
 					$flag=1;
@@ -208,6 +224,8 @@ print "Filter string: $addrfilterstr\n";
 				AddToQueue(\@domainhint, $candomain);	
 			}
 		}
+
+		waitpid( $pid, 0 );
 	}
 	
 
@@ -219,8 +237,12 @@ do{
 
 #print "Obtengo MX y NS\n";
 	for($i=$rdomaihint; $i<=$#domainhint; $i++){
-		@revname=`script6 get-ns $domainhint[$i] 2>&1`;
-		foreach $line (@revname){
+
+
+		$command="script6 get-ns $domainhint[$i] 2>&1";
+		$pid = open3(\*CHLD_IN, \*CHLD_OUT, \*CHLD_ERR, $command, );
+
+		while($line=<CHLD_OUT>){
 			if($line =~ m/^([^#]+)/){
 #				print "Lei dominio: $1\n";
 				$candomain=lc($1);
@@ -249,8 +271,12 @@ do{
 			}
 		}
 
-		@revname=`script6 get-mx $domainhint[$i] 2>&1`;
-		foreach $line (@revname){
+		waitpid( $pid, 0 );
+
+		$command="script6 get-mx $domainhint[$i] 2>&1";
+		$pid = open3(\*CHLD_IN, \*CHLD_OUT, \*CHLD_ERR, $command, );
+
+		while($line=<CHLD_OUT>){
 			if($line =~ m/^([^#]+)/){
 #				print "Lei dominio: $1\n";
 				$candomain=lc($1);
@@ -278,15 +304,19 @@ do{
 					AddToQueue(\@domainhint, $candomain)
 				}
 			}
-		}		
+		}
+
+		waitpid( $pid, 0 );		
 	}
 
 	$rdomainhint=$i;
 
 #print "Hago AAAA\n";
 	for($i=$pdomainhint; $i<=$#domainhint; $i++){
-		@revname=`script6 get-aaaa $domainhint[$i] 2>&1`;
-		foreach $line (@revname){
+		$command="script6 get-aaaa $domainhint[$i] 2>&1";
+		$pid = open3(\*CHLD_IN, \*CHLD_OUT, \*CHLD_ERR, $command, );
+
+		while($line=<CHLD_OUT>){
 			if($line =~ m/^([^#]+)/){
 #				print "Lei direccion: $1\n";
 				$caddr=$1;
@@ -308,7 +338,7 @@ do{
 						}				
 					}
 					else{
-print "rechace $caddr\n";
+#print "rechace $caddr\n";
 					}
 				}
 				else{
@@ -346,10 +376,14 @@ print "rechace $caddr\n";
 		}
 
 # 	print "Voy a ejecutar $dns6revenum $dnsresolver $prefix\n";
-		@revname=`$dns6revenum $dnsresolver $prefix 2>&1`;
+		$command="$dns6revenum $dnsresolver $prefix 2>&1";
+		$pid = open3(\*CHLD_IN, \*CHLD_OUT, \*CHLD_ERR, $command, );
 
-		foreach $line (@revname){
-#	print "$line\n";
+		while($line=<CHLD_OUT>){
+if($line =~ m/^Starting/){
+	next;
+}
+#	print "LEI DE DNSREVENUM:$line\n";
 			if($line =~ m/((?:(?:[0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4})|(?:(?:(?:[0-9a-fA-F]{1,4}:){1,4}|:):(?:(?:(?:1[0-9]{2}|2(?:[0-4][0-9]|5[0-9])|[0-9]{1,2})\.){3}(?:(?:1[0-9]{2}|2(?:[0-4][0-9]|5[0-9])|[0-9]{1,2}))))|(?:(?:(?:(?:[0-9a-fA-F]{1,4}:)(?::[0-9a-fA-F]{1,4}){1,7})|(?:(?:[0-9a-fA-F]{1,4}:){2}(?::[0-9a-fA-F]{1,4}){1,6})|(?:(?:[0-9a-fA-F]{1,4}:){3}(?::[0-9a-fA-F]{1,4}){1,5})|(?:(?:[0-9a-fA-F]{1,4}:){4}(?::[0-9a-fA-F]{1,4}){1,4})|(?:(?:[0-9a-fA-F]{1,4}:){5}(?::[0-9a-fA-F]{1,4}){1,3})|(?:(?:[0-9a-fA-F]{1,4}:){6}(?::[0-9a-fA-F]{1,4}){1,2})|(?:[0-9a-fA-F]{1,4}:){1,7}:)|(?::(?:(?::[0-9a-fA-F]{1,4}){1,7}|:))))/){
 
 #	print "ENcontre dire: $1\n";
@@ -369,7 +403,7 @@ print "rechace $caddr\n";
 						AddtoQueue(\@addrhint, $fcaddr);
 					}
 					else{
-print "rechace $caddr\n";
+#print "rechace $caddr\n";
 
 					}
 				}
