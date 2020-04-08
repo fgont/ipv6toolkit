@@ -6,6 +6,8 @@
 
 use Socket();
 
+$SI6TOOLKIT="SI6 Networks IPv6 Toolkit v3.0";
+
 $total=0;
 $response=0;
 $timeout=0;
@@ -58,7 +60,7 @@ sub GetORG{
 # Remove all items from the array of IP addresses
 undef @ipsfree;
 
-print "SI6 Networks IPv6 Toolkit v2.0 (Guille)\n";
+print "$SI6TOOLKIT\n";
 print "blackhole6: A tool to find IPv6 blackholes\n";
 
 if($> != 0){
