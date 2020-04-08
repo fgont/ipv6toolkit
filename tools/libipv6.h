@@ -1003,7 +1003,7 @@ unsigned int		print_ipv6_address(char *s, struct in6_addr *);
 unsigned int		print_ipv6_address_rev(struct in6_addr *);
 int					print_local_addrs(struct iface_data *);
 void				randomize_ether_addr(struct ether_addr *);
-void				randomize_ipv6_addr(struct in6_addr *, struct in6_addr *, uint8_t);
+void				randomize_ipv6_addr(struct in6_addr *, const struct in6_addr *, uint8_t);
 int					read_ipv6_address(char *, unsigned int, struct in6_addr *);
 int					read_prefix(char *, unsigned int, char **);
 void				release_privileges(void);

@@ -1817,32 +1817,32 @@ void randomize_ether_addr(struct ether_addr *ethaddr){
  * Select a random IPv6 from a given prefix.
  */
 
-void randomize_ipv6_addr(struct in6_addr *ipv6addr, struct in6_addr *prefix, uint8_t preflen){
-	uint32_t mask;
-	uint8_t startrand;	
-	unsigned int i;
-
-	/* XXX: seed */
-	srandom(time(NULL));
+void randomize_ipv6_addr(struct in6_addr *ipv6addr, const struct in6_addr *prefix, uint8_t preflen){
+	uint32_t 	mask;
+	uint8_t 	startrand;	
+	unsigned int 	i;
+	struct in6_addr	ripv6addr;
 
 	startrand= preflen/32;
 
-	for(i=startrand; i<4; i++)
-		ipv6addr->s6_addr32[i]=random();
-
+	/* 32-bit words from prefix that must be copied entirely into randomized address */
 	for(i=0; i < startrand; i++)
-		ipv6addr->s6_addr32[i]=0;
+		ripv6addr.s6_addr32[i]= prefix->s6_addr32[i];
 
+	/* 32-bit word (if any) that must be partially randomized */
 	if(preflen%32){
 		mask=0xffffffff;
 		mask= mask>>(preflen%32);
 
-		ipv6addr->s6_addr32[startrand]= ipv6addr->s6_addr32[startrand] & htonl(mask);
+		ripv6addr.s6_addr32[startrand]= (prefix->s6_addr32[startrand] & htonl(~mask)) | \
+		                                 (random() & htonl(mask)) ;
+		startrand++;
 	}
 
-	for(i=0; i<=(preflen/32); i++)
-		ipv6addr->s6_addr32[i]= ipv6addr->s6_addr32[i] | prefix->s6_addr32[i];
+	for(i=startrand; i<4; i++)
+		ripv6addr.s6_addr32[i]=random();
 
+	*ipv6addr= ripv6addr;
 }
 
 
