@@ -285,8 +285,8 @@ int main(int argc, char **argv){
 
 	static struct option longopts[] = {
 		{"interface", required_argument, 0, 'i'},
-		{"src-address", required_argument, 0, 's'},
-		{"dst-address", required_argument, 0, 'd'},
+		{"src-addr", required_argument, 0, 's'},
+		{"dst-addr", required_argument, 0, 'd'},
 		{"dst-opt-hdr", required_argument, 0, 'u'},
 		{"dst-opt-u-hdr", required_argument, 0, 'U'},
 		{"hbh-opt-hdr", required_argument, 0, 'H'},
@@ -4306,10 +4306,10 @@ void print_help(void){
     
 	puts("\nOPTIONS:\n"
 	     "  --interface, -i             Network interface\n"
-	     "  --src-address, -s           IPv6 Source Address\n"
-	     "  --dst-address, -d           IPv6 Destination Range or Prefix\n"
+	     "  --src-addr, -s              IPv6 Source Address\n"
+	     "  --dst-addr, -d              IPv6 Destination Range or Prefix\n"
 	     "  --prefixes-file, -m         Prefixes file\n"
-	     "  --link-src-address, -S      Link-layer Destination Address\n"
+	     "  --link-src-addr, -S         Link-layer Destination Address\n"
 	     "  --probe-type, -p            Probe type for host scanning {echo, unrec, all}\n"
 	     "  --port-scan, -j             Port scan type and range {tcp,udp}:port_low[-port_hi]\n"
 	     "  --tcp-scan-type, -G         TCP port-scanning type {syn,fin,null,xmas,ack}\n"
