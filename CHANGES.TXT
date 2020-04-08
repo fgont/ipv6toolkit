@@ -1,9 +1,21 @@
 SI6 Networks IPv6 Toolkit v2.1 (Jan)
+   * addr6: Add support for accepting only one address per prefix
+     Option '--block-dup-preflen' was added
+
    * scan6: Fix bug in smart scan
      There was a bug in the generation of low-byte and pattern-byte addresses.
 
    * scan6: Improve VMWare scans
      We have now added vSphere and ESX server entries
+
+   * scan6: Fix bug in default ports
+     When port-scanning, if not range was specified, the tool would not scan 
+     any ports.
+
+   * script6: Add alias for "get-alexa-domains"
+     Some documents were using the "get-alexa" script name (rather than
+     "get-alexa-domains") but the short name of the script had been removed.
+     Now added.
 
 
 SI6 Networks IPv6 Toolkit v2.0 (Guille)

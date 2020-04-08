@@ -6,10 +6,10 @@ CREDITS
 The following people sent patches that were incorporated into this release
 of the toolkit:
 
-    Octavio Alvarez <alvarezp@alvarezp.com>
+    Jeroen Roovers
     Alexander Bluhm <bluhm@openbsd.org>
-    Alistair Crooks <agc@pkgsrc.org>
-    Declan A Rieb   <darieb@sandia.gov>
+    Leonard Marschke <contact@marschke.me>
+    Linus Lüssing <linus.luessing@c0d3.blue>
 
 
 ** Package maintainers **
@@ -47,9 +47,19 @@ These are the maintainers for each of the different packages:
     Alexander Bluhm <bluhm@openbsd.org>
 
 
+** Past Contributors **
+
+The following people sent patches that were incorporated into this release
+of the toolkit:
+
+    Octavio Alvarez <alvarezp@alvarezp.com>
+    Alexander Bluhm <bluhm@openbsd.org>
+    Alistair Crooks <agc@pkgsrc.org>
+    Declan A Rieb   <darieb@sandia.gov>
+
 ** Troubleshooting/Debugging **
 
-Spotting bugs in networking tool can be tricky, since at times they only show
+Spotting bugs in networking tools can be tricky, since at times they only show
 up in specific network scenarios.
 
 The following indviduals provided great help in identifying bugs in the
