@@ -1,8 +1,8 @@
 /*
  * mldq6: A security assessment tool for attack vectors based on
- *      ICMPv6 Multicast Listener Discovery Query messages
+ *       ICMPv6 Multicast Listener Discovery Query messages
  *
- * Copyright (C) 2009-2015 Fernando Gont
+ * Copyright (C) 2009-2019 Fernando Gont
  * Copyright (C) 2020 Linus Lüssing
  *
  * This program is free software: you can redistribute it and/or modify
@@ -926,11 +926,11 @@ void print_help(void){
 	     "  --mld-resp-delay, -r       MLD Query Maximum Response Delay [ms]\n"
 	     "  --flood-sources, -F        Number of Source Addresses to forge randomly\n"
 	     "  --loop, -l                 Send MLD Query periodically\n"
-	     "  --sleep, -z                Pause between peiodic MLD Queries\n"
+	     "  --sleep, -z                Pause between peiodic MLD Queries [sec]\n"
 	     "  --help, -h                 Print help for the mldq6 tool\n"
 	     "  --verbose, -v              Be verbose\n"
 	     "\n"
-	     "Programmed by Fernando Gont for SI6 Networks <http://www.si6networks.com>\n"
+	     "Programmed by Fernando Gont for SI6 Networks <https://www.si6networks.com>\n"
 	     "Please send any bug reports to <fgont@si6networks.com>"
 	);
 }

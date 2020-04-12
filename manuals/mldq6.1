@@ -1,4 +1,4 @@
-.TH RS6 1
+.TH MLDQ6 1
 .SH NAME
 mldq6 \- A security assessment tool for attack vectors based on ICMPv6 MLD Query messages
 .SH SYNOPSIS
@@ -134,9 +134,6 @@ To create multicast listeners you can check queries send by mldq6 against, you c
 $ socat \-u UDP6\-RECV:1234,reuseaddr,ipv6\-join\-group="[ff12::123]:eth0" \-
 
 Another option is mcjoin: https://github.com/troglobit/mcjoin
-
-.SH SEE ALSO
-"Security/Robustness Assessment of IPv6 Neighbor Discovery Implementations" (available at: <http://www.si6networks.com/tools/ipv6toolkit/si6networks\-ipv6\-nd\-assessment.pdf>) for a discussion of Neighbor Discovery vulnerabilities, and additional examples of how to use the na6 tool to exploit them.
 
 .SH AUTHOR
 The
