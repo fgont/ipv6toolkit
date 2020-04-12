@@ -2,9 +2,9 @@
  * ni6: A security assessment tool that exploits potential flaws
  *      in the processing of ICMPv6 Node Information messages
  *
- * Copyright (C) 2011-2018 Fernando Gont <fgont@si6networks.com>
+ * Copyright (C) 2011-2020 Fernando Gont <fgont@si6networks.com>
  *
- * Programmed by Fernando Gont for SI6 Networks <http://www.si6networks.com>
+ * Programmed by Fernando Gont for SI6 Networks <https://www.si6networks.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -428,7 +428,6 @@ int main(int argc, char **argv){
 		
 		
 				while( ptrhdr < ptrhdrend){
-
 					if( (ptrhdrend-ptrhdr)>257)
 						pad= 257;
 					else
@@ -1313,8 +1312,11 @@ int main(int argc, char **argv){
 					if(idata.verbose_f)
 						print_filter_result(&idata, pktdata, ACCEPTED);
 
-					/* Send a Neighbor Advertisement */
-					send_packet(&idata, pktdata, pkthdr);
+					/* Send a Node Information packet */
+					if(send_packet(&idata, pktdata, pkthdr) == -1){
+						puts("Error sending packet");
+						exit(EXIT_FAILURE);
+					}
 				}
 			}
 		}
@@ -1811,7 +1813,7 @@ int send_packet(struct iface_data *idata, const u_char *pktdata, struct pcap_pkt
 		pkt_ether = (struct ether_header *) pktdata;
 		pkt_ipv6 = (struct ip6_hdr *)((char *) pkt_ether + idata->linkhsize);
 		pkt_ni= (struct icmp6_nodeinfo *) ( (unsigned char *)pkt_ipv6 + sizeof (struct ip6_hdr));
-	
+
 		/* If the IPv6 Source Address of the incoming Neighbor Solicitation is the unspecified 
 		   address (::), the Neighbor Advertisement must be directed to the IPv6 all-nodes 
 		   multicast address (and the Ethernet Destination address should be 33:33:33:00:00:01). 
@@ -1873,7 +1875,7 @@ int send_packet(struct iface_data *idata, const u_char *pktdata, struct pcap_pkt
 						if(idata->verbose_f)
 							puts("Packet too large while inserting name payload");
 
-							return(-1);
+						return(-1);
 					}
 
 					memset(ptr, 0, 4);
@@ -1886,7 +1888,7 @@ int send_packet(struct iface_data *idata, const u_char *pktdata, struct pcap_pkt
 						if(idata->verbose_f)
 							puts("Packet too large while inserting name");
 
-							return(-1);
+						return(-1);
 					}
 
 					/* The response contains a TTL, and it is set to 0 */
@@ -1915,7 +1917,7 @@ int send_packet(struct iface_data *idata, const u_char *pktdata, struct pcap_pkt
 						if(idata->verbose_f)
 							puts("Packet too large when inserting forged name");
 
-							return(-1);
+						return(-1);
 					}
 
 					/* The response contains a TTL, and it is set to 0 */
@@ -1973,7 +1975,7 @@ int send_packet(struct iface_data *idata, const u_char *pktdata, struct pcap_pkt
 						if(idata->verbose_f)
 							puts("Packet too large whil inserting 'exceeding' name");
 
-							return(-1);
+						return(-1);
 					}
 
 					/* The response contains a TTL, and it is set to 0 */
@@ -1991,7 +1993,7 @@ int send_packet(struct iface_data *idata, const u_char *pktdata, struct pcap_pkt
 						if(idata->verbose_f)
 							puts("Packet too large while inserting randomized payload");
 
-							return(-1);
+						return(-1);
 					}
 
 					/* The response contains a TTL, and it is set to 0 */
@@ -2012,7 +2014,7 @@ int send_packet(struct iface_data *idata, const u_char *pktdata, struct pcap_pkt
 						if(idata->verbose_f)
 							puts("Packet too large when inserting IPv6 address");
 
-							return(-1);
+						return(-1);
 					}
 
 					*(struct in6_addr *)ptr= ipv6addrd;
@@ -2023,7 +2025,7 @@ int send_packet(struct iface_data *idata, const u_char *pktdata, struct pcap_pkt
 						if(idata->verbose_f)
 							puts("Packet too large while inserting randomized payload");
 
-							return(-1);
+						return(-1);
 					}
 
 					for(i=0; i<payloadsize; i++){
@@ -2039,7 +2041,7 @@ int send_packet(struct iface_data *idata, const u_char *pktdata, struct pcap_pkt
 						if(idata->verbose_f)
 							puts("Packet too large while inserting IPv4 address");
 
-							return(-1);
+						return(-1);
 					}
 
 					*(struct in_addr *)ptr= ipv4addrd;
@@ -2050,7 +2052,7 @@ int send_packet(struct iface_data *idata, const u_char *pktdata, struct pcap_pkt
 						if(idata->verbose_f)
 							puts("Packet too large while inserting randomized payload");
 
-							return(-1);
+						return(-1);
 					}
 
 					for(i=0; i<payloadsize; i++){
@@ -2083,7 +2085,7 @@ int send_packet(struct iface_data *idata, const u_char *pktdata, struct pcap_pkt
 				if(idata->verbose_f)
 					puts("Packet too large while inserting IPv4 address");
 
-					return(-1);
+				return(-1);
 			}
 
 			*(struct in_addr *)ptr= ipv4addr;
@@ -2094,7 +2096,7 @@ int send_packet(struct iface_data *idata, const u_char *pktdata, struct pcap_pkt
 				if(idata->verbose_f)
 					puts("Packet too large while inserting IPv6 address");
 
-					return(-1);
+				return(-1);
 			}
 
 			*(struct in6_addr *)ptr= ipv6addr;
@@ -2105,7 +2107,7 @@ int send_packet(struct iface_data *idata, const u_char *pktdata, struct pcap_pkt
 				if(idata->verbose_f)
 					puts("Packet too large while inserting name");
 
-					return(-1);
+				return(-1);
 			}
 
 			memcpy(ptr, name, namelen);
@@ -2130,7 +2132,7 @@ int send_packet(struct iface_data *idata, const u_char *pktdata, struct pcap_pkt
 				if(idata->verbose_f)
 					puts("Packet too large when inserting forged name");
 
-					return(-1);
+				return(-1);
 			}
 		
 			i=fnamelen-1; /* There is a zero-length label at the end */
@@ -2184,7 +2186,7 @@ int send_packet(struct iface_data *idata, const u_char *pktdata, struct pcap_pkt
 				if(idata->verbose_f)
 					puts("Packet too large when 'exceeding' name");
 
-					return(-1);
+				return(-1);
 			}
 
 			*ptr= exceedp;
@@ -2195,7 +2197,7 @@ int send_packet(struct iface_data *idata, const u_char *pktdata, struct pcap_pkt
 				if(idata->verbose_f)
 					puts("Packet too large while inserting randomized payload");
 
-					return(-1);
+				return(-1);
 			}
 
 			for(i=0; i<payloadsize; i++){
@@ -2208,7 +2210,7 @@ int send_packet(struct iface_data *idata, const u_char *pktdata, struct pcap_pkt
 				if(idata->verbose_f)
 					puts("Packet too large while inserting name payload");
 
-					return(-1);
+				return(-1);
 			}
 
 			memset(ptr, 0, 4);
@@ -2225,13 +2227,17 @@ int send_packet(struct iface_data *idata, const u_char *pktdata, struct pcap_pkt
 		ipv6->ip6_plen = htons((ptr - v6buffer) - MIN_IPV6_HLEN);
 
 		if((nw=pcap_inject(idata->pfd, buffer, ptr - buffer)) == -1){
-			printf("pcap_inject(): %s\n", pcap_geterr(idata->pfd));
-			exit(EXIT_FAILURE);
+			if(idata->verbose_f)
+				printf("pcap_inject(): %s\n", pcap_geterr(idata->pfd));
+
+			return(-1);
 		}
 
 		if(nw != (ptr-buffer)){
-			printf("pcap_inject(): only wrote %lu bytes (rather than %lu bytes)\n", (LUI) nw, (LUI) (ptr-buffer));
-			exit(EXIT_FAILURE);
+			if(idata->verbose_f)
+				printf("pcap_inject(): only wrote %lu bytes (rather than %lu bytes)\n", (LUI) nw, (LUI) (ptr-buffer));
+
+			return(-1);
 		}
 	}
 	else{
@@ -2244,8 +2250,10 @@ int send_packet(struct iface_data *idata, const u_char *pktdata, struct pcap_pkt
 		fptr = fptr + (fragpart-buffer);
 
 		if( (fptr+FRAG_HDR_SIZE)> fptrend){
-			puts("Unfragmentable Part is Too Large");
-			exit(EXIT_FAILURE);
+			if(idata->verbose_f)
+				puts("Unfragmentable Part is Too Large");
+
+			return(-1);
 		}
 
 		memcpy(fptr, (char *) &fraghdr, FRAG_HDR_SIZE);
@@ -2280,14 +2288,18 @@ int send_packet(struct iface_data *idata, const u_char *pktdata, struct pcap_pkt
 			fipv6->ip6_plen = htons((fptr - fragbuffer) - MIN_IPV6_HLEN - idata->linkhsize);
 		
 			if((nw=pcap_inject(idata->pfd, fragbuffer, fptr - fragbuffer)) == -1){
-				printf("pcap_inject(): %s\n", pcap_geterr(idata->pfd));
-				exit(EXIT_FAILURE);
+				if(idata->verbose_f)
+					printf("pcap_inject(): %s\n", pcap_geterr(idata->pfd));
+
+				return(-1);
 			}
 
 			if(nw != (fptr- fragbuffer)){
-				printf("pcap_inject(): only wrote %lu bytes (rather than %lu bytes)\n", (LUI) nw, (LUI) (ptr-buffer));
-				exit(EXIT_FAILURE);
-					}
+				if(idata->verbose_f)
+					printf("pcap_inject(): only wrote %lu bytes (rather than %lu bytes)\n", (LUI) nw, (LUI) (ptr-buffer));
+
+				return(-1);
+			}
 		} /* Sending fragments */
 	} /* Sending fragmented datagram */
 
