@@ -714,6 +714,9 @@ int main(int argc, char **argv){
 		/*
 		   If the next probe to be printed out has been sent, evaluate whether it is time to print out
 		   the result.
+
+		   phop: Holds hop to be printed
+		   probe: Holds probe number to be printed 
 		 */
 		if(phop < maxhops && pprobe < maxprobes && test[phop][pprobe].sent){
 			
@@ -731,7 +734,7 @@ int main(int argc, char **argv){
 					exit(EXIT_FAILURE);
 				}
 
-
+				/* XXXX */
 				if(delayp_f){
 						if(numeric_f){
 							printf(" %2d (%s)", phop+1, psrcaddr);
@@ -1386,7 +1389,7 @@ void usage(void){
 /*
  * Function: print_help()
  *
- * Prints help information for the frag6 tool
+ * Prints help information for the path6 tool
  */
 void print_help(void){
 	puts(SI6_TOOLKIT);
