@@ -160,7 +160,13 @@ sub PrintConfigFile{
 
 
 sub SuffixForTLD{
-		my ($tld)= $_[0];
+		my $par= $_[0];
+		chomp($par);
+		my ($tld, $l)= split / /, $par;
+
+		if(!defined($l)){
+			$l= 0;
+		}
 
 		open FILE, "$dns_suffix_database" or die $!;
 
@@ -170,6 +176,10 @@ sub SuffixForTLD{
 		$PRINTINGDATA=4;
 		$status=$WAITINGFORBAR;
 		$printeddata=0;
+
+		if($tld =~ m/([^.\s]+)$/){
+			$ttld=$1;
+		}
 
 		while($fline=<FILE>){
 
@@ -189,7 +199,7 @@ sub SuffixForTLD{
 				elsif($fline =~ m/^[-a-zA-Z0-9_.]+\s*$/){
 					$status=$WAITINGFORDATA;
 
-					if($fline =~ m/^\s*$tld\s*$/i){
+					if($fline =~ m/^\s*$ttld\s*$/i || $fline =~ m/^\s*$tld\s*$/i){
 						$status=$PRINTINGDATA;
 					}
 					next;
@@ -208,7 +218,11 @@ sub SuffixForTLD{
 				elsif($fline =~ m/^\s*$/){
 					last;
 				}
-				elsif($fline =~ m/^[\s.*]*([\S]+)$/){
+				elsif($l == 0 && $fline =~ m/^[\s.*]*([\S]+)$(?<=$tld$)/){
+					$printeddata=1;
+					print "$1\n";
+				}
+				elsif($l > 0 && $fline =~ m/^((?:[-a-zA-Z0-9_]+\.){$l}$tld)$(?<=$tld$)/){
 					$printeddata=1;
 					print "$1\n";
 				}
@@ -7394,7 +7408,7 @@ elsif($ARGV[0] eq "get-suffix-for-tld" || $ARGV[0] eq "get-suffixes-for-tld"){
 			if($line=~ m/^\s*#/){
 				print "$line";
 			}
-			elsif($line=~ m/^\s*([^#\s]+)/){
+			elsif($line=~ m/^\s*([^#]+)/){
 				$tld=$1;
 
 				SuffixForTLD($tld);
