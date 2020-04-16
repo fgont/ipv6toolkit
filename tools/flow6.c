@@ -2,9 +2,9 @@
  * flow6: A security assessment tool that determines the Flow Label
  *        generation policy of a target node
  *
- * Copyright (C) 2011-2015 Fernando Gont <fgont@si6networks.com>
+ * Copyright (C) 2011-2020 Fernando Gont <fgont@si6networks.com>
  *
- * Programmed by Fernando Gont for SI6 Networks (www.si6networks.com)
+ * Programmed by Fernando Gont for SI6 Networks <https://www.si6networks.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -771,7 +771,7 @@ void print_help(void){
 	"  --help, -h                Print help for the flow6 tool\n"
 	"  --verbose, -v             Be verbose\n"
 	"\n"
-	"Programmed by Fernando Gont on behalf of SI6 Networks <http://www.si6networks.com>\n"
+	"Programmed by Fernando Gont on behalf of SI6 Networks <https://www.si6networks.com>\n"
 	"Please send any bug reports to <fgont@si6networks.com>\n"
 	);
 }

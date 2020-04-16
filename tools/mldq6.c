@@ -232,8 +232,7 @@ int main(int argc, char **argv){
 					puts("Error in Fragmentation option: Fragment Size must be at least 8 bytes");
 					exit(EXIT_FAILURE);
 				}
-		
-				nfrags = (nfrags +7) & 0xfff8;
+
 				idata.fragh_f= 1;
 				break;
 
@@ -280,187 +279,186 @@ int main(int argc, char **argv){
 				dstopthdr_f=1;
 				break;
 
-	    case 'U':	/* Destination Options Header (Unfragmentable Part) */
-			if(ndstoptuhdr >= MAX_DST_OPT_U_HDR){
-				puts("Too many Destination Options Headers (Unfragmentable Part)");
-				exit(EXIT_FAILURE);
-			}
-
-			hdrlen= atoi(optarg);
-		
-			if(hdrlen < 8){
-				puts("Bad length in Destination Options Header (Unfragmentable Part)");
-				exit(EXIT_FAILURE);
-			}
-
-			hdrlen = ((hdrlen+7)/8) * 8;
-			dstoptuhdrlen[ndstoptuhdr]= hdrlen;
-		
-			if( (dstoptuhdr[ndstoptuhdr]= malloc(hdrlen)) == NULL){
-				puts("Not enough memory for Destination Options Header (Unfragmentable Part)");
-				exit(EXIT_FAILURE);
-			}
-
-			ptrhdr= dstoptuhdr[ndstoptuhdr]+2;
-			ptrhdrend= dstoptuhdr[ndstoptuhdr] + hdrlen;
-		
-			while( ptrhdr < ptrhdrend){
-
-				if( (ptrhdrend-ptrhdr)>257)
-					pad= 257;
-				else
-					pad= ptrhdrend-ptrhdr;
-
-				if(!insert_pad_opt(ptrhdr, ptrhdrend, pad)){
-					puts("Destination Options Header (Unfragmentable Part) Too Big");
+			case 'U':	/* Destination Options Header (Unfragmentable Part) */
+				if(ndstoptuhdr >= MAX_DST_OPT_U_HDR){
+					puts("Too many Destination Options Headers (Unfragmentable Part)");
 					exit(EXIT_FAILURE);
 				}
 
-				ptrhdr = ptrhdr + pad;
-			}
+				hdrlen= atoi(optarg);
+			
+				if(hdrlen < 8){
+					puts("Bad length in Destination Options Header (Unfragmentable Part)");
+					exit(EXIT_FAILURE);
+				}
 
-			*(dstoptuhdr[ndstoptuhdr]+1)= (hdrlen/8) - 1;
-			ndstoptuhdr++;
-			dstoptuhdr_f=1;
+				hdrlen = ((hdrlen+7)/8) * 8;
+				dstoptuhdrlen[ndstoptuhdr]= hdrlen;
+			
+				if( (dstoptuhdr[ndstoptuhdr]= malloc(hdrlen)) == NULL){
+					puts("Not enough memory for Destination Options Header (Unfragmentable Part)");
+					exit(EXIT_FAILURE);
+				}
+
+				ptrhdr= dstoptuhdr[ndstoptuhdr]+2;
+				ptrhdrend= dstoptuhdr[ndstoptuhdr] + hdrlen;
+			
+				while( ptrhdr < ptrhdrend){
+
+					if( (ptrhdrend-ptrhdr)>257)
+						pad= 257;
+					else
+						pad= ptrhdrend-ptrhdr;
+
+					if(!insert_pad_opt(ptrhdr, ptrhdrend, pad)){
+						puts("Destination Options Header (Unfragmentable Part) Too Big");
+						exit(EXIT_FAILURE);
+					}
+
+					ptrhdr = ptrhdr + pad;
+				}
+
+				*(dstoptuhdr[ndstoptuhdr]+1)= (hdrlen/8) - 1;
+				ndstoptuhdr++;
+				dstoptuhdr_f=1;
+				break;
+
+			case 'H':	/* Hop-by-Hop Options Header */
+				if(nhbhopthdr >= MAX_HBH_OPT_HDR){
+					puts("Too many Hop-by-Hop Options Headers");
+					exit(EXIT_FAILURE);
+				}
+
+				hdrlen= atoi(optarg);
+				
+				if(hdrlen == 0 ){
+					nhbhopthdr=0;
+					hbhopthdr_f=1;
+					break;
+				} else if(hdrlen < 8){
+					puts("Bad length in Hop-by-Hop Options Header");
+					exit(EXIT_FAILURE);
+				}
+					
+				hdrlen = ((hdrlen+7)/8) * 8;
+				hbhopthdrlen[nhbhopthdr]= hdrlen;
+				
+				if( (hbhopthdr[nhbhopthdr]= malloc(hdrlen)) == NULL){
+					puts("Not enough memory for Hop-by-Hop Options Header");
+					exit(EXIT_FAILURE);
+				}
+
+				ptrhdr= hbhopthdr[nhbhopthdr] + 2;
+				ptrhdrend= hbhopthdr[nhbhopthdr] + hdrlen;
+
+				
+				while( ptrhdr < ptrhdrend){
+
+					if( (ptrhdrend-ptrhdr)>257)
+						pad= 257;
+					else
+						pad= ptrhdrend-ptrhdr;
+
+					if(!insert_pad_opt(ptrhdr, ptrhdrend, pad)){
+						puts("Hop-by-Hop Options Header Too Big");
+						exit(EXIT_FAILURE);
+					}
+
+					ptrhdr = ptrhdr + pad;
+				}
+
+				*(hbhopthdr[nhbhopthdr]+1)= (hdrlen/8) - 1;
+				nhbhopthdr++;
+				hbhopthdr_f=1;
+				break;
+
+			case 'S':	/* Source Ethernet address */
+				idata.hsrcaddr_f = 1;
+				
+				if(ether_pton(optarg, &(idata.hsrcaddr), sizeof(idata.hsrcaddr)) == 0){
+					puts("Error in Source link-layer address.");
+					exit(EXIT_FAILURE);
+				}
 			break;
 
-	    case 'H':	/* Hop-by-Hop Options Header */
-		if(nhbhopthdr >= MAX_HBH_OPT_HDR){
-		    puts("Too many Hop-by-Hop Options Headers");
-		    exit(EXIT_FAILURE);
-		}
+			case 'D':	/* Destination Ethernet Address */
+				idata.hdstaddr_f = 1;
+				
+				if(ether_pton(optarg, &(idata.hdstaddr), sizeof(idata.hdstaddr)) == 0){
+					puts("Error in Source link-layer address.");
+					exit(EXIT_FAILURE);
+				}
+			break;
 
-		hdrlen= atoi(optarg);
+			case 'E':	/* Source link-layer option */
+				sllopt_f = 1;
+				
+				if(ether_pton(optarg, &linkaddr[nlinkaddr], sizeof(struct ether_addr)) == 0){
+					puts("Error in Source link-layer address option.");
+					exit(EXIT_FAILURE);
+				}
+				
+				sllopta_f=1;
+				nlinkaddr++;
+				break;
+
+			case 'e':	/* Add Source link-layer option */
+				sllopt_f = 1;
+				break;
+
+			case 'm':	/* MLD Query Multicast Address */
+				if( inet_pton(AF_INET6, optarg, &mldaddr) <= 0){
+					puts("inet_pton(): address not valid");
+					exit(EXIT_FAILURE);
+				}
+			
+				mldaddr_f = 1;
+				break;
+
+			case 'r':	/* MLD Query Maximum Response Delay */
+				mldrespdelay= atoi(optarg);
+				mldrespdelay_f= 1;
+				break;
+
+			case 'F':	/* Flood sources */
+				nsources= atoi(optarg);
+				if(nsources == 0){
+					puts("Invalid number of sources in option -F");
+					exit(EXIT_FAILURE);
+				}
+				
+				floods_f= 1;
+				break;
+
+			case 'l':	/* "Loop mode */
+				loop_f = 1;
+				break;
+
+			case 'z':	/* Sleep option */
+				nsleep=atoi(optarg);
+				if(nsleep==0){
+					puts("Invalid number of seconds in '-z' option");
+					exit(EXIT_FAILURE);
+				}
 		
-		if(hdrlen == 0 ){
-		    nhbhopthdr=0;
-		    hbhopthdr_f=1;
-		    break;
-		} else if(hdrlen < 8){
-		    puts("Bad length in Hop-by-Hop Options Header");
-		    exit(EXIT_FAILURE);
-		}
-		    
-		hdrlen = ((hdrlen+7)/8) * 8;
-		hbhopthdrlen[nhbhopthdr]= hdrlen;
-		
-		if( (hbhopthdr[nhbhopthdr]= malloc(hdrlen)) == NULL){
-		    puts("Not enough memory for Hop-by-Hop Options Header");
-		    exit(EXIT_FAILURE);
-		}
+				sleep_f=1;
+				break;
 
-		ptrhdr= hbhopthdr[nhbhopthdr] + 2;
-		ptrhdrend= hbhopthdr[nhbhopthdr] + hdrlen;
-		
-		
-		while( ptrhdr < ptrhdrend){
+			case 'v':	/* Be verbose */
+				idata.verbose_f=1;
+				break;
 
-		    if( (ptrhdrend-ptrhdr)>257)
-			pad= 257;
-		    else
-			pad= ptrhdrend-ptrhdr;
-
-		    if(!insert_pad_opt(ptrhdr, ptrhdrend, pad)){
-			puts("Hop-by-Hop Options Header Too Big");
-			exit(EXIT_FAILURE);
-		    }
-
-		    ptrhdr = ptrhdr + pad;
-		}
-
-		*(hbhopthdr[nhbhopthdr]+1)= (hdrlen/8) - 1;
-		nhbhopthdr++;
-		hbhopthdr_f=1;
-		break;
-
-	    case 'S':	/* Source Ethernet address */
-		idata.hsrcaddr_f = 1;
-		
-		if(ether_pton(optarg, &(idata.hsrcaddr), sizeof(idata.hsrcaddr)) == 0){
-			puts("Error in Source link-layer address.");
-			exit(EXIT_FAILURE);
-		}
-		break;
-
-	    case 'D':	/* Destination Ethernet Address */
-		idata.hdstaddr_f = 1;
-		
-		if(ether_pton(optarg, &(idata.hdstaddr), sizeof(idata.hdstaddr)) == 0){
-			puts("Error in Source link-layer address.");
-			exit(EXIT_FAILURE);
-		}
-		break;
-
-	    case 'E':	/* Source link-layer option */
-		sllopt_f = 1;
-		
-		if(ether_pton(optarg, &linkaddr[nlinkaddr], sizeof(struct ether_addr)) == 0){
-			puts("Error in Source link-layer address option.");
-			exit(EXIT_FAILURE);
-		}
-		
-		sllopta_f=1;
-		nlinkaddr++;
-		break;
-
-	    case 'e':	/* Add Source link-layer option */
-		sllopt_f = 1;
-		break;
-
-	    case 'm':	/* MLD Query Multicast Address */
-		if( inet_pton(AF_INET6, optarg, &mldaddr) <= 0){
-			puts("inet_pton(): address not valid");
-			exit(EXIT_FAILURE);
-		}
-		
-		mldaddr_f = 1;
-		break;
-
-	    case 'r':	/* MLD Query Maximum Response Delay */
-		mldrespdelay= atoi(optarg);
-		mldrespdelay_f= 1;
-		break;
-
-	    case 'F':	/* Flood sources */
-		nsources= atoi(optarg);
-		if(nsources == 0){
-		    puts("Invalid number of sources in option -F");
-		    exit(EXIT_FAILURE);
-		}
-		
-		floods_f= 1;
-		break;
-
-	    case 'l':	/* "Loop mode */
-		loop_f = 1;
-		break;
-
-	    case 'z':	/* Sleep option */
-		nsleep=atoi(optarg);
-		if(nsleep==0){
-		    puts("Invalid number of seconds in '-z' option");
-		    exit(EXIT_FAILURE);
-		}
-	
-		sleep_f=1;
-		break;
-
-	    case 'v':	/* Be verbose */
-		idata.verbose_f=1;
-		break;
-
-	    case 'h':	/* Help */
-		print_help();
-		
-		exit(EXIT_FAILURE);
-		break;
-	    
-	    default:
-		usage();
-		exit(EXIT_FAILURE);
-		break;
-		
-	} /* switch */
+			case 'h':	/* Help */
+				print_help();
+			
+				exit(EXIT_FAILURE);
+				break;
+			
+			default:
+				usage();
+				exit(EXIT_FAILURE);
+				break;
+		} /* switch */
     } /* while(getopt) */
 
 	if(geteuid()) {
@@ -843,19 +841,21 @@ void send_packet(struct iface_data *idata){
 				 * Check that the selected fragment size is not larger than the largest fragment 
 				 * size that can be sent
 				 */
-				if(nfrags <= (fptrend - fptr))
-					fragsize=nfrags;
-				else
-					fragsize= (fptrend-fptr) & IP6F_OFF_MASK;
+
+				if(nfrags > (fptrend - fptr))
+					nfrags= (fptrend-fptr);
 
 				m=IP6F_MORE_FRAG;
 
 				while((ptr< ptrend) && m==IP6F_MORE_FRAG){
 					fptr= startoffragment;
 
-					if( (ptrend-ptr) <= fragsize){
+					if( (ptrend-ptr) <= nfrags){
 						fragsize= ptrend-ptr;
 						m=0;
+					}
+					else{
+						fragsize = (nfrags + 7) & ntohs(IP6F_OFF_MASK);
 					}
 
 					memcpy(fptr, ptr, fragsize);

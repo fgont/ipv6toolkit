@@ -1,9 +1,9 @@
 /*
  * libipv6 : An IPv6 library for Linux, Mac OS, and BSD systems
  *
- * Copyright (C) 2011-2018 Fernando Gont <fgont@si6networks.com>
+ * Copyright (C) 2011-2020 Fernando Gont <fgont@si6networks.com>
  *
- * Programmed by Fernando Gont for SI6 Networks <http://www.si6networks.com>
+ * Programmed by Fernando Gont for SI6 Networks <https://www.si6networks.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by

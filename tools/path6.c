@@ -1,7 +1,9 @@
 /*
  * path6: A versatile IPv6 traceroute
  *
- * Copyright (C) 2011-2015 Fernando Gont (fgont@si6networks.com)
+ * Copyright (C) 2011-2020 Fernando Gont <fgont@si6networks.com>
+ *
+ * Programmed by Fernando Gont for SI6 Networks <https://www.si6networks.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -398,8 +400,7 @@ int main(int argc, char **argv){
 					puts("Error in Fragmentation option: Fragment Size must be at least 8 bytes");
 					exit(EXIT_FAILURE);
 				}
-		
-				nfrags = (nfrags +7) & 0xfff8;
+
 				idata.fragh_f=TRUE;
 				break;
 
@@ -1268,7 +1269,7 @@ void print_help(void){
 	     "  --verbose, -v             Be verbose\n"
 	     "  --help, -h                Print help for the path6 tool\n"
 	     "\n"
-	     "Programmed by Fernando Gont for SI6 Networks (http://www.si6networks.com)\n"
+	     "Programmed by Fernando Gont for SI6 Networks <https://www.si6networks.com>\n"
 	     "Please send any bug reports to <fgont@si6networks.com>\n"
 	);
 }
@@ -1749,19 +1750,21 @@ int send_probe(struct iface_data *idata, unsigned int probetype, unsigned char c
 		 * Check that the selected fragment size is not larger than the largest 
 		 * fragment size that can be sent
 		 */
-		if(nfrags <= (fptrend - fptr))
-			fragsize=nfrags;
-		else
-			fragsize= (fptrend-fptr) & IP6F_OFF_MASK;
+
+		if(nfrags > (fptrend - fptr))
+			nfrags= (fptrend-fptr);
 
 		m=IP6F_MORE_FRAG;
 
 		while((ptr< ptrend) && m==IP6F_MORE_FRAG){
 			fptr= startoffragment;
 
-			if( (ptrend-ptr) <= fragsize){
+			if( (ptrend-ptr) <= nfrags){
 				fragsize= ptrend-ptr;
 				m=0;
+			}
+			else{
+				fragsize = (nfrags + 7) & ntohs(IP6F_OFF_MASK);
 			}
 
 			memcpy(fptr, ptr, fragsize);

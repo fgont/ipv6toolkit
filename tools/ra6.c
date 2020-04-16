@@ -2,9 +2,9 @@
  * ra6: A security assessment tool for attack vectors based on 
  *      ICMPv6 Router Advertisement messages
  *
- * Copyright (C) 2009-2016 Fernando Gont
+ * Copyright (C) 2009-2020 Fernando Gont
  *
- * Programmed by Fernando Gont for SI6 Networks <http://www.si6networks.com>
+ * Programmed by Fernando Gont for SI6 Networks <https://www.si6networks.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -107,16 +107,16 @@ unsigned int				i, j, startrand, sources, nsources, prefixes, routes, mtus;
 unsigned int				nfloodp, nfloodr, endrand;
 unsigned int				nfloodda, nflooddoa, nsleep;
 uint32_t					mask;
-uint8_t					prefixlen[MAX_PREFIX_OPTION];
+uint8_t						prefixlen[MAX_PREFIX_OPTION];
 uint32_t					prefixvalid[MAX_PREFIX_OPTION];
 uint32_t					prefixpref[MAX_PREFIX_OPTION];
 struct in6_addr				prefix[MAX_PREFIX_OPTION];
-uint8_t					prefixflags[MAX_PREFIX_OPTION];
+uint8_t						prefixflags[MAX_PREFIX_OPTION];
 
 struct in6_addr				route[MAX_ROUTE_OPTION];
-uint8_t					routelen[MAX_ROUTE_OPTION];
+uint8_t						routelen[MAX_ROUTE_OPTION];
 uint32_t					routelife[MAX_ROUTE_OPTION];
-uint8_t					routepref[MAX_ROUTE_OPTION];
+uint8_t						routepref[MAX_ROUTE_OPTION];
     
 struct in6_addr				rdnss[MAX_RDNSS_OPTION][MAX_RDNSS_OPT_ADDRS];
 uint32_t					rdnsslife[MAX_RDNSS_OPTION];
@@ -302,12 +302,12 @@ int main(int argc, char **argv){
 
 			case 'y':	/* Fragment header */
 				nfrags= atoi(optarg);
+
 				if(nfrags < 8){
 					puts("Error in Fragmentation option: Fragment Size must be at least 8 bytes");
 					exit(EXIT_FAILURE);
 				}
-		
-				nfrags = (nfrags +7) & 0xfff8;
+
 				idata.fragh_f= 1;
 				break;
 
@@ -1370,7 +1370,7 @@ int main(int argc, char **argv){
 						if(idata.verbose_f>1)
 							print_filter_result(&idata, pktdata, BLOCKED);
 
-							continue;
+						continue;
 					}
 
 					if(idata.verbose_f>1)
@@ -1584,291 +1584,293 @@ void send_packet(struct iface_data *idata, const u_char *pktdata){
 
 		pkt_ipv6addr = &(pkt_ipv6->ip6_dst);
 
-	/* If the Router Solicitation message was directed to a unicast address (unlikely), the
-	   IPv6 Source Address and the Ethernet Source Address of the Router Advertisement are set
-	   to the IPv6 Destination Address and the Ethernet Destination Address	of the incoming
-	   Router Solicitation, respectively. Otherwise, the IPv6 Source Address and the Ethernet
-	   Source Address are set as specified by the command-line (or randomized).
-	 */
-	if(IN6_IS_ADDR_MULTICAST(pkt_ipv6addr)){
-	    ipv6->ip6_src = idata->srcaddr;
-	    ethernet->src = idata->hsrcaddr;
-	    sources=0;
-	    multicastdst_f=1;
-	}
-	else{
-	    ipv6->ip6_src = pkt_ipv6->ip6_dst;
-	    ethernet->src = pkt_ether->dst;
-	    sources=nsources;
-	    multicastdst_f=0;
-	}
+		/* If the Router Solicitation message was directed to a unicast address (unlikely), the
+		   IPv6 Source Address and the Ethernet Source Address of the Router Advertisement are set
+		   to the IPv6 Destination Address and the Ethernet Destination Address	of the incoming
+		   Router Solicitation, respectively. Otherwise, the IPv6 Source Address and the Ethernet
+		   Source Address are set as specified by the command-line (or randomized).
+		 */
+		if(IN6_IS_ADDR_MULTICAST(pkt_ipv6addr)){
+			ipv6->ip6_src = idata->srcaddr;
+			ethernet->src = idata->hsrcaddr;
+			sources=0;
+			multicastdst_f=1;
+		}
+		else{
+			ipv6->ip6_src = pkt_ipv6->ip6_dst;
+			ethernet->src = pkt_ether->dst;
+			sources=nsources;
+			multicastdst_f=0;
+		}
     }
 
 
     do{
-	if(floods_f && (pktdata==NULL || (pktdata != NULL && multicastdst_f))){
-	    /*
-	        Randomize the IPv6 Source address based on the specified prefix and prefix length
-	        (defaults to fe80::/64).
-	     */  
-		randomize_ipv6_addr(&(ipv6->ip6_src), &(idata->srcaddr), idata->srcpreflen);
+		if(floods_f && (pktdata==NULL || (pktdata != NULL && multicastdst_f))){
+			/*
+			    Randomize the IPv6 Source address based on the specified prefix and prefix length
+			    (defaults to fe80::/64).
+			 */  
+			randomize_ipv6_addr(&(ipv6->ip6_src), &(idata->srcaddr), idata->srcpreflen);
 
-	    if(!idata->hsrcaddr_f){
-			randomize_ether_addr(&(ethernet->src));
+			if(!idata->hsrcaddr_f){
+				randomize_ether_addr(&(ethernet->src));
 
-		/*
-		   If the source-link layer address must be included, but no value was 
-		   specified we set it to the randomized Ethernet Source Address
-		 */
-		if(sllopt_f && !sllopta_f){
-		    memcpy(sllaopt->address, ethernet->src.a, ETH_ALEN);
+				/*
+				   If the source-link layer address must be included, but no value was 
+				   specified we set it to the randomized Ethernet Source Address
+				 */
+				if(sllopt_f && !sllopta_f){
+					memcpy(sllaopt->address, ethernet->src.a, ETH_ALEN);
+				}
+			}
 		}
-	    }
-	}
 
-	prefixes= 0;
-	routes= 0;
-	dnsopts= 0;
-	mtus=0;
-	    
-	if(nlinkaddr==1)
-	    linkaddrs=1;
-	else
-	    linkaddrs=0;
-	    	
-	do{
-	    /*
-	       newdata_f handles the case where it is impossible for the packet to incorporate options,
-	       and hence this would result in and endless loop
-	     */
-	    newdata_f=0;
-	    ptr = startofprefixes;
-
-	    while(linkaddrs<nlinkaddr && (ptr+sizeof(struct nd_opt_slla)-v6buffer)<=idata->max_packet_size){
-		sllaopt = (struct nd_opt_slla *) ptr;
-		sllaopt->type= ND_OPT_SOURCE_LINKADDR;
-		sllaopt->length= SLLA_OPT_LEN;
-		memcpy(sllaopt->address, linkaddr[linkaddrs].a, ETH_ALEN);
-		ptr += sizeof(struct nd_opt_slla);
-		linkaddrs++;
-	        newdata_f=1;
-	    }
-
-	    while(mtus<nmtu && (ptr+sizeof(struct nd_opt_mtu)-v6buffer)<=idata->max_packet_size){
-		mtuopt= (struct nd_opt_mtu *) ptr;
-		mtuopt->nd_opt_mtu_type = ND_OPT_MTU;
-		mtuopt->nd_opt_mtu_len = MTU_OPT_LEN;
-		mtuopt->nd_opt_mtu_reserved = 0;
-		mtuopt->nd_opt_mtu_mtu = htonl(mtu[mtus]);
-		ptr += sizeof(struct nd_opt_mtu);
-		mtus++;
-	        newdata_f=1;
-	    }
-
-	    while(prefixes<nprefixes && (((ptr+ sizeof(struct nd_opt_prefix_info)) - v6buffer)\
-									     <= idata->max_packet_size)){
-		prefixopt = (struct nd_opt_prefix_info *) ptr;
-		prefixopt->nd_opt_pi_type= ND_OPT_PREFIX_INFORMATION;
-		prefixopt->nd_opt_pi_len= PREFIX_OPT_LEN;
-		    
-		if(!floodp_f){
-		    prefixopt->nd_opt_pi_flags_reserved= prefixflags[prefixes];
-		    prefixopt->nd_opt_pi_prefix_len= prefixlen[prefixes];
-		    prefixopt->nd_opt_pi_valid_time = htonl(prefixvalid[prefixes]);
-		    prefixopt->nd_opt_pi_preferred_time = htonl(prefixpref[prefixes]);
-		    prefixopt->nd_opt_pi_reserved2 = 0;
-		    prefixopt->nd_opt_pi_prefix = prefix[prefixes];
-		}
-		else{
-		    prefixopt->nd_opt_pi_flags_reserved= prefixflags[0];
-		    prefixopt->nd_opt_pi_prefix_len= prefixlen[0];
-		    prefixopt->nd_opt_pi_valid_time = htonl(prefixvalid[0]);
-		    prefixopt->nd_opt_pi_preferred_time = htonl(prefixpref[0]);
-		    prefixopt->nd_opt_pi_reserved2 = 0;
-
-		    endrand= (prefixlen[0]+31)/32;
-
-		    for(i=0; i<endrand; i++)
-			prefixopt->nd_opt_pi_prefix.s6_addr32[i]=random();
-
-		    if(prefixlen[0]%32){
-			mask=0;
-			for(i=0; i<(prefixlen[0]%32); i++)
-			    mask= (mask>>1) | 0x80000000;
-		    
-			prefixopt->nd_opt_pi_prefix.s6_addr32[endrand-1]= \
-				prefixopt->nd_opt_pi_prefix.s6_addr32[endrand-1] & htonl(mask);
-		    }
+		prefixes= 0;
+		routes= 0;
+		dnsopts= 0;
+		mtus=0;
 			
-		    for(i=endrand;i<4;i++)
-			prefixopt->nd_opt_pi_prefix.s6_addr32[i]=0;	    
-		}
-		
-		ptr += sizeof(struct nd_opt_prefix_info);
-		prefixes++;
-	        newdata_f=1;
-	    }
-
-
-	    while(routes < nroutes && (((ptr+ sizeof(struct nd_opt_route_info_l)) - v6buffer) \
-									    <= idata->max_packet_size)){
-
-		routeopt = (struct nd_opt_route_info_l *) ptr;
-		routeopt->nd_opt_ri_type=ND_OPT_ROUTE_INFORMATION;
-		routeopt->nd_opt_ri_len= MAX_ROUTE_OPT_LEN;
-		    
-		if(!floodr_f){
-		    routeopt->nd_opt_ri_rsvd_pref_rsvd= routepref[routes];
-		    routeopt->nd_opt_ri_prefix = route[routes];
-		    routeopt->nd_opt_ri_prefix_len= routelen[routes];
-		    routeopt->nd_opt_ri_lifetime = htonl(routelife[routes]);
-		}
-		else{
-		    routeopt->nd_opt_ri_rsvd_pref_rsvd= routepref[0];
-		    routeopt->nd_opt_ri_prefix_len= routelen[0];
-		    routeopt->nd_opt_ri_lifetime = htonl(routelife[0]);
-
-		    endrand= (routelen[0]+31)/32;
-
-		    for(i=0; i<endrand; i++)
-			routeopt->nd_opt_ri_prefix.s6_addr32[i]=random();
-
-		    if(routelen[0]%32){
-			mask=0;
-			for(i=0; i<(routelen[0]%32); i++)
-			    mask= (mask>>1) | 0x80000000;
-		    
-			routeopt->nd_opt_ri_prefix.s6_addr32[endrand-1]= \
-				routeopt->nd_opt_ri_prefix.s6_addr32[endrand-1] & htonl(mask);
-		    }
-			
-		    for(i=endrand;i<4;i++)
-			routeopt->nd_opt_ri_prefix.s6_addr32[i]=0;
-		}
-		
-		ptr += sizeof(struct nd_opt_route_info_l);
-		routes++;
-	        newdata_f=1;
-	    }
-
-
-	    if(!floodd_f){
-		while(dnsopts < nrdnss && (((ptr+ sizeof(struct nd_opt_rdnss_l)\
-		    + nrdnssopt[dnsopts] * sizeof(struct in6_addr) ) - v6buffer) <= idata->max_packet_size)){
-
-		    dnsopt = (struct nd_opt_rdnss_l *) ptr;
-		    dnsopt->nd_opt_rdnss_type= ND_OPT_RDNSS;
-		    dnsopt->nd_opt_rdnss_len= (sizeof(struct nd_opt_rdnss_l) + nrdnssopt[dnsopts] \
-						* sizeof(struct in6_addr))/8;
-
-		    dnsopt->nd_opt_rdnss_lifetime= htonl(rdnsslife[dnsopts]);
-		    
-		    for(i=0; i< nrdnssopt[dnsopts]; i++)
-			dnsopt->nd_opt_rdnss_addr[i] = rdnss[dnsopts][i];
-
-		    ptr+= sizeof(struct nd_opt_rdnss_l) + sizeof(struct in6_addr) * nrdnssopt[dnsopts];
-		    dnsopts++;
-	            newdata_f=1;
-		}
-	    }
-	    else{
-		while(dnsopts < nrdnss){
-		    smaxaddrs = (idata->max_packet_size - (ptr-v6buffer) - sizeof(struct nd_opt_rdnss_l))\
-								    / sizeof(struct in6_addr);
-		    if(smaxaddrs>0){
-			dnsopt = (struct nd_opt_rdnss_l *) ptr;
-			dnsopt->nd_opt_rdnss_type= ND_OPT_RDNSS;
-			dnsopt->nd_opt_rdnss_lifetime= htonl(rdnsslife[0]);
-
-			for(i=0; i<smaxaddrs && i<nflooddoa && dnsopts<nrdnss; i++, dnsopts++)
-			    for(j=0; j<16; j++)
-				dnsopt->nd_opt_rdnss_addr[i].s6_addr[j]=random();
-		
-			dnsopt->nd_opt_rdnss_len= (sizeof(struct nd_opt_rdnss_l) + \
-							i * sizeof(struct in6_addr))/8;
-			
-			ptr+= sizeof(struct nd_opt_rdnss_l) + sizeof(struct in6_addr) * i;
-	                newdata_f=1;
-		    }
-		}
-	    }
-
-	    ra->nd_ra_cksum = 0;
-	    ra->nd_ra_cksum = in_chksum(v6buffer, ra, ptr-((unsigned char *)ra), IPPROTO_ICMPV6);
-
-	    if(!idata->fragh_f){
-		ipv6->ip6_plen = htons((ptr - v6buffer) - MIN_IPV6_HLEN);
-
-        	if((nw=pcap_inject(idata->pfd, buffer, ptr - buffer)) == -1){
-		    printf("pcap_inject(): %s\n", pcap_geterr(idata->pfd));
-		    exit(EXIT_FAILURE);
-		}
-    
-		if(nw != (ptr-buffer)){
-		    printf("pcap_inject(): only wrote %lu bytes (rather than %lu bytes)\n", (LUI) nw, (LUI) (ptr-buffer));
-		    exit(EXIT_FAILURE);
-		}
-	    }
-	    else{
-		ptrend= ptr;
-		ptr= fragpart;
-		fptr = fragbuffer;
-		fipv6 = (struct ip6_hdr *) (fragbuffer + ETHER_HDR_LEN);
-		fptrend = fptr + ETHER_HDR_LEN+MIN_IPV6_HLEN+MAX_IPV6_PAYLOAD;
-		memcpy(fptr, buffer, fragpart-buffer);
-		fptr = fptr + (fragpart-buffer);
-		
-		if( (fptr+FRAG_HDR_SIZE)> fptrend){
-		    puts("Unfragmentable Part is Too Large");
-		    exit(EXIT_FAILURE);
-		}
-		
-		memcpy(fptr, (char *) &fraghdr, FRAG_HDR_SIZE);
-		fh= (struct ip6_frag *) fptr;
-		fh->ip6f_ident=random();
-		startoffragment = fptr + FRAG_HDR_SIZE;
-		/*
-		 * Check that the selected fragment size is not larger than the largest fragment size
-		   that can be sent
-		 */
-		if(nfrags <= (fptrend - fptr))
-		    fragsize=nfrags;
+		if(nlinkaddr==1)
+			linkaddrs=1;
 		else
-		    fragsize= (fptrend-fptr) & IP6F_OFF_MASK;
-		
-		m=IP6F_MORE_FRAG;
-		
-		while((ptr< ptrend) && m==IP6F_MORE_FRAG){
-		    fptr= startoffragment;
-		    
-		    if( (ptrend-ptr) <= fragsize){
-			fragsize= ptrend-ptr;
-			m=0;
-		    }
-			
-		    memcpy(fptr, ptr, fragsize);
-		    fh->ip6f_offlg = (htons(ptr-fragpart) & IP6F_OFF_MASK) | m;
-		    ptr+=fragsize;
-		    fptr+=fragsize;
+			linkaddrs=0;
+				
+		do{
+			/*
+			   newdata_f handles the case where it is impossible for the packet to incorporate options,
+			   and hence this would result in and endless loop
+			 */
+			newdata_f=0;
+			ptr = startofprefixes;
 
-		    fipv6->ip6_plen = htons((fptr - fragbuffer) - MIN_IPV6_HLEN - ETHER_HDR_LEN);
-		    
-        	    if((nw=pcap_inject(idata->pfd, fragbuffer, fptr - fragbuffer)) == -1){
-			printf("pcap_inject(): %s\n", pcap_geterr(idata->pfd));
-			exit(EXIT_FAILURE);
-		    }
-    
-		    if(nw != (fptr- fragbuffer)){
-			printf("pcap_inject(): only wrote %lu bytes (rather than %lu bytes)\n", (LUI) nw, (LUI) (ptr-buffer));
-			exit(EXIT_FAILURE);
-		    }
-		}
-		    
-	    }
-	}while( (linkaddrs>nlinkaddr || mtus<nmtu || prefixes<nprefixes || routes<nroutes || \
-									    dnsopts < nrdnss) && newdata_f);
-	    
-	sources++;
+			while(linkaddrs<nlinkaddr && (ptr+sizeof(struct nd_opt_slla)-v6buffer)<=idata->max_packet_size){
+				sllaopt = (struct nd_opt_slla *) ptr;
+				sllaopt->type= ND_OPT_SOURCE_LINKADDR;
+				sllaopt->length= SLLA_OPT_LEN;
+				memcpy(sllaopt->address, linkaddr[linkaddrs].a, ETH_ALEN);
+				ptr += sizeof(struct nd_opt_slla);
+				linkaddrs++;
+			    newdata_f=1;
+			}
+
+			while(mtus<nmtu && (ptr+sizeof(struct nd_opt_mtu)-v6buffer)<=idata->max_packet_size){
+				mtuopt= (struct nd_opt_mtu *) ptr;
+				mtuopt->nd_opt_mtu_type = ND_OPT_MTU;
+				mtuopt->nd_opt_mtu_len = MTU_OPT_LEN;
+				mtuopt->nd_opt_mtu_reserved = 0;
+				mtuopt->nd_opt_mtu_mtu = htonl(mtu[mtus]);
+				ptr += sizeof(struct nd_opt_mtu);
+				mtus++;
+				newdata_f=1;
+			}
+
+			while(prefixes<nprefixes && (((ptr+ sizeof(struct nd_opt_prefix_info)) - v6buffer)\
+											 <= idata->max_packet_size)){
+				prefixopt = (struct nd_opt_prefix_info *) ptr;
+				prefixopt->nd_opt_pi_type= ND_OPT_PREFIX_INFORMATION;
+				prefixopt->nd_opt_pi_len= PREFIX_OPT_LEN;
+					
+				if(!floodp_f){
+					prefixopt->nd_opt_pi_flags_reserved= prefixflags[prefixes];
+					prefixopt->nd_opt_pi_prefix_len= prefixlen[prefixes];
+					prefixopt->nd_opt_pi_valid_time = htonl(prefixvalid[prefixes]);
+					prefixopt->nd_opt_pi_preferred_time = htonl(prefixpref[prefixes]);
+					prefixopt->nd_opt_pi_reserved2 = 0;
+					prefixopt->nd_opt_pi_prefix = prefix[prefixes];
+				}
+				else{
+					prefixopt->nd_opt_pi_flags_reserved= prefixflags[0];
+					prefixopt->nd_opt_pi_prefix_len= prefixlen[0];
+					prefixopt->nd_opt_pi_valid_time = htonl(prefixvalid[0]);
+					prefixopt->nd_opt_pi_preferred_time = htonl(prefixpref[0]);
+					prefixopt->nd_opt_pi_reserved2 = 0;
+
+					endrand= (prefixlen[0]+31)/32;
+
+					for(i=0; i<endrand; i++)
+						prefixopt->nd_opt_pi_prefix.s6_addr32[i]=random();
+
+					if(prefixlen[0]%32){
+						mask=0;
+
+						for(i=0; i<(prefixlen[0]%32); i++)
+							mask= (mask>>1) | 0x80000000;
+					
+						prefixopt->nd_opt_pi_prefix.s6_addr32[endrand-1]= \
+						prefixopt->nd_opt_pi_prefix.s6_addr32[endrand-1] & htonl(mask);
+					}
+					
+					for(i=endrand;i<4;i++)
+						prefixopt->nd_opt_pi_prefix.s6_addr32[i]=0;	    
+				}
+				
+				ptr += sizeof(struct nd_opt_prefix_info);
+				prefixes++;
+			    newdata_f=1;
+			}
+
+
+			while(routes < nroutes && (((ptr+ sizeof(struct nd_opt_route_info_l)) - v6buffer) \
+											<= idata->max_packet_size)){
+
+				routeopt = (struct nd_opt_route_info_l *) ptr;
+				routeopt->nd_opt_ri_type=ND_OPT_ROUTE_INFORMATION;
+				routeopt->nd_opt_ri_len= MAX_ROUTE_OPT_LEN;
+					
+				if(!floodr_f){
+					routeopt->nd_opt_ri_rsvd_pref_rsvd= routepref[routes];
+					routeopt->nd_opt_ri_prefix = route[routes];
+					routeopt->nd_opt_ri_prefix_len= routelen[routes];
+					routeopt->nd_opt_ri_lifetime = htonl(routelife[routes]);
+				}
+				else{
+					routeopt->nd_opt_ri_rsvd_pref_rsvd= routepref[0];
+					routeopt->nd_opt_ri_prefix_len= routelen[0];
+					routeopt->nd_opt_ri_lifetime = htonl(routelife[0]);
+
+					endrand= (routelen[0]+31)/32;
+
+					for(i=0; i<endrand; i++)
+						routeopt->nd_opt_ri_prefix.s6_addr32[i]=random();
+
+					if(routelen[0]%32){
+						mask=0;
+
+						for(i=0; i<(routelen[0]%32); i++)
+							mask= (mask>>1) | 0x80000000;
+					
+						routeopt->nd_opt_ri_prefix.s6_addr32[endrand-1]= \
+						routeopt->nd_opt_ri_prefix.s6_addr32[endrand-1] & htonl(mask);
+					}
+					
+					for(i=endrand;i<4;i++)
+						routeopt->nd_opt_ri_prefix.s6_addr32[i]=0;
+				}
+				
+				ptr += sizeof(struct nd_opt_route_info_l);
+				routes++;
+			    newdata_f=1;
+			}
+
+
+			if(!floodd_f){
+				while(dnsopts < nrdnss && (((ptr+ sizeof(struct nd_opt_rdnss_l)\
+					+ nrdnssopt[dnsopts] * sizeof(struct in6_addr) ) - v6buffer) <= idata->max_packet_size)){
+
+					dnsopt = (struct nd_opt_rdnss_l *) ptr;
+					dnsopt->nd_opt_rdnss_type= ND_OPT_RDNSS;
+					dnsopt->nd_opt_rdnss_len= (sizeof(struct nd_opt_rdnss_l) + nrdnssopt[dnsopts] \
+								* sizeof(struct in6_addr))/8;
+
+					dnsopt->nd_opt_rdnss_lifetime= htonl(rdnsslife[dnsopts]);
+					
+					for(i=0; i< nrdnssopt[dnsopts]; i++)
+						dnsopt->nd_opt_rdnss_addr[i] = rdnss[dnsopts][i];
+
+					ptr+= sizeof(struct nd_opt_rdnss_l) + sizeof(struct in6_addr) * nrdnssopt[dnsopts];
+					dnsopts++;
+					newdata_f=1;
+				}
+			}
+			else{
+				while(dnsopts < nrdnss){
+					smaxaddrs = (idata->max_packet_size - (ptr-v6buffer) - sizeof(struct nd_opt_rdnss_l))\
+											/ sizeof(struct in6_addr);
+					if(smaxaddrs>0){
+						dnsopt = (struct nd_opt_rdnss_l *) ptr;
+						dnsopt->nd_opt_rdnss_type= ND_OPT_RDNSS;
+						dnsopt->nd_opt_rdnss_lifetime= htonl(rdnsslife[0]);
+
+						for(i=0; i<smaxaddrs && i<nflooddoa && dnsopts<nrdnss; i++, dnsopts++)
+							for(j=0; j<16; j++)
+								dnsopt->nd_opt_rdnss_addr[i].s6_addr[j]=random();
+					
+						dnsopt->nd_opt_rdnss_len= (sizeof(struct nd_opt_rdnss_l) + \
+										i * sizeof(struct in6_addr))/8;
+						
+						ptr+= sizeof(struct nd_opt_rdnss_l) + sizeof(struct in6_addr) * i;
+						newdata_f=1;
+					}
+				}
+			}
+
+			ra->nd_ra_cksum = 0;
+			ra->nd_ra_cksum = in_chksum(v6buffer, ra, ptr-((unsigned char *)ra), IPPROTO_ICMPV6);
+
+			if(!idata->fragh_f){
+				ipv6->ip6_plen = htons((ptr - v6buffer) - MIN_IPV6_HLEN);
+
+		    	if((nw=pcap_inject(idata->pfd, buffer, ptr - buffer)) == -1){
+					printf("pcap_inject(): %s\n", pcap_geterr(idata->pfd));
+					exit(EXIT_FAILURE);
+				}
+		
+				if(nw != (ptr-buffer)){
+					printf("pcap_inject(): only wrote %lu bytes (rather than %lu bytes)\n", (LUI) nw, (LUI) (ptr-buffer));
+					exit(EXIT_FAILURE);
+				}
+			}
+			else{
+				ptrend= ptr;
+				ptr= fragpart;
+				fptr = fragbuffer;
+				fipv6 = (struct ip6_hdr *) (fragbuffer + ETHER_HDR_LEN);
+				fptrend = fptr + ETHER_HDR_LEN+MIN_IPV6_HLEN+MAX_IPV6_PAYLOAD;
+				memcpy(fptr, buffer, fragpart-buffer);
+				fptr = fptr + (fragpart-buffer);
+				
+				if( (fptr+FRAG_HDR_SIZE)> fptrend){
+					puts("Unfragmentable Part is Too Large");
+					exit(EXIT_FAILURE);
+				}
+				
+				memcpy(fptr, (char *) &fraghdr, FRAG_HDR_SIZE);
+				fh= (struct ip6_frag *) fptr;
+				fh->ip6f_ident=random();
+				startoffragment = fptr + FRAG_HDR_SIZE;
+				/*
+				 * Check that the selected fragment size is not larger than the largest fragment size
+				   that can be sent
+				 */
+
+				if(nfrags > (fptrend - fptr))
+					nfrags= (fptrend-fptr);
+
+				m=IP6F_MORE_FRAG;
+				
+				while((ptr< ptrend) && m==IP6F_MORE_FRAG){
+					fptr= startoffragment;
+					
+					if( (ptrend-ptr) <= nfrags){
+						fragsize= ptrend-ptr;
+						m=0;
+					}
+					else{
+						fragsize = (nfrags +7) & ntohs(IP6F_OFF_MASK);
+					}
+					
+					memcpy(fptr, ptr, fragsize);
+					fh->ip6f_offlg = (htons(ptr-fragpart) & IP6F_OFF_MASK) | m;
+					ptr+=fragsize;
+					fptr+=fragsize;
+
+					fipv6->ip6_plen = htons((fptr - fragbuffer) - MIN_IPV6_HLEN - ETHER_HDR_LEN);
+					
+					if((nw=pcap_inject(idata->pfd, fragbuffer, fptr - fragbuffer)) == -1){
+						printf("pcap_inject(): %s\n", pcap_geterr(idata->pfd));
+						exit(EXIT_FAILURE);
+					}
+			
+					if(nw != (fptr- fragbuffer)){
+						printf("pcap_inject(): only wrote %lu bytes (rather than %lu bytes)\n", (LUI) nw, (LUI) (ptr-buffer));
+						exit(EXIT_FAILURE);
+					}
+				}	
+			}
+		}while( (linkaddrs>nlinkaddr || mtus<nmtu || prefixes<nprefixes || routes<nroutes || \
+											dnsopts < nrdnss) && newdata_f);
+		sources++;
     }while(sources<nsources);
 }
 
@@ -1949,7 +1951,7 @@ void print_help(void){
 	     "  --verbose, -v              Be verbose\n"
 	     "  --help, -h                 Print help for the ra6 tool\n"
 	     "\n"
-	     "Programmed by Fernando Gont for SI6 Networks <http://www.si6networks.com>\n"
+	     "Programmed by Fernando Gont for SI6 Networks <https://www.si6networks.com>\n"
 	     "Please send any bug reports to <fgont@si6networks.com>"
 	);
 }
@@ -2017,34 +2019,34 @@ void print_attack_info(struct iface_data *idata){
     /* IPv6 Destination Address is only used if a target IPv6 address or a target Ethernet
      * address were specified
      */
-    if(idata->dstaddr_f || idata->hdstaddr_f){
-	if(inet_ntop(AF_INET6, &(idata->dstaddr), pdstaddr, sizeof(pdstaddr)) == NULL){
-	    perror("inet_ntop()");
-	    exit(EXIT_FAILURE);
-	}
+	if(idata->dstaddr_f || idata->hdstaddr_f){
+		if(inet_ntop(AF_INET6, &(idata->dstaddr), pdstaddr, sizeof(pdstaddr)) == NULL){
+			perror("inet_ntop()");
+			exit(EXIT_FAILURE);
+		}
 
-	printf("IPv6 Destination Address: %s%s\n", pdstaddr, \
-				((!idata->dstaddr_f)?" (all-nodes link-local multicast)":""));
+		printf("IPv6 Destination Address: %s%s\n", pdstaddr, \
+		       ((!idata->dstaddr_f)?" (all-nodes link-local multicast)":""));
     }
 
     printf("IPv6 Hop Limit: %u%s\n", hoplimit, (hoplimit_f)?"":" (default)");
 
-    for(i=0; i<ndstoptuhdr; i++)
-	printf("Destination Options Header (Unfragmentable part): %u bytes\n", dstoptuhdrlen[i]);
+	for(i=0; i<ndstoptuhdr; i++)
+		printf("Destination Options Header (Unfragmentable part): %u bytes\n", dstoptuhdrlen[i]);
 
-    for(i=0; i<nhbhopthdr; i++)
-	printf("Hop by Hop Options Header: %u bytes\n", hbhopthdrlen[i]);
+	for(i=0; i<nhbhopthdr; i++)
+		printf("Hop by Hop Options Header: %u bytes\n", hbhopthdrlen[i]);
 
-    for(i=0; i<ndstopthdr; i++)
-	printf("Destination Options Header: %u bytes\n", dstopthdrlen[i]);
+	for(i=0; i<ndstopthdr; i++)
+		printf("Destination Options Header: %u bytes\n", dstopthdrlen[i]);
 
-    if(idata->fragh_f)
-	printf("Sending each packet in fragments of %u bytes (plus the Unfragmentable part)\n", nfrags);
+	if(idata->fragh_f)
+		printf("Sending each packet in fragments of %u bytes (plus the Unfragmentable part)\n", nfrags);
 
 	/* Should never happen, since we set this one */
 	if(preference > 3){
-	    puts("print_attack_info(): peference value out of range");
-	    exit(EXIT_FAILURE);
+		puts("print_attack_info(): peference value out of range");
+		exit(EXIT_FAILURE);
 	}
 
     printf("Cur Hop Limit: %u   Preference: %s   Flags: %s%s%s%s%s   Router Lifetime: %u\n", \
@@ -2055,90 +2057,90 @@ void print_attack_info(struct iface_data *idata){
     printf("Reachable Time: %u   Retrans Timer: %u\n", reachable, retrans);
 
     for(i=0;i<nlinkaddr;i++){
-	if(ether_ntop(&linkaddr[i], plinkaddr, sizeof(plinkaddr)) == 0){
-	    puts("ether_ntop(): Error converting address");
-	    exit(EXIT_FAILURE);
-	}
-
-	printf("Source Link-layer Address option -> Address: %s\n", \
-		    ((floods_f && !sllopta_f)?"(randomized for each packet)":plinkaddr));
-    }
-
-    for(i=0;i<nmtu;i++)
-	printf("MTU option -> MTU: %u\n", mtu[i]);
-
-    if(!floodp_f){
-	for(i=0; i<nprefixes; i++){
-	    puts("Prefix Information option ->");		
-
-	    if(inet_ntop(AF_INET6, &prefix[i], pprefix, sizeof(pprefix)) == NULL){
-		perror("inet_ntop()");
-		exit(EXIT_FAILURE);
-	    }
-
-	    printf("Prefix: %s/%u\tFlags: %s%s%s%s   ", pprefix, prefixlen[i], \
-			    ((prefixflags[i] & ND_OPT_PI_FLAG_ONLINK)?"L":""),\
-			    ((prefixflags[i] & ND_OPT_PI_FLAG_AUTO)?"A":""), \
-			    ((prefixflags[i] & ND_OPT_PI_FLAG_RADDR)?"R":""), \
-			    ((!prefixflags[i])?"none":""));
-			    
-	    printf("Valid Lifetime: %u   Preferred Lifetime: %u\n", prefixvalid[i], prefixpref[i]);
-	}
-    }
-    else{
-	printf("Flooding the target with %u prefixes\n", nprefixes);
-	printf("Prefix: (randomized)/%u%s   Flags: %s%s%s%s   ", prefixlen[0], (prefopt_f?"":" (default)"),\
-		    ((prefixflags[0] & ND_OPT_PI_FLAG_ONLINK)?"L":""),\
-		    ((prefixflags[0] & ND_OPT_PI_FLAG_AUTO)?"A":""), \
-		    ((prefixflags[0] & ND_OPT_PI_FLAG_RADDR)?"R":""), \
-		    ((!prefixflags[0])?"none":""));
-	printf("Valid Lifetime: %u   Preferred Lifetime: %u\n", prefixvalid[0], prefixpref[0]);
-    }
-
-    if(!floodr_f){
-	for(i=0; i<nroutes; i++){
-	    puts("Route Information option ->");		
-
-	    if(inet_ntop(AF_INET6, &route[i], pprefix, sizeof(pprefix)) == NULL){
-		perror("inet_ntop()");
-		exit(EXIT_FAILURE);
-	    }
-
-		/* SHould never happen, since we set this one */
-		if( (routepref[i]>>3) > 3){
-			puts("print_attack_info(): peference value out of range");
+		if(ether_ntop(&linkaddr[i], plinkaddr, sizeof(plinkaddr)) == 0){
+			puts("ether_ntop(): Error converting address");
 			exit(EXIT_FAILURE);
 		}
 
-	    printf("Prefix: %s/%u   Preference: %s   Lifetime: %u\n", pprefix, routelen[i], \
-		    (routestr[routepref[i]>>3]), routelife[i]);
-	}
+		printf("Source Link-layer Address option -> Address: %s\n", \
+		       ((floods_f && !sllopta_f)?"(randomized for each packet)":plinkaddr));
     }
 
+    for(i=0;i<nmtu;i++)
+		printf("MTU option -> MTU: %u\n", mtu[i]);
+
+    if(!floodp_f){
+		for(i=0; i<nprefixes; i++){
+			puts("Prefix Information option ->");		
+
+			if(inet_ntop(AF_INET6, &prefix[i], pprefix, sizeof(pprefix)) == NULL){
+				perror("inet_ntop()");
+				exit(EXIT_FAILURE);
+			}
+
+			printf("Prefix: %s/%u\tFlags: %s%s%s%s   ", pprefix, prefixlen[i], \
+			       ((prefixflags[i] & ND_OPT_PI_FLAG_ONLINK)?"L":""),\
+			       ((prefixflags[i] & ND_OPT_PI_FLAG_AUTO)?"A":""), \
+			       ((prefixflags[i] & ND_OPT_PI_FLAG_RADDR)?"R":""), \
+			       ((!prefixflags[i])?"none":""));
+					
+			printf("Valid Lifetime: %u   Preferred Lifetime: %u\n", prefixvalid[i], prefixpref[i]);
+		}
+    }
     else{
-	printf("Flooding the target with %u Route Information options\n", nroutes);
-	printf("Prefix: (randomized)/%u   Preference: %u   Lifetime: %u\n", routelen[0], \
-		(routepref[0]>>3), routelife[i]);
+		printf("Flooding the target with %u prefixes\n", nprefixes);
+		printf("Prefix: (randomized)/%u%s   Flags: %s%s%s%s   ", prefixlen[0], (prefopt_f?"":" (default)"),\
+		       ((prefixflags[0] & ND_OPT_PI_FLAG_ONLINK)?"L":""),\
+		       ((prefixflags[0] & ND_OPT_PI_FLAG_AUTO)?"A":""), \
+		       ((prefixflags[0] & ND_OPT_PI_FLAG_RADDR)?"R":""), \
+		       ((!prefixflags[0])?"none":""));
+		printf("Valid Lifetime: %u   Preferred Lifetime: %u\n", prefixvalid[0], prefixpref[0]);
+    }
+
+    if(!floodr_f){
+		for(i=0; i<nroutes; i++){
+			puts("Route Information option ->");		
+
+			if(inet_ntop(AF_INET6, &route[i], pprefix, sizeof(pprefix)) == NULL){
+				perror("inet_ntop()");
+				exit(EXIT_FAILURE);
+			}
+
+			/* SHould never happen, since we set this one */
+			if( (routepref[i]>>3) > 3){
+				puts("print_attack_info(): peference value out of range");
+				exit(EXIT_FAILURE);
+			}
+
+			printf("Prefix: %s/%u   Preference: %s   Lifetime: %u\n", pprefix, routelen[i], \
+				(routestr[routepref[i]>>3]), routelife[i]);
+		}
+    }
+    else{
+		printf("Flooding the target with %u Route Information options\n", nroutes);
+		printf("Prefix: (randomized)/%u   Preference: %u   Lifetime: %u\n", routelen[0], \
+			   (routepref[0]>>3), routelife[i]);
     }
 
     if(!floodd_f){
-	for(i=0;i<nrdnss;i++){
-	    puts("Recursive DNS Server option ->");
-	    printf("Lifetime: %u   Addresses: ", rdnsslife[i]);
-	    for(j=0;j<nrdnssopt[i];j++){
-		if(inet_ntop(AF_INET6, &rdnss[i][j], pprefix, sizeof(pprefix)) == NULL){
-		    perror("inet_ntop()");
-		    exit(EXIT_FAILURE);
+		for(i=0;i<nrdnss;i++){
+			puts("Recursive DNS Server option ->");
+			printf("Lifetime: %u   Addresses: ", rdnsslife[i]);
+
+			for(j=0;j<nrdnssopt[i];j++){
+				if(inet_ntop(AF_INET6, &rdnss[i][j], pprefix, sizeof(pprefix)) == NULL){
+					perror("inet_ntop()");
+					exit(EXIT_FAILURE);
+				}
+				printf("%s   ", pprefix);
+			}
+
+			printf("%s", (nrdnssopt[i]?"\n":"(empty)\n"));	    
 		}
-		printf("%s   ", pprefix);
-	    }
-	    printf("%s", (nrdnssopt[i]?"\n":"(empty)\n"));	    
-	}
     }
     else{
-        printf("Flooding with %u Recursive DNS Addresses, with a maximum of %u addresses per option. "
-	     "Lifetime: %u\n", nrdnss, nflooddoa, rdnsslife[0]);
+		printf("Flooding with %u Recursive DNS Addresses, with a maximum of %u addresses per option. "
+		       "Lifetime: %u\n", nrdnss, nflooddoa, rdnsslife[0]);
     }
-
 }
 

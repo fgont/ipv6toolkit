@@ -1,9 +1,9 @@
 /*
  * scan6: An IPv6 Scanning Tool
  *
- * Copyright (C) 2011-2016 Fernando Gont <fgont@si6networks.com>
+ * Copyright (C) 2011-2020 Fernando Gont <fgont@si6networks.com>
  *
- * Programmed by Fernando Gont for SI6 Networks <http://www.si6networks.com>
+ * Programmed by Fernando Gont for SI6 Networks <https://www.si6networks.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -934,8 +934,7 @@ int main(int argc, char **argv){
 					puts("Error in Fragmentation option: Fragment Size must be at least 8 bytes");
 					exit(EXIT_FAILURE);
 				}
-		
-				nfrags = (nfrags +7) & 0xfff8;
+
 				idata.fragh_f=TRUE;
 
 				/* XXX: To be removed when fragmentation support is added */
@@ -4344,7 +4343,7 @@ void print_help(void){
 	     "  --help, -h                  Print help for the scan6 tool\n"
 	     "  --verbose, -v               Be verbose\n"
 	     "\n"
-	     " Programmed by Fernando Gont for SI6 Networks <http://www.si6networks.com>\n"
+	     " Programmed by Fernando Gont for SI6 Networks <https://www.si6networks.com>\n"
 	     " Please send any bug reports to <fgont@si6networks.com>\n"
 	);
 }

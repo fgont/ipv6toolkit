@@ -2,9 +2,9 @@
  * rd6: A security assessment tool that exploits potential flaws in the
  *      processing of ICMPv6 Redirect messages
  *
- * Copyright (C) 2011-2018 Fernando Gont
+ * Copyright (C) 2011-2020 Fernando Gont
  *
- * Programmed by Fernando Gont for SI6 Networks <http://www.si6networks.com>
+ * Programmed by Fernando Gont for SI6 Networks <https://www.si6networks.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -449,8 +449,7 @@ int main(int argc, char **argv){
 					puts("Error in Fragmentation option: Fragment Size must be at least 8 bytes");
 					exit(EXIT_FAILURE);
 				}
-		
-				nfrags = (nfrags +7) & 0xfff8;
+
 				idata.fragh_f= 1;
 				break;
 
@@ -1846,19 +1845,20 @@ void send_packet(struct iface_data *idata, const u_char *pktdata, struct pcap_pk
 					 * Check that the selected fragment size is not larger than the largest 
 					 * fragment size that can be sent
 					 */
-					if(nfrags <= (fptrend - fptr))
-						fragsize=nfrags;
-					else
-						fragsize= (fptrend-fptr) & IP6F_OFF_MASK;
+					if(nfrags > (fptrend - fptr))
+						nfrags= (fptrend-fptr);
 
 					m=IP6F_MORE_FRAG;
 
 					while((ptr< ptrend) && m==IP6F_MORE_FRAG){
 						fptr= startoffragment;
 
-						if( (ptrend-ptr) <= fragsize){
+						if( (ptrend-ptr) <= nfrags){
 							fragsize= ptrend-ptr;
 							m=0;
+						}
+						else{
+							fragsize = (nfrags + 7) & ntohs(IP6F_OFF_MASK);
 						}
 
 						memcpy(fptr, ptr, fragsize);
@@ -1969,7 +1969,7 @@ void print_help(void){
 	     "  --help, -h                Print help for the rd6 tool\n"
 	     "  --verbose, -v             Be verbose\n"
 	     "\n"
-	     "Programmed by Fernando Gont for SI6 Networks <http://www.si6networks.com>\n"
+	     "Programmed by Fernando Gont for SI6 Networks <https://www.si6networks.com>\n"
 	     "Please send any bug reports to <fgont@si6networks.com>"
 	);
 }
