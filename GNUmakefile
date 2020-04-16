@@ -19,7 +19,7 @@
 
 
 CC= gcc
-CFLAGS+= -Wall -fno-common
+CFLAGS+= -Wall -Wno-address-of-packed-member
 LDFLAGS+= -lpcap -lm
 
 ifeq ($(shell uname),SunOS)
