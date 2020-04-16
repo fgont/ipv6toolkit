@@ -19,7 +19,7 @@
 
 
 CC?=gcc
-CFLAGS+= -Wall
+CFLAGS+= -Wall -Wno-address-of-packed-member
 LDFLAGS+= -lpcap -lm
 
 .ifndef(PREFIX)
