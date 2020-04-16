@@ -104,11 +104,12 @@ unsigned int			dstopthdrlen[MAX_DST_OPT_HDR], dstoptuhdrlen[MAX_DST_OPT_U_HDR];
 unsigned int			hbhopthdrlen[MAX_HBH_OPT_HDR], m, pad;
 
 /* The Hop-by-hop option used in MLD query messages */
+
 const struct {
 	struct ip6_hbh hbh;
 	struct ip6_opt_router rtr_alert;
 	struct ip6_opt pad1;
-} mld_hbh = {
+} __attribute__ ((__packed__)) mld_hbh = {
 	.hbh = {
 		.ip6h_nxt = IPPROTO_ICMPV6,
 		.ip6h_len = 0,
@@ -123,6 +124,7 @@ const struct {
 		.ip6o_len = 0,
 	},
 };
+
 
 struct ip6_frag			fraghdr, *fh;
 struct ip6_hdr			*fipv6;

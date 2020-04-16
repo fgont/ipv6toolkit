@@ -276,7 +276,6 @@ struct nd_opt_rdnss_l{
     struct in6_addr	nd_opt_rdnss_addr[];
 } __attribute__ ((__packed__));
 
-
 struct ipv6pseudohdr{
     struct in6_addr srcaddr;
     struct in6_addr dstaddr;
