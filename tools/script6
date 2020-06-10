@@ -534,7 +534,7 @@ sub AddAddress{
 	if($os eq "linux"){
 		@revname=`ip -6 addr add $randomizedaddress/64 dev $iface`;
 
-		if( $#revname >=0 && $revname[0] ~= m/RTNETLINK answers: File exists/){
+		if( $#revname >=0 && $revname[0] =~ m/RTNETLINK answers: File exists/){
 			print "Error adding new address\n";
 			exit(1);
 		}
