@@ -24,17 +24,21 @@
  * Please send any bug reports to Fernando Gont <fgont@si6networks.com>
  */
 
+#include <sys/types.h>
+#include <sys/param.h>
+#include <sys/socket.h>
+
+#include <arpa/inet.h>
+#include <netinet/in.h>
+
 #include <errno.h>
 #include <ctype.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <getopt.h>
 #include <string.h>
-#include <sys/types.h>
-#include <sys/param.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <sys/socket.h>
+#include <time.h>
+
 #include "addr6.h"
 #include "ipv6toolkit.h"
 #include "libipv6.h"
@@ -168,6 +172,7 @@ int main(int argc, char **argv){
 					}
 				}
 
+				srandom(time(NULL));
 				randomize_ipv6_addr(&randaddr, &genaddr, genpref);
 
 				if(inet_ntop(AF_INET6, &randaddr, pv6addr, sizeof(pv6addr)) == NULL){

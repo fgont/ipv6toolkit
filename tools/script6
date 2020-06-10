@@ -532,15 +532,15 @@ sub AddAddress{
 	}
 
 	if($os eq "linux"){
-		@revname=`ip -6 addr add $randomizedaddress/64 dev $iface`;
+		@revname=`ip -6 addr add $randomizedaddress/64 dev $iface 2>&1`;
 
-		if( $#revname >=0 && $revname[0] =~ m/RTNETLINK answers: File exists/){
-			print "Error adding new address\n";
+		if( $#revname >=0 && $revname[0] =~ m/RTNETLINK/){
+			print "Error adding new address: $revname[0]\n";
 			exit(1);
 		}
 	}
 	elsif($os eq "bsd"){
-		@revname=`ifconfig $iface inet6 $randomizedaddress/64 add`;
+		@revname=`ifconfig $iface inet6 $randomizedaddress/64 add 2>&1`;
 	}
 
 	return($randomizedaddress);
