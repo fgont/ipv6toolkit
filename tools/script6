@@ -32,6 +32,8 @@ Usage: script6 COMMAND [PARAMETERS]
    get-bing6-batch: Search for domains with the Bing search engine (IPv6)
    get-bing6-dict: Search for domains with Bing using a dictionary (IPv6)
    get-bing6-dict-batch: Search for domains with Bing (STDIN) (IPv6)
+   get-bing6-addr-by-addr-quick: Search domains for IPv4 address (faster give-up)
+   get-bing6-addr-by-addr-batch: Search domains for IPv4 address (batch)
    get-bing6-addr-dict-quick: Search domains with Bing with custom address
    get-bing6-addr-dict-batch: Search domains with Bing with cust. addr (batch)
    get-bing6-addr-dict-quick-batch: Search dom, w/ Bing w/ cust. addr (batch)
@@ -523,6 +525,7 @@ sub AddAddress{
 	my($iface, $addr, $len, $os) = @_;
 
 	@revname=`addr6 -A $addr/$len`;
+
 	$randomizedaddress=  $revname[0];
         chomp($randomizedaddress);
 
@@ -933,17 +936,54 @@ sub GetDomainsFromBingDict{
 		}
 
 		if($srcaddress eq "ANY"){
+			$changeaddrlevel=0;
 			$specaddr="";
 		}
 		else{
 			# Safeguard -- should never happen
 
 			if($intprotocol != 6){
-				print "Specified to bind IPv6 address, but not using IPv6\n";
+				print "Specified to bind ddress, but not using IPv6\n";
 				exit(1);
 			}
 
-			$specaddr="$wwwclient_addr$srcaddress";
+			@changeaddr= split /#/, $srcaddress;
+
+			if($#changeaddr < 1 || $#changeaddr > 2){
+				print "binding address to be specified as IFACE#PREFIX#CHANGE\n";
+				exit(1);
+			}
+			elsif($#changeaddr == 2){
+				if($changeaddr[2] =~ m/crazy/){
+					$changeaddrlevel=2;
+				}
+				elsif($changeaddr[2] =~ m/insane/){
+					$changeaddrlevel=3;
+				}
+				else{
+					$changeaddrlevel=1;
+				}
+			}
+
+			$iface=$changeaddr[0];
+			($chaddr, $chpref) = split /\//, $changeaddr[1];
+
+			if(!$chpref){
+				$chpref=64;
+			}
+
+			@revname=`uname`;
+			$chos=$revname[0];
+
+			if($chos =~ m/linux/i){
+				$chos="linux";
+			}
+			elsif($chos =~ m/bsd/i){
+				$chos="bsd";
+			}
+			else{
+				print "Your OS is not supported for this function\n";
+			}
 		}
 
 
@@ -963,10 +1003,17 @@ sub GetDomainsFromBingDict{
 		$ftstr="";
 		$remsites="";
 		$totalqueries=0;
+		$ttotalqueries=0;
+		$errorcode=0;
 
 		# If we are doing mass search, we need a keyword to search for
 		if($czone eq ""){
 			$heur="+z";
+		}
+
+		if($changeaddrlevel == 1){
+			$gotaddress=AddAddress($iface, $chaddr, $chpref, $chos);
+			$specaddr="$wwwclient_addr$gotaddress";
 		}
 
 		do{   # Iteration for each page
@@ -980,6 +1027,17 @@ sub GetDomainsFromBingDict{
 			# --user-agent "Mozilla/4.0"  works fine most of the time. curl || wget original headers cause trouble.
 			$useragent=GetRandomUserAgent();
 
+			if($errorcode == 0 && ($changeaddrlevel == 3 || ($changeaddrlevel == 2 && $ttotalqueries % 10 == 0))){
+				if($ttotalqueries != 0){
+					DelAddress($iface, $gotaddress, $chpref, $chos);
+				}
+
+				$gotaddress=AddAddress($iface, $chaddr, $chpref, $chos);
+				$specaddr="$wwwclient_addr$gotaddress";
+				sleep(2);
+			}
+
+
 			if($czone ne ""){
 				$stringcommand="$wwwclient $intprot $specaddr $wwwclient_sopt $wwwclient_tout $wwwclient_agnt\"$useragent\" \"http://$sengine/search?q=site%3A$czone$sitesstr$heur&first=$cur\"";
 
@@ -991,11 +1049,12 @@ sub GetDomainsFromBingDict{
 				@revname=`$wwwclient $intprot $specaddr $wwwclient_sopt $wwwclient_tout $wwwclient_agnt"$useragent" "http://$sengine/search?q=$sitesstr$heur&first=$cur"`;
 			}
 
-# print "Envie: $stringcommand\n";
-
+			$ttotalqueries++;
 			$totalqueries++;
 
 			if($? == 0){
+				$errorcode=0;
+
 				foreach $line (@revname){
 					if($line=~ m/<div class="sw_next">[^<]+<\/div><\/a>/){
 						$hasnext=1;
@@ -1210,7 +1269,9 @@ sub GetDomainsFromBingDict{
 				}  # End of "trydifferent"
 			}  # End of $? (result of wget)
 			else{
-				#print "# \$? was different from 0 (\$?== $?, command: '$stringcommand')\n";
+				$errorcode= $? >>8;
+				print "# \$? was different from 0 (\$?== $?, error: $errorcode, command: '$stringcommand')\n";
+
 				$totalqueries--;
 			}
 
@@ -1222,6 +1283,10 @@ sub GetDomainsFromBingDict{
 #		}
 
 		if($maxresults > 0 && $nresults >= $maxresults){
+			if($changeaddrlevel > 0){
+				DelAddress($iface, $gotaddress, $chpref, $chos);
+			}
+
 			return;
 		}
 
@@ -1234,7 +1299,7 @@ sub GetDomainsFromBingDict{
 
 		$continue=1;
 
-		for($jjj= 0; $jjj <= $#remsites && $continue == 1; $jjj++){
+		for(my $jjj= 0; $jjj <= $#remsites && $continue == 1; $jjj++){
 			$cur= 1;
 
 			$sitesstr= GenRemListStr(\@remsites, $jjj);
@@ -1249,20 +1314,31 @@ sub GetDomainsFromBingDict{
 
 				$useragent=GetRandomUserAgent();
 
-				if($czone ne ""){
-					$stringcommand="$wwwclient $wwwclient_sopt $wwwclient_tout $wwwclient_agnt\"$useragent\" \"http://www.bing.com/search?q=site%3A$czone$sitesstr&first=$cur\"";
+				if($errorcode == 0 && ($changeaddrlevel == 3 || ($changeaddrlevel == 2 && $ttotalqueries % 5 == 0))){
+					if($ttotalqueries != 0){
+						DelAddress($iface, $gotaddress, $chpref, $chos);
+					}
 
-					@revname=`$wwwclient $wwwclient_sopt $wwwclient_tout $wwwclient_agnt"$useragent" "http://www.bing.com/search?q=site%3A$czone$sitesstr&first=$cur"`;
+					$gotaddress=AddAddress($iface, $chaddr, $chpref, $chos);
+					$specaddr="$wwwclient_addr$gotaddress";
+				}
+
+				if($czone ne ""){
+					$stringcommand="$wwwclient $intprot $specaddr $wwwclient_sopt $wwwclient_tout $wwwclient_agnt\"$useragent\" \"http://www.bing.com/search?q=site%3A$czone$sitesstr&first=$cur\"";
+
+					@revname=`$wwwclient $intprot $specaddr $wwwclient_sopt $wwwclient_tout $wwwclient_agnt"$useragent" "http://www.bing.com/search?q=site%3A$czone$sitesstr&first=$cur"`;
 				}
 				else{
-					$stringcommand="$wwwclient $wwwclient_sopt $wwwclient_tout $wwwclient_agnt\"$useragent\" \"http://www.bing.com/search?q=$sitesstr&first=$cur\"";
+					$stringcommand="$wwwclient $intprot $specaddr $wwwclient_sopt $wwwclient_tout $wwwclient_agnt\"$useragent\" \"http://www.bing.com/search?q=$sitesstr&first=$cur\"";
 
-					@revname=`$wwwclient $wwwclient_sopt $wwwclient_tout $wwwclient_agnt"$useragent" "http://www.bing.com/search?q=$sitesstr&first=$cur"`;
+					@revname=`$wwwclient $intprot $specaddr $wwwclient_sopt $wwwclient_tout $wwwclient_agnt"$useragent" "http://www.bing.com/search?q=$sitesstr&first=$cur"`;
 				}
 
 				$totalqueries++;
-
+				$ttotalqueries++;
 				if($? == 0){
+					$errorcode=0;
+
 					foreach $line (@revname){
 						if($continue == 0){
 							last;
@@ -1357,6 +1433,7 @@ sub GetDomainsFromBingDict{
 					}  # if/else on whether there were matches
 				}  # End of $? (result of wget)
 				else{
+					$errorcode= $? >>8;
 					# print "# \$? was different from 0 (\$?== $?, command: '$stringcommand')\n";
 					$totalqueries--;
 				}
@@ -1368,6 +1445,10 @@ sub GetDomainsFromBingDict{
 				GenDomListLevel($pdomain, \@remsites, $czone, 1, $MAXREMOVEDSITES);
 			}
 		} # for that adds new removed sites;
+
+	if($changeaddrlevel > 0){
+		DelAddress($iface, $gotaddress, $chpref, $chos);
+	}
 }
 
 
@@ -2425,19 +2506,13 @@ sub GetDomainsFromBingByAddr{
 #		}while($? == 0 && $continue == 1);
 		}while($continue == 1);
 
-		if($maxresults > 0 && $nresults >= $maxresults){
-			return;
-		}
-
-
-
 }
 
 
 
 sub GetDomainsFromBingByAddrQuick{
 #		GetDomainsFromCrawler(\@domain, $czone, $level, $maxresults);	
-		my($pdomain, $pzone, $pmaxresults, $intprotocol) = @_;
+		my($pdomain, $pzone, $pmaxresults, $intprotocol, $srcaddress) = @_;
 		my $czone=$pzone;
 
 		$plevel=1;
@@ -2509,6 +2584,56 @@ sub GetDomainsFromBingByAddrQuick{
 			$sengine="www.bing.com";
 		}
 
+		if($srcaddress eq "ANY"){
+			$changeaddrlevel=0;
+			$specaddr="";
+		}
+		else{
+			# Safeguard -- should never happen
+
+			if($intprotocol != 6){
+				print "Specified to bind ddress, but not using IPv6\n";
+				exit(1);
+			}
+
+			@changeaddr= split /#/, $srcaddress;
+
+			if($#changeaddr < 1 || $#changeaddr > 2){
+				print "binding address to be specified as IFACE#PREFIX#CHANGE\n";
+				exit(1);
+			}
+			elsif($#changeaddr == 2){
+				if($changeaddr[2] =~ m/crazy/){
+					$changeaddrlevel=2;
+				}
+				elsif($changeaddr[2] =~ m/insane/){
+					$changeaddrlevel=3;
+				}
+				else{
+					$changeaddrlevel=1;
+				}
+			}
+
+			$iface=$changeaddr[0];
+			($chaddr, $chpref) = split /\//, $changeaddr[1];
+
+			if(!$chpref){
+				$chpref=64;
+			}
+
+			@revname=`uname`;
+			$chos=$revname[0];
+
+			if($chos =~ m/linux/i){
+				$chos="linux";
+			}
+			elsif($chos =~ m/bsd/i){
+				$chos="bsd";
+			}
+			else{
+				print "Your OS is not supported for this function\n";
+			}
+		}
 
 		$cur= 1;
 		$nresults=0;
@@ -2531,6 +2656,13 @@ sub GetDomainsFromBingByAddrQuick{
 		$ftstr="";
 		$remsites="";
 		$totalqueries=0;
+		$ttotalqueries=0;
+		$errorcode=0;
+
+		if($changeaddrlevel == 1){
+			$gotaddress=AddAddress($iface, $chaddr, $chpref, $chos);
+			$specaddr="$wwwclient_addr$gotaddress";
+		}
 
 		do{   # Iteration for each page
 			$matches=0;
@@ -2542,18 +2674,32 @@ sub GetDomainsFromBingByAddrQuick{
 			# --user-agent "Mozilla/4.0"  works fine most of the time. curl || wget original headers cause trouble.
 			$useragent=GetRandomUserAgent();
 
+			if($errorcode == 0 && ($changeaddrlevel == 3 || ($changeaddrlevel == 2 && $ttotalqueries % 10 == 0))){
+				if($ttotalqueries != 0){
+					DelAddress($iface, $gotaddress, $chpref, $chos);
+				}
+
+				$gotaddress=AddAddress($iface, $chaddr, $chpref, $chos);
+				$specaddr="$wwwclient_addr$gotaddress";
+				sleep(2);
+			}
+
 			if($cur == 1){
-						$stringcommand="$wwwclient $intprot $wwwclient_sopt $wwwclient_tout $wwwclient_agnt\"$useragent\" \"https://$sengine/search?q=ip%3A$czone$sitesstr$ftstr$heur\"";
-						@revname=`$wwwclient $intprot $wwwclient_sopt $wwwclient_tout $wwwclient_agnt"$useragent" "https://$sengine/search?q=ip%3A$czone$sitesstr$ftstr$heur"`;
+						$stringcommand="$wwwclient $intprot $specaddr $wwwclient_sopt $wwwclient_tout $wwwclient_agnt\"$useragent\" \"https://$sengine/search?q=ip%3A$czone$sitesstr$ftstr$heur\"";
+						@revname=`$wwwclient $intprot $specaddr $wwwclient_sopt $wwwclient_tout $wwwclient_agnt"$useragent" "https://$sengine/search?q=ip%3A$czone$sitesstr$ftstr$heur"`;
 			}
 			else{
 
-						$stringcommand="$wwwclient $intprot $wwwclient_sopt $wwwclient_tout $wwwclient_agnt\"$useragent\" \"https://$sengine/search?q=ip%3A$czone$sitesstr$ftstr$heur&first=$cur\"";
-						@revname=`$wwwclient $intprot $wwwclient_sopt $wwwclient_tout $wwwclient_agnt"$useragent" "https://$sengine/search?q=ip%3A$czone$sitesstr$ftstr$heur&first=$cur"`;
+						$stringcommand="$wwwclient $intprot $specaddr $wwwclient_sopt $wwwclient_tout $wwwclient_agnt\"$useragent\" \"https://$sengine/search?q=ip%3A$czone$sitesstr$ftstr$heur&first=$cur\"";
+						@revname=`$wwwclient $intprot $specaddr $wwwclient_sopt $wwwclient_tout $wwwclient_agnt"$useragent" "https://$sengine/search?q=ip%3A$czone$sitesstr$ftstr$heur&first=$cur"`;
 			}
+
 			$totalqueries++;
+			$ttotalqueries++;
 
 			if($? == 0){
+				$errorcode=0;
+
 				foreach $line (@revname){
 					if($line=~ m/<div class="sw_next">[^<]+<\/div><\/a>/){
 						$hasnext=1;
@@ -2879,17 +3025,15 @@ sub GetDomainsFromBingByAddrQuick{
 			}  # End of $? (result of wget)
 			else{
 #				print "# \$? was different from 0 (\$?== $?, command: '$stringcommand')\n";
+				$errorcode= $? >>8;
 				$totalqueries--;
 			}
 #		}while($? == 0 && $continue == 1);
 		}while($continue == 1);
 
-		if($maxresults > 0 && $nresults >= $maxresults){
-			return;
+		if($changeaddrlevel > 0){
+			DelAddress($iface, $gotaddress, $chpref, $chos);
 		}
-
-
-
 }
 
 
@@ -8066,10 +8210,10 @@ elsif($ARGV[0] eq "get-bing-by-addr" || $ARGV[0] eq "get-bing4-by-addr" || $ARGV
 
 	print "######## ADDRESS: $czone ########\n";
 
-	for($i= $a0; $i<= $a1; $i++){
-		for($j= $b0; $j<= $b1; $j++){
-			for($k= $c0; $k<= $c1; $k++){
-				for($l= $d0; $l<= $d1; $l++){
+	for(my $i= $a0; $i<= $a1; $i++){
+		for(my $j= $b0; $j<= $b1; $j++){
+			for(my $k= $c0; $k<= $c1; $k++){
+				for(my $l= $d0; $l<= $d1; $l++){
 					GetDomainsFromBingByAddr(\@domain, "$i.$j.$k.$l", $maxresults, $ipprotocol);
 				}
 			}
@@ -8145,23 +8289,198 @@ elsif($ARGV[0] eq "get-bing-by-addr-quick" || $ARGV[0] eq "get-bing4-by-addr-qui
 		exit(1);
 	}
 
-#	print "a0: $a0; a1: $a1; b0: $b0; b1: $b1; c0: $c0; c1: $c1; d0: $d0: d1: $d1\n";
+
 #	exit(0);
 
 	print "######## ADDRESS: $czone ########\n";
 
-	for($i= $a0; $i<= $a1; $i++){
-		for($j= $b0; $j<= $b1; $j++){
-			for($k= $c0; $k<= $c1; $k++){
-				for($l= $d0; $l<= $d1; $l++){
-					GetDomainsFromBingByAddrQuick(\@domain, "$i.$j.$k.$l", $maxresults, $ipprotocol);
+	for(my $i= $a0; $i<= $a1; $i++){
+		for(my $j= $b0; $j<= $b1; $j++){
+			for(my $k= $c0; $k<= $c1; $k++){
+				for(my $l= $d0; $l<= $d1; $l++){
+					GetDomainsFromBingByAddrQuick(\@domain, "$i.$j.$k.$l", $maxresults, $ipprotocol, "ANY");
 				}
 			}
 		}
 	}
 
 
+	exit 0;
+}
+elsif($ARGV[0] eq "get-bing-addr-by-addr-quick-batch" || $ARGV[0] eq "get-bing6-addr-by-addr-quick-batch"){
+	if($#ARGV < 1 || $#ARGV > 2){
+		print "Syntax: script6 $ARGV[0] IFACE#PREF/PREFLEN#CHANGE [MAXRESULTS]\n";
+		exit 1;
+	}
+
+	if($#ARGV == 2){
+		$maxresults= $ARGV[2];
+
+		if($maxresults == 0){
+			exit 0;
+		}
+
+		$maxresults--;
+	}
+	else{
+		$maxresults= -1;
+	}
+
+	if($ARGV[0] eq "get-bing4-addr-by-addr-quick-batch"){
+		$ipprotocol=4;
+		print "Must use IPv6\n";
+		exit(1);
+	}
+	elsif($ARGV[0] eq "get-bing6-addr-by-addr-quick-batch"){
+		$ipprotocol=6;
+	}
+	else{
+		$ipprotocol=6;
+	}
+
+	ParseConfigFile();
+	$SIG{INT} = \&SigIntHandler;
+
+	while($czone=<STDIN>){
+		undef @domain;
+
+		if($czone !~ m/\s*([-0-9.]+)/){
+			next;
+		}
+
+		$czone= $1;
+
+		if($czone =~ m/^\s*(\d{1,3})(?:-(\d{1,3}))?\.(\d{1,3})(?:-(\d{1,3}))?\.(\d{1,3})(?:-(\d{1,3}))?\.(\d{1,3})(?:-(\d{1,3}))?/){
+			$a0=$1; $a1=$2; $b0=$3; $b1=$4; $c0=$5; $c1=$6; $d0=$7; $d1=$8;
+		}
+		else{
+			print "Not an IP address\n";
+			exit(1);
+		}
+
+
+		if(!defined($2)){
+			$a1=$a0;
+		}
+
+		if(!defined($4)){
+			$b1=$b0;
+		}
+
+		if(!defined($6)){
+			$c1=$c0;
+		}
+
+		if(!defined($8)){
+			$d1=$d0;
+		}
+
+		if($a0 > $a1 || $b0 > $b1 || $c0 > $c1 || $d0 > $d1){
+			print "# Bad IP range";
+			exit(1);
+		}
+
+		print "######## ADDRESS: $czone ########\n";
+
+		for(my $i= $a0; $i<= $a1; $i++){
+			for(my $j= $b0; $j<= $b1; $j++){
+				for(my $k= $c0; $k<= $c1; $k++){
+					for(my $l= $d0; $l<= $d1; $l++){
+						GetDomainsFromBingByAddrQuick(\@domain, "$i.$j.$k.$l", $maxresults, $ipprotocol, $ARGV[1]);
+					}
+				}
+			}
+		}
+	};  # while(<STDIN>)
+
 	exit;
+}
+
+elsif($ARGV[0] eq "get-bing-addr-by-addr-quick" || $ARGV[0] eq "get-bing6-addr-by-addr-quick"){
+	if($#ARGV < 1 || $#ARGV > 2){
+		print "Syntax: script6 $ARGV[0] ADDRESS IFACE#PREF/PREFLEN#CHANGE [MAXRESULTS]\n";
+		exit 1;
+	}
+
+	if($#ARGV == 3){
+		$maxresults= $ARGV[3];
+
+		if($maxresults == 0){
+			exit 0;
+		}
+
+		$maxresults--;
+	}
+	else{
+		$maxresults= -1;
+	}
+
+	if($ARGV[0] eq "get-bing4-addr-by-addr-quick"){
+		$ipprotocol=4;
+		print "Must use IPv6\n";
+		exit(1);
+	}
+	elsif($ARGV[0] eq "get-bing6-addr-by-addr-quick"){
+		$ipprotocol=6;
+	}
+	else{
+		$ipprotocol=6;
+	}
+
+	ParseConfigFile();
+	undef @domain;
+
+	$czone= $ARGV[1];
+	$_= $ARGV[1];
+
+
+	if($_ =~ m/^(\d{1,3})(?:-(\d{1,3}))?\.(\d{1,3})(?:-(\d{1,3}))?\.(\d{1,3})(?:-(\d{1,3}))?\.(\d{1,3})(?:-(\d{1,3}))?/){
+		$a0=$1; $a1=$2; $b0=$3; $b1=$4; $c0=$5; $c1=$6; $d0=$7; $d1=$8;
+	}
+	else{
+		print "Not an IP address\n";
+		exit(1);
+	}
+
+
+	if(!defined($2)){
+		$a1=$a0;
+	}
+
+	if(!defined($4)){
+		$b1=$b0;
+	}
+
+	if(!defined($6)){
+		$c1=$c0;
+	}
+
+	if(!defined($8)){
+		$d1=$d0;
+	}
+
+	if($a0 > $a1 || $b0 > $b1 || $c0 > $c1 || $d0 > $d1){
+		print "Bad IP range";
+		exit(1);
+	}
+
+
+	$SIG{INT} = \&SigIntHandler;
+
+	print "######## ADDRESS: $czone ########\n";
+
+	for(my $i= $a0; $i<= $a1; $i++){
+		for(my $j= $b0; $j<= $b1; $j++){
+			for(my $k= $c0; $k<= $c1; $k++){
+				for(my $l= $d0; $l<= $d1; $l++){
+					GetDomainsFromBingByAddrQuick(\@domain, "$i.$j.$k.$l", $maxresults, $ipprotocol, $ARGV[2]);
+				}
+			}
+		}
+	}
+
+
+	exit 0;
 }
 elsif($ARGV[0] eq "get-bing-dict" || $ARGV[0] eq "get-bing4-dict" || $ARGV[0] eq "get-bing6-dict"){
 	#
@@ -8497,46 +8816,11 @@ elsif($ARGV[0] eq "get-bing-addr-dict-quick" || $ARGV[0] eq "get-bing6-addr-dict
 
 	$dictfile= $ARGV[2];
 
-	$changeinsane= 0;
-
-	@changeaddr= split /#/, $ARGV[3];
-
-	if($#changeaddr < 1 || $#changeaddr > 2){
-		print "binding address to be specified as IFACE#PREFIX#CHANGE\n";
-		exit(1);
-	}
-	elsif($#changeaddr == 2){
-		if($changeaddr[2] =~ m/insane/){
-			$changeinsane=1;
-		}
-	}
-
-	($chaddr, $chpref) = split /\//, $changeaddr[1];
-
-	if(!$chpref){
-		$chpref=64;
-	}
-
-	$iface=$changeaddr[0];
-
-	@revname=`uname`;
-	$chos=$revname[0];
-
-	if($chos =~ m/linux/i){
-		$chos="linux";
-	}
-	elsif($chos =~ m/bsd/i){
-		$chos="bsd";
-	}
-	else{
-		print "Your OS is not supported for this function\n";
-	}
-
 #	print "IFACE: $changeaddr[0], ADDR: $chaddr, PREFLEN: $chpref, CHANGEINSANE: $changeinsane, OS: $chos\n";
 
 	$SIG{INT} = \&SigIntHandler;
 
-	$gotaddress=AddAddress($changeaddr[0], $chaddr, $chpref, $chos);
+
 #	print "Randomice: $gotaddress\n";
 
 #	DelAddress($changeaddr[0], $chaddr, $chpref, $chos);
@@ -8570,8 +8854,7 @@ elsif($ARGV[0] eq "get-bing-addr-dict-quick" || $ARGV[0] eq "get-bing6-addr-dict
 
 #	open FILE, "$dictfile" or die $!;
 	open my $dictfp, '<', $dictfile or die $!;
-	GetDomainsFromBingDict(\@domain, $czone, 0, $maxresults, $dictfp, $ipprotocol, $gotaddress);
-	DelAddress($changeaddr[0], $gotaddress, $chpref, $chos);
+	GetDomainsFromBingDict(\@domain, $czone, 0, $maxresults, $dictfp, $ipprotocol, $ARGV[3]);
 	close $dictfp;
 
 	exit;
@@ -8763,32 +9046,6 @@ elsif($ARGV[0] eq "get-bing-addr-dict-quick-batch" || $ARGV[0] eq "get-bing6-add
 	if($#changeaddr < 1 || $#changeaddr > 2){
 		print "binding address to be specified as IFACE#PREFIX#CHANGE\n";
 	}
-	elsif($#changeaddr == 2){
-		if($changeaddr[2] =~ m/insane/){
-			$changeinsane=1;
-		}
-	}
-
-	($chaddr, $chpref) = split /\//, $changeaddr[1];
-
-	if(!$chpref){
-		$chpref=64;
-	}
-
-	$iface=$changeaddr[0];
-
-	@revname=`uname`;
-	$chos=$revname[0];
-
-	if($chos =~ m/linux/i){
-		$chos="linux";
-	}
-	elsif($chos =~ m/bsd/i){
-		$chos="bsd";
-	}
-	else{
-		print "Your OS is not supported for this function\n";
-	}
 
 
 	if($ARGV[0] eq "get-bing4-dict-quick-batch"){
@@ -8806,10 +9063,6 @@ elsif($ARGV[0] eq "get-bing-addr-dict-quick-batch" || $ARGV[0] eq "get-bing6-add
 	ParseConfigFile();
 
 	$SIG{INT} = \&SigIntHandler;
-
-	if(!$changeinsane){
-		$gotaddress=AddAddress($changeaddr[0], $chaddr, $chpref, $chos);
-	}
 
 	while(<STDIN>){
 
@@ -8830,22 +9083,10 @@ elsif($ARGV[0] eq "get-bing-addr-dict-quick-batch" || $ARGV[0] eq "get-bing6-add
 
 		open my $dictfp, '<', $dictfile or die $!;
 
-		if($changeinsane){
-			$gotaddress=AddAddress($changeaddr[0], $chaddr, $chpref, $chos);
-		}
-
-		GetDomainsFromBingDict(\@domain, $czone, 0, $maxresults, $dictfp, $ipprotocol, $gotaddress);	
-
-		if($changeinsane){
-			DelAddress($changeaddr[0], $gotaddress, $chpref, $chos);
-		}
+		GetDomainsFromBingDict(\@domain, $czone, 0, $maxresults, $dictfp, $ipprotocol, $ARGV[2]);	
 
 		close $dictfp;
 	};  # while(<STDIN>)
-
-	if(!$changeinsane){
-		DelAddress($changeaddr[0], $gotaddress, $chpref, $chos);
-	}
 
 	exit;
 }

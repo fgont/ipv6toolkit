@@ -27,6 +27,7 @@
 #include <sys/types.h>
 #include <sys/param.h>
 #include <sys/socket.h>
+#include <sys/time.h>
 
 #include <arpa/inet.h>
 #include <netinet/in.h>
@@ -37,7 +38,6 @@
 #include <stdio.h>
 #include <getopt.h>
 #include <string.h>
-#include <time.h>
 
 #include "addr6.h"
 #include "ipv6toolkit.h"
@@ -96,6 +96,7 @@ int main(int argc, char **argv){
 	uint8_t				dpreflen=128; /* To avoid warnings */
 
 	struct in6_addr		dummyipv6;
+	struct timeval		time;
 
 	static struct option longopts[] = {
 		{"address", required_argument, 0, 'a'},
@@ -172,7 +173,12 @@ int main(int argc, char **argv){
 					}
 				}
 
-				srandom(time(NULL));
+				if(gettimeofday(&time, NULL) == -1){
+					perror("addr6");
+					exit(EXIT_FAILURE);
+				}
+	
+				srandom((unsigned int) time.tv_sec + (unsigned int) time.tv_usec);
 				randomize_ipv6_addr(&randaddr, &genaddr, genpref);
 
 				if(inet_ntop(AF_INET6, &randaddr, pv6addr, sizeof(pv6addr)) == NULL){
