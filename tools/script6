@@ -707,17 +707,9 @@ sub	GenDomListLevel{
 			next;
 		}
 
-		for($x=0; $x <= $#$remref; $x++){
-			if($tdomain eq $remref->[$x]){
-				last;
-			}
-		}
-
-		if($x <= $#$remref){
-			next;
-		}
-		else{
-			$remref->[$#$remref + 1]= $tdomain;
+		if(!IsItemInList($remref, 2000000, $tdomain)){
+			AddItemToList($remref, 2000000, $tdomain);
+			print "$tdomain\n";
 		}
 	}
 }
@@ -1245,9 +1237,13 @@ sub GetDomainsFromBingDict{
 
 #print "# Lei: $dictword";
 #						if( $dictword =~ m/([^\/0-9\s]+[^\/0-9]*)/){
-						if( $dictword =~ m/([^\/0-9\n]+)/){
+						if( $dictword =~ m/([^\/\n#]+)/){
 							$dictkeyword=$1;
 							$dictkeyword=~ s/ /%20/g;
+							$dictkeyword=~ s/"/%34/g;
+							$dictkeyword=~ s/'/%39/g;
+							$dictkeyword=~ s/&/%26/g;
+							$dictkeyword=~ s/\?/%3F/g;
 #print "# Palabra leida: $dictkeyword\n";
 							last;
 						}
@@ -10497,19 +10493,15 @@ elsif($ARGV[0] eq "create-dict" || $ARGV[0] eq "create-dictionary" || $ARGV[0] e
 	while($line=<STDIN>){
 		chomp($line);
 
+		$line =~ s/(?:\s+\d+(?:\s+|$))|(?:^\d+(?:\s+|$))//;
+
 		if( $line =~ m/^\s*([^\/#\r\n]+)/){
 			$dictword=$1;
 			$dictword=~ s/\r//g;
 	#		$dictword=~ s/ /%20/g;
 
-			for($i=0; $i<= $#keywords; $i++){
-				if($keywords[$i] eq $dictword){
-					last;
-				}
-			}
-
-			if($i > $#keywords){
-				$keywords[$#keywords + 1]=$dictword;
+			if(!IsItemInList(\@keywords, 2000000, $dictword)){
+				AddItemToList(\@keywords, 2000000, $dictword);
 				print "$dictword\n";
 			}
 		}
@@ -10526,14 +10518,8 @@ elsif($ARGV[0] eq "create-dict-no-spaces" || $ARGV[0] eq "create-dictionary-no-s
 			$dictword=~ s/\r//g;
 	#		$dictword=~ s/ /%20/g;
 
-			for($i=0; $i<= $#keywords; $i++){
-				if($keywords[$i] eq $dictword){
-					last;
-				}
-			}
-
-			if($i > $#keywords){
-				$keywords[$#keywords + 1]=$dictword;
+			if(!IsItemInList(\@keywords, 2000000, $dictword)){
+				AddItemToList(\@keywords, 2000000, $dictword);
 				print "$dictword\n";
 			}
 		}
@@ -10545,20 +10531,15 @@ elsif($ARGV[0] eq "create-dict-discarded" || $ARGV[0] eq "create-dictionary-disc
 	while($line=<STDIN>){
 		chomp($line);
 
-		if( $line =~ m/^\s*([^\/0-9#\n]+)/){
+		if( $line =~ m/^\s*([^\/#\n]+)/){
 			$dictword=$1;
+			$dictword =~ s/(?:\s+\d+(?:\s+|$))|(?:^\d+(?:\s+|$))//;
 
-			for($i=0; $i<= $#keywords; $i++){
-				if($keywords[$i] eq $dictword){
-					last;
-				}
-			}
-
-			if($i > $#keywords){
-				$keywords[$#keywords + 1]=$dictword;
+			if(!IsItemInList(\@keywords, 2000000, $dictword)){
+				AddItemToList(\@keywords, 2000000, $dictword);
 			}
 			else{
-				print "$dictword\n";
+				print "$dictword # $line\n";
 			}
 		}
 		else{
@@ -10580,14 +10561,8 @@ elsif($ARGV[0] eq "get-unique-domains"){
 
 	#		$dictword=~ s/ /%20/g;
 
-			for($i=0; $i<= $#keywords; $i++){
-				if($keywords[$i] eq $dictword){
-					last;
-				}
-			}
-
-			if($i > $#keywords){
-				$keywords[$#keywords + 1]=$dictword;
+			if(!IsItemInList(\@keywords, 2000000, $dictword)){
+				AddItemToList(\@keywords, 2000000, $dictword);
 				print "$dictword\n";
 			}
 		}
@@ -10602,14 +10577,8 @@ elsif($ARGV[0] eq "get-unique-ipv4-addresses" || $ARGV[0] eq "get-unique-ipv4-ad
 		if( $line =~ s/((?:(?:1[0-9]{2}|2(?:[0-4][0-9]|5[0-9])|[0-9]{1,2})\.){3}(?:(?:1[0-9]{2}|2(?:[0-4][0-9]|5[0-9])|[0-9]{1,2})))//){
 			$dictword=$1;
 
-			for($i=0; $i<= $#keywords; $i++){
-				if($keywords[$i] eq $dictword){
-					last;
-				}
-			}
-
-			if($i > $#keywords){
-				$keywords[$#keywords + 1]=$dictword;
+			if(!IsItemInList(\@keywords, 2000000, $dictword)){
+				AddItemToList(\@keywords, 2000000, $dictword);
 				print "$dictword\n";
 			}
 		}
