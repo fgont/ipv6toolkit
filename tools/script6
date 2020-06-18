@@ -10642,11 +10642,6 @@ elsif($ARGV[0] eq "get-zonefile-domains"){
 
 	while($line=<STDIN>){
 		$line=lc($line);
-
-		if($line =~ m/^\s*$/){
-			next;
-		}
-
 		if(!$gotorg){
 			if($line =~ m/^\s*\$origin\s+([-a-zA-Z0-9_.]+)$/){
 				$org= join(".", split /\./, $1);
@@ -10707,10 +10702,6 @@ elsif($ARGV[0] eq "get-zonefile-nameservers" || $ARGV[0] eq "get-zonefile-ns"){
 
 	while($line=<STDIN>){
 		$line=lc($line);
-
-		if($line =~ m/^\s*$/){
-			next;
-		}
 
 		if(!$gotorg){
 			if($line =~ m/^\s*\$origin\s+([-a-zA-Z0-9_.]+)$/){
