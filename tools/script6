@@ -8340,7 +8340,11 @@ elsif($ARGV[0] eq "get-bing-addr-by-addr-quick-batch" || $ARGV[0] eq "get-bing6-
 	while($czone=<STDIN>){
 		undef @domain;
 
-		if($czone !~ m/\s*([-0-9.]+)/){
+		if($czone =~ m/^\s*#/){
+			next;
+		}
+
+		if($czone !~ m/^\s*([-0-9.]+)/){
 			next;
 		}
 
@@ -8350,8 +8354,7 @@ elsif($ARGV[0] eq "get-bing-addr-by-addr-quick-batch" || $ARGV[0] eq "get-bing6-
 			$a0=$1; $a1=$2; $b0=$3; $b1=$4; $c0=$5; $c1=$6; $d0=$7; $d1=$8;
 		}
 		else{
-			print "Not an IP address\n";
-			exit(1);
+			next;
 		}
 
 
@@ -8372,8 +8375,7 @@ elsif($ARGV[0] eq "get-bing-addr-by-addr-quick-batch" || $ARGV[0] eq "get-bing6-
 		}
 
 		if($a0 > $a1 || $b0 > $b1 || $c0 > $c1 || $d0 > $d1){
-			print "# Bad IP range";
-			exit(1);
+			next;
 		}
 
 		print "######## ADDRESS: $czone ########\n";
