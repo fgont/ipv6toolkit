@@ -10638,11 +10638,14 @@ elsif($ARGV[0] eq "get-domain-from-zonefile" || $ARGV[0] eq "get-domain-from-zon
 elsif($ARGV[0] eq "get-zonefile-domains"){
 
 	$lastdomain="";
-	$linenumber=0;
 	$gotorg=0;
 
 	while($line=<STDIN>){
 		$line=lc($line);
+
+		if($line =~ m/^\s*$/){
+			next;
+		}
 
 		if(!$gotorg){
 			if($line =~ m/^\s*\$origin\s+([-a-zA-Z0-9_.]+)$/){
@@ -10652,6 +10655,9 @@ elsif($ARGV[0] eq "get-zonefile-domains"){
 			elsif($line =~ m/^\s*([-a-zA-Z0-9_.]+)\s+\d+\s+in\s+soa\s+/){
 				$org= join(".", split /\./, $1);
 				$gotorg=1;
+			}
+			else{
+				print "Couldn't find Origin for zone file\n";
 			}
 		}
 		else{
@@ -10691,18 +10697,20 @@ elsif($ARGV[0] eq "get-zonefile-domains"){
 			}
 		}
 
-		$linenumber++;
 	}
 }
 elsif($ARGV[0] eq "get-zonefile-nameservers" || $ARGV[0] eq "get-zonefile-ns"){
 
 	$lastdomain="";
 	$lastns="";
-	$linenumber=0;
 	$gotorg=0;
 
 	while($line=<STDIN>){
 		$line=lc($line);
+
+		if($line =~ m/^\s*$/){
+			next;
+		}
 
 		if(!$gotorg){
 			if($line =~ m/^\s*\$origin\s+([-a-zA-Z0-9_.]+)$/){
@@ -10735,6 +10743,7 @@ elsif($ARGV[0] eq "get-zonefile-nameservers" || $ARGV[0] eq "get-zonefile-ns"){
 
 				if($domain ne $lastdomain){
 					$lastdomain=$domain;
+					$lastns="";
 					print "# $domain\n";
 				}
 				if($ns ne $lastns){
@@ -10762,6 +10771,7 @@ elsif($ARGV[0] eq "get-zonefile-nameservers" || $ARGV[0] eq "get-zonefile-ns"){
 
 				if($domain ne $lastdomain){
 					$lastdomain=$domain;
+					$lastns="";
 					print "# $domain\n";
 				}
 				if($ns ne $lastns){
@@ -10770,8 +10780,6 @@ elsif($ARGV[0] eq "get-zonefile-nameservers" || $ARGV[0] eq "get-zonefile-ns"){
 				}
 			}
 		}
-
-		$linenumber++;
 	}
 }
 elsif($ARGV[0] eq "get-zonefile-mailservers" || $ARGV[0] eq "get-zonefile-mx"){
