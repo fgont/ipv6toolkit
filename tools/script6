@@ -10651,9 +10651,6 @@ elsif($ARGV[0] eq "get-zonefile-domains"){
 				$org= join(".", split /\./, $1);
 				$gotorg=1;
 			}
-			else{
-				print "Couldn't find Origin for zone file\n";
-			}
 		}
 		else{
 			if($org eq "com" && $line=~ m/^\s*(\S+)\s+ns\s+\S+$/){
