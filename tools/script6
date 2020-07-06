@@ -997,6 +997,8 @@ sub GetDomainsFromBingDict{
 		$totalqueries=0;
 		$ttotalqueries=0;
 		$errorcode=0;
+		$lasterror=0;
+		$nerror= 0;
 
 		# If we are doing mass search, we need a keyword to search for
 		if($czone eq ""){
@@ -1045,6 +1047,8 @@ sub GetDomainsFromBingDict{
 			$totalqueries++;
 
 			if($? == 0){
+				$lasterror=0;
+				$nerror=0;
 				$errorcode=0;
 
 				foreach $line (@revname){
@@ -1266,7 +1270,21 @@ sub GetDomainsFromBingDict{
 			}  # End of $? (result of wget)
 			else{
 				$errorcode= $? >>8;
-				print "# \$? was different from 0 (\$?== $?, error: $errorcode, command: '$stringcommand')\n";
+
+				if($errorcode == $lasterror){
+					$nerror++;
+				}
+				else{
+					$lasterror= $errorcode;
+					$nerror= 0;
+				}
+
+				if($wwwclient =~ m/curl/){
+					if($errorcode == 45){
+						sleep(1);
+					}
+				}
+
 
 				$totalqueries--;
 			}
@@ -2150,6 +2168,9 @@ sub GetDomainsFromBingByAddr{
 		$remsites="";
 		$totalqueries=0;
 
+		$lasterror=0;
+		$nerror=0;
+
 		do{   # Iteration for each page
 			$matches=0;
 			$totalmatches=0;
@@ -2172,6 +2193,9 @@ sub GetDomainsFromBingByAddr{
 			$totalqueries++;
 
 			if($? == 0){
+				$lasterror= 0;
+				$nerror= 0;
+
 				foreach $line (@revname){
 					if($line=~ m/<div class="sw_next">[^<]+<\/div><\/a>/){
 						$hasnext=1;
@@ -2496,9 +2520,26 @@ sub GetDomainsFromBingByAddr{
 				}  # End of "trydifferent"
 			}  # End of $? (result of wget)
 			else{
-#				print "# \$? was different from 0 (\$?== $?, command: '$stringcommand')\n";
+				$errorcode= $? >>8;
+
+				if($errorcode == $lasterror){
+					$nerror++;
+				}
+				else{
+					$lasterror= $errorcode;
+					$nerror= 0;
+				}
+
+				if($wwwclient =~ m/curl/){
+					if($errorcode == 45){
+						sleep(1);
+					}
+				}
+
+
 				$totalqueries--;
 			}
+
 #		}while($? == 0 && $continue == 1);
 		}while($continue == 1);
 
@@ -2654,6 +2695,8 @@ sub GetDomainsFromBingByAddrQuick{
 		$totalqueries=0;
 		$ttotalqueries=0;
 		$errorcode=0;
+		$lasterror=0;
+		$nerror=0;
 
 		if($changeaddrlevel == 1){
 			$gotaddress=AddAddress($iface, $chaddr, $chpref, $chos);
@@ -2694,6 +2737,8 @@ sub GetDomainsFromBingByAddrQuick{
 			$ttotalqueries++;
 
 			if($? == 0){
+				$lasterror=0;
+				$nerror=0;
 				$errorcode=0;
 
 				foreach $line (@revname){
@@ -3020,10 +3065,25 @@ sub GetDomainsFromBingByAddrQuick{
 				}  # End of "trydifferent"
 			}  # End of $? (result of wget)
 			else{
-#				print "# \$? was different from 0 (\$?== $?, command: '$stringcommand')\n";
 				$errorcode= $? >>8;
+
+				if($errorcode == $lasterror){
+					$nerror++;
+				}
+				else{
+					$lasterror= $errorcode;
+					$nerror= 0;
+				}
+
+				if($wwwclient =~ m/curl/){
+					if($errorcode == 45){
+						sleep(1);
+					}
+				}
+
 				$totalqueries--;
 			}
+
 #		}while($? == 0 && $continue == 1);
 		}while($continue == 1);
 
@@ -8824,7 +8884,7 @@ elsif($ARGV[0] eq "get-bing-addr-dict-quick" || $ARGV[0] eq "get-bing6-addr-dict
 #	DelAddress($changeaddr[0], $chaddr, $chpref, $chos);
 
 
-	if($ARGV[0] eq "get-bing6-dict-quick"){
+	if($ARGV[0] eq "get-bing6-addr-dict-quick"){
 		$ipprotocol=6;
 	}
 	else{
@@ -8857,9 +8917,113 @@ elsif($ARGV[0] eq "get-bing-addr-dict-quick" || $ARGV[0] eq "get-bing6-addr-dict
 
 	exit;
 }
+elsif($ARGV[0] eq "get-bing-addr-dict" || $ARGV[0] eq "get-bing6-addr-dict"){
+	#
+	# $ARGV[0]: get-bin-dict
+	# $ARGV[1]: domain
+	# $ARGV[2]: dictionary
+	# $ARGV[3]: maxsites
+
+	if($#ARGV < 3 || $#ARGV > 4){
+		print "Syntax: script6 $ARGV[0] DOMAIN DICTIONARY IFACE#PREFIX#CHANGE [MAXRESULTS]\n";
+		exit 1;
+	}
+
+	if($#ARGV == 4){
+		$maxresults= $ARGV[4];
+
+		if($maxresults == 0){
+			exit 0;
+		}
+
+		$maxresults--;
+	}
+	else{
+		$maxresults= -1;
+	}
+
+	$dictfile= $ARGV[2];
+
+#	print "IFACE: $changeaddr[0], ADDR: $chaddr, PREFLEN: $chpref, CHANGEINSANE: $changeinsane, OS: $chos\n";
+
+	$SIG{INT} = \&SigIntHandler;
+
+
+#	print "Randomice: $gotaddress\n";
+
+#	DelAddress($changeaddr[0], $chaddr, $chpref, $chos);
+
+
+	if($ARGV[0] eq "get-bing6-addr-dict-quick"){
+		$ipprotocol=6;
+	}
+	else{
+		# Rather than leaving the protocol unspecified, we force IPv6
+		$ipprotocol=6;
+	}
+
+	ParseConfigFile();
+	undef @domain;
+
+	$_= $ARGV[1];
+
+	if($_ =~ m/^\s*\.*([-a-zA-Z0-9._]+)/){
+		$czone= $1;
+	}
+	else{
+		print "Invalid DNS zone\n";
+		exit(1);
+	}
+
+	$czone= join ".", split /\./, $czone;
+
+
+	print "######## DOMAIN: $czone ########\n";
+
+#	open FILE, "$dictfile" or die $!;
+	open my $dictfp, '<', $dictfile or die $!;
+	GetDomainsFromBingDict(\@domain, $czone, 0, $maxresults, $dictfp, $ipprotocol, $ARGV[3]);
+	close $dictfp;
+
+	#print "#### IMPORTANT: WILL NOW SEARCH FOR DOMAINS WITHIN SPECIFIC SUBDOMAINS\n";
+	undef @remsites;
+	undef @levsites;
+	$continue=1;
+
+	$domlevel=1;
+	GenDomListLevel(\@domain, \@levsites, $czone, $domlevel, -1);
+
+	while($#levsites >= 0 && $continue == 1){
+		#print "#### LEVEL: $domlevel, TOTAL: $#levsites\n\n#LIST:\n";
+
+		for($jj= 0; $jj <= $#levsites && $continue == 1; $jj++){
+			$newczone= $levsites[$jj];
+
+			#	open FILE, "$dictfile" or die $!;
+			open my $dictfp, '<', $dictfile or die $!;
+
+			GetDomainsFromBingDict(\@domain, $newczone, $domlevel, $maxresults, $dictfp, $ipprotocol, $ARGV[3]);
+
+			if($maxresults >= 0 && $#domain>=$maxresults){
+				$continue=0;
+			}
+			else{
+				$continue=1;
+			}
+
+			close $dictfp;
+		}
+
+		$domlevel++;
+		undef @levsites;
+		GenDomListLevel(\@domain, \@levsites, $czone, $domlevel, -1);
+	}  # While lev > 0;
+
+	exit;
+}
 elsif($ARGV[0] eq "get-bing-addr-dict-batch" || $ARGV[0] eq "get-bing6-addr-dict-batch"){
 	if($#ARGV < 1 ){
-		print "usage: script6 $ARGV[0] DICTIONARY ADDRESS [MAXRESULTS]\n";
+		print "usage: script6 $ARGV[0] DICTIONARY IFACE#PREFIX#CHANGE [MAXRESULTS]\n";
 		exit(1);
 	}
 
@@ -8886,33 +9050,6 @@ elsif($ARGV[0] eq "get-bing-addr-dict-batch" || $ARGV[0] eq "get-bing6-addr-dict
 	if($#changeaddr < 1 || $#changeaddr > 2){
 		print "binding address to be specified as IFACE#PREFIX#CHANGE\n";
 	}
-	elsif($#changeaddr == 2){
-		if($changeaddr[2] =~ m/insane/){
-			$changeinsane=1;
-		}
-	}
-
-	($chaddr, $chpref) = split /\//, $changeaddr[1];
-
-	if(!$chpref){
-		$chpref=64;
-	}
-
-	$iface=$changeaddr[0];
-
-	@revname=`uname`;
-	$chos=$revname[0];
-
-	if($chos =~ m/linux/i){
-		$chos="linux";
-	}
-	elsif($chos =~ m/bsd/i){
-		$chos="bsd";
-	}
-	else{
-		print "Your OS is not supported for this function\n";
-	}
-
 
 	if($ARGV[0] eq "get-bing4-dict-batch"){
 		print "Cannot specify source address for IPv4\n";
@@ -8929,13 +9066,7 @@ elsif($ARGV[0] eq "get-bing-addr-dict-batch" || $ARGV[0] eq "get-bing6-addr-dict
 
 	$SIG{INT} = \&SigIntHandler;
 
-	if(!$changeinsane){
-		$gotaddress=AddAddress($changeaddr[0], $chaddr, $chpref, $chos);
-	}
-
 	while(<STDIN>){
-
-
 		undef @domain;
 
 		if($_ =~ m/^\s*\.*([-a-zA-Z0-9.]+)/){
@@ -8952,15 +9083,7 @@ elsif($ARGV[0] eq "get-bing-addr-dict-batch" || $ARGV[0] eq "get-bing6-addr-dict
 
 		open my $dictfp, '<', $dictfile or die $!;
 
-		if($changeinsane){
-			$gotaddress=AddAddress($changeaddr[0], $chaddr, $chpref, $chos);
-		}
-
-		GetDomainsFromBingDict(\@domain, $czone, 0, $maxresults, $dictfp, $ipprotocol, $gotaddress);	
-
-		if($changeinsane){
-			DelAddress($changeaddr[0], $gotaddress, $chpref, $chos);
-		}
+		GetDomainsFromBingDict(\@domain, $czone, 0, $maxresults, $dictfp, $ipprotocol, $ARGV[2]);	
 
 		close $dictfp;
 
@@ -8982,15 +9105,7 @@ elsif($ARGV[0] eq "get-bing-addr-dict-batch" || $ARGV[0] eq "get-bing6-addr-dict
 				#	open FILE, "$dictfile" or die $!;
 				open my $dictfp, '<', $dictfile or die $!;
 
-				if($changeinsane){
-					$gotaddress=AddAddress($changeaddr[0], $chaddr, $chpref, $chos);
-				}
-
-				GetDomainsFromBingDict(\@domain, $newczone, $domlevel, $maxresults, $dictfp, $ipprotocol, $gotaddress);
-
-				if($changeinsane){
-					DelAddress($changeaddr[0], $gotaddress, $chpref, $chos);
-				}
+				GetDomainsFromBingDict(\@domain, $newczone, $domlevel, $maxresults, $dictfp, $ipprotocol, $ARGV[2]);
 
 				if($maxresults >= 0 && $#domain>=$maxresults){
 					$continue=0;
@@ -9007,11 +9122,6 @@ elsif($ARGV[0] eq "get-bing-addr-dict-batch" || $ARGV[0] eq "get-bing6-addr-dict
 			GenDomListLevel(\@domain, \@levsites, $czone, $domlevel, -1);
 		}  # While lev > 0;
 	};  # while(<STDIN>)
-
-	if(!$changeinsane){
-		DelAddress($changeaddr[0], $gotaddress, $chpref, $chos);
-	}
-
 
 	exit;
 }
@@ -11152,6 +11262,58 @@ elsif($ARGV[0] eq "get-addresses" || $ARGV[0] eq "get-addrs"){
 		}
 
 	}
+}
+elsif($ARGV[0] eq "split" || $ARGV[0] eq "split-file"){
+	# script6 split filename nfiles
+	if($#ARGV < 1 || $#ARGV > 2){
+		print "Syntax: script6 $ARGV[0] FILE PIECES\n";
+		exit(1);
+	}
+
+	if($#ARGV < 2){
+		$pieces=2;
+	}
+	else{
+		$pieces= $ARGV[2];
+	}
+
+	$suffix= $ARGV[1];
+	
+	if($suffix =~ s/([^.]+)//){
+		$prefix= $1; 
+	}
+
+	open my $file, '<', $ARGV[1] or die $!;
+
+	$totallines=0;
+	while($line=<$file>){
+		$totallines++;
+	}
+
+	close $file;
+
+	open $file, '<', $ARGV[1] or die $!;
+
+	$npiece=0;
+	$plines= (($totallines + $pieces - 1) / $pieces);
+
+	do{
+		$filename= sprintf("%s-%02d%s", $prefix, $npiece, $suffix);
+		open $pfile, '>', $filename or die $!;
+		
+		$i=0;
+
+		while( ($i < $plines) && ($line=<$file>)){
+			print $pfile "$line";
+			$i++;
+		}
+
+		if($i >= $plines){
+			close $pfile;
+			$npiece++;
+		}
+
+	}while($i >= $plines && ! eof($file));
 }
 else{
 	print "$SI6_TOOLKIT\n";
