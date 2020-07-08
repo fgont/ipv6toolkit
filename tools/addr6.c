@@ -38,6 +38,7 @@
 #include <stdio.h>
 #include <getopt.h>
 #include <string.h>
+#include <unistd.h>
 
 #include "addr6.h"
 #include "ipv6toolkit.h"
@@ -95,6 +96,7 @@ int main(int argc, char **argv){
 	/* Filter based on prefix length */
 	uint8_t				dpreflen=128; /* To avoid warnings */
 
+	pid_t				pid;
 	struct in6_addr		dummyipv6;
 	struct timeval		time;
 
@@ -177,8 +179,9 @@ int main(int argc, char **argv){
 					perror("addr6");
 					exit(EXIT_FAILURE);
 				}
-	
-				srandom((unsigned int) time.tv_sec + (unsigned int) time.tv_usec);
+
+				pid= getpid();
+				srandom((unsigned int) time.tv_sec + (unsigned int) time.tv_usec + (unsigned int) pid);
 				randomize_ipv6_addr(&randaddr, &genaddr, genpref);
 
 				if(inet_ntop(AF_INET6, &randaddr, pv6addr, sizeof(pv6addr)) == NULL){
