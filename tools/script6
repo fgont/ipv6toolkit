@@ -795,7 +795,7 @@ sub GetDomainsFromCrt{
 	my($pdomain, $pzone, $pmaxresults, $filehandle, $specaddr) = @_;
 	$useragent=GetRandomUserAgent();
 
-	if(!$bindaddress){
+	if(!$specaddr){
 		$specaddr="";
 		$intprot="";
 	}
@@ -7940,7 +7940,7 @@ elsif($ARGV[0] eq "get-crt-addr" || $ARGV[0] eq "get-crt.sh-addr" || $ARGV[0] eq
 			print "Your OS is not supported for this function\n";
 		}
 
-		if($changeaddrlevel => 1){
+		if($changeaddrlevel >= 1){
 			$gotaddress=AddAddress($iface, $chaddr, $chpref, $chos);
 			$specaddr="$wwwclient_addr$gotaddress";
 		}
