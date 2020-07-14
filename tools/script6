@@ -792,14 +792,21 @@ sub SigIntHandler{
 }
 
 sub GetDomainsFromCrt{
-	my($pdomain, $pzone, $pmaxresults, $filehandle) = @_;
+	my($pdomain, $pzone, $pmaxresults, $filehandle, $specaddr) = @_;
 	$useragent=GetRandomUserAgent();
+
+	if(!$bindaddress){
+		$specaddr="";
+		$intprot="";
+	}
+	else{
+		$intprot="-6";
+	}
 
 	# XXX Ugly hack to override the default (usually small) timeout value
 	$wwwclient_tout=~ s/\d+/240/;
 
-
-	$command="$wwwclient $wwwclient_sopt $wwwclient_agnt\"$useragent\" \"https://crt.sh/?q=%.$czone&output=json\"";
+	$command="$wwwclient $intprot $specaddr $wwwclient_sopt $wwwclient_agnt\"$useragent\" \"https://crt.sh/?q=%.$czone&output=json\"";
 	$doagain_f=1;
 	$times= 0;
 
@@ -853,7 +860,7 @@ sub GetDomainsFromCrt{
 
 		if($doagain_f){
 			$times++;
-			sleep(10);
+			sleep(5);
 		}
 
 	}while($doagain_f && $times <= 5);
@@ -7792,7 +7799,7 @@ elsif($ARGV[0] eq "get-iso2-for-rir"){
 }
 elsif($ARGV[0] eq "get-tld-for-rir"){
 	if($#ARGV > 1){
-		print "Syntax: script6 get-iso2-for-rir [RIR]\n";
+		print "Syntax: script6 get-tld-for-rir [RIR]\n";
 	}
 
 	ParseConfigFile();
@@ -7885,6 +7892,181 @@ elsif($ARGV[0] eq "get-crt" || $ARGV[0] eq "get-crt.sh" || $ARGV[0] eq "get-cert
 	ParseConfigFile();
 	GetDomainsFromCrt(\@domain, $czone, $maxresults, \*STDOUT);	
 }
+elsif($ARGV[0] eq "get-crt-addr" || $ARGV[0] eq "get-crt.sh-addr" || $ARGV[0] eq "get-cert-transparency-addr" || $ARGV[0] eq "get-cert-transp-addr"){
+	if($#ARGV < 1){
+		print "usage: script6 $ARGV[0] DOMAIN IFACE#PREFIX#CHANGE [MAXRESULTS]\n";
+		exit(1);
+	}
+
+	ParseConfigFile();
+	$SIG{INT} = \&SigIntHandler;
+
+	if($#ARGV >= 2){
+		@changeaddr= split /#/, $ARGV[2];
+
+		if($#changeaddr < 1 || $#changeaddr > 2){
+			print "binding address to be specified as IFACE#PREFIX#CHANGE\n";
+			exit(1);
+		}
+		elsif($#changeaddr == 2){
+			if($changeaddr[2] =~ m/crazy/){
+				$changeaddrlevel=2;
+			}
+			elsif($changeaddr[2] =~ m/insane/){
+				$changeaddrlevel=3;
+			}
+			else{
+				$changeaddrlevel=1;
+			}
+		}
+
+		$iface=$changeaddr[0];
+		($chaddr, $chpref) = split /\//, $changeaddr[1];
+
+		if(!$chpref){
+			$chpref=64;
+		}
+
+		@revname=`uname`;
+		$chos=$revname[0];
+
+		if($chos =~ m/linux/i){
+			$chos="linux";
+		}
+		elsif($chos =~ m/bsd/i){
+			$chos="bsd";
+		}
+		else{
+			print "Your OS is not supported for this function\n";
+		}
+
+		if($changeaddrlevel => 1){
+			$gotaddress=AddAddress($iface, $chaddr, $chpref, $chos);
+			$specaddr="$wwwclient_addr$gotaddress";
+		}
+
+		if($#ARGV >=3){
+			$maxresults= $ARGV[3];
+			$maxresults--;
+
+			if($maxresults < 0){
+				exit 0;
+			}
+		}
+		else{
+			$maxresults= -1;
+		}
+	}
+	else{
+		$specaddr="";
+	}
+
+	$czone= $ARGV[1];
+	if($czone =~ m/^\s*\.*([-a-zA-Z0-9.]+)/){
+		$czone= $1;
+	}
+
+	undef @domain;
+
+	GetDomainsFromCrt(\@domain, $czone, $maxresults, \*STDOUT, $specaddr);
+
+	if($specaddr){
+		DelAddress($iface, $gotaddress, $chpref, $chos);
+	}
+
+	exit(0);
+}
+elsif($ARGV[0] eq "get-crt-addr-batch"){
+	if($#ARGV < 1){
+		print "usage: script6 $ARGV[0] IFACE#PREFIX#CHANGE [MAXRESULTS]\n";
+		exit(1);
+	}
+
+	ParseConfigFile();
+	$SIG{INT} = \&SigIntHandler;
+
+		@changeaddr= split /#/, $ARGV[1];
+
+		if($#changeaddr < 1 || $#changeaddr > 2){
+			print "binding address to be specified as IFACE#PREFIX#CHANGE\n";
+			exit(1);
+		}
+		elsif($#changeaddr == 2){
+			if($changeaddr[2] =~ m/crazy/){
+				$changeaddrlevel=2;
+			}
+			elsif($changeaddr[2] =~ m/insane/){
+				$changeaddrlevel=3;
+			}
+			else{
+				$changeaddrlevel=1;
+			}
+		}
+
+		$iface=$changeaddr[0];
+		($chaddr, $chpref) = split /\//, $changeaddr[1];
+
+		if(!$chpref){
+			$chpref=64;
+		}
+
+		@revname=`uname`;
+		$chos=$revname[0];
+
+		if($chos =~ m/linux/i){
+			$chos="linux";
+		}
+		elsif($chos =~ m/bsd/i){
+			$chos="bsd";
+		}
+		else{
+			print "Your OS is not supported for this function\n";
+		}
+
+		if($#ARGV >=2){
+			$maxresults= $ARGV[2];
+			$maxresults--;
+
+			if($maxresults < 0){
+				exit 0;
+			}
+		}
+		else{
+			$maxresults= -1;
+		}
+
+
+	while($czone=<STDIN>){
+
+
+		undef @domain;
+
+		if($czone=~ m/^\s*#/){
+			next;
+		}
+
+		if($czone =~ m/^\s*\.*([-a-zA-Z0-9.]+)/){
+			$czone= $1;
+		}
+		else{
+			next;
+		}
+
+		print "######## DOMAIN: $czone ########\n";
+
+		if($changeaddrlevel >= 1){
+			$gotaddress=AddAddress($iface, $chaddr, $chpref, $chos);
+			$specaddr="$wwwclient_addr$gotaddress";
+		}
+
+		GetDomainsFromCrt(\@domain, $czone, $maxresults, \*STDOUT, $specaddr);
+
+		if($changeaddrlevel >= 1){
+			DelAddress($iface, $gotaddress, $chpref, $chos);
+		}
+	}
+}
+
 elsif($ARGV[0] eq "get-crt-batch"){
 	if($#ARGV >=1 ){
 		$maxresults= $ARGV[1];
@@ -7921,6 +8103,110 @@ elsif($ARGV[0] eq "get-crt-batch"){
 
 		GetDomainsFromCrt(\@domain, $czone, $maxresults, \*STDOUT);	
 	}
+}
+elsif($ARGV[0] eq "get-crt-addr-batch-files"){
+	if($#ARGV < 1){
+		print "usage: script6 $ARGV[0] IFACE#PREFIX#CHANGE [MAXRESULTS]\n";
+		exit(1);
+	}
+
+	ParseConfigFile();
+	$SIG{INT} = \&SigIntHandler;
+
+		@changeaddr= split /#/, $ARGV[1];
+
+		if($#changeaddr < 1 || $#changeaddr > 2){
+			print "binding address to be specified as IFACE#PREFIX#CHANGE\n";
+			exit(1);
+		}
+		elsif($#changeaddr == 2){
+			if($changeaddr[2] =~ m/crazy/){
+				$changeaddrlevel=2;
+			}
+			elsif($changeaddr[2] =~ m/insane/){
+				$changeaddrlevel=3;
+			}
+			else{
+				$changeaddrlevel=1;
+			}
+		}
+
+		$iface=$changeaddr[0];
+		($chaddr, $chpref) = split /\//, $changeaddr[1];
+
+		if(!$chpref){
+			$chpref=64;
+		}
+
+		@revname=`uname`;
+		$chos=$revname[0];
+
+		if($chos =~ m/linux/i){
+			$chos="linux";
+		}
+		elsif($chos =~ m/bsd/i){
+			$chos="bsd";
+		}
+		else{
+			print "Your OS is not supported for this function\n";
+		}
+
+		if($#ARGV >=2){
+			$maxresults= $ARGV[2];
+			$maxresults--;
+
+			if($maxresults < 0){
+				exit 0;
+			}
+		}
+		else{
+			$maxresults= -1;
+		}
+
+
+	@revname=`whoami`;
+	$user= $revname[0];
+	chomp($user);
+	@revname=`hostname`;
+	$hostname= $revname[0];
+	chomp($hostname);
+
+
+	while($czone=<STDIN>){
+		undef @domain;
+
+		if($czone=~ m/^\s*#/){
+			next;
+		}
+
+		if($czone =~ m/^\s*\.*([-a-zA-Z0-9.]+)/){
+			$czone= $1;
+		}
+		else{
+			next;
+		}
+
+		if($changeaddrlevel >= 1){
+			$gotaddress=AddAddress($iface, $chaddr, $chpref, $chos);
+			$specaddr="$wwwclient_addr$gotaddress";
+		}
+
+		@revname=`date --iso-8601=seconds -u`;
+		$datetime=$revname[0];
+		$datetime=~ s/[ :+]//g;
+		chomp($datetime);
+		$filename="$czone-$datetime-$hostname-$user.txt";
+		open FILE, ">$filename" or die $!;
+
+		GetDomainsFromCrt(\@domain, $czone, $maxresults, \*FILE, $specaddr);
+
+		if($changeaddrlevel >= 1){
+			DelAddress($iface, $gotaddress, $chpref, $chos);
+		}
+
+		close FILE;	
+	}
+
 }
 
 elsif($ARGV[0] eq "get-crt-batch-files"){
