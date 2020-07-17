@@ -132,12 +132,14 @@ sub ParseConfigFile{
 		$wwwclient_tout=" --max-time $MAXTIMEPERIOD ";
 		$wwwclient_agnt=" --user-agent ";
 		$wwwclient_addr=" --interface ";
+		$wwwclient_hdr=" -I -s --max-time 10 ";
 	}
 	elsif($wwwclient=~ m/(?:\/[a-z-A-Z0-9-_]+\/)*wget/){
 		$wwwclient_sopt=" -q -O - ";
 		$wwwclient_tout=" --timeout=$MAXTIMEPERIOD ";
 		$wwwclient_agnt=" --user-agent=";
 		$wwwclient_addr=" --bind-address=";
+		$wwwclient_hdr=" -S --max-redirect 0 -q --timeout=10 ";
 	}
 	elsif($wwwclient=~ m/^\s*$/){
 		print "ERROR: 'WWW-client' option not set in configuration file (/etc/ipv6toolkit.conf).\n";
@@ -11691,8 +11693,67 @@ elsif($ARGV[0] eq "split" || $ARGV[0] eq "split-file"){
 
 	}while($i >= $plines && ! eof($file));
 }
+elsif($ARGV[0] eq "get-http-headers" || $ARGV[0] eq "get-https-headers"){
+	if($ARGV[0] eq "get-http-headers"){
+		$req="http://";
+	}
+	else{
+		$req="https://";
+	}
+
+	ParseConfigFile();
+
+	if($#ARGV == 0){
+		while($domain=<STDIN>){
+			chomp($domain);
+
+			# If the line cotains a comment at the end of the line, remove it
+			if($domain =~ m/^\s*([-a-zA-Z0-9_.]+)/){
+				$domain= $1;
+
+				$command= "$wwwclient $wwwclient_hdr $req$domain 2>&1";
+
+				print "# $domain\n";
+
+				$pid = open3(\*CHLD_IN, \*CHLD_OUT, \*CHLD_ERR, $command, );
+				close(CHLD_IN);
+				close(CHLD_ERR);
+
+				while($line=<CHLD_OUT>){
+					print "$line";
+				}
+
+				waitpid( $pid, 0 );
+			}
+
+		}
+	}
+	else{
+		chomp($domain);
+
+		# If the line cotains a comment at the end of the line, remove it
+		if($domain =~ m/^\s*([-a-zA-Z0-9_.]+)/){
+			$domain= $1;
+
+			$command= "$wwwclient $wwwclient_hdr $req$domain 2>&1";
+
+			print "# $domain\n";
+
+			$pid = open3(\*CHLD_IN, \*CHLD_OUT, \*CHLD_ERR, $command, );
+			close(CHLD_IN);
+			close(CHLD_ERR);
+
+			while($line=<CHLD_OUT>){
+				print "$line";
+			}
+
+			waitpid( $pid, 0 );
+		}
+	}
+}
 else{
 	print "$SI6_TOOLKIT\n";
 	print "$SCRIPT6\n";
 	print "$USAGE\n";
 }
+
