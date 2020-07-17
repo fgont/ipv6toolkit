@@ -7158,6 +7158,86 @@ elsif($ARGV[0] eq "get-aaaa"){
 
 	}
 }
+elsif($ARGV[0] eq "get-dns-version"){
+	if($#ARGV == 0){
+		while($domain=<STDIN>){
+			chomp($domain);
+
+			if($domain =~ m/^\s*#/ || $domain =~ m/^\s*$/){
+				next;
+			}
+
+			if($domain =~ m/^\s*([-a-zA-Z0-9_.]+)/){
+				$domain= $1;
+			}
+			else{
+				next;
+			}
+
+			print "# $domain\n";
+
+			do{
+				$resversion  = Net::DNS::Resolver->new(nameservers=>[$domain]);
+				#my $res= new Net::DNS::Resolver(nameservers=>["a.nic.cl"]);
+				$n++;
+			}while(!$resversion && $n<5);
+
+			if($n>=5){
+				next;
+			}
+
+			$reply = $resversion->query("version.bind", "TXT", "CH");
+
+			if($reply){
+				foreach $a ($reply->answer) {
+					if($a->type eq "TXT"){
+						$dnsversion=$a->txtdata;
+						print "$dnsversion\n";
+					}
+				}
+			}
+
+		}
+	}
+	elsif ($#ARGV == 1){
+		$domain= $ARGV[1];
+		chomp($domain);
+
+		if($domain =~ m/^\s*([-a-zA-Z0-9_.]+)/){
+			$domain= $1;
+
+			print "# $domain\n";
+
+			do{
+				$resversion  = Net::DNS::Resolver->new(nameservers=>[$domain]);
+				#my $res= new Net::DNS::Resolver(nameservers=>["a.nic.cl"]);
+				$n++;
+			}while(!$resversion && $n<5);
+
+			if($n>=5){
+				exit(1);
+			}
+
+			$reply = $resversion->query("version.bind", "TXT", "CH");
+
+			if($reply){
+				foreach $a ($reply->answer) {
+					if($a->type eq "TXT"){
+						$dnsversion=$a->txtdata;
+						print "$dnsversion\n";
+					}
+				}
+			}
+
+		}
+	}
+	else{
+		print "Error: Too many arguments\n";
+		exit(1);
+	}
+
+	exit(0);
+}
 elsif($ARGV[0] eq "get-mx"){
 	if($#ARGV == 0){
 		while($domain=<STDIN>){
