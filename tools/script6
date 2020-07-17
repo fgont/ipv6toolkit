@@ -7178,7 +7178,7 @@ elsif($ARGV[0] eq "get-dns-version"){
 
 			do{
 				$resversion  = Net::DNS::Resolver->new(nameservers=>[$domain]);
-				$resversion->udp_timeout(5);
+				$resversion->udp_timeout(2);
 				#my $res= new Net::DNS::Resolver(nameservers=>["a.nic.cl"]);
 				$n++;
 			}while(!$resversion && $n<5);
@@ -7212,7 +7212,7 @@ elsif($ARGV[0] eq "get-dns-version"){
 
 			do{
 				$resversion  = Net::DNS::Resolver->new(nameservers=>[$domain]);
-				$resversion->udp_timeout(5);
+				$resversion->udp_timeout(2);
 				#my $res= new Net::DNS::Resolver(nameservers=>["a.nic.cl"]);
 				$n++;
 			}while(!$resversion && $n<5);
