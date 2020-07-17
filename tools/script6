@@ -7174,10 +7174,11 @@ elsif($ARGV[0] eq "get-dns-version"){
 				next;
 			}
 
-			print "# $domain\n";
+			$n=0;
 
 			do{
 				$resversion  = Net::DNS::Resolver->new(nameservers=>[$domain]);
+				$resversion->udp_timeout(5);
 				#my $res= new Net::DNS::Resolver(nameservers=>["a.nic.cl"]);
 				$n++;
 			}while(!$resversion && $n<5);
@@ -7186,6 +7187,7 @@ elsif($ARGV[0] eq "get-dns-version"){
 				next;
 			}
 
+			print "# $domain\n";
 			$reply = $resversion->query("version.bind", "TXT", "CH");
 
 			if($reply){
@@ -7206,18 +7208,20 @@ elsif($ARGV[0] eq "get-dns-version"){
 		if($domain =~ m/^\s*([-a-zA-Z0-9_.]+)/){
 			$domain= $1;
 
-			print "# $domain\n";
+			$n=0;
 
 			do{
 				$resversion  = Net::DNS::Resolver->new(nameservers=>[$domain]);
+				$resversion->udp_timeout(5);
 				#my $res= new Net::DNS::Resolver(nameservers=>["a.nic.cl"]);
 				$n++;
 			}while(!$resversion && $n<5);
 
 			if($n>=5){
-				exit(1);
+				next;
 			}
 
+			print "# $domain\n";
 			$reply = $resversion->query("version.bind", "TXT", "CH");
 
 			if($reply){
