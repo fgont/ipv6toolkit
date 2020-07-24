@@ -82,6 +82,9 @@ use Socket();
 use IPC::Open3;
 use Net::IP;           # Normally libnet-ip-perl (was: libio-socket-ip-perl)
 use Net::DNS;          # Normally libnet-dns-perl
+use MIME::Base64;      # Normally libmime-base64-perl
+use Crypt::X509;       # Typically libcrypt-x509-perl
+                       # Typically libnet-ssleay-perl
 
 $dns6revenum= "dnsrevenum6";
 $wwwclient="";
@@ -11673,7 +11676,7 @@ elsif($ARGV[0] eq "split" || $ARGV[0] eq "split-file"){
 	open $file, '<', $ARGV[1] or die $!;
 
 	$npiece=0;
-	$plines= (($totallines + $pieces - 1) / $pieces);
+	$plines= int((($totallines + $pieces - 1) / $pieces));
 
 	do{
 		$filename= sprintf("%s-%02d%s", $prefix, $npiece, $suffix);
