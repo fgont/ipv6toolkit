@@ -173,6 +173,9 @@ int main(int argc, char **argv){
 						puts("Prefix length error in IPv6 Source Address");
 						exit(EXIT_FAILURE);
 					}
+				} else {
+					puts("Missing Prefix Length");
+					exit(EXIT_FAILURE);
 				}
 
 				if(gettimeofday(&time, NULL) == -1){
