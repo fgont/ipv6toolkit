@@ -2334,7 +2334,7 @@ void usage(void){
  */
 void print_help(void){
 	puts(SI6_TOOLKIT);
-	puts("ni6: Securty assessment tool for attack vectors based on ICMPv6 NI messages\n");
+	puts("ni6: Security assessment tool for attack vectors based on ICMPv6 NI messages\n");
 	usage();
     
 	puts("\nOPTIONS:\n"
