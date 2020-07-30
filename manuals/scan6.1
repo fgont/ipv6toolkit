@@ -279,7 +279,7 @@ This option specifies that the target is IPv6 nodes employing "low-byte" address
 .TP
 .BI \-B\  IPV4_ENCODING ,\ \-\-tgt\-ipv4\  IPV4_ENCODING
 
-This option specifies that the target is IPv6 addresses that embed an IPv4 address. Possible encondings are "ipv4-32" (where the IPv4 address is embedded in the low-order 32 bits of the IPv6 address), "ipv4-64" (where the IPv4 address is embedded in the low-order 64 bits of the IPv6 address), and "ipv4-all" (which is equivalent to setting both the "ipv4-32" and "ipv4-64" encodings). When this option is set, a prefix should be specified with the '\-\-ipv4\-host' option, such that the search space is reduced.
+This option specifies that the target is IPv6 addresses that embed an IPv4 address. Possible encodings are "ipv4-32" (where the IPv4 address is embedded in the low-order 32 bits of the IPv6 address), "ipv4-64" (where the IPv4 address is embedded in the low-order 64 bits of the IPv6 address), and "ipv4-all" (which is equivalent to setting both the "ipv4-32" and "ipv4-64" encodings). When this option is set, a prefix should be specified with the '\-\-ipv4\-host' option, such that the search space is reduced.
 
 Note: When an IPv4 address is encoded in 64 bits, each byte of the IPv4 address is firstly converted to a number that has the same representation in hexadecimal (e.g., 100 would be converted to 256, since the hexadecimal representation of 256 is 0x100) before that byte is embedded in a 16-bit word. For example, the IPv4 address 192.168.0.1 would result, when combined with the prefix 2001:db8::/32 in the IPv6 address 2001:db8::192:168:0:1 (note that while each byte of the original IPv4 address has the same representation within the IPv6 address, each value now stands for an hexadecimal number).
 
