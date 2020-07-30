@@ -720,7 +720,7 @@ int find_ipv6_router_full(pcap_t *pfd, struct iface_data *idata){
 
 	if( (ptr+sizeof(struct nd_opt_slla)) > (v6buffer+rs_max_packet_size)){
 		if(idata->verbose_f>1)
-			puts("RS message too large while processing source link-layer addresss opt.");
+			puts("RS message too large while processing source link-layer address opt.");
 
 		return(-1);
 	}
@@ -1193,7 +1193,7 @@ int ipv6_to_ether(pcap_t *pfd, struct iface_data *idata, struct in6_addr *target
 
 	if( (ptr+sizeof(struct nd_opt_slla)) > (v6buffer+ns_max_packet_size)){
 		if(idata->verbose_f>1)
-			puts("NS message too large while processing source link-layer addresss opt.");
+			puts("NS message too large while processing source link-layer address opt.");
 
 		return(-1);
 	}
@@ -1620,7 +1620,7 @@ void print_filters(struct iface_data *idata, struct filters *filters){
 	char			pv6addr[INET6_ADDRSTRLEN];
 
 	if(filters->nblocksrc){
-		printf("Block filter for IPv6 Source Addresss: ");
+		printf("Block filter for IPv6 Source Address: ");
 	
 		for(i=0; i< filters->nblocksrc; i++){
 			if(inet_ntop(AF_INET6, &(filters->blocksrc[i]), pv6addr, sizeof(pv6addr)) == NULL){
@@ -1692,7 +1692,7 @@ void print_filters(struct iface_data *idata, struct filters *filters){
 	}
 
 	if(filters->nacceptsrc){
-		printf("Accept filter for IPv6 Source Addresss: ");
+		printf("Accept filter for IPv6 Source Address: ");
 
 		for(i=0; i < filters->nacceptsrc; i++){
 			if(inet_ntop(AF_INET6, &(filters->acceptsrc[i]), pv6addr, sizeof(pv6addr)) == NULL){
@@ -2565,7 +2565,7 @@ int send_neighbor_solicit(struct iface_data *idata, struct in6_addr *target){
 
 	if( (ptr+sizeof(struct nd_opt_slla)) > (v6buffer+ns_max_packet_size)){
 		if(idata->verbose_f>1)
-			puts("NS message too large while processing source link-layer addresss opt.");
+			puts("NS message too large while processing source link-layer address opt.");
 
 		return(-1);
 	}
@@ -2952,7 +2952,7 @@ int sel_next_hop(struct iface_data *idata){
 
 
 /*
- * Function: print_ipv6_addresss()
+ * Function: print_ipv6_address()
  *
  * Prints an IPv6 address with a legend
  */
@@ -4384,7 +4384,7 @@ int find_ipv6_router(pcap_t *pfd, struct ether_addr *hsrcaddr, struct in6_addr *
 	sllaopt = (struct nd_opt_slla *) ptr;    
 
 	if( (ptr+sizeof(struct nd_opt_slla)) > (v6buffer+rs_max_packet_size)){
-		puts("RS message too large while processing source link-layer addresss opt.");
+		puts("RS message too large while processing source link-layer address opt.");
 		return(-1);
 	}
 

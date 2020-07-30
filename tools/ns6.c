@@ -1222,7 +1222,7 @@ void init_packet_data(struct iface_data *idata){
 			ptr += sizeof(struct nd_opt_slla);
 		}
 		else{
-			puts("Packet too large while processing source link-layer addresss opt. (should be using Frag. option?)");
+			puts("Packet too large while processing source link-layer address opt. (should be using Frag. option?)");
 			exit(EXIT_FAILURE);
 		}
 	}

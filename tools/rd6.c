@@ -1091,7 +1091,7 @@ int main(int argc, char **argv){
 
 
 	/* If the "flood destination" option was set, but no prefix was specified for the
-	   "redirected destination", we select random addressses (from ::/0)
+	   "redirected destination", we select random addresses (from ::/0)
 	 */
 	if(floodr_f && !redirprefix_f){
 		for(i=0;i<16;i++)
@@ -1955,7 +1955,7 @@ void print_help(void){
 	     "  --block-dst, -k           Block IPv6 Destination Address prefix\n"
 	     "  --block-link-src, -J      Block Ethernet Source Address\n"
 	     "  --block-link-dst, -K      Block Ethernet Destination Address\n"
-	     "  --accept-src, -b          Accept IPv6 Source Addres prefix\n"
+	     "  --accept-src, -b          Accept IPv6 Source Address prefix\n"
 	     "  --accept-dst, -g          Accept IPv6 Destination Address prefix\n"
 	     "  --accept-link-src, -B     Accept Ethernet Source Address\n"
 	     "  --accept-link-dst, -G     Accept Ethernet Destination Address\n"

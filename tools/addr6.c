@@ -867,7 +867,7 @@ int main(int argc, char **argv){
 							exit(EXIT_FAILURE);
 						}
 
-						printf("Addresss #%u: %s\n", i, pv6addr);
+						printf("Address #%u: %s\n", i, pv6addr);
 					}
 
 					puts("");
