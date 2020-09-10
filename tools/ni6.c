@@ -2546,9 +2546,11 @@ void print_attack_info(struct iface_data *idata){
 		switch(qtype){
 			case 0:
 				puts(", NOOP (Qtype 0)");
+				break;
 
 			case 1:
 				puts(", Supported Qtypes (Qtype 1)");
+				break;
 
 			case 2:
 				printf(", Data is a Name (Qtype %u)\n", qtype);
