@@ -2166,11 +2166,6 @@ void send_packet(struct iface_data *idata, const u_char *pktdata, struct pcap_pk
 				ipv6->ip6_src.s6_addr32[3]= ntohl((uint32_t)random() <<16);
 				ipv6->ip6_src.s6_addr32[3]= htonl(ntohl(ipv6->ip6_src.s6_addr32[3]) | (uint32_t)((ntohl(ipv6->ip6_src.s6_addr32[3]) >>16) ^ addr_key));
 			}
-
-			if(idata->type == DLT_EN10MB && !(idata->flags & IFACE_LOOPBACK) && !(idata->hsrcaddr_f)){
-				for(i=0; i<6; i++)
-					ethernet->src.a[i]= random();
-			}
 		}
 
 		if(pktdata == NULL && floodp_f){
