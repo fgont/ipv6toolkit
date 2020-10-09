@@ -214,7 +214,7 @@ int main(int argc, char **argv){
 	}
 
 	hoplimit=255;
-	pktinterval= 0;
+
 	lastprobe.tv_sec= 0;
 	lastprobe.tv_usec= 0;
 
