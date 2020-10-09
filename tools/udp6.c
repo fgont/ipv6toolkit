@@ -1071,8 +1071,13 @@ int main(int argc, char **argv){
 	}
 
 
+
 	/* Fire a UDP packet if an IPv6 Destination Address was specified */
 	if(!listen_f && idata.dstaddr_f){
+	
+		timeout.tv_sec=  pktinterval / 1000000;	
+		timeout.tv_usec= pktinterval % 1000000;
+
 		if(loop_f){
 			if(idata.verbose_f)
 				printf("Sending UDP datagrams every %u second%s...\n", nsleep, \
@@ -1080,9 +1085,12 @@ int main(int argc, char **argv){
 		}
 
 		do{
+				
 				send_packet(&idata, NULL, NULL);
-
-				if(loop_f && (sel=select(0, NULL, NULL, NULL, &timeout)) == -1){
+				
+				stimeout= timeout;
+				
+				if(loop_f && (sel=select(idata.fd +1, NULL, NULL, NULL, &stimeout)) == -1){
 					if(errno == EINTR){
 						continue;
 					}
@@ -1801,7 +1809,7 @@ void print_help(void){
 	     "  --dst-port, -a            UDP Destination Port\n"
 	     "  --data, -Z                UDP payload data\n"
 	     "  --rate-limit, -r          Rate limit the address scan to specified rate\n"
-         "  --probe-mode, -p          UDP probe mode {dump,script}\n"
+	     "  --probe-mode, -p          UDP probe mode {dump,script}\n"
 	     "  --block-src, -j           Block IPv6 Source Address prefix\n"
 	     "  --block-dst, -k           Block IPv6 Destination Address prefix\n"
 	     "  --block-link-src, -J      Block Ethernet Source Address\n"

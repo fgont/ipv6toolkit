@@ -1301,6 +1301,11 @@ int main(int argc, char **argv){
 
 	/* Fire a TCP segment if an IPv6 Destination Address was specified */
 	if(!listen_f && idata.dstaddr_f){
+
+		timeout.tv_sec=  pktinterval / 1000000;	
+		timeout.tv_usec= pktinterval % 1000000;	
+	
+	
 		if(loop_f){
 			if(idata.verbose_f)
 				printf("Sending TCP segments every %u second%s...\n", nsleep, \
@@ -1310,6 +1315,8 @@ int main(int argc, char **argv){
 		do{
 				send_packet(&idata, NULL, NULL);
 
+				stimeout= timeout;
+				
 				if(loop_f && (sel=select(0, NULL, NULL, NULL, &timeout)) == -1){
 					if(errno == EINTR){
 						continue;
