@@ -1075,8 +1075,8 @@ int main(int argc, char **argv){
 	/* Fire a UDP packet if an IPv6 Destination Address was specified */
 	if(!listen_f && idata.dstaddr_f){
 	
-		timeout.tv_sec=  pktinterval / 1000000;	
-		timeout.tv_usec= pktinterval % 1000000;
+		stimeout.tv_sec=  pktinterval / 1000000;	
+		stimeout.tv_usec= pktinterval % 1000000;
 
 		if(loop_f){
 			if(idata.verbose_f)
@@ -1088,9 +1088,9 @@ int main(int argc, char **argv){
 				
 				send_packet(&idata, NULL, NULL);
 				
-				stimeout= timeout;
+				timeout= stimeout;
 				
-				if(loop_f && (sel=select(idata.fd +1, NULL, NULL, NULL, &stimeout)) == -1){
+				if(loop_f && (sel=select(idata.fd +1, NULL, NULL, NULL, &timeout)) == -1){
 					if(errno == EINTR){
 						continue;
 					}
