@@ -589,6 +589,7 @@ int main(int argc, char **argv){
 	if(!sleep_f)
 		nsleep=QUERY_TIMEOUT;
 
+
 	idata.max_packet_size = MAX_IPV6_PAYLOAD + MIN_IPV6_HLEN;
 
 	if(idata.verbose_f){
@@ -1931,7 +1932,14 @@ int send_fragment(struct iface_data *idata, unsigned int id, unsigned int offset
 	ipv6->ip6_flow=0;
 	ipv6->ip6_vfc= 0x60;
 	ipv6->ip6_hlim= hoplimit;
-	ipv6->ip6_src= idata->srcaddr;
+	
+	if(idata->srcprefix_f){
+		randomize_ipv6_addr( &(ipv6->ip6_src), &(idata->srcaddr), idata->srcpreflen);	
+	}
+	else{
+		ipv6->ip6_src= idata->srcaddr;
+	}
+	
 	ipv6->ip6_dst= idata->dstaddr;
 
 	prev_nh = (unsigned char *) &(ipv6->ip6_nxt);
