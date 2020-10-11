@@ -129,7 +129,7 @@ struct dlt_null		*dlt_null;
 char				*lasts, *rpref;
 char				*charptr;
 
-size_t				nw;
+int 				nw;
 unsigned long		ul_res, ul_val;
 unsigned int		i, j, startrand;
 unsigned int		skip;
@@ -1744,7 +1744,7 @@ void send_packet(struct iface_data *idata, const u_char *pktdata, struct pcap_pk
 				}
 
 				if(nw != (ptr-buffer)){
-					printf("pcap_inject(): only wrote %lu bytes (rather than %lu bytes)\n", (LUI) nw, \
+					printf("pcap_inject(): only wrote %d bytes (rather than %lu bytes)\n", nw, \
 												(LUI) (ptr-buffer));
 					exit(EXIT_FAILURE);
 				}
@@ -1802,8 +1802,8 @@ void send_packet(struct iface_data *idata, const u_char *pktdata, struct pcap_pk
 					}
 
 					if(nw != (fptr- fragbuffer)){
-						printf("pcap_inject(): only wrote %lu bytes (rather than %lu bytes)\n", \
-												(LUI) nw, (LUI) (ptr-buffer));
+						printf("pcap_inject(): only wrote %d bytes (rather than %lu bytes)\n", \
+												nw, (LUI) (ptr-buffer));
 						exit(EXIT_FAILURE);
 					}
 				} /* Sending fragments */

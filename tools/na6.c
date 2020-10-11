@@ -82,7 +82,7 @@ unsigned int		nlinkaddr=0, linkaddrs;
 char				*lasts, *pref, *rpref, *endptr;
 char				*charptr;
 
-size_t				nw;
+int 				nw;
 unsigned long		ul_res, ul_val;
 unsigned int		i, j, startrand;
 unsigned int		skip;
@@ -1402,7 +1402,7 @@ int send_packet(struct iface_data *idata, struct pcap_pkthdr *pkthdr, const u_ch
 					}
 
 					if(nw != (ptr-buffer)){
-						printf("pcap_inject(): only wrote %lu bytes (rather than %lu bytes)\n", (LUI) nw, \
+						printf("pcap_inject(): only wrote %d bytes (rather than %lu bytes)\n", nw, \
 																					(LUI) (ptr-buffer));
 						return(FAILURE);
 					}
@@ -1459,8 +1459,8 @@ int send_packet(struct iface_data *idata, struct pcap_pkthdr *pkthdr, const u_ch
 						}
 
 						if(nw != (fptr- fragbuffer)){
-							printf("pcap_inject(): only wrote %lu bytes (rather than %lu bytes)\n"\
-													, (LUI) nw, (LUI) (ptr-buffer));
+							printf("pcap_inject(): only wrote %d bytes (rather than %lu bytes)\n"\
+													, nw, (LUI) (ptr-buffer));
 							return(FAILURE);
 						}
 					}

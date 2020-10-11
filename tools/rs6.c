@@ -72,7 +72,7 @@ struct ether_header		*ethernet, *pkt_ether;
 struct nd_opt_slla		*sllaopt;
 char					*lasts, *endptr;
     
-size_t					nw;
+int 					nw;
 unsigned long			ul_res, ul_val;
     
 unsigned int			i, j, sources, nsources, startrand;
@@ -752,7 +752,7 @@ void send_packet(struct iface_data *idata){
 				}
     
 				if(nw != (ptr-buffer)){
-					printf("pcap_inject(): only wrote %lu bytes (rather than %lu bytes)\n", (LUI) nw, \
+					printf("pcap_inject(): only wrote %d bytes (rather than %lu bytes)\n", nw, \
 																				(LUI) (ptr-buffer));
 					exit(EXIT_FAILURE);
 				}
@@ -810,7 +810,7 @@ void send_packet(struct iface_data *idata){
 					}
 
 					if(nw != (fptr- fragbuffer)){
-						printf("pcap_inject(): only wrote %lu bytes (rather than %lu bytes)\n", (LUI) nw,\
+						printf("pcap_inject(): only wrote %d bytes (rather than %lu bytes)\n", nw,\
 																				(LUI) (ptr-buffer));
 						exit(EXIT_FAILURE);
 					}

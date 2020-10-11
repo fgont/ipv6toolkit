@@ -169,7 +169,7 @@ unsigned int			ndst=0;
 char					*lasts, *rpref;
 char					*charptr;
 
-size_t					nw;
+int 					nw;
 unsigned long			ul_res, ul_val;
 unsigned int			i, j, startrand;
 unsigned int			skip;
@@ -4573,7 +4573,7 @@ puts("In send_probe_remote(), after to send");
 
 	if(nw != (ptr-buffer)){
 		if(idata->verbose_f)
-			printf("pcap_inject(): only wrote %lu bytes (rather than %lu bytes)\n", (LUI) nw, \
+			printf("pcap_inject(): only wrote %d bytes (rather than %lu bytes)\n", nw, \
 																			(LUI) (ptr-buffer));
 		return(0);
 	}
@@ -4781,7 +4781,7 @@ int send_pscan_probe(struct iface_data *idata, struct scan_list *scan, struct po
 
 	if(nw != (ptr-buffer)){
 		if(idata->verbose_f)
-			printf("pcap_inject(): only wrote %lu bytes (rather than %lu bytes)\n", (LUI) nw, \
+			printf("pcap_inject(): only wrote %d bytes (rather than %lu bytes)\n", nw, \
 																			(LUI) (ptr-buffer));
 		return(0);
 	}
@@ -4989,7 +4989,7 @@ int multi_scan_local(pcap_t *pfd, struct iface_data *idata, struct in6_addr *src
 
 		if(nw != (ptr-buffer)){
 			if(idata->verbose_f>1)
-				printf("pcap_inject(): only wrote %lu bytes (rather than %lu bytes)\n", (LUI) nw, \
+				printf("pcap_inject(): only wrote %d bytes (rather than %lu bytes)\n", nw, \
 																			(LUI) (ptr-buffer));
 
 			error_f=TRUE;
@@ -5307,7 +5307,7 @@ int host_scan_local(pcap_t *pfd, struct iface_data *idata, struct in6_addr *srca
 
 		if(nw != (ptr-buffer)){
 			if(idata->verbose_f>1)
-				printf("pcap_inject(): only wrote %lu bytes (rather than %lu bytes)\n", (LUI) nw, \
+				printf("pcap_inject(): only wrote %d bytes (rather than %lu bytes)\n", nw, \
 																		(LUI) (ptr-buffer));
 
 			error_f=TRUE;

@@ -115,7 +115,7 @@ unsigned int		nlinkaddr=0, linkaddrs;
 char				*lasts, *rpref;
 char				*charptr;
 
-size_t				nw;
+int 				nw;
 unsigned long		ul_res, ul_val;
 unsigned int		i, j, startrand;
 unsigned int		skip;
@@ -1887,7 +1887,7 @@ int send_fragment2(struct iface_data *idata, uint16_t ip6len, unsigned int id, u
 	}
 
 	if(nw != (ptr- buffer)){
-		printf("pcap_inject(): only wrote %lu bytes (rather than %lu bytes)\n", (LUI) nw, (LUI) (ptr-buffer));
+		printf("pcap_inject(): only wrote %d bytes (rather than %lu bytes)\n",  nw, (LUI) (ptr-buffer));
 		return(-1);
 	}
 
@@ -2124,7 +2124,7 @@ int send_fragment(struct iface_data *idata, unsigned int id, unsigned int offset
 	}
 
 	if(nw != (ptr- buffer)){
-		printf("pcap_inject(): only wrote %lu bytes (rather than %lu bytes)\n", (LUI) nw, (LUI) (ptr-buffer));
+		printf("pcap_inject(): only wrote %d bytes (rather than %lu bytes)\n", nw, (LUI) (ptr-buffer));
 		return(-1);
 	}
 
@@ -2253,8 +2253,8 @@ int send_fid_probe(struct iface_data *idata){
 		}
 
 		if(nw != (fptr- fragbuffer)){
-			printf("pcap_inject(): only wrote %lu bytes (rather than %lu bytes)\n", \
-												(LUI) nw, (LUI) (ptr-buffer));
+			printf("pcap_inject(): only wrote %d bytes (rather than %lu bytes)\n", \
+												nw, (LUI) (ptr-buffer));
 			return(-1);
 		}
 	} /* Sending fragments */
