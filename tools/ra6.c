@@ -458,7 +458,7 @@ int main(int argc, char **argv){
 				idata.hdstaddr_f = 1;
 		
 				if(ether_pton(optarg, &(idata.hdstaddr), sizeof(idata.hdstaddr)) == 0){
-					puts("Error in Source link-layer address.");
+					puts("Error in Destination link-layer address.");
 					exit(EXIT_FAILURE);
 				}
 				break;
