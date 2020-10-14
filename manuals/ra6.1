@@ -5,7 +5,7 @@ ra6 \- A security assessment tool for attack vectors based on ICMPv6 Router Adve
 .B ra6
 .RB [\| \-i
 .IR INTERFACE\| ]
-[\-s SRC_ADDR[/LEN]] [\-d DST_ADDR] [\-y FRAG_SIZE] [\-u DST_OPT_HDR_SIZE] [\-U DST_OPT_U_HDR_SIZE] [\-H HBH_OPT_HDR_SIZE] [\-S LINK_SRC_ADDR] [\-D LINK_DST_ADDR] [\-c CUR_HOP] [\-t ROUTER_LIFETIME] [\-r REACHABLE_TIME] [\-x RETRANS_TIMER] [\-m] [\-o] [\-a] [\-q] [\-p PREFERENCE] [\-E LINK_ADDR] [\-e] [\-P PREFIX/LEN[#FLAGS[#VALID[#PREFERRED]]]] [\-M MTU] [\-N [LIFETIME[#DNS_ADDR]]] [\-R PREFIX/LEN[#PREF[#LIFETIME]]] [\-f N_PREFIXES] [\-F N_SOURCES] [\-w N_ROUTES] [\-W N_ADDRS[#ADDRSPEROPT]] [\-j PREFIX[/LEN]] [\-k PREFIX[/LEN]] [\-J LINK_ADDR] [\-K LINK_ADDR] [\-b PREFIX[/LEN]] [\-g PREFIX[/LEN]] [\-B LINK_ADDR] [\-G LINK_ADDR] [\-L] [\-v] [\-h]
+[\-s SRC_ADDR[/LEN]] [\-d DST_ADDR] [\-y FRAG_SIZE] [\-u DST_OPT_HDR_SIZE] [\-U DST_OPT_U_HDR_SIZE] [\-H HBH_OPT_HDR_SIZE] [\-S LINK_SRC_ADDR] [\-D LINK_DST_ADDR] [\-c CUR_HOP] [\-t ROUTER_LIFETIME] [\-r REACHABLE_TIME] [\-x RETRANS_TIMER] [\-m] [\-o] [\-a] [\-q] [\-p PREFERENCE] [\-E LINK_ADDR] [\-e] [\-P PREFIX/LEN[#FLAGS[#VALID[#PREFERRED]]]] [\-M MTU] [\-N [LIFETIME[#DNS_ADDR]]] [\-R PREFIX/LEN[#PREF[#LIFETIME]]] [\-Q] [\-O TYPE[#LEN[#REAL_LEN]]] [\-f N_PREFIXES] [\-F N_SOURCES] [\-w N_ROUTES] [\-W N_ADDRS[#ADDRSPEROPT]] [\-j PREFIX[/LEN]] [\-k PREFIX[/LEN]] [\-J LINK_ADDR] [\-K LINK_ADDR] [\-b PREFIX[/LEN]] [\-g PREFIX[/LEN]] [\-B LINK_ADDR] [\-G LINK_ADDR] [\-L] [\-v] [\-h]
 
 .SH DESCRIPTION
 .B ra6
@@ -152,6 +152,11 @@ This option is meant to specify the value of a MTU option that should be include
 This option allows the advertisement of a number of recursive DNS servers by means of the RDNSS option. A "Lifetime" parameter (32 bits) indicates the amount of time (in seconds) that the specified DNS server(s) may be used for name resolution. Multiple IPv6 addresses can be specified in the same RDNSS option in the form "\-\-dns\-opt lifetime#ipv6address1#ipv6address2". Also, more than one RDNSS option may be specified.
 
 .TP
+\-\-forged\-opt, \-N
+
+This option allows the specification of a forged option, as "\-\-forged\-opt type#len#real_len", where "type" is the option type, "len" is the length to be claimed by the option, and "real_len" is the number of payload bytes to be conveyed in the option body (filled as zeroes). When "len" is larger than "real_len", the host parsing the option may continued parsing the RA message past the end of the IPv6 packet. Thus, this option is to be employed mostly for fuzzing purposes.
+
+.TP
 \-\-flood\-prefixes, \-f
 
 This option instructs the ra6 tool to flood the victim host with Prefix information options. The number of Prefix Information options to be sent is specified as "\-f number". When this option is specified, a "\-P" option must be specified (with the usual syntax "\-P prefix/length#flags#valid#preferred"), such that it instructs ra6 about how to generate the Prefix Information options. The "prefix/length" specifies the length of the prefixes that will be included in each Prefix Information option. While the prefix length will be constant for all options, the actual prefix will be randomized.  The rest of the parameters will be shared by all the prefixes, and have the same "defaults" as indicated in the description of the "\-P" option.
@@ -172,6 +177,12 @@ This option instructs the ra6 tool to flood the target with Route Information op
 This option instructs the ra6 tool to flood the target with random IPv6 addresses (supposed to correspond to recursive DNS servers), by means of the Recursive DNS Server (RDNSS) option. The number of IPv6 addresses that are to be sent to the target is specified as "\-k number". As there is a limit in the number of IPv6 addresses that can be included in a RDNSS option, it may be necessary for the tool to split those addresses into several RDNSS options. 
 
 It is possible to instruct the ra6 about the maximum number of IPv6 addresses that each RDNSS option should contain, by means of a second (and optional) parameter to the "\-k" option. Namely, the tool can be instructed to send a total number of addresses ("totaladdresses") with up to some specific number ("addrsperoption") of addresses per RDNSS option in the form "\-k totaladresses#addrsperoption". This might be helpful if it is believed that the target implementation enforces a limit on the number of addresses it honors on a "per RNDSS option" basis, but no limit on the aggregate number of addresses. In such a case, an implementation might e.g. survive the attack "\-k 5000", but still be vulnerable to the attack "\-k 5000#3"). The "Lifetime" value for these addresses can be specified by issuing a "\-N" option with the desired "Lifetime" (this is analogous to how the "\-\-flood\-routes" operates together with the "\-R" option, and how the "\-\-flood\-prefixes" operates together with the "\-P" option).
+
+.TP
+\-\-bad\-neighbor, \-Q
+
+Proof\-of\-Concept for CVE-2020-16898 (aka "Bad Neighbor"), that causes a Denial of Service (DoS) to Microsoft Windows implementations that are unable to gracefully handle RDNSS options with incorrect lengths. This option adds a RNDSS address, but only adds half of the length of the address (8 bytes) to the total option size. If a RNDSS option had been specified, the aforementioned address is appended to the last added RDNSS option. Otherwise, a RDNSS option is added to the packet, and the aforementioned address is added as its sole RDNSS address.
+
 
 .TP
 \-\-block\-src, \-j
@@ -276,6 +287,8 @@ Flood the target (fe80::1) with 1000 random IPv6 addresses of Recursive DNS Serv
 
 .SH SEE ALSO
 "Security/Robustness Assessment of IPv6 Neighbor Discovery Implementations" (available at: <http://www.si6networks.com/tools/ipv6toolkit/si6networks\-ipv6\-nd\-assessment.pdf>) for a discussion of Neighbor Discovery vulnerabilities, and additional examples of how to use the na6 tool to exploit them.
+
+"CVE-2020-16898: Bad Neighbor" (available at: <https://www.mcafee.com/blogs/other\-blogs/mcafee\-labs/cve\-2020\-16898\-bad\-neighbor/>) for a discussion of the "bad neighbor" attack selected via the "\-\-bad\-neighbor" option.
 
 .SH AUTHOR
 The

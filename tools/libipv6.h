@@ -247,6 +247,11 @@ struct ip6_option{
 	uint8_t  ip6o_len;
 } __attribute__ ((__packed__));
 
+struct	nd_opt{
+    uint8_t	type;
+    uint8_t	len;
+} __attribute__ ((__packed__));
+
 struct	nd_opt_slla{
     uint8_t	type;
     uint8_t	length;
