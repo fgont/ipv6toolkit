@@ -1288,8 +1288,8 @@ int main(int argc, char **argv){
 				nrdnss++;		
 		}
 		else{
-			if(nrdnssopt[nrdnss-1]< MAX_RDNSS_OPT_ADDRS){
-				if ( inet_pton(AF_INET6, charptr, &rdnss[nrdnss-1][nrdnssopt[nrdnss-1]]) <= 0){
+			if(nrdnssopt[nrdnss-1] < MAX_RDNSS_OPT_ADDRS){
+				if ( inet_pton(AF_INET6, "2000::", &rdnss[nrdnss-1][nrdnssopt[nrdnss-1]]) <= 0){
 					puts("Error when randomizing address for \"bad neighbor\" attack");
 					perror("inet_pton():");
 					exit(EXIT_FAILURE);
