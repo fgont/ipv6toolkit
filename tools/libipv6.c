@@ -1846,6 +1846,23 @@ void randomize_ipv6_addr(struct in6_addr *ipv6addr, const struct in6_addr *prefi
 }
 
 
+/*
+ * randomize_port()
+ *
+ * Select a random port from a given port/mask
+ */
+
+void randomize_port(uint16_t *port, uint16_t prefix, uint8_t preflen){
+	uint32_t 	mask;
+
+	mask= 0x10000;
+	mask= mask >> preflen;
+
+	sanitize_port(&prefix, preflen);	
+
+	*port= (uint16_t) (prefix + random() % mask);
+}
+
 
 /*
  * release_privileges()
@@ -1919,6 +1936,21 @@ void sanitize_ipv6_prefix(struct in6_addr *ipv6addr, uint8_t prefixlen){
 		ipv6addr->s6_addr32[i]=0;
 }
 
+
+/*
+ * sanitize_port()
+ *
+ * Clears those bits in a transport port that are not within a port mas.
+ */
+
+void sanitize_port(uint16_t *port, uint8_t prefixlen){
+	uint16_t	mask;
+
+	mask= 0xffff;
+	mask= mask << (16 - prefixlen);
+	
+	*port = *port & mask;
+}
 
 
 /*

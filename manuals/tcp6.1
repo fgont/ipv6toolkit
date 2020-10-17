@@ -3,7 +3,7 @@
 tcp6 \- A security assessment tool for TCP/IPv6 implementations
 .SH SYNOPSIS
 .B tcp6
-\-i INTERFACE [\-S LINK_SRC_ADDR] [\-D LINK-DST-ADDR] [\-s SRC_ADDR[/LEN]] [\-d DST_ADDR] [\-A HOP_LIMIT] [\-y FRAG_SIZE] [\-u DST_OPT_HDR_SIZE] [\-U DST_OPT_U_HDR_SIZE] [\-H HBH_OPT_HDR_SIZE] [\-c OPEN_TYPE] [\-C CLOSE_TYPE] [\-P PAYLOAD_SIZE] [\-o SRC_PORT] [\-a DST_PORT] [\-X TCP_FLAGS] [\-q TCP_SEQ] [\-Q TCP_ACK] [\-V TCP_URP] [\-w TCP_WIN] [\-W WINDOW_MODE] [\-M WIN_MOD_MODE] [\-Z DATA] [\-N] [\-n] [\-j PREFIX[/LEN]] [\-k PREFIX[/LEN]] [\-J LINK_ADDR] [\-K LINK_ADDR] [\-b PREFIX[/LEN]] [\-g PREFIX[/LEN]] [\-B LINK_ADDR] [\-G LINK_ADDR] [\-F N_SOURCES] [\-T N_PORTS] [\-f] [\-R] [\-L] [\-l] [\-p PROBE_MODE] [\-z SECONDS] [\-r RATE] [\-v] [\-h]
+\-i INTERFACE [\-S LINK_SRC_ADDR] [\-D LINK-DST-ADDR] [\-s SRC_ADDR[/LEN]] [\-d DST_ADDR] [\-A HOP_LIMIT] [\-y FRAG_SIZE] [\-u DST_OPT_HDR_SIZE] [\-U DST_OPT_U_HDR_SIZE] [\-H HBH_OPT_HDR_SIZE] [\-c OPEN_TYPE] [\-C CLOSE_TYPE] [\-P PAYLOAD_SIZE] [\-o SRC_PORT[/LEN]] [\-a DST_PORT[/LEN]] [\-X TCP_FLAGS] [\-q TCP_SEQ] [\-Q TCP_ACK] [\-V TCP_URP] [\-w TCP_WIN] [\-W WINDOW_MODE] [\-M WIN_MOD_MODE] [\-Z DATA] [\-N] [\-n] [\-j PREFIX[/LEN]] [\-k PREFIX[/LEN]] [\-J LINK_ADDR] [\-K LINK_ADDR] [\-b PREFIX[/LEN]] [\-g PREFIX[/LEN]] [\-B LINK_ADDR] [\-G LINK_ADDR] [\-F N_SOURCES] [\-T N_PORTS] [\-f] [\-R] [\-L] [\-l] [\-p PROBE_MODE] [\-z SECONDS] [\-r RATE] [\-v] [\-h]
 
 .SH DESCRIPTION
 .B tcp6
@@ -41,9 +41,9 @@ This option specifies the link-layer Source Address of the probe packets. If lef
 This option specifies the link-layer Destination Address of the probe packets. By default, the link-layer Destination Address is automatically set to the link-layer address of the destination host (for on-link destinations) or to the link-layer address of the first-hop router. Note: this option is meaningful only when the underlying link-layer technology is Ethernet.
 
 .TP
-.BI \-s\  SRC_ADDR ,\ \-\-src\-address\  SRC_ADDR
+.BI \-s\  SRC_ADDR[/LEN] ,\ \-\-src\-address\  SRC_ADDR[/LEN]
 
-This option specifies the IPv6 source address (or IPv6 prefix) to be used for the Source Address of the attack packets. If the "\-F" ("\-\-flood\-sources") option is specified, this option includes an IPv6 prefix, from which random addresses are selected. See the description of the "\-F" option for further information on how the "\-s" option is processed in that specific case.
+This option specifies the IPv6 source address (or IPv6 prefix) to be used for the Source Address of the attack packets. If the LEN parameter is specified, the tool will employ a randomized Source Address for the packets. If the "\-F" ("\-\-flood\-sources") option is specified, a random address will be selected for each packet. See the description of the "\-F" option for further information on how the "\-s" option is processed in that specific case.
 
 Note: When operating in "listening" mode, the Source Address is automatically set to the Destination Address of the incoming packet.
 
@@ -85,14 +85,14 @@ This option specifies that the resulting packet must be fragmented. The fragment
 This options specifies the size of the TCP payload. It defaults to 0 (i.e., empty TCP segments).
 
 .TP
-.BI \-o\  SRC_PORT ,\ \-\-src\-port\  SRC_PORT
+.BI \-o\  SRC_PORT[/LEN] ,\ \-\-src\-port\  SRC_PORT[/LEN]
 
-This option specifies the TCP Source Port.
+This option specifies the TCP Source Port. If the LEN parameter is specified, the Source Port number will be randomized using the corresponding LEN as a mask (in a similar way to the specification of source addresses). If the \-\-flood\-ports option is specified, the source port is randomized for each packet. Otherwise, all packets will employ the same randomized port.
 
 .TP
-.BI \-a\   DST_PORT ,\ \-\-dst\-port\  DST_PORT
+.BI \-a\   DST_PORT[/LEN] ,\ \-\-dst\-port\  DST_PORT[/LEN]
 
-This option specifies the TCP/UDP Destination Port.
+This option specifies the TCP Destination Port. If the LEN parameter is specified, the Destination Port number will be randomized using the corresponding LEN as a mask (in a similar way to the specification of source addresses).
 
 .TP
 .BI \-X\   TCP_FLAGS ,\ \-\-tcp\-flags\  TCP_FLAGS
@@ -111,7 +111,7 @@ If this option is left unspecified and the tool is operating in listening mode, 
 .TP
 .BI \-Q\   ACK_NUMBER ,\ \-\-tcp\-ack\  ACK_NUMBER
 
-This option specifies the Acknowledgment Number of the TCP segment. If left unspecified, the Acknowledgment Number is randomized.
+This option specifies the Acknowledgment Number of the TCP segment. If left unspecified, the Acknowledgment Number is randomized if the ACK flag is set, and otherwise is set to 0.
 
 If this option is left unspecified and the tool is operating in listening mode, the TCP Sequence Number is set to the Acknowledgement Number of the packet that elicited the TCP segment.
 
@@ -259,12 +259,12 @@ This option sets an accept filter for the incoming packets, based on their link-
 .TP
 .BI \-F\   N_SOURCES ,\ \-\-flood\-sources\  N_SOURCES
 
-This option instructs the tool to send multiple TCP segments with different Source Addresses. The number of different source addresses is specified as "\-F number". The Source Address of each TCP segment is randomly selected from the prefix specified by the "\-s" option. If the "\-F" option is specified but the "\-s" option is left unspecified, the Source Address of the packets is randomly selected from the prefix ::/0.
+This option instructs the tool to send multiple TCP segments from different Source Addresses. The number of different source addresses is specified as "\-F number". The Source Address of each TCP segment is randomly selected for each packet from the prefix specified by the "\-s" option. If the "\-F" option is specified but the "\-s" option is left unspecified, the Source Address of the packets is randomly selected from the prefix ::/0.
 
 .TP
 .BI \-T\   N_PORTS ,\ \-\-flood\-ports\  N_PORTS
 
-This option instructs the tool to send multiple TCP segments with different Source Ports. The Source Port of each TCP segment is randomly selected from the whole port number space (0\-65535).
+This option instructs the tool to send multiple TCP segments with different Source Ports. The Source Port will be randomized from the port range specified via the \-\-src\-port option or, if left unspecified, from the whole port number space (0\-65535).
 
 .TP
 .BR \-l\| ,\  \-\-loop
@@ -378,10 +378,10 @@ The
 tool and the corresponding manual pages were produced by Fernando Gont 
 .I <fgont@si6networks.com>
 for SI6 Networks 
-.IR <http://www.si6networks.com> .
+.IR <https://www.si6networks.com> .
 
 .SH COPYRIGHT
-Copyright (c) 2011\-2013 Fernando Gont.
+Copyright (c) 2011\-2020 Fernando Gont.
 
 Permission is granted to copy, distribute and/or modify this document under the terms of the GNU Free Documentation License, Version 1.3 or any later version published by the Free Software Foundation; with no Invariant Sections, no Front-Cover Texts, and no Back-Cover Texts.  A copy of the license is available at
 .IR <http://www.gnu.org/licenses/fdl.html> .

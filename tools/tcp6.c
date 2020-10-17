@@ -84,17 +84,18 @@ unsigned char		floods_f=0, floodp_f=0, donesending_f=0, startclose_f=0;
 unsigned char		data_f=0, senddata_f=0, useaddrkey_f=0, window_f=0, winmodulate_f=0;
 
 /* Flags used for TCP (specifically) */ 
-unsigned char		srcport_f=0, dstport_f=0;
+unsigned char		srcport_f=0, dstport_f=0, srcportrnd_f=0, dstportrnd_f=0;
 unsigned char		tcpseq_f=0, tcpack_f=0, tcpurg_f=0, tcpflags_f=0, tcpwin_f=0;
 unsigned char		rhbytes_f=0, tcpflags_auto_f=0, tcpopen_f=0, tcpclose_f=0;
 unsigned char		pps_f=0, bps_f=0, probemode_f=0, retrans_f=0, rto_f=0;
 unsigned char		ackdata_f=1, ackflags_f=1;
 unsigned int		probemode, tcpopen=0, tcpclose=0, win1_size=0, win2_size=0, window=0, time1_len=0, time2_len=0;
 
-uint16_t			srcport, dstport, tcpurg, tcpwin, tcpwinm;
+uint16_t			srcport, dstport, pport, tcpurg, tcpwin, tcpwinm;
+uint8_t				srcportpref, dstportpref;
 unsigned int		retrans, rto;
-uint32_t			tcpseq, tcpack;
-uint8_t			tcpflags=0, pkt_tcp_flags;
+uint32_t			tcpseq=0, tcpack=0;
+uint8_t				tcpflags=0, pkt_tcp_flags;
 struct tcp_hdr		*rhtcp;
 unsigned int		rhbytes, currentsize, packetsize;
 
@@ -147,7 +148,7 @@ unsigned int		sources, nsources, ports, nports, nsleep;
 unsigned char		randpreflen;
 
 uint16_t			mask;
-uint8_t			hoplimit;
+uint8_t				hoplimit;
 uint16_t			addr_key;
 
 char 				plinkaddr[ETHER_ADDR_PLEN];
@@ -562,13 +563,43 @@ int main(int argc, char **argv){
 				break;
 
 			case 'o':	/* TCP Source Port */
-				srcport= atoi(optarg);
+				if((charptr = strtok_r(optarg, "/", &lasts)) == NULL){
+					puts("Error in TCP Source Port");
+					exit(EXIT_FAILURE);
+				}
+
+				srcport= atoi(charptr);
 				srcport_f= 1;
+				
+				if((charptr = strtok_r(NULL, "/", &lasts)) != NULL){
+					srcportpref= atoi(charptr);
+					srcportrnd_f=1;
+					sanitize_port(&srcport, srcportpref);
+				}
+
+				if(srcportpref >= 16)
+					srcportrnd_f= 0;
+
 				break;
 
 			case 'a':	/* TCP Destination Port */
+				if((charptr = strtok_r(optarg, "/", &lasts)) == NULL){
+					puts("Error TCP Destination Port");
+					exit(EXIT_FAILURE);
+				}
+
 				dstport= atoi(optarg);
 				dstport_f= 1;
+				
+				if((charptr = strtok_r(NULL, "/", &lasts)) != NULL){
+					dstportpref= atoi(charptr);
+					dstportrnd_f=1;
+					sanitize_port(&dstport, dstportpref);
+				}
+
+				if(dstportpref >= 16)
+					dstportrnd_f= 0;
+					
 				break;
 
 			case 'X':
@@ -1002,11 +1033,6 @@ int main(int argc, char **argv){
 		idata.srcpreflen=64;
 	}
 
-	if(idata.srcprefix_f && !floods_f && loop_f){
-		floods_f=1;
-		nsources= 1;
-	}
-
 	if(!(idata.dstaddr_f) && !listen_f){	/* Must specify IPv6 Destination Address if listening mode not used */
 		puts("IPv6 Destination Address not specified (and listening mode not selected)");
 		exit(EXIT_FAILURE);
@@ -1094,8 +1120,10 @@ int main(int argc, char **argv){
 	}
 
 	/* We Default to 1000 pps */
-	if(!pps_f && !bps_f)
-		pktinterval= 1000;
+	if(!pps_f && !bps_f){
+		rate= 1000;
+		pktinterval= 1000000/rate;
+	}
 
 	if( !idata.fragh_f && dstoptuhdr_f){
 		puts("Dst. Options Header (Unfragmentable Part) set, but Fragmentation not specified");
@@ -1115,12 +1143,24 @@ int main(int argc, char **argv){
 		if(!tcpseq_f)
 			tcpseq= random();
 
-		if(!srcport_f)
+		if(srcport_f){
+			if(srcportrnd_f){
+				randomize_port(&srcport, srcport, srcportpref);
+			}
+		}
+		else{
 			srcport= random();
+		}
 
-		if(!dstport_f)
+		if(dstport_f){
+			if(dstportrnd_f){
+				randomize_port(&dstport, dstport, dstportpref);
+			}
+		}
+		else{
 			dstport= random();
-
+		}
+		
 		if(!tcpurg_f)
 			tcpurg= 0;
 	}
@@ -1187,11 +1227,24 @@ int main(int argc, char **argv){
 	if(probemode_f){
 		end_f=0;
 
-		if(!dstport_f)
+		if(dstport_f){
+			if(dstportrnd_f){
+				randomize_port(&dstport, dstport, dstportpref);
+			}
+		}
+		else{
 			dstport= 80;
+		}
 
-		if(!srcport_f)
+		if(srcport_f){
+			if(srcportrnd_f){
+				randomize_port(&srcport, srcport, srcportpref);
+			}
+		}
+		else{
 			srcport= 50000 + random() % 15000; /* We select ports from the "high ports" range */
+		}
+
 
 		if(!rto_f)
 			rto=1;
@@ -1305,10 +1358,19 @@ int main(int argc, char **argv){
 		stimeout.tv_sec=  pktinterval / 1000000;	
 		stimeout.tv_usec= pktinterval % 1000000;
 	
-		if(loop_f){
-			if(idata.verbose_f)
-				printf("Sending TCP segments every %u second%s...\n", nsleep, \
+		if(loop_f || floods_f || floodp_f){
+			if(idata.verbose_f){
+				if(sleep_f){
+					printf("Sending TCP segments every %u second%s...\n", nsleep, \
 											((nsleep>1)?"s":""));
+				}
+				else if(bps_f){
+					printf("Sending TCP segments at %lu pps...\n", rate);			
+				}
+				else{
+					printf("Sending TCP segments at %lu pps%s...\n", rate, (pps_f)?"":" (default)");	
+				}
+			}
 		}
 
 		do{
@@ -2113,15 +2175,24 @@ void send_packet(struct iface_data *idata, const u_char *pktdata, struct pcap_pk
 
 		tcp= (struct tcp_hdr *) ptr;
 		memset(ptr, 0, sizeof(struct tcp_hdr));
+
+		if(floodp_f){
+			if(srcportrnd_f){
+				randomize_port(&srcport, srcport, srcportpref);
+			}
+			else{
+				srcport= random();
+			}
+		}
+
 		tcp->th_sport= htons(srcport);
 		tcp->th_dport= htons(dstport);
 		tcp->th_seq = htonl(tcpseq);
 
-		if(tcpack_f || (tcpflags & TH_ACK))
-			tcp->th_ack= htonl(tcpack);
-		else
-			tcp->th_ack= 0;
-
+		if(!tcpack_f && (tcpflags & TH_ACK)){
+			tcp->th_ack= htonl(random());
+		}
+		
 		if(tcpflags_auto_f || tcpopen_f || tcpclose_f){
 			tcp->th_flags= TH_SYN;
 		}
@@ -2153,7 +2224,7 @@ void send_packet(struct iface_data *idata, const u_char *pktdata, struct pcap_pk
 		}
 
 
-		if(pktdata == NULL && (floods_f && ports == 0)){
+		if(floods_f && ports == 0){
 			/* 
 			   Randomizing the IPv6 Source address based on the prefix specified by 
 			   "srcaddr" and srcpreflen.
@@ -2174,17 +2245,12 @@ void send_packet(struct iface_data *idata, const u_char *pktdata, struct pcap_pk
 			}
 		}
 
-		if(pktdata == NULL && floodp_f){
-			tcp->th_sport= random();
-		}
-
 		tcp->th_sum = 0;
 		tcp->th_sum = in_chksum(v6buffer, tcp, ptr-((unsigned char *)tcp), IPPROTO_TCP);
 
 		frag_and_send(idata);
 
-		if(pktdata == NULL)	
-			ports++;
+		ports++;
 
 		return;
 	}
@@ -2281,8 +2347,8 @@ void frag_and_send(struct iface_data *idata){
 void usage(void){
 	puts("usage: tcp6 [-i INTERFACE] [-S LINK_SRC_ADDR] [-D LINK-DST-ADDR] "
 	 "[-s SRC_ADDR[/LEN]] [-d DST_ADDR] [-A HOP_LIMIT] [-y FRAG_SIZE] [-u DST_OPT_HDR_SIZE] "
-	 "[-U DST_OPT_U_HDR_SIZE] [-H HBH_OPT_HDR_SIZE] [-P PAYLOAD_SIZE] [-o SRC_PORT] "
-	 "[-a DST_PORT] [-X TCP_FLAGS] [-q TCP_SEQ] [-Q TCP_ACK] [-V TCP_URP] [-w TCP_WIN] "
+	 "[-U DST_OPT_U_HDR_SIZE] [-H HBH_OPT_HDR_SIZE] [-P PAYLOAD_SIZE] [-o SRC_PORT[/LEN]] "
+	 "[-a DST_PORT[/LEN]] [-X TCP_FLAGS] [-q TCP_SEQ] [-Q TCP_ACK] [-V TCP_URP] [-w TCP_WIN] "
 	 "[-c OPEN_MODE] [-C CLOSE_MODE] [-Z DATA] [-P PAYLOAD_SIZE] [-W WIN_MODE]"
 	 "[-M WIN_MOD_MODE] [-r RATE] [-p PROBE_MODE] [-x RETRANS] "
 	 "[-N] [-n] [-j PREFIX[/LEN]] [-k PREFIX[/LEN]] [-J LINK_ADDR] [-K LINK_ADDR] "
@@ -2314,8 +2380,8 @@ void print_help(void){
 	     "  --link-src-addr, -S       Link-layer Destination Address\n"
 	     "  --link-dst-addr, -D       Link-layer Source Address\n"
 	     "  --payload-size, -P        TCP Payload Size\n"
-	     "  --src-port, -o            TCP Source Port\n"
-	     "  --dst-port, -a            TCP Destination Port\n"
+	     "  --src-port, -o            TCP Source Port (PORT[/LEN])\n"
+	     "  --dst-port, -a            TCP Destination Port (PORT[/LEN])\n"
 	     "  --tcp-flags, -X           TCP Flags\n"
 	     "  --tcp-seq, -q             TCP Sequence Number\n"
 	     "  --tcp-ack, -Q             TCP Acknowledgment Number\n"
@@ -2364,10 +2430,10 @@ void print_attack_info(struct iface_data *idata){
 	puts(SI6_TOOLKIT);
 	puts( "tcp6: Security assessment tool for attack vectors based on TCP/IPv6 packets\n");
 
-	if(floods_f)
+	if(floods_f && !(loop_f && !sleep_f))
 		printf("Flooding the target from %u different IPv6 Source Addresses\n", nsources);
 
-	if(floodp_f)
+	if(floodp_f && !(loop_f && !sleep_f))
 		printf("Flooding the target from %u different TCP ports\n", nports);
 
 	if(idata->type == DLT_EN10MB && !(idata->flags & IFACE_LOOPBACK)){
@@ -2406,17 +2472,25 @@ void print_attack_info(struct iface_data *idata){
 		}
 	}
 
-	if(inet_ntop(AF_INET6, &(idata->srcaddr), psrcaddr, sizeof(psrcaddr)) == NULL){
-		puts("inet_ntop(): Error converting IPv6 Source Address to presentation format");
-		exit(EXIT_FAILURE);
-	}
-
 	if(!floods_f){
+		if(inet_ntop(AF_INET6, &(idata->srcaddr), psrcaddr, sizeof(psrcaddr)) == NULL){
+			puts("inet_ntop(): Error converting IPv6 Source Address to presentation format");
+			exit(EXIT_FAILURE);
+		}
+
 		if(idata->dstaddr_f){
-			printf("IPv6 Source Address: %s%s\n", psrcaddr, ((idata->srcaddr_f != TRUE)?" (randomized)":""));
+			printf("IPv6 Source Address: %s%s\n", psrcaddr, ((idata->srcprefix_f)?" (randomized)":""));
 		}
 	}
 	else{
+
+		sanitize_ipv6_prefix(&(idata->srcaddr), idata->srcpreflen);
+		
+		if(inet_ntop(AF_INET6, &(idata->srcaddr), psrcaddr, sizeof(psrcaddr)) == NULL){
+			puts("inet_ntop(): Error converting IPv6 Source Address to presentation format");
+			exit(EXIT_FAILURE);
+		}
+		
 		printf("IPv6 Source Address: randomized, from the %s/%u prefix%s\n", psrcaddr, idata->srcpreflen, \
     									(!idata->srcprefix_f)?" (default)":"");
 	}
@@ -2445,14 +2519,27 @@ void print_attack_info(struct iface_data *idata){
 		printf("Sending each packet in fragments of %u bytes (plus the Unfragmentable part)\n", nfrags);
 
 	if(idata->dstaddr_f){
-		if(!floodp_f || (floodp_f && nports ==1)){
+		if(!floodp_f){
 			printf("Source Port: %u%s\t",  srcport, (srcport_f?"":" (randomized)"));
 		}
 		else{
-			printf("Source Port: (randomized)\t");
+			if(srcportrnd_f){
+				sanitize_port(&srcport, srcportpref);
+				printf("Source Port: (randomized from %u/%u)\t", srcport, srcportpref);
+			}
+			else{
+				printf("Source Port: (randomized)\t");
+			}
 		}
 
-		printf("Destination Port: %u%s\n", dstport, (dstport_f?"":" (randomized)"));
+		if(dstport_f && dstportrnd_f){
+				pport= dstport;
+				sanitize_port(&pport, dstportpref);
+				printf("Destination Port: (randomized from %u/%u)\n", pport, dstportpref);			
+		}
+		else{
+			printf("Destination Port: %u%s\n", dstport, (dstport_f?"":" (randomized)"));
+		}
 
 		if( (floods_f || floodp_f) && (nsources != 1 || nports != 1)){
 			printf("SEQ Number: (randomized)\t");
