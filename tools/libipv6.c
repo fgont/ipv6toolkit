@@ -1456,7 +1456,7 @@ int get_if_addrs(struct iface_data *idata){
 
 #ifdef __linux__
 		if( !(idata->ether_flag) && ((ptr->ifa_addr)->sa_family == AF_PACKET)){
-			if(strncmp(idata->iface, ptr->ifa_name, IFACE_LENGTH-1) == 0){
+			if(strncmp(idata->iface, ptr->ifa_name, IFACE_LENGTH) == 0){
 				sockpptr = (struct sockaddr_ll *) (ptr->ifa_addr);
 				if(sockpptr->sll_halen == ETHER_ADDR_LEN){
 					memcpy((idata->ether).a, sockpptr->sll_addr, ETHER_ADDR_LEN);
@@ -1466,7 +1466,7 @@ int get_if_addrs(struct iface_data *idata){
 		}
 #elif defined (__FreeBSD__) || defined(__NetBSD__) || defined (__OpenBSD__) || defined(__APPLE__) || defined(__FreeBSD_kernel__)
 		if( !(idata->ether_flag) && ((ptr->ifa_addr)->sa_family == AF_LINK)){
-			if(strncmp(idata->iface, ptr->ifa_name, IFACE_LENGTH-1) == 0){
+			if(strncmp(idata->iface, ptr->ifa_name, IFACE_LENGTH) == 0){
 				sockpptr = (struct sockaddr_dl *) (ptr->ifa_addr);
 				if(sockpptr->sdl_alen == ETHER_ADDR_LEN){
 					memcpy((idata->ether).a, (sockpptr->sdl_data + sockpptr->sdl_nlen), ETHER_ADDR_LEN);
@@ -1479,7 +1479,7 @@ int get_if_addrs(struct iface_data *idata){
 			sockin6ptr= (struct sockaddr_in6 *) (ptr->ifa_addr);
 
 			if( !(idata->ip6_local_flag) &&  IN6_IS_ADDR_LINKLOCAL(&(sockin6ptr->sin6_addr))){
-				if(strncmp(idata->iface, ptr->ifa_name, IFACE_LENGTH-1) == 0){
+				if(strncmp(idata->iface, ptr->ifa_name, IFACE_LENGTH) == 0){
 					idata->ip6_local = sockin6ptr->sin6_addr;
 #if defined (__FreeBSD__) || defined(__NetBSD__) || defined (__OpenBSD__) || defined(__APPLE__) || defined(__FreeBSD_kernel__)
 					/* BSDs store the interface index in s6_addr16[1], so we must clear it */
@@ -1491,7 +1491,7 @@ int get_if_addrs(struct iface_data *idata){
 				}
 			}
 			else if(!IN6_IS_ADDR_LINKLOCAL(&(sockin6ptr->sin6_addr))){
-				if(strncmp(idata->iface, ptr->ifa_name, IFACE_LENGTH-1) == 0){
+				if(strncmp(idata->iface, ptr->ifa_name, IFACE_LENGTH) == 0){
 					if(IN6_IS_ADDR_LOOPBACK(&(sockin6ptr->sin6_addr)))
 						idata->flags = IFACE_LOOPBACK;
 
@@ -1516,7 +1516,7 @@ int get_if_addrs(struct iface_data *idata){
 			}
 		}
 /*		else if((ptr->ifa_addr)->sa_family == AF_INET){
-			if(strncmp(idata->iface, ptr->ifa_name, IFACE_LENGTH-1) == 0){
+			if(strncmp(idata->iface, ptr->ifa_name, IFACE_LENGTH) == 0){
 					idata->ip6_local = sockin6ptr->sin6_addr;
 
 			}
@@ -3034,7 +3034,7 @@ puts("DEBUG: ifa_name was null");
 				continue;
 			else{
 				cif= &(idata->iflist.ifaces[idata->iflist.nifaces]);
-				strncpy(cif->iface, ptr->ifa_name, IFACE_LENGTH-1);
+				strncpy(cif->iface, ptr->ifa_name, IFACE_LENGTH);
 				cif->iface[IFACE_LENGTH-1]=0;
 				/* XXX: Cannot otherwise find the index for tun devices? */
 				cif->ifindex= if_nametoindex(cif->iface);
@@ -3487,7 +3487,7 @@ int sel_src_addr(struct iface_data *idata){
 			if( (cif=find_matching_address(idata, &(idata->iflist), &(idata->dstaddr), &match)) != NULL){
 				idata->srcaddr= match;
 				idata->srcaddr_f= ADDR_AUTO;
-				strncpy(idata->iface, cif->iface, IFACE_LENGTH-1);
+				strncpy(idata->iface, cif->iface, IFACE_LENGTH);
 				idata->iface[IFACE_LENGTH-1]= 0;
 				idata->ifindex= cif->ifindex;
 				idata->ifindex_f= TRUE;
@@ -3562,6 +3562,7 @@ int sel_src_addr(struct iface_data *idata){
 							idata->ifindex= idata->nhifindex;
 							idata->flags= cif->flags;
 							strncpy(idata->iface, idata->nhiface, IFACE_LENGTH);
+							idata->iface[IFACE_LENGTH-1]= 0;
 
 							if((cif->ip6_local).nprefix){
 								idata->ip6_local= (cif->ip6_local).prefix[0]->ip6;
@@ -3756,8 +3757,8 @@ int load_dst_and_pcap(struct iface_data *idata, unsigned int mode){
 #endif
 				idata->ifindex= idata->nhifindex;
 				idata->nh_f= TRUE;
-				strncpy(idata->iface, idata->nhiface, IFACE_LENGTH-1);
-				idata->iface[IFACE_LENGTH-1]=0;
+				strncpy(idata->iface, idata->nhiface, IFACE_LENGTH);
+				idata->iface[IFACE_LENGTH-1]= 0;
 
 				if( (cif=find_iface_by_index(&(idata->iflist), idata->ifindex)) != NULL){
 					idata->ether= cif->ether;
@@ -3856,6 +3857,7 @@ puts("Encontre loopback y voy a sobreeescribir la info de destino");
 					idata->flags= rif->flags;
 					idata->ifindex= rif->ifindex;
 					strncpy(idata->iface, rif->iface, IFACE_LENGTH);
+					idata->iface[IFACE_LENGTH-1]= 0;
 				}
 			}
 		}
