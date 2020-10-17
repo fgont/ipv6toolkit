@@ -3561,7 +3561,7 @@ int sel_src_addr(struct iface_data *idata){
 							idata->ether_flag= cif->ether_f;
 							idata->ifindex= idata->nhifindex;
 							idata->flags= cif->flags;
-							strncpy(idata->iface, idata->nhiface, IFACE_LENGTH-1);
+							strncpy(idata->iface, idata->nhiface, IFACE_LENGTH);
 
 							if((cif->ip6_local).nprefix){
 								idata->ip6_local= (cif->ip6_local).prefix[0]->ip6;
