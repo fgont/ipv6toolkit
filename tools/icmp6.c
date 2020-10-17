@@ -250,7 +250,7 @@ int main(int argc, char **argv){
 		switch(option) {
 
 			case 'i':  /* Interface */
-				strncpy(idata.iface, optarg, IFACE_LENGTH-1);
+				strncpy(idata.iface, optarg, IFACE_LENGTH);
 				idata.iface[IFACE_LENGTH-1]=0;
 				idata.ifindex= if_nametoindex(idata.iface);
 				idata.iface_f=TRUE;
