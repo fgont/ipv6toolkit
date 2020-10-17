@@ -2334,7 +2334,7 @@ void usage(void){
  */
 void print_help(void){
 	puts(SI6_TOOLKIT);
-	puts("ni6: Securty assessment tool for attack vectors based on ICMPv6 NI messages\n");
+	puts("ni6: Security assessment tool for attack vectors based on ICMPv6 NI messages\n");
 	usage();
     
 	puts("\nOPTIONS:\n"
@@ -2371,7 +2371,7 @@ void print_help(void){
 	     "  --block-dst, -k            Block IPv6 Destination Address prefix\n"
 	     "  --block-link-src, -J       Block Ethernet Source Address\n"
 	     "  --block-link-dst, -K       Block Ethernet Destination Address\n"
-	     "  --accept-src, -b           Accept IPv6 Source Addres prefix\n"
+	     "  --accept-src, -b           Accept IPv6 Source Address prefix\n"
 	     "  --accept-dst, -g           Accept IPv6 Destination Address prefix\n"
 	     "  --accept-link-src, -B      Accept Ethernet Source Address\n"
 	     "  --accept-link-dst, -G      Accept Ethernet Destination Address\n"
