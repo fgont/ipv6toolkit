@@ -85,7 +85,7 @@ struct nd_opt_route_info_l	*routeopt;
 
 char						*lasts, *rpref, *endptr;
     
-size_t						nw;
+int 						nw;
 uint16_t					lifetime;
 uint32_t					reachable;
 uint32_t					retrans;
@@ -1807,7 +1807,7 @@ void send_packet(struct iface_data *idata, const u_char *pktdata){
 				}
 		
 				if(nw != (ptr-buffer)){
-					printf("pcap_inject(): only wrote %lu bytes (rather than %lu bytes)\n", (LUI) nw, (LUI) (ptr-buffer));
+					printf("pcap_inject(): only wrote %d bytes (rather than %lu bytes)\n", nw, (LUI) (ptr-buffer));
 					exit(EXIT_FAILURE);
 				}
 			}
@@ -1863,7 +1863,7 @@ void send_packet(struct iface_data *idata, const u_char *pktdata){
 					}
 			
 					if(nw != (fptr- fragbuffer)){
-						printf("pcap_inject(): only wrote %lu bytes (rather than %lu bytes)\n", (LUI) nw, (LUI) (ptr-buffer));
+						printf("pcap_inject(): only wrote %d bytes (rather than %lu bytes)\n", nw, (LUI) (ptr-buffer));
 						exit(EXIT_FAILURE);
 					}
 				}	

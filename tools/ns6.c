@@ -79,7 +79,7 @@ struct nd_opt_slla	*sllaopt;
 struct in6_addr		targetaddr, *pkt_ipv6addr; ;
 char				*lasts, *endptr;
     
-size_t				nw;
+int 				nw;
 unsigned long		ul_res, ul_val;
     
 unsigned int		i, j, startrand, sources, nsources, targets, ntargets;
@@ -1305,7 +1305,7 @@ void send_packet(struct iface_data *idata){
 					}
     
 					if(nw != (ptr-buffer)){
-						printf("pcap_inject(): only wrote %lu bytes (rather than %lu bytes)\n", (LUI) nw, \
+						printf("pcap_inject(): only wrote %d bytes (rather than %lu bytes)\n", nw, \
 																						(LUI) (ptr-buffer));
 						exit(EXIT_FAILURE);
 					}
@@ -1362,7 +1362,7 @@ void send_packet(struct iface_data *idata){
 						}
     
 						if(nw != (fptr- fragbuffer)){
-							printf("pcap_inject(): only wrote %lu bytes (rather than %lu bytes)\n", (LUI) nw, \
+							printf("pcap_inject(): only wrote %d bytes (rather than %lu bytes)\n", nw, \
 																					(LUI) (ptr-buffer));
 							exit(EXIT_FAILURE);
 						}
@@ -1511,7 +1511,7 @@ int send_packet_to_ns(struct iface_data *idata, struct pcap_pkthdr *pkthdr, cons
 					}
 
 					if(nw != (ptr-buffer)){
-						printf("pcap_inject(): only wrote %lu bytes (rather than %lu bytes)\n", (LUI) nw, \
+						printf("pcap_inject(): only wrote %d bytes (rather than %lu bytes)\n", nw, \
 																					(LUI) (ptr-buffer));
 						return(FAILURE);
 					}
@@ -1568,8 +1568,8 @@ int send_packet_to_ns(struct iface_data *idata, struct pcap_pkthdr *pkthdr, cons
 						}
 
 						if(nw != (fptr- fragbuffer)){
-							printf("pcap_inject(): only wrote %lu bytes (rather than %lu bytes)\n"\
-													, (LUI) nw, (LUI) (ptr-buffer));
+							printf("pcap_inject(): only wrote %d bytes (rather than %lu bytes)\n"\
+													, nw, (LUI) (ptr-buffer));
 							return(FAILURE);
 						}
 					}

@@ -80,11 +80,11 @@ int main(int argc, char **argv){
 	unsigned char		accepted_f=FALSE, acceptfilters_f=FALSE, duplicate_f=FALSE, flag_f=FALSE;
 
 	/* Block Filters */
-	struct in6_addr 	block[MAX_BLOCK], *ptable;
+	struct in6_addr 	block[MAX_BLOCK], *ptable = NULL;
 	struct in6_addr		genaddr, randaddr;
-	uint8_t				genpref;
+	uint8_t				genpref = 0;
 	
-	uint32_t			*pcounter, pthres, pratio;
+	uint32_t			*pcounter = NULL, pthres, pratio;
 	uint8_t				blocklen[MAX_BLOCK];
 	unsigned int		nblock=0;
 

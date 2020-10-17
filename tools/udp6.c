@@ -122,7 +122,7 @@ unsigned int		nlinkaddr=0, linkaddrs;
 char				*lasts, *rpref;
 char				*charptr;
 
-size_t				nw;
+int 				nw;
 unsigned long		ul_res, ul_val, rate;
 unsigned int		i, j, startrand;
 unsigned int		skip;
@@ -1701,8 +1701,8 @@ void frag_and_send(struct iface_data *idata){
 		}
 
 		if(nw != (ptr-buffer)){
-			printf("pcap_inject(): only wrote %lu bytes (rather than %lu bytes)\n", \
-						(LUI) nw, (LUI) (ptr-buffer));
+			printf("pcap_inject(): only wrote %d bytes (rather than %lu bytes)\n", \
+						nw, (LUI) (ptr-buffer));
 			exit(EXIT_FAILURE);
 		}
 	}
@@ -1758,8 +1758,8 @@ void frag_and_send(struct iface_data *idata){
 			}
 
 			if(nw != (fptr- fragbuffer)){
-				printf("pcap_inject(): only wrote %lu bytes (rather than %lu bytes)\n", \
-								(LUI) nw, (LUI) (ptr-buffer));
+				printf("pcap_inject(): only wrote %d bytes (rather than %lu bytes)\n", \
+								nw, (LUI) (ptr-buffer));
 				exit(EXIT_FAILURE);
 			}
 		} /* Sending fragments */

@@ -637,7 +637,7 @@ int find_ipv6_router_full(pcap_t *pfd, struct iface_data *idata){
 	unsigned char				*prev_nh;
 	volatile unsigned char		*ptr;
 	volatile unsigned char		*p;
-	size_t						nw;
+	int 						nw;
 
 	unsigned char				buffer[65556];
 	unsigned int 				rs_max_packet_size;
@@ -765,7 +765,7 @@ int find_ipv6_router_full(pcap_t *pfd, struct iface_data *idata){
 
 		if(nw != (ptr-buffer)){
 			if(idata->verbose_f>1)
-				printf("pcap_inject(): only wrote %lu bytes (rather than %lu bytes)\n", (LUI) nw, \
+				printf("pcap_inject(): only wrote %d bytes (rather than %lu bytes)\n", nw, \
 												(LUI) (ptr-buffer));
 
 			error_f=1;
@@ -1135,7 +1135,7 @@ int ipv6_to_ether(pcap_t *pfd, struct iface_data *idata, struct in6_addr *target
 	struct sigaction			new_sig, old_sig;
 	int							result;
 	unsigned char				error_f=0;
-	size_t						nw;
+	int 						nw;
 
 	ns_max_packet_size = idata->mtu;
 
@@ -1238,7 +1238,7 @@ int ipv6_to_ether(pcap_t *pfd, struct iface_data *idata, struct in6_addr *target
 
 		if(nw != (ptr-buffer)){
 			if(idata->verbose_f>1)
-				printf("pcap_inject(): only wrote %lu bytes (rather than %lu bytes)\n", (LUI) nw, \
+				printf("pcap_inject(): only wrote %d bytes (rather than %lu bytes)\n", nw, \
 												(LUI) (ptr-buffer));
 			error_f=1;
 			break;
@@ -1993,7 +1993,7 @@ struct in6_addr *sel_src_addr_ra(struct iface_data *idata, struct in6_addr *dst)
 
 int send_neighbor_advert(struct iface_data *idata, pcap_t *pfd,  const u_char *pktdata){
 	unsigned int				i;
-	size_t						nw;
+	int 						nw;
 	struct ether_header			*pkt_ether;
 	struct ip6_hdr				*pkt_ipv6;
 	struct nd_neighbor_solicit	*pkt_ns;
@@ -2139,8 +2139,8 @@ int send_neighbor_advert(struct iface_data *idata, pcap_t *pfd,  const u_char *p
 
 	if(nw != (ptr-wbuffer)){
 		if(idata->verbose_f)
-			printf("send_neighbor_advert(): pcap_inject(): only wrote %lu bytes "
-							"(rather than %lu bytes)\n", (LUI) nw, (LUI) (ptr-wbuffer));
+			printf("send_neighbor_advert(): pcap_inject(): only wrote %d bytes "
+							"(rather than %lu bytes)\n", nw, (LUI) (ptr-wbuffer));
 
 		return(-1);
 	}
@@ -2520,7 +2520,7 @@ int send_neighbor_solicit(struct iface_data *idata, struct in6_addr *target){
 	unsigned int 			ns_max_packet_size;
 	struct ether_header		*ether;
 	unsigned char 			*v6buffer;
-	size_t					nw;
+	int 					nw;
 	struct ip6_hdr			*ipv6;
 	struct nd_neighbor_solicit	*ns;
 	struct nd_opt_slla		*sllaopt;
@@ -2588,7 +2588,7 @@ int send_neighbor_solicit(struct iface_data *idata, struct in6_addr *target){
 
 	if(nw != (ptr-buffer)){
 		if(idata->verbose_f > 1)
-			printf("pcap_inject(): only wrote %lu bytes (rather than %lu bytes)\n", (LUI) nw, \
+			printf("pcap_inject(): only wrote %d bytes (rather than %lu bytes)\n", nw, \
 											(LUI) (ptr-buffer));
 		return(-1);
 	}
@@ -4318,7 +4318,7 @@ int find_ipv6_router(pcap_t *pfd, struct ether_addr *hsrcaddr, struct in6_addr *
 	unsigned char				*pkt_end;
 	unsigned char				*ptr, *prev_nh;
 	int							r;
-	size_t						nw;
+	int 						nw;
 
 	unsigned char				buffer[65556];
 	unsigned int 				rs_max_packet_size;
@@ -4426,7 +4426,7 @@ int find_ipv6_router(pcap_t *pfd, struct ether_addr *hsrcaddr, struct in6_addr *
 		}
 
 		if(nw != (ptr-buffer)){
-			printf("pcap_inject(): only wrote %lu bytes (rather than %lu bytes)\n", (LUI) nw, \
+			printf("pcap_inject(): only wrote %d bytes (rather than %lu bytes)\n", nw, \
 																			(LUI) (ptr-buffer));
 			return(-1);
 		}
