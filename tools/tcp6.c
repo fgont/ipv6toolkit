@@ -2417,12 +2417,8 @@ void print_attack_info(struct iface_data *idata){
 		}
 	}
 	else{
-		printf("IPv6 Source Address: randomized, from the fc00:1::/%u prefix%s\n", idata->srcpreflen, \
-    									(!idata->srcprefix_f)?" (default)":"");
-/*
 		printf("IPv6 Source Address: randomized, from the %s/%u prefix%s\n", psrcaddr, idata->srcpreflen, \
     									(!idata->srcprefix_f)?" (default)":"");
-*/
 	}
 
 	if(idata->dstaddr_f){
