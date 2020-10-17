@@ -1109,7 +1109,7 @@ int main(int argc, char **argv){
 		if(!tcpflags_auto_f && !tcpflags_f && !tcpopen_f && !tcpclose_f)
 			tcpflags= tcpflags | TH_ACK;
 
-		if(!tcpack_f)
+		if(!tcpack_f && (tcpflags & TH_ACK))
 			tcpack= random();
 
 		if(!tcpseq_f)
@@ -2461,11 +2461,16 @@ void print_attack_info(struct iface_data *idata){
 			printf("SEQ Number: %u%s\t", tcpseq, (tcpseq_f?"":" (randomized)"));
 		}
 
-		if( (floods_f || floodp_f) && (nsources != 1 || nports != 1)){
-			printf("ACK Number: (randomized)\n");
+		if(tcpack_f || (tcpflags_f && !(tcpflags & TH_ACK))){
+			printf("ACK Number: %u%s\n", tcpack, (tcpack_f?"":" (automatically-selected)"));	
 		}
 		else{
-			printf("ACK Number: %u%s\n", tcpack, (tcpack_f?"":" (randomized)"));
+			if( (floods_f || floodp_f) && (nsources != 1 || nports != 1)){
+				printf("ACK Number: (randomized)\n");
+			}
+			else{
+				printf("ACK Number: %u (randomized)\n", tcpack);
+			}
 		}
 
 		if(tcpflags_f){
