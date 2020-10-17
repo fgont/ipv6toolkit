@@ -55,7 +55,7 @@
 /* Support for IPv6 extension headers */
 #define FRAG_HDR_SIZE		8
 #define	MAX_IPV6_PAYLOAD	65535
-#define MAX_DST_OPT_HDR		256
+#define MAX_DST_OPT_HDR		1024
 #define MAX_DST_OPT_U_HDR	MAX_DST_OPT_HDR
 #define MAX_HBH_OPT_HDR		MAX_DST_OPT_HDR
 
