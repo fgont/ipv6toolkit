@@ -17,6 +17,8 @@
 struct probe{
 	unsigned char	sent;
 	unsigned char	received;
+	uint32_t 	rflow;
+	uint32_t	sflow;
 	struct timeval	rtstamp;
 	struct timeval	ststamp;
 	struct in6_addr	srcaddr;

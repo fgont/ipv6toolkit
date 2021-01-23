@@ -1,7 +1,7 @@
 /*
  * path6: A versatile IPv6 traceroute
  *
- * Copyright (C) 2011-2020 Fernando Gont <fgont@si6networks.com>
+ * Copyright (C) 2011-2021 Fernando Gont <fgont@si6networks.com>
  *
  * Programmed by Fernando Gont for SI6 Networks <https://www.si6networks.com>
  *
@@ -58,7 +58,7 @@
 
 /* Function prototypes */
 void				init_packet_data(struct iface_data *);
-int					send_probe(struct iface_data *, unsigned int, unsigned char, unsigned char);
+int					send_probe(struct iface_data *, unsigned int, unsigned char, unsigned char, uint32_t);
 void				print_attack_info(struct iface_data *);
 void				print_help(void);
 void				usage(void);
@@ -119,9 +119,9 @@ uint8_t			hoplimit;
 
 char 				plinkaddr[ETHER_ADDR_PLEN];
 char 				psrcaddr[INET6_ADDRSTRLEN], pdstaddr[INET6_ADDRSTRLEN], pv6addr[INET6_ADDRSTRLEN];
-unsigned char 		verbose_f=0, numeric_f= TRUE;
-unsigned char 		loop_f=0, localaddr_f=0, probe_f=0;
-unsigned char		srcprefix_f=0, hoplimit_f=0, ip6length_f=0, icmp6psize_f=0, send_f=0, end_f=0, delayp_f=0;
+unsigned char 		verbose_f=FALSE, numeric_f= TRUE;
+unsigned char 		loop_f=FALSE, localaddr_f=0, probe_f=0, flowlabel_f=FALSE, flowlabelr_f=FALSE;
+unsigned char		srcprefix_f=FALSE, hoplimit_f=FALSE, ip6length_f=FALSE, icmp6psize_f=FALSE, send_f=FALSE, end_f=FALSE, delayp_f=FALSE;
 
 /* Support for Extension Headers */
 unsigned int		dstopthdrs, dstoptuhdrs, hbhopthdrs;
@@ -142,12 +142,13 @@ unsigned char		*prev_nh, *startoffragment;
 
 /* Parameters for the probe packets */
 unsigned char		probetype=PROBE_ICMP6_ECHO;
-unsigned char		dstport_f=0, tcpflags_f=0, pps_f=0, bps_f=0, endhost_f=0, rhbytes_f=0, droppacket_f=FALSE;
-uint16_t			dstport;
+unsigned char		dstport_f=FALSE, tcpflags_f=FALSE, pps_f=FALSE, bps_f=FALSE, endhost_f=FALSE, rhbytes_f=FALSE, droppacket_f=FALSE;
+unsigned char		scriptmode_f=FALSE;
+uint16_t			dstport, pid;
 uint8_t				tcpflags=0, cprobe, pprobe, nprobe, maxprobes, chop, phop, nhop, maxhops;
 
 struct in6_addr		nsrc;
-uint32_t			tcpseq, spi;
+uint32_t			tcpseq, spi, nflow=0, flowlabel=0;
 
 #define MAXHOPS		30
 #define MAXPROBES	3
@@ -166,6 +167,7 @@ int main(int argc, char **argv){
 	struct timeval	curtime, start, lastprobe, sched, timeout;
 	uint8_t			ulhtype;
 	struct target_ipv6	targetipv6;
+	unsigned long	fl;
 
 	static struct option longopts[] = {
 		{"interface", required_argument, 0, 'i'},
@@ -178,17 +180,19 @@ int main(int argc, char **argv){
 		{"hbh-opt-hdr", required_argument, 0, 'H'},
 		{"frag-hdr", required_argument, 0, 'y'},
 		{"numeric", no_argument, 0, 'n'},
+		{"flow-label", required_argument, 0, 'f'},	
 		{"probe-type", required_argument, 0, 'p'},
 		{"payload-size", required_argument, 0, 'P'},
 		{"dst-port", required_argument, 0, 'a'},
 		{"tcp-flags", required_argument, 0, 'X'},
 		{"rate-limit", required_argument, 0, 'r'},
+		{"mode", required_argument, 0, 'm'},	
 		{"verbose", no_argument, 0, 'v'},
 		{"help", no_argument, 0, 'h'},
 		{0, 0, 0, 0}
 	};
 
-	char shortopts[]= "i:S:D:s:d:u:U:H:y:np:P:a:X:r:vh";
+	char shortopts[]= "i:S:D:s:d:u:U:H:y:nf:p:P:a:X:r:m:vh";
 
 	char option;
 
@@ -426,7 +430,23 @@ int main(int argc, char **argv){
 				idata.hdstaddr_f = 1;
 				break;
 
-
+			case 'f':	/* Flow Label */
+				if(strncmp(optarg, "rand", sizeof(rand)) == 0){
+					flowlabelr_f= TRUE;
+				}
+				else{
+					if( (fl = strtoul(optarg, NULL, 0)) == ULONG_MAX){
+						puts("Flow Label value is too large");
+						exit(EXIT_FAILURE);
+					}
+					
+					flowlabel= fl & 0x000fffff;
+/*					flowlabel= atoi(optarg) & 0x000fffff; */
+					flowlabel_f= TRUE;
+				}
+				
+				break;
+				
 			case 'p':	/* Probe type */
 				if(strncmp(optarg, "echo", strlen("echo")) == 0 || strncmp(optarg, "icmp", strlen("icmp")) == 0){
 					probetype= PROBE_ICMP6_ECHO;
@@ -466,7 +486,7 @@ int main(int argc, char **argv){
 				break;
 
 			case 'X':
-				if(strncmp(optarg, "no", 2) == 0 || strncmp(optarg, "noflags", 7)){
+				if(strncmp(optarg, "no", 2) == 0 || strncmp(optarg, "noflags", strlen("noflags"))){
 					tcpflags_f=1;
 					break;
 				}
@@ -535,6 +555,16 @@ int main(int argc, char **argv){
 					exit(EXIT_FAILURE);
 				}
 
+				break;
+
+			case 'm':
+				if(strncmp(optarg, "num", sizeof("num")) == 0){
+					numeric_f= TRUE;
+				}
+				else if(strncmp(optarg, "script", sizeof("script")) == 0){
+					scriptmode_f= TRUE;
+				}
+				
 				break;
 
 			case 'v':	/* Be verbose */
@@ -651,7 +681,8 @@ int main(int argc, char **argv){
 		print_attack_info(&idata);
 	}
 
-	printf("Tracing path to %s (%s)...\n\n", targetipv6.name, pv6addr);
+	if(!scriptmode_f)
+		printf("Tracing path to %s (%s)...\n\n", targetipv6.name, pv6addr);
 
 	/* Set initial contents of the attack packet */
 	init_packet_data(&idata);
@@ -670,6 +701,8 @@ int main(int argc, char **argv){
 		exit(EXIT_FAILURE);
 	}
 
+	pid= getpid();
+	
 	pcap_freecode(&pcap_filter);
 
 	maxhops=MAXHOPS;
@@ -712,6 +745,47 @@ int main(int argc, char **argv){
 			exit(EXIT_FAILURE);
 		}
 
+		if(scriptmode_f && phop < maxhops && pprobe < maxprobes && test[phop][pprobe].sent){
+			if(test[phop][pprobe].received){
+				/* If a response was received, print the RTT. */
+				if(inet_ntop(AF_INET6, &(test[phop][pprobe].srcaddr), psrcaddr, sizeof(psrcaddr)) == NULL){
+					puts("inet_ntop(): Error converting IPv6 Source Address to presentation format");
+					exit(EXIT_FAILURE);
+				}
+				
+				printf("#%02d#%s#%08x#%08x#%.3f\n", phop+1, psrcaddr, test[phop][pprobe].sflow, \
+					test[phop][pprobe].rflow, time_diff_ms(&(test[phop][pprobe].rtstamp), &(test[phop][pprobe].ststamp)));
+					
+				pprobe++;
+
+				if(pprobe >= maxprobes){
+					pprobe=0;
+					phop++;
+
+					if(phop >= maxhops)
+						end_f=1;
+				}
+
+/*					puts(""); */
+
+
+			}
+			else if(is_time_elapsed(&curtime, &(test[phop][pprobe].ststamp), PROBE_TIMEOUT * 1000000)){
+				/* If there was a probe timeout, we allow to send another probe */
+				send_f=1;			
+				printf("#%02d####\n", phop+1);
+
+				pprobe++;
+				
+				if(pprobe >= maxprobes){
+					pprobe=0;
+					phop++;
+
+					if(phop >= maxhops)
+						end_f=1;
+				}
+			}
+		}else if(phop < maxhops && pprobe < maxprobes && test[phop][pprobe].sent){
 		/*
 		   If the next probe to be printed out has been sent, evaluate whether it is time to print out
 		   the result.
@@ -719,7 +793,6 @@ int main(int argc, char **argv){
 		   phop: Holds hop to be printed
 		   probe: Holds probe number to be printed 
 		 */
-		if(phop < maxhops && pprobe < maxprobes && test[phop][pprobe].sent){
 			if(test[phop][pprobe].received){
 				/* If a response was received, print the RTT. */
 				if(inet_ntop(AF_INET6, &(test[phop][pprobe].srcaddr), psrcaddr, sizeof(psrcaddr)) == NULL){
@@ -727,6 +800,10 @@ int main(int argc, char **argv){
 					exit(EXIT_FAILURE);
 				}
 
+				/*
+				   delayp_f is set when no response has been received for this specific hop. So we wait until we receive
+				   a response, such that we can print the IPv6 address followed by asterisks (for each missing response)
+				 */
 				if(delayp_f){
 						if(numeric_f){
 							printf(" %2d (%s)", phop+1, psrcaddr);
@@ -738,7 +815,7 @@ int main(int argc, char **argv){
 						for(i=0; i<pprobe; i++)
 							printf("  *");
 
-						printf("  %4.1f ms", time_diff_ms(&(test[phop][pprobe].rtstamp), &(test[phop][pprobe].ststamp)));
+						printf("  %.3f ms", time_diff_ms(&(test[phop][pprobe].rtstamp), &(test[phop][pprobe].ststamp)));
 
 					delayp_f=0;
 				}
@@ -755,7 +832,7 @@ int main(int argc, char **argv){
 						}
 					}
 
-					printf("  %4.1f ms", time_diff_ms(&(test[phop][pprobe].rtstamp), &(test[phop][pprobe].ststamp)));
+					printf("  %.3f ms", time_diff_ms(&(test[phop][pprobe].rtstamp), &(test[phop][pprobe].ststamp)));
 				}
 
 				pprobe++;
@@ -812,6 +889,7 @@ int main(int argc, char **argv){
 						if(phop >= maxhops)
 							end_f=1;
 					}
+					
 					fflush(stdout);
 				}
 			}
@@ -826,11 +904,15 @@ int main(int argc, char **argv){
 				exit(EXIT_FAILURE);
 			}
 
+			if(flowlabelr_f)
+				flowlabel= random() & 0x00fffff;
+
 			test[chop][cprobe].sent= TRUE;
 			test[chop][cprobe].ststamp= curtime;
+			test[chop][cprobe].sflow= flowlabel;
 			lastprobe= curtime;
 
-			if(send_probe(&idata, probetype, chop, cprobe) == -1){
+			if(send_probe(&idata, probetype, chop, cprobe, flowlabel) == -1){
 				puts("path6: Error while sending probe packet");
 				exit(EXIT_FAILURE);
 			}
@@ -890,6 +972,10 @@ int main(int argc, char **argv){
 				exit(EXIT_FAILURE);
 			}
 			else if(r == 1 && pktdata != NULL){
+#ifdef DEBUG
+puts("Got packet");
+#endif
+				nflow= 0xffffffff;
 				pkt_ether = (struct ether_header *) pktdata;
 				pkt_ipv6 = (struct ip6_hdr *)((char *) pkt_ether + idata.linkhsize);
 				pkt_end = (unsigned char *) pktdata + pkthdr->caplen;
@@ -959,11 +1045,14 @@ int main(int argc, char **argv){
 						continue;
 					}
 					else if( probetype == PROBE_ICMP6_ECHO && (pkt_icmp6->icmp6_type == ICMP6_ECHO_REPLY)){
+#ifdef DEBUG
+puts("Got Echo Reply");
+#endif
 						/* Process the ICMPv6 Echo Reply */
 						if( (pkt_end - (unsigned char *) pkt_icmp6) < sizeof(struct icmp6_hdr))
 							continue;
 
-						if(ntohs(pkt_icmp6->icmp6_data16[0]) != getpid() )
+						if(ntohs(pkt_icmp6->icmp6_data16[0]) != pid )
 							continue;
 
 						nhop= ntohs(pkt_icmp6->icmp6_data16[1]) >> 8;
@@ -980,6 +1069,11 @@ int main(int argc, char **argv){
 					}
 					else if((pkt_icmp6->icmp6_type == ICMP6_TIME_EXCEEDED && pkt_icmp6->icmp6_code == ICMP6_TIME_EXCEED_TRANSIT) ||
 					        pkt_icmp6->icmp6_type == ICMP6_DST_UNREACH || pkt_icmp6->icmp6_type == ICMP6_PARAM_PROB){
+#ifdef DEBUG
+puts("Got ICMPv6 error");
+#endif					        
+					    /* XXX: TODO: THe code currently does not differentiate between different ICMPv6 error types.
+					       This should be properly signaled to the user */
 						/* Process the ICMPv6 Error message */
 						/* Record the source address of the error message */
 						nsrc= pkt_ipv6->ip6_src;
@@ -995,21 +1089,46 @@ int main(int argc, char **argv){
 					    /* IPv6 header of embedded payload */
 						pkt_ipv6=  (struct ip6_hdr *) ((char *) pkt_icmp6 + sizeof(struct icmp6_hdr));
 
+
+						/*
+						    Discard the packet if the ICMPv6 error does not contain a full IPv6 header
+						    embedded in the ICMPv6 payload
+						 */
 						if( ((unsigned char *)pkt_ipv6 + sizeof(struct ip6_hdr)) > pkt_end)
 							continue;
 
+						/*
+						    Discard the packet if the embeded IPv6 packet was not directed to our
+						    current destination.
+						 */
 						if(!is_eq_in6_addr(&(pkt_ipv6->ip6_dst), &(idata.dstaddr)))
 							continue;
 
+						/*
+						    Discard the packet if the embeded IPv6 packet did not use our current
+						    Source Address.
+						 */
 						if(!is_eq_in6_addr(&(pkt_ipv6->ip6_src), &(idata.srcaddr)))
 							continue;
 
+						nflow= ntohl(pkt_ipv6->ip6_flow) & 0x000fffff;
+						
 						ulhtype= pkt_ipv6->ip6_nxt;
 						pkt_eh= (struct ip6_eh *)  ((char *) pkt_ipv6 + sizeof(struct ip6_hdr));
 
 						droppacket_f= FALSE;
 
-						/* If he embedded packet contains EHs, we need to skip the EHs to get to the upper layer protocol */
+#ifdef DEBUG
+puts("Passed all basic checks");
+#endif	
+
+						/* If the embedded packet contains EHs, we need to skip the EHs to get to the upper layer protocol */
+						/* XXX
+						   The current code assumes that anything that's not a possible probe packet or an ICMPv6 error
+						   is an EH. Other ULPs will be processed as malformed EHs, and thus be dealt with gracefully.
+						   However, the code should only process currently-specified EHs, or drop the packet when any other
+						   header type (whether EH or ULP) is found.
+						 */
 						while(ulhtype != IPPROTO_ICMPV6 && ulhtype != IPPROTO_TCP && ulhtype != IPPROTO_UDP && \
 							ulhtype != IPPROTO_ESP && ulhtype != IPPROTO_AH && !droppacket_f){
 							if( (unsigned char *)pkt_eh >= pkt_end){
@@ -1031,6 +1150,8 @@ int main(int argc, char **argv){
 								}
 
 								ulhtype= fh->ip6f_nxt;
+								
+								/* XXX */
 								pkt_eh = (struct ip6_eh *) ((char *) fh + sizeof(struct ip6_frag));
 								break;
 							}
@@ -1055,18 +1176,25 @@ int main(int argc, char **argv){
 						pkt_esp= (struct esp_hdr *) ((char *) pkt_eh);
 						pkt_ah=  (struct ah_hdr *) ((char *) pkt_eh);
 
+#ifdef DEBUG
+puts("Passed even more checks");
+#endif	
 						/* Packet was an ICMPv6 error, and we're now processing the embedded payload */
 
 						if(probetype == PROBE_ICMP6_ECHO && ulhtype == IPPROTO_ICMPV6 && 
 						   pkt_icmp6->icmp6_type == ICMP6_ECHO_REQUEST){
+
 							if( (pkt_end - (unsigned char *) pkt_icmp6) < sizeof(struct icmp6_hdr))
 								continue;
 
-							if(ntohs(pkt_icmp6->icmp6_data16[0]) != getpid() )
+							if(ntohs(pkt_icmp6->icmp6_data16[0]) != pid )
 								continue;
 
 							nhop= ntohs(pkt_icmp6->icmp6_data16[1]) >> 8;
 							nprobe= ntohs(pkt_icmp6->icmp6_data16[1]) & 0x00ff;
+#ifdef DEBUG
+printf("hop %d, probe: %d\n", nhop, nprobe);
+#endif								
 						}
 						else if(probetype == PROBE_TCP && ulhtype == IPPROTO_TCP){
 							/* Must still verify the TCP checksum */
@@ -1079,6 +1207,9 @@ int main(int argc, char **argv){
 
 							nhop= (ntohs(pkt_tcp->th_sport) >> 8) - PROBE_PORT_OFFSET;
 							nprobe= ntohs(pkt_tcp->th_sport) & 0xff;
+#ifdef DEBUG
+puts("Got Time Exceeded for TCP probe");
+#endif
 						}
 						else if(probetype == PROBE_UDP && ulhtype == IPPROTO_UDP){
 							/* Must still verify the UDP checksum */
@@ -1091,7 +1222,7 @@ int main(int argc, char **argv){
 							nhop= (ntohs(pkt_udp->uh_sport) >> 8) - PROBE_PORT_OFFSET;
 							nprobe= ntohs(pkt_udp->uh_sport) & 0xff;
 #ifdef DEBUG
-puts("Lei un ICMPv6 Time exceeded");
+puts("Got Time Exceeded for UDP probe");
 #endif
 						}
 
@@ -1106,9 +1237,6 @@ puts("Lei un ICMPv6 Time exceeded");
 							nprobe= ntohl(pkt_esp->esp_seq) & 0x000000ff;
 						}
 						else if(probetype == PROBE_AH && ulhtype == IPPROTO_AH){
-#ifdef DEBUG
-puts("Got time exceeeded for AH");
-#endif 
 							if( (pkt_end - (unsigned char *) pkt_ah) < sizeof(struct ah_hdr))
 								continue;
 
@@ -1117,6 +1245,9 @@ puts("Got time exceeeded for AH");
 
 							nhop= ntohl(pkt_ah->ah_seq) >> 16;
 							nprobe= ntohl(pkt_ah->ah_seq) & 0x000000ff;
+#ifdef DEBUG
+puts("Got time exceeeded for AH");
+#endif 
 						}
 					}
 					else{
@@ -1206,6 +1337,7 @@ puts("Got time exceeeded for AH");
 				test[nhop][nprobe].rtstamp.tv_sec= (pkthdr->ts).tv_sec;
 				test[nhop][nprobe].rtstamp.tv_usec= (pkthdr->ts).tv_usec;
 				test[nhop][nprobe].srcaddr= nsrc;
+				test[nhop][nprobe].rflow= nflow;
 
 				/* If we got a response to a probe packet, allow for an additional probe to be sent */
 				send_f= TRUE;
@@ -1261,6 +1393,8 @@ void print_help(void){
 	     "  --dst-opt-hdr, -u         Destination Options Header (Fragmentable Part)\n"
 	     "  --dst-opt-u-hdr, -U       Destination Options Header (Unfragmentable Part)\n"
 	     "  --hbh-opt-hdr, -H         Hop by Hop Options Header\n"
+	     "  --flow-label, -f          Specifies the Flow Label Value (or 'random')\n"
+	     "  --output-mode, -m         Specifies output mode (e.g. 'script')\n"
 	     "  --probe-type, -p          Probe type {icmp, tcp, udp, ah, esp}\n"
 	     "  --payload-size, -P        Payload Size\n"
 	     "  --dst-port, -a            Transport-layer Destination Port\n"
@@ -1408,8 +1542,7 @@ void init_packet_data(struct iface_data *idata){
 	}
 #endif
 
-
-	ipv6->ip6_flow=0;
+	ipv6->ip6_flow= htonl(flowlabel);
 	ipv6->ip6_vfc= 0x60;
 	ipv6->ip6_src= idata->srcaddr;
 	ipv6->ip6_dst= idata->dstaddr;
@@ -1499,7 +1632,7 @@ void init_packet_data(struct iface_data *idata){
  *
  * Send a probe packet
  */
-int send_probe(struct iface_data *idata, unsigned int probetype, unsigned char chop, unsigned char cprobe){
+int send_probe(struct iface_data *idata, unsigned int probetype, unsigned char chop, unsigned char cprobe, uint32_t flowlabel){
 	struct tcp_hdr		*tcp;
 	struct udp_hdr		*udp;
 	struct ah_hdr		*ah;
@@ -1508,6 +1641,9 @@ int send_probe(struct iface_data *idata, unsigned int probetype, unsigned char c
 
 	ptr=startofprefixes;
 	ipv6->ip6_hlim= chop+1;
+	
+	if(flowlabelr_f)
+		ipv6->ip6_flow= (ipv6->ip6_flow & htonl(0xfff00000)) | htonl(flowlabel);
 
 	if(probetype == PROBE_ICMP6_ECHO){
 		*prev_nh = IPPROTO_ICMPV6;
@@ -1527,7 +1663,7 @@ int send_probe(struct iface_data *idata, unsigned int probetype, unsigned char c
 		   Hop Limit and the probe number. The probe number is encoded in the upper 8 bits, while the
 		   hop limit is encoded in the lower 8 bits.
 		 */
-		icmp6->icmp6_data16[0]= htons(getpid());
+		icmp6->icmp6_data16[0]= htons(pid);
 		icmp6->icmp6_data16[1]= htons( ((uint16_t) chop << 8)  + (cprobe & 0xff) );
 		ptr += sizeof(struct icmp6_hdr);
 

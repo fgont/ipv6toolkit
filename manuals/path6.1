@@ -97,6 +97,40 @@ This option specifies a Destination Options header to be included in the "unfrag
 This option specifies that a Hop-by-Hop Options header is to be included in the outgoing packet(s). The header size must be specified as an argument to this option (the header is filled with padding options). Multiple Hop-by-Hop Options headers may be specified by means of multiple "\-H" options.
 
 .TP
+.BI \-f\  FLOW_LABEL ,\ \-\-flow\-LABEL\  FLOW_LABEL
+
+This option specifies the Flow Label value of the probe packets. If the special keyword 'random' is specified instead of a number, the Flow Label value of each probe packet will be set to a random value.
+
+.TP
+.BI \-m\  MODE ,\ \-\-output\-mode\  MODE
+
+This option controls how information is displayed. 'script' specifies that information is output in the following format:
+
+Hop#Address#SflowLabel#RFlowLabel#RTT
+
+where:
+
+.sp
+.RS 8
+.nf
+\+ Hop: Hops from source
+
+\+ Address: IPv6 Source Address of the system responding to the probe packet.
+
+\+ SflowLabel: Flow Label value originally set in the probe packet.
+
+\+ RflowLabel: Flow Label value seen by the system responding to the probe packet.
+
+\+ RTT: Round-Trip Time, in milliseconds.
+.fi
+.RE
+
+Each line of output corresponds to one probe packet. By default, three (3) probe packets are sent for each hop value.
+
+.B path6
+learns the Flow Label values from the IPv6 packets embedded in the payload of ICMPv6 error messages. Thus, in order for the tool to learn the received Flow Label values all the way till the destination host, probe types other than TCP should be employed (see option '\-p'). When employing TCP as the probe packet type, the final probe packet will elicit a TCP segment from the target system, rather than an ICMPv6 error message, and thus it will be impossible to learn the Flow Label value received at the target system. When TCP is employed as the probe type, the 'RflowLabel' of the response from the target system will contain the special value 0xffffffff. The value 0xffffffff is not a possible Flow Label value, since the Flow Label field is 20-bits long.
+
+.TP
 .BI \-p\  PROBE_TYPE ,\ \-\-probe\-type\  PROBE_TYPE 
 
 This option specifies the protocol to be used for the probe packets. Possible arguments are: "icmp" (for ICMPv6 Echo Request), "tcp" (for TCP), and "udp" (for UDP). If left unspecified, the probe packets default to ICMPv6 Echo Request.
@@ -163,13 +197,19 @@ Perform traceroute to the first IPv6 address mapped to by the domain name 'www.e
 
 Perform traceroute to the IPv6 address 2001:db8::1, employing TCP segments destined to TCP port 80 as the probe packets.
 
+\fBExample #4\fR
+
+# path6 \-d www.si6networks.com \-m script \-p udp \-r 1pps \-\-flow\-label random
+
+
+Perform traceroute to the first IPv6 address corresponding to the domain name 'www.si6networks.com'. Produce 'script' output. Use udp for the probe packets. Send at most 1 probe packets per second. Set the Flow Label of each probe packet to a different random value.
 
 
 .SH SEE ALSO
 .BR ipv6toolkit.conf (5)
 
 Gont, F., Linkova, J., Chown, T., and W. Liu, "Observations on the Dropping of Packets with IPv6 Extension Headers in the Real World", RFC 7872, DOI 10.17487/RFC7872, June 2016,
-.IR <http://www.rfc-editor.org/info/rfc7872>
+.IR <https://www.rfc-editor.org/info/rfc7872>
 .
 
 .SH AUTHOR
@@ -181,7 +221,7 @@ for SI6 Networks
 .IR <https://www.si6networks.com> .
 
 .SH COPYRIGHT
-Copyright (c) 2014\-2020 Fernando Gont.
+Copyright (c) 2014\-2021 Fernando Gont.
 
 Permission is granted to copy, distribute and/or modify this document under the terms of the GNU Free Documentation License, Version 1.3 or any later version published by the Free Software Foundation; with no Invariant Sections, no Front\-Cover Texts, and no Back\-Cover Texts.  A copy of the license is available at
 .IR <http://www.gnu.org/licenses/fdl.html> .
