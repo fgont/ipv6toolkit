@@ -1365,11 +1365,11 @@ puts("Got time exceeeded for AH");
  * Prints the syntax of the frag6 tool
  */
 void usage(void){
-	puts("usage: path6 -i INTERFACE -d DST_ADDR [-S LINK_SRC_ADDR] [-D LINK-DST-ADDR]\n"
-	     "       [-s SRC_ADDR[/LEN]] [-u DST_OPT_HDR_SIZE]\n"
-	     "       [-U DST_OPT_U_HDR_SIZE] [-H HBH_OPT_HDR_SIZE] [-P FRAG_SIZE]\n"
-	     "       [-O FRAG_TYPE] [-o FRAG_OFFSET] [-I FRAG_ID] [-T] [-n]\n"
-	     "       [-p | -W | -X | -F N_FRAGS] [-l] [-z SECONDS] [-v] [-h]");
+	puts("usage: path6 -d DST_ADDR [-i INTERFACE] [-S LINK_SRC_ADDR] [-D LINK-DST-ADDR]\n"
+	     "       [-s SRC_ADDR[/LEN]] [-u DST_OPT_HDR_SIZE] [-U DST_OPT_U_HDR_SIZE]\n"
+	     "       [-H HBH_OPT_HDR_SIZE] [-y FRAG:SIZE] [-f FLOW_LABEL]\n"
+	     "       [-m MODE] [-p PROBE_TYPE] [-P PAYLOAD_SIZE] [-a DST_PORT] \n"
+	     "       [-X TCP_FLAGS] [-r RATE_LIMIT] [-v] [-h]");
 }
 
 
