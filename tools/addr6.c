@@ -854,6 +854,7 @@ int main(int argc, char **argv){
 						print_ipv6_address_rev(&(addr.ip6));
 				}
 				else if(pattern_f){
+					/* XXX  */
 					/* Analyze address pattern */
 					if(caddr >= MAX_ADDR_PATTERN){
 						puts("Too many addresses for pattern analysis. Filter them out in smaller subsets, and retry");
@@ -1608,15 +1609,18 @@ void print_help(void){
     
 	puts("\nOPTIONS:\n"
 	     "  --address, -a             IPv6 address to be decoded\n"
+	     "  --gen-addr, -A            Generate a randmized address for the specified prefix\n"
 	     "  --stdin, -i               Read IPv6 addresses from stdin (standard input)\n"
-		 "  --print-fixed, -f         Print addresses in expanded/fixed format\n"
+	     "  --print-fixed, -f         Print addresses in expanded/fixed format\n"
 	     "  --print-canonic, -c       Print IPv6 addresses in canonic form\n"
 	     "  --print-reverse, -r       Print reversed IPv6 address\n"
 	     "  --print-decode, -d        Decode IPv6 addresses\n"
 	     "  --print-stats, -s         Print statistics about IPv6 addresses\n"
+	     "  --print-response, -R      Print result of address filters\n"
+	     "  --print-pattern, -x       Analyze addresses pattern\n"
 	     "  --print-uni-preflen, -P   Print unique prefixes of a specified length\n"
 	     "  --block-dup, -q           Discard duplicate IPv6 addresses\n"
-	     "  --block-dup-preflen, -p   Discard duplicate IPv6 addresses\n"
+	     "  --block-dup-preflen, -p   Discard duplicate prefixes of specified length\n"
 	     "  --accept, -j              Accept IPv6 addresses from specified IPv6 prefix\n"
 	     "  --accept-type, -b         Accept IPv6 addresses of specified type\n"
 	     "  --accept-scope, -k        Accept IPv6 addresses of specified scope\n"
@@ -1634,7 +1638,6 @@ void print_help(void){
 	     " Please send any bug reports to <fgont@si6networks.com>\n"
 	);
 }
-
 
 
 /*
