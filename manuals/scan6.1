@@ -141,7 +141,7 @@ scan6 employs a number of bran\-new techniques for performing address scans of r
 .fi
 .RE
 
-A thorough discussion of these address patterns can be found in: <http://tools.ietf.org/html/draft\-ietf\-opsec\-ipv6\-host\-scanning>.
+A thorough discussion of these address patterns can be found in RFC7707.
 
 \fBHOST TRACKING\fR
 
@@ -152,7 +152,7 @@ For host-tracking purposes, the target networks can be specified with the '\-d' 
 
 Since for tracking purposes one will continually track the user across networks, the '\-l' option will typically be set. Additionally, the '\-z' option may be used to specify the number of seconds to sleep between iterations (i.e. each round of probes send to the specified targets). The value specified by the '\-z' option represents a trade-off between time-liness of the tracking and bandwidth-consumption.
 
-IPv6 host-tracking is discussed in detail in <http://tools.ietf.org/html/draft\-ietf\-6man\-ipv6\-address\-generation\-privacy>.
+IPv6 host-tracking is discussed in detail in RFC7727.
 
 .SH OPTIONS
 .B scan6
@@ -353,14 +353,14 @@ This option specifies the name of a file containing a list of IPv6 addresses and
 .TP
 .BI \-w\  IIDS_FILE ,\ \-\-tgt\-iids\-file\  IIDS_FILE
 
-This option specifies the name of a file containing one IPv6 address per line. The Interface ID of each of those IPv6 addresses will be employed, together with the network prefix specified with the '\-d' option, to construct the IPv6 addresses to be probed. Since auto-configured addresses typically employ Interface IDs that are constant across networks, this option can leverage known IIDs to track such nodes across networks. Please see <http://tools.ietf.org/html/draft\-ietf\-6man\-ipv6\-address\-generation\-privacy> for further details. Note: The file can contain comments if they are preceded with the numeral sign ('#'), as in:
+This option specifies the name of a file containing one IPv6 address per line. The Interface ID of each of those IPv6 addresses will be employed, together with the network prefix specified with the '\-d' option, to construct the IPv6 addresses to be probed. Since auto-configured addresses typically employ Interface IDs that are constant across networks, this option can leverage known IIDs to track such nodes across networks. Please see RFC7721 for further details. Note: The file can contain comments if they are preceded with the numeral sign ('#'), as in:
 
         IPv6_address      # comment
 
 .TP
 .BI \-W\  IID ,\ \-\-tgt\-iid\  IID
 
-This option specifies an IPv6 Interface Identifier (IID), with the same syntax as that of an IPv6 address (only the lowest-order 64 bits of the address will be employed). The specified Interface ID will be employed, together with the any network prefixes specified with the '\-d' option (or with the '\-m' option), to construct the IPv6 addresses to be probed. Since auto-configured addresses typically employ Interface IDs that are constant across networks, this option can leverage known IIDs to track such nodes across networks. Please see <http://tools.ietf.org/html/draft\-ietf\-6man\-ipv6\-address\-generation\-privacy> for further details. Note: The file can contain comments if they are preceded with the numeral sign ('#'), as in:
+This option specifies an IPv6 Interface Identifier (IID), with the same syntax as that of an IPv6 address (only the lowest-order 64 bits of the address will be employed). The specified Interface ID will be employed, together with the any network prefixes specified with the '\-d' option (or with the '\-m' option), to construct the IPv6 addresses to be probed. Since auto-configured addresses typically employ Interface IDs that are constant across networks, this option can leverage known IIDs to track such nodes across networks. Please see RFC7721 for further details. Note: The file can contain comments if they are preceded with the numeral sign ('#'), as in:
 
         IPv6_address      # comment
 
