@@ -1759,7 +1759,7 @@ int main(int argc, char **argv){
 			if(print_unique_f){
 				if(print_unique_host_entries(&host_local, print_type) == -1){
 					if(idata.verbose_f)
-						puts("Error while printing global addresses");
+						puts("Error while printing link-local addresses");
 
 					exit(EXIT_FAILURE);
 				}
@@ -1767,7 +1767,7 @@ int main(int argc, char **argv){
 			else{
 				if(print_host_entries(&host_local, print_type) == -1){
 					if(idata.verbose_f)
-						puts("Error while printing global addresses");
+						puts("Error while printing link-local addresses");
 
 					exit(EXIT_FAILURE);
 				}
