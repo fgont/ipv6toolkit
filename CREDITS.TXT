@@ -10,7 +10,7 @@ of the toolkit:
     Alexander Bluhm <bluhm@openbsd.org>
     Leonard Marschke <contact@marschke.me>
     Linus Lüssing <linus.luessing@c0d3.blue>
-
+    Josh Brobst <josh@brob.st>
 
 ** Package maintainers **
 
