@@ -41,7 +41,7 @@ SBINPATH= $(DESTDIR)$(PREFIX)/sbin
 SRCPATH= tools
 
 
-SBINTOOLS= blackhole6 flow6 frag6 icmp6 jumbo6 mldq6 na6 ni6 ns6 path6 ra6 rd6 rs6 scan6 script6 tcp6 udp6
+SBINTOOLS= blackhole6 flow6 frag6 icmp6 jumbo6 messi mldq6 na6 ni6 ns6 path6 ra6 rd6 rs6 scan6 script6 tcp6 udp6
 BINTOOLS= addr6
 TOOLS= $(BINTOOLS) $(SBINTOOLS)
 LIBS= libipv6.o
@@ -66,6 +66,9 @@ icmp6: $(SRCPATH)/icmp6.c $(SRCPATH)/icmp6.h $(SRCPATH)/ipv6toolkit.h $(LIBS) $(
 jumbo6: $(SRCPATH)/jumbo6.c $(SRCPATH)/jumbo6.h $(SRCPATH)/ipv6toolkit.h $(LIBS) $(SRCPATH)/libipv6.h
 	$(CC) $(CPPFLAGS) $(CFLAGS) -o jumbo6 $(SRCPATH)/jumbo6.c $(LIBS) $(LDFLAGS)
 
+messi: $(SRCPATH)/messi
+	cp $(SRCPATH)/messi ./
+	
 mldq6: $(SRCPATH)/mldq6.c $(SRCPATH)/mldq6.h $(SRCPATH)/ipv6toolkit.h $(LIBS) $(SRCPATH)/libipv6.h
 	$(CC) $(CPPFLAGS) $(CFLAGS) -o mldq6 $(SRCPATH)/mldq6.c $(LIBS) $(LDFLAGS)
 
@@ -188,6 +191,7 @@ uninstall:
 	rm -f $(SBINPATH)/frag6
 	rm -f $(SBINPATH)/icmp6
 	rm -f $(SBINPATH)/jumbo6
+	rm -f $(SBINPATH)/messi
 	rm -f $(SBINPATH)/mldq6
 	rm -f $(SBINPATH)/na6
 	rm -f $(SBINPATH)/ni6
