@@ -1,6 +1,6 @@
 #!/usr/bin/env perl
 #
-# blackhole6: A tool to make complex IPv6 tasks easy
+# blackhole6: A tool find IPv6 blackholes
 #
 # Syntax: blackhole6 DESTINATION [HEADERSIZE [PROTOCOL [PORT]]]
 
@@ -67,13 +67,13 @@ print "blackhole6: A tool to find IPv6 blackholes\n";
 
 if($> != 0){
 	print "Error: blackhole6 requires superuser privileges\n";
-	exit 1;
+	exit(EXIT_FAILURE);
 }
 
 if($#ARGV < 0){
 	print "Error: Must specify an IPv6 address\n";
 	usage();
-	exit 1;
+	exit(EXIT_FAILURE);
 }
 
 
@@ -85,12 +85,12 @@ if($err){
 	die $err;
 }
 
-my ( $err, $fline ) = Socket::getnameinfo( $addrs[0]->{addr}, Socket::NI_NUMERICHOST );
+my ( $err, $dstaddr ) = Socket::getnameinfo( $addrs[0]->{addr}, Socket::NI_NUMERICHOST );
 if ($err){
 	die $err;
 }
 
-#$fline= Socket::inet_ntop(Socket::AF_INET6, $addrs[0]->{addr});
+#$dstaddr= Socket::inet_ntop(Socket::AF_INET6, $addrs[0]->{addr});
 
 $ehtype= "do";
 $ehsize= "8";
@@ -111,31 +111,56 @@ if($#ARGV > 0){
 		if($#ARGV > 2){
 			$port=	$ARGV[3];
 		}
-		else{
-			$port= "80";
-		}
 	}
 }
 
+$protoopt="";
+	
 if($prototype eq "tcp"){
+	$payloadhdr= 20;
+
+	if($port eq ""){
+		$port= 80;
+	}
+	
 	$protoopt= "--tcp-flags S -a $port";
 }
-else{
-	$protoopt="";
+elsif($prototype eq "udp"){
+	$payloadhdr=8;
+	
+	if($port eq ""){
+		$port= 53;
+	}
+	
+	$protoopt= "-a $port";
 }
+elsif($prototype eq "icmp" || $prototype eq "icmp6" || $prototype eq "icmpv6"){
+	$prototype="icmp";
+	$payloadhdr=8;
+}
+else{
+	print "Error: Unknown payload type \"$prototype\".\n";
+	exit(EXIT_FAILURE);
+}
+
+$ehprotoopt= $protoopt;
 
 if($ehtype eq "fh" || $ehtype eq "frag"){
 	if($ehsize < 8){
-		print "Error: Fragment size should be larger than or equal to 8 bytes";
-		exit 1;
+		print "Error: Fragment size should be larger than or equal to 8 bytes.\n";
+		exit(EXIT_FAILURE);
 	}
 	elsif($ehsize > 1280){
-		print "Error: Fragment size should be smaller than or equal to 1280 bytes";
-		exit 1;
+		print "Error: Fragment size should be smaller than or equal to 1280 bytes.\n";
+		exit(EXIT_FAILURE);
 	}
 
-	$payload= ($ehsize * 2) - 20;
-	$protoopt="-P $payload " . $protoopt;
+	$payload= ($ehsize * 2) - $payloadhdr;
+	
+	if($payload > 0){
+		$ehprotoopt= $ehprotoopt." -P $payload";
+		$protoopt=$protoopt." -P ".($payload/2);		
+	}
 }
 
 if($ehtype eq "fh" || $ehtype eq "frag"){
@@ -155,14 +180,14 @@ elsif($ehtype eq "ah"){
 }
 else{
 	print "Error: Unknown EH type";
-	exit 1;
+	exit(EXIT_FAILURE);
 }
 
-print "Tracing $ARGV[0] ($fline)...\n";
+print "Tracing $ARGV[0] ($dstaddr)...\n";
 
 $maxhopsfree=0;
 $maxhopsfreeip="";
-@tcp=`path6 -d $fline -p $prototype $protoopt --rate-limit 40pps`;
+@tcp=`path6 -d $dstaddr -p $prototype $protoopt --rate-limit 40pps`;
 
 if(($? >> 8) != 0){
 	print "blackhole6: Found issues when running path6 to the specified target";
@@ -171,12 +196,10 @@ if(($? >> 8) != 0){
 
 foreach $line (@tcp){
 	# Discard lines that do not contain a "probe" line
-	if($line =~ m/\s+(\d+)\s+\((\S*)\)/){
+	if($line =~ m/^(?:\s+)?(\d+)\s+\((\S+)\)/){
 		if($1 > $maxhopsfree){
-			if($2 ne ""){
-				$maxhopsfree=$1;
-				$maxhopsfreeip=$2;
-			}
+			$maxhopsfree=$1;
+			$maxhopsfreeip=$2;
 
 			# We store the IPv6 addresses of all hops
 			push(@ipsfree, $2);
@@ -189,9 +212,9 @@ $maxhopstroubleip="";
 
 # XXX: This is an ugly hack. should be removed. ESP and AH should possibly be handled as EHs, rather than probe types
 if($ehtype eq "esp" || $ehtype eq "ah"){
-	@tcp=`path6 -d $fline $eh --rate-limit 40pps`;
+	@tcp=`path6 -d $dstaddr $eh --rate-limit 40pps`;
 }else{
-	@tcp=`path6 -d $fline -p $prototype $protoopt $eh --rate-limit 40pps`;
+	@tcp=`path6 -d $dstaddr -p $prototype $ehprotoopt $eh --rate-limit 40pps`;
 }
 
 
@@ -202,12 +225,10 @@ if(($? >> 8) != 0){
 
 foreach $line (@tcp){
 	# Discard lines that do not contain a "probe" line
-	if($line =~ m/\s+(\d+)\s+\((\S*)\)/){
+	if($line =~ m/^(?:\s+)?(\d+)\s+\((\S+)\)/){
 		if($1 > $maxhopstrouble){
-			if($2 ne ""){
-				$maxhopstrouble=$1;
-				$maxhopstroubleip= $2;
-			}
+			$maxhopstrouble=$1;
+			$maxhopstroubleip= $2;
 		}
 	}
 }
@@ -223,25 +244,21 @@ for($i=0; $i< $#ipsfree; $i++){
 	}
 }
 
-$flineasn= GetASN($fline);
+$dstaddrasn= GetASN($dstaddr);
 
-# fline holds the destination system
-if($flineasn == -1){
-#	print "blackhole6: Error when trying to obtain ASN for $fline\n";
-#	exit(EXIT_FAILURE);
-	$flineasn= " Unknown";
+# $dstaddrasn holds the destination system
+if($dstaddrasn == -1){
+	$dstaddrasn= " Unknown";
 }
 
-elsif($flineasn eq ""){
-	$flineasn= " Unknown";
+elsif($dstaddrasn eq ""){
+	$dstaddrasn= " Unknown";
 }
 
 
 $maxhopsfreeasn= GetASN($maxhopsfreeip);
 
 if($maxhopsfreeasn == -1){
-#	print "blackhole6: Error when trying to obtain ASN for $maxhopsfreeip\n";
-#	exit(EXIT_FAILURE);
 	$maxhopsfreeasn= " Unknown";
 }
 
@@ -252,8 +269,6 @@ elsif($maxhopsfreeasn eq ""){
 $maxhopstroubleasn= GetASN($maxhopstroubleip);
 
 if($maxhopstroubleasn == -1){
-#	print "blackhole6: Error when trying to obtain ASN for $maxhopstroubleip\n";
-#	exit(EXIT_FAILURE);
 	$maxhopstroubleasn= " Unknown";
 }
 elsif($maxhopstroubleasn eq ""){
@@ -261,43 +276,52 @@ elsif($maxhopstroubleasn eq ""){
 }
 
 $ehtype_uc= uc($ehtype);
-$flineorg= GetORG($flineasn);
 
-if($flineorg == -1){
-#	print "blackhole6: Error when trying to obtain organization for AS$flineasn\n";
-#	exit(EXIT_FAILURE);
-	$flineorg= "Unknown organization";
+if($dstaddrasn ne  " Unknown"){
+	$dstaddrorg= GetORG($dstaddrasn);
+
+	if($dstaddrorg == -1){
+		$dstaddrorg= "Unknown organization";
+	}
+}
+else{
+	$dstaddrorg= "Unknown organization";
 }
 
-$maxhopsfreeorg= GetORG($maxhopsfreeasn);
+if($maxhopsfreeasn ne  " Unknown"){
+	$maxhopsfreeorg= GetORG($maxhopsfreeasn);
 
-if($maxhopsfreeorg == -1){
-#	print "blackhole6: Error when trying to obtain organization for AS$maxhopsfreeasn\n";
-#	exit(EXIT_FAILURE);
+	if($maxhopsfreeorg == -1){
+		$maxhopsfreeorg= "Unknown organization";
+	}
+}
+else{
 	$maxhopsfreeorg= "Unknown organization";
 }
 
-$maxhopstroubleorg= GetORG($maxhopstroubleasn);
+if($maxhopstroubleasn ne  " Unknown"){
+	$maxhopstroubleorg= GetORG($maxhopstroubleasn);
 
-if($maxhopstroubleorg == -1){
-#	print "blackhole6: Error when trying to obtain organization for AS$maxhopstroubleasn\n";
-#	exit(EXIT_FAILURE);
+	if($maxhopstroubleorg == -1){
+		$maxhopstroubleorg=  "Unknown organization";
+	}
+}
+else{
 	$maxhopstroubleorg=  "Unknown organization";
 }
 
-print "\nDst. IPv6 address: $fline (AS$flineasn - $flineorg)\n";
+print "\nDst. IPv6 address: $dstaddr (AS$dstaddrasn - $dstaddrorg)\n";
 print "Last node (no EHs): $maxhopsfreeip (AS$maxhopsfreeasn - $maxhopsfreeorg) ($maxhopsfree hop(s))\n";
 print "Last node ($ehtype_uc $ehsize): $maxhopstroubleip (AS$maxhopstroubleasn - $maxhopstroubleorg) ($maxhopstrouble hop(s))\n";
 
-if($maxhopsfreeip eq $fline){
-	if($maxhopstroubleip eq $fline){
+
+if($maxhopsfreeip eq $dstaddr){
+	if($maxhopstroubleip eq $dstaddr){
 			print "Dropping node: No packet drops\n";
 	}
 	else{
 		$dropasn= GetASN($dropip);
 		if($dropasn == -1){
-#			print "blackhole6: Error when trying to obtain ASN for $dropip\n";
-#			exit(EXIT_FAILURE);
 			$dropasn="";
 		}
 
@@ -306,8 +330,6 @@ if($maxhopsfreeip eq $fline){
 		if($dropasn ne ""){
 			$droporg= GetORG($dropasn);
 			if($droporg == -1){
-#				print "blackhole6: Error when trying to obtain organization for AS$dropasn\n";
-#				exit(EXIT_FAILURE);
 				$droporg= "";
 			}
 		}
@@ -317,14 +339,12 @@ if($maxhopsfreeip eq $fline){
 		}
 
 		if($droporg eq ""){
-			$droporg= "Unknown";
+			$droporg= "Unknown organization";
 		}
 
 		if($dropip2 ne ""){
 			$dropasn2= GetASN($dropip2);
 			if($dropasn2 == -1){
-#				print "blackhole6: Error when trying to obtain ASN for $dropip2\n";
-#				exit(EXIT_FAILURE);
 				$dropasn2="";
 			}
 
@@ -333,8 +353,6 @@ if($maxhopsfreeip eq $fline){
 			if($dropasn2 ne ""){
 				$droporg2= GetORG($dropasn2);
 				if($droporg2 == -1){
-#					print "blackhole6: Error when trying to obtain organization for AS$dropasn2\n";
-#					exit(EXIT_FAILURE);
 					$droporg2="";
 				}
 			}
@@ -344,15 +362,25 @@ if($maxhopsfreeip eq $fline){
 			}
 
 			if($droporg2 eq ""){
-				$droporg2= "Unknown";
+				$droporg2= "Unknown organization";
 			}
 		}
 
-		if( ($dropip2 eq "") || ($dropasn1 eq $dropasn2)){
-			print "Dropping node: $dropip (AS$dropasn - $droporg)\n";
+		if($dropip ne ""){
+				if($dropasn2 eq "" || $dropasn2 eq "Unknown" || $dropasn eq $dropasn2){
+					print "Dropping node: $dropip (AS$dropasn - $droporg)\n";
+				}
+				else{
+					if($dropasn eq "" || $dropasn eq "Unknown"){
+						print "Dropping node: $dropip (AS$dropasn2 - $droporg2)\n";					
+					}
+					else{
+						print "Dropping node: $dropip (AS$dropasn - $droporg || AS$dropasn2 - $droporg2)\n";
+					}
+				}
 		}
 		else{
-			print "Dropping node: $dropip (AS$dropasn - $droporg || AS$dropasn2 - $droporg2)\n";
+			print "Dropping node could not be determined (you may want to try again)\n";
 		}
 	}
 }
