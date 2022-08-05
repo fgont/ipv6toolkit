@@ -5,6 +5,8 @@
 # Syntax: blackhole6 DESTINATION [HEADERSIZE [PROTOCOL [PORT]]]
 
 use Socket();
+use constant EXIT_SUCCESS => 0;
+use constant EXIT_FAILURE => 1;
 
 $SI6TOOLKIT="SI6 Networks IPv6 Toolkit (current)";
 
@@ -164,7 +166,7 @@ $maxhopsfreeip="";
 
 if(($? >> 8) != 0){
 	print "blackhole6: Found issues when running path6 to the specified target";
-	exit(1);
+	exit(EXIT_FAILURE);
 }
 
 foreach $line (@tcp){
@@ -195,7 +197,7 @@ if($ehtype eq "esp" || $ehtype eq "ah"){
 
 if(($? >> 8) != 0){
 	print "blackhole6: Found issues when running path6 to the specified target\n";
-	exit(1);
+	exit(EXIT_FAILURE);
 }
 
 foreach $line (@tcp){
@@ -226,7 +228,7 @@ $flineasn= GetASN($fline);
 # fline holds the destination system
 if($flineasn == -1){
 #	print "blackhole6: Error when trying to obtain ASN for $fline\n";
-#	exit(1);
+#	exit(EXIT_FAILURE);
 	$flineasn= " Unknown";
 }
 
@@ -239,7 +241,7 @@ $maxhopsfreeasn= GetASN($maxhopsfreeip);
 
 if($maxhopsfreeasn == -1){
 #	print "blackhole6: Error when trying to obtain ASN for $maxhopsfreeip\n";
-#	exit(1);
+#	exit(EXIT_FAILURE);
 	$maxhopsfreeasn= " Unknown";
 }
 
@@ -251,7 +253,7 @@ $maxhopstroubleasn= GetASN($maxhopstroubleip);
 
 if($maxhopstroubleasn == -1){
 #	print "blackhole6: Error when trying to obtain ASN for $maxhopstroubleip\n";
-#	exit(1);
+#	exit(EXIT_FAILURE);
 	$maxhopstroubleasn= " Unknown";
 }
 elsif($maxhopstroubleasn eq ""){
@@ -263,7 +265,7 @@ $flineorg= GetORG($flineasn);
 
 if($flineorg == -1){
 #	print "blackhole6: Error when trying to obtain organization for AS$flineasn\n";
-#	exit(1);
+#	exit(EXIT_FAILURE);
 	$flineorg= "Unknown organization";
 }
 
@@ -271,7 +273,7 @@ $maxhopsfreeorg= GetORG($maxhopsfreeasn);
 
 if($maxhopsfreeorg == -1){
 #	print "blackhole6: Error when trying to obtain organization for AS$maxhopsfreeasn\n";
-#	exit(1);
+#	exit(EXIT_FAILURE);
 	$maxhopsfreeorg= "Unknown organization";
 }
 
@@ -279,7 +281,7 @@ $maxhopstroubleorg= GetORG($maxhopstroubleasn);
 
 if($maxhopstroubleorg == -1){
 #	print "blackhole6: Error when trying to obtain organization for AS$maxhopstroubleasn\n";
-#	exit(1);
+#	exit(EXIT_FAILURE);
 	$maxhopstroubleorg=  "Unknown organization";
 }
 
@@ -295,7 +297,7 @@ if($maxhopsfreeip eq $fline){
 		$dropasn= GetASN($dropip);
 		if($dropasn == -1){
 #			print "blackhole6: Error when trying to obtain ASN for $dropip\n";
-#			exit(1);
+#			exit(EXIT_FAILURE);
 			$dropasn="";
 		}
 
@@ -305,7 +307,7 @@ if($maxhopsfreeip eq $fline){
 			$droporg= GetORG($dropasn);
 			if($droporg == -1){
 #				print "blackhole6: Error when trying to obtain organization for AS$dropasn\n";
-#				exit(1);
+#				exit(EXIT_FAILURE);
 				$droporg= "";
 			}
 		}
@@ -322,7 +324,7 @@ if($maxhopsfreeip eq $fline){
 			$dropasn2= GetASN($dropip2);
 			if($dropasn2 == -1){
 #				print "blackhole6: Error when trying to obtain ASN for $dropip2\n";
-#				exit(1);
+#				exit(EXIT_FAILURE);
 				$dropasn2="";
 			}
 
@@ -332,7 +334,7 @@ if($maxhopsfreeip eq $fline){
 				$droporg2= GetORG($dropasn2);
 				if($droporg2 == -1){
 #					print "blackhole6: Error when trying to obtain organization for AS$dropasn2\n";
-#					exit(1);
+#					exit(EXIT_FAILURE);
 					$droporg2="";
 				}
 			}

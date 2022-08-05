@@ -146,11 +146,11 @@ sub ParseConfigFile{
 	}
 	elsif($wwwclient=~ m/^\s*$/){
 		print "ERROR: 'WWW-client' option not set in configuration file (/etc/ipv6toolkit.conf).\n";
-		exit(1);
+		exit(EXIT_FAILURE);
 	}
 	else{
 		print "ERROR: WWW Client \"$wwwclient\" is not supported (please try 'curl' or 'wget').\n";
-		exit(1);
+		exit(EXIT_FAILURE);
 	}
 
 	close(FILE);
@@ -540,7 +540,7 @@ sub AddAddress{
 
 		if($randomizedaddress =~ m/^inet_pton\(\)/){
 			print "Invalid prefix: $addr/$len\n";
-			exit(1); # XXX
+			exit(EXIT_FAILURE); # XXX
 		}
 
 		if($os eq "linux"){
@@ -954,14 +954,14 @@ sub GetDomainsFromBingDict{
 
 			if($intprotocol != 6){
 				print "Specified to bind ddress, but not using IPv6\n";
-				exit(1);
+				exit(EXIT_FAILURE);
 			}
 
 			@changeaddr= split /#/, $srcaddress;
 
 			if($#changeaddr < 1 || $#changeaddr > 2){
 				print "binding address to be specified as IFACE#PREFIX#CHANGE\n";
-				exit(1);
+				exit(EXIT_FAILURE);
 			}
 			elsif($#changeaddr == 2){
 				if($changeaddr[2] =~ m/crazy/){
@@ -2648,14 +2648,14 @@ sub GetDomainsFromBingByAddrQuick{
 
 			if($intprotocol != 6){
 				print "Specified to bind ddress, but not using IPv6\n";
-				exit(1);
+				exit(EXIT_FAILURE);
 			}
 
 			@changeaddr= split /#/, $srcaddress;
 
 			if($#changeaddr < 1 || $#changeaddr > 2){
 				print "binding address to be specified as IFACE#PREFIX#CHANGE\n";
-				exit(1);
+				exit(EXIT_FAILURE);
 			}
 			elsif($#changeaddr == 2){
 				if($changeaddr[2] =~ m/crazy/){
@@ -7242,10 +7242,10 @@ elsif($ARGV[0] eq "get-dns-version"){
 	}
 	else{
 		print "Error: Too many arguments\n";
-		exit(1);
+		exit(EXIT_FAILURE);
 	}
 
-	exit(0);
+	exit(EXIT_SUCCESS);
 }
 elsif($ARGV[0] eq "get-mx"){
 	if($#ARGV == 0){
@@ -7538,7 +7538,7 @@ elsif($ARGV[0] eq "get-ns"){
 				$domcmd= $1;
 			}
 			else{
-				exit(0);
+				exit(EXIT_SUCCESS);
 			}
 
 			# If domainname is preceded by "www." strip it (we want base domains)
@@ -7640,7 +7640,7 @@ elsif($ARGV[0] eq "get-dns6-rev-batch" || $ARGV[0] eq "get-dns6-rev-batch"){
 elsif($ARGV[0] eq "get-sublister-batch" || $ARGV[0] eq "get-sublist3r-batch"){
 	if($#ARGV != 1){
 		print "Usage: script6 $ARGV[0] SUBLISTERPATH\n";
-		exit(1);
+		exit(EXIT_FAILURE);
 	}
 
 	@revname=`whoami`;
@@ -7968,7 +7968,7 @@ elsif($ARGV[0] eq "get-rir-database"){
 elsif($ARGV[0] eq "get-crt" || $ARGV[0] eq "get-crt.sh" || $ARGV[0] eq "get-cert-transparency" || $ARGV[0] eq "get-cert-transp"){
 	if($#ARGV != 1){
 		print "usage: script6 $ARGV[0] DOMAIN\n";
-		exit(1);
+		exit(EXIT_FAILURE);
 	}
 
 	$czone= $ARGV[1];
@@ -7984,7 +7984,7 @@ elsif($ARGV[0] eq "get-crt" || $ARGV[0] eq "get-crt.sh" || $ARGV[0] eq "get-cert
 elsif($ARGV[0] eq "get-crt-addr" || $ARGV[0] eq "get-crt.sh-addr" || $ARGV[0] eq "get-cert-transparency-addr" || $ARGV[0] eq "get-cert-transp-addr"){
 	if($#ARGV < 1){
 		print "usage: script6 $ARGV[0] DOMAIN IFACE#PREFIX#CHANGE [MAXRESULTS]\n";
-		exit(1);
+		exit(EXIT_FAILURE);
 	}
 
 	ParseConfigFile();
@@ -7995,7 +7995,7 @@ elsif($ARGV[0] eq "get-crt-addr" || $ARGV[0] eq "get-crt.sh-addr" || $ARGV[0] eq
 
 		if($#changeaddr < 1 || $#changeaddr > 2){
 			print "binding address to be specified as IFACE#PREFIX#CHANGE\n";
-			exit(1);
+			exit(EXIT_FAILURE);
 		}
 		elsif($#changeaddr == 2){
 			if($changeaddr[2] =~ m/crazy/){
@@ -8063,12 +8063,12 @@ elsif($ARGV[0] eq "get-crt-addr" || $ARGV[0] eq "get-crt.sh-addr" || $ARGV[0] eq
 		DelAddress($iface, $gotaddress, $chpref, $chos);
 	}
 
-	exit(0);
+	exit(EXIT_SUCCESS);
 }
 elsif($ARGV[0] eq "get-crt-addr-batch"){
 	if($#ARGV < 1){
 		print "usage: script6 $ARGV[0] IFACE#PREFIX#CHANGE [MAXRESULTS]\n";
-		exit(1);
+		exit(EXIT_FAILURE);
 	}
 
 	ParseConfigFile();
@@ -8078,7 +8078,7 @@ elsif($ARGV[0] eq "get-crt-addr-batch"){
 
 		if($#changeaddr < 1 || $#changeaddr > 2){
 			print "binding address to be specified as IFACE#PREFIX#CHANGE\n";
-			exit(1);
+			exit(EXIT_FAILURE);
 		}
 		elsif($#changeaddr == 2){
 			if($changeaddr[2] =~ m/crazy/){
@@ -8196,7 +8196,7 @@ elsif($ARGV[0] eq "get-crt-batch"){
 elsif($ARGV[0] eq "get-crt-addr-batch-files"){
 	if($#ARGV < 1){
 		print "usage: script6 $ARGV[0] IFACE#PREFIX#CHANGE [MAXRESULTS]\n";
-		exit(1);
+		exit(EXIT_FAILURE);
 	}
 
 	ParseConfigFile();
@@ -8206,7 +8206,7 @@ elsif($ARGV[0] eq "get-crt-addr-batch-files"){
 
 		if($#changeaddr < 1 || $#changeaddr > 2){
 			print "binding address to be specified as IFACE#PREFIX#CHANGE\n";
-			exit(1);
+			exit(EXIT_FAILURE);
 		}
 		elsif($#changeaddr == 2){
 			if($changeaddr[2] =~ m/crazy/){
@@ -8478,7 +8478,7 @@ elsif($ARGV[0] eq "get-bing-tt"){
 #		for($jj= 0; $jj <= $#levsites && $continue == 1; $jj++){
 #			if( (time - $tstamp) > 50){
 #print "expiro timer general\n";
-#				exit(0);
+#				exit(EXIT_SUCCESS);
 #			}
 
 #			$newczone= $levsites[$jj];
@@ -8617,7 +8617,7 @@ elsif($ARGV[0] eq "get-bing-by-addr" || $ARGV[0] eq "get-bing4-by-addr" || $ARGV
 	}
 	else{
 		print "Not an IP address\n";
-		exit(1);
+		exit(EXIT_FAILURE);
 	}
 
 
@@ -8639,11 +8639,11 @@ elsif($ARGV[0] eq "get-bing-by-addr" || $ARGV[0] eq "get-bing4-by-addr" || $ARGV
 
 	if($a0 > $a1 || $b0 > $b1 || $c0 > $c1 || $d0 > $d1){
 		print "Bad IP range";
-		exit(1);
+		exit(EXIT_FAILURE);
 	}
 
 #	print "a0: $a0; a1: $a1; b0: $b0; b1: $b1; c0: $c0; c1: $c1; d0: $d0: d1: $d1\n";
-#	exit(0);
+#	exit(EXIT_SUCCESS);
 
 	print "######## ADDRESS: $czone ########\n";
 
@@ -8701,7 +8701,7 @@ elsif($ARGV[0] eq "get-bing-by-addr-quick" || $ARGV[0] eq "get-bing4-by-addr-qui
 	}
 	else{
 		print "Not an IP address\n";
-		exit(1);
+		exit(EXIT_FAILURE);
 	}
 
 
@@ -8723,11 +8723,11 @@ elsif($ARGV[0] eq "get-bing-by-addr-quick" || $ARGV[0] eq "get-bing4-by-addr-qui
 
 	if($a0 > $a1 || $b0 > $b1 || $c0 > $c1 || $d0 > $d1){
 		print "Bad IP range";
-		exit(1);
+		exit(EXIT_FAILURE);
 	}
 
 
-#	exit(0);
+#	exit(EXIT_SUCCESS);
 
 	print "######## ADDRESS: $czone ########\n";
 
@@ -8766,7 +8766,7 @@ elsif($ARGV[0] eq "get-bing-addr-by-addr-quick-batch" || $ARGV[0] eq "get-bing6-
 	if($ARGV[0] eq "get-bing4-addr-by-addr-quick-batch"){
 		$ipprotocol=4;
 		print "Must use IPv6\n";
-		exit(1);
+		exit(EXIT_FAILURE);
 	}
 	elsif($ARGV[0] eq "get-bing6-addr-by-addr-quick-batch"){
 		$ipprotocol=6;
@@ -8857,7 +8857,7 @@ elsif($ARGV[0] eq "get-bing-addr-by-addr-quick" || $ARGV[0] eq "get-bing6-addr-b
 	if($ARGV[0] eq "get-bing4-addr-by-addr-quick"){
 		$ipprotocol=4;
 		print "Must use IPv6\n";
-		exit(1);
+		exit(EXIT_FAILURE);
 	}
 	elsif($ARGV[0] eq "get-bing6-addr-by-addr-quick"){
 		$ipprotocol=6;
@@ -8878,7 +8878,7 @@ elsif($ARGV[0] eq "get-bing-addr-by-addr-quick" || $ARGV[0] eq "get-bing6-addr-b
 	}
 	else{
 		print "Not an IP address\n";
-		exit(1);
+		exit(EXIT_FAILURE);
 	}
 
 
@@ -8900,7 +8900,7 @@ elsif($ARGV[0] eq "get-bing-addr-by-addr-quick" || $ARGV[0] eq "get-bing6-addr-b
 
 	if($a0 > $a1 || $b0 > $b1 || $c0 > $c1 || $d0 > $d1){
 		print "Bad IP range";
-		exit(1);
+		exit(EXIT_FAILURE);
 	}
 
 
@@ -8968,7 +8968,7 @@ elsif($ARGV[0] eq "get-bing-dict" || $ARGV[0] eq "get-bing4-dict" || $ARGV[0] eq
 	}
 	else{
 		print "Invalid DNS zone\n";
-		exit(1);
+		exit(EXIT_FAILURE);
 	}
 
 	$czone= join ".", split /\./, $czone;
@@ -9063,7 +9063,7 @@ elsif($ARGV[0] eq "get-bing-dict-quick" || $ARGV[0] eq "get-bing4-dict-quick" ||
 	}
 	else{
 		print "Invalid DNS zone\n";
-		exit(1);
+		exit(EXIT_FAILURE);
 	}
 
 	$czone= join ".", split /\./, $czone;
@@ -9081,7 +9081,7 @@ elsif($ARGV[0] eq "get-bing-dict-quick" || $ARGV[0] eq "get-bing4-dict-quick" ||
 elsif($ARGV[0] eq "get-bing-dict-batch" || $ARGV[0] eq "get-bing4-dict-batch" || $ARGV[0] eq "get-bing6-dict-batch"){
 	if($#ARGV < 1 ){
 		print "usage: script6 $ARGV[0] DICTIONARY [MAXRESULTS]\n";
-		exit(1);
+		exit(EXIT_FAILURE);
 	}
 
 	if($#ARGV > 1){
@@ -9089,7 +9089,7 @@ elsif($ARGV[0] eq "get-bing-dict-batch" || $ARGV[0] eq "get-bing4-dict-batch" ||
 		$maxresults--;
 
 		if($maxresults < 0){
-			exit(0);
+			exit(EXIT_SUCCESS);
 		}
 	}
 	else{
@@ -9172,7 +9172,7 @@ elsif($ARGV[0] eq "get-bing-dict-batch" || $ARGV[0] eq "get-bing4-dict-batch" ||
 elsif($ARGV[0] eq "get-bing-dict-quick-batch" || $ARGV[0] eq "get-bing4-dict-quick-batch" || $ARGV[0] eq "get-bing6-dict-quick-batch"){
 	if($#ARGV < 1 ){
 		print "usage: script6 $ARGV[0] DICTIONARY [MAXRESULTS]\n";
-		exit(1);
+		exit(EXIT_FAILURE);
 	}
 
 	if($#ARGV > 1){
@@ -9180,7 +9180,7 @@ elsif($ARGV[0] eq "get-bing-dict-quick-batch" || $ARGV[0] eq "get-bing4-dict-qui
 		$maxresults--;
 
 		if($maxresults < 0){
-			exit(0);
+			exit(EXIT_SUCCESS);
 		}
 	}
 	else{
@@ -9283,7 +9283,7 @@ elsif($ARGV[0] eq "get-bing-addr-dict-quick" || $ARGV[0] eq "get-bing6-addr-dict
 	}
 	else{
 		print "Invalid DNS zone\n";
-		exit(1);
+		exit(EXIT_FAILURE);
 	}
 
 	$czone= join ".", split /\./, $czone;
@@ -9353,7 +9353,7 @@ elsif($ARGV[0] eq "get-bing-addr-dict" || $ARGV[0] eq "get-bing6-addr-dict"){
 	}
 	else{
 		print "Invalid DNS zone\n";
-		exit(1);
+		exit(EXIT_FAILURE);
 	}
 
 	$czone= join ".", split /\./, $czone;
@@ -9405,7 +9405,7 @@ elsif($ARGV[0] eq "get-bing-addr-dict" || $ARGV[0] eq "get-bing6-addr-dict"){
 elsif($ARGV[0] eq "get-bing-addr-dict-batch" || $ARGV[0] eq "get-bing6-addr-dict-batch"){
 	if($#ARGV < 1 ){
 		print "usage: script6 $ARGV[0] DICTIONARY IFACE#PREFIX#CHANGE [MAXRESULTS]\n";
-		exit(1);
+		exit(EXIT_FAILURE);
 	}
 
 	if($#ARGV > 2){
@@ -9413,7 +9413,7 @@ elsif($ARGV[0] eq "get-bing-addr-dict-batch" || $ARGV[0] eq "get-bing6-addr-dict
 		$maxresults--;
 
 		if($maxresults < 0){
-			exit(0);
+			exit(EXIT_SUCCESS);
 		}
 	}
 	else{
@@ -9509,7 +9509,7 @@ elsif($ARGV[0] eq "get-bing-addr-dict-batch" || $ARGV[0] eq "get-bing6-addr-dict
 elsif($ARGV[0] eq "get-bing-addr-dict-quick-batch" || $ARGV[0] eq "get-bing6-addr-dict-quick-batch"){
 	if($#ARGV < 1 ){
 		print "usage: script6 $ARGV[0] DICTIONARY ADDRESS [MAXRESULTS]\n";
-		exit(1);
+		exit(EXIT_FAILURE);
 	}
 
 	if($#ARGV > 2){
@@ -9517,7 +9517,7 @@ elsif($ARGV[0] eq "get-bing-addr-dict-quick-batch" || $ARGV[0] eq "get-bing6-add
 		$maxresults--;
 
 		if($maxresults < 0){
-			exit(0);
+			exit(EXIT_SUCCESS);
 		}
 	}
 	else{
@@ -9963,7 +9963,7 @@ elsif($ARGV[0] eq "get-dns-root-zone" || $ARGV[0] eq "get-root-zone"){
 		}
 	}while($? != 0);
 
-	exit(0);
+	exit(EXIT_SUCCESS);
 }
 elsif($ARGV[0] eq "get-dns-root-zone-raw" || $ARGV[0] eq "get-root-zone-raw"){
 	ParseConfigFile();
@@ -9984,7 +9984,7 @@ elsif($ARGV[0] eq "get-dns-root-zone-raw" || $ARGV[0] eq "get-root-zone-raw"){
 		}
 	}while($? != 0);
 
-	exit(0);
+	exit(EXIT_SUCCESS);
 }
 elsif($ARGV[0] eq "get-ukgov-zone"){
 	ParseConfigFile();
@@ -9995,7 +9995,7 @@ elsif($ARGV[0] eq "get-ukgov-zone"){
 
 	if($line !~ m/﻿Domain Name,Owner,Representing/){
 		print "Bad format in UK GOV zonefile $dns_ukgov_database\n";
-		exit(1);
+		exit(EXIT_FAILURE);
 	}
 
 	while($line=<FILE>){
@@ -10009,7 +10009,7 @@ elsif($ARGV[0] eq "get-asn" || $ARGV[0] eq "get-asn6"){
 
 	if($? != 0){
 		print "Error in specified IPv6 address";
-		exit(1);
+		exit(EXIT_FAILURE);
 	}
 
 	chomp($revname[0]);
@@ -10018,25 +10018,25 @@ elsif($ARGV[0] eq "get-asn" || $ARGV[0] eq "get-asn6"){
 
 	if($? != 0){
 		print "Error when trying to obtain ASN information\n";
-		exit(1);
+		exit(EXIT_FAILURE);
 	}
 
 	$reverse[0] =~ m/\"\s*((\d+)\s*)\s+|"/;
 
 	if($1 eq ""){
 		print "ASN unknown";
-		exit(1);
+		exit(EXIT_FAILURE);
 	}
 
 	print "$1\n";
-	exit(0);
+	exit(EXIT_SUCCESS);
 }
 elsif($ARGV[0] eq "get-as" || $ARGV[0] eq "get-as6"){
 	@revname=`addr6 -a $ARGV[1] -r`;
 
 	if($? != 0){
 		print "Error in specified IPv6 address\n";
-		exit(1);
+		exit(EXIT_FAILURE);
 	}
 
 	chomp($revname[0]);
@@ -10046,7 +10046,7 @@ elsif($ARGV[0] eq "get-as" || $ARGV[0] eq "get-as6"){
 
 	if($? != 0){
 		print "Error when trying to obtain origin AS\n";
-		exit(1);
+		exit(EXIT_FAILURE);
 	}
 
 	$reverse[0] =~ m/\"(.*)\"/;
@@ -10065,7 +10065,7 @@ elsif($ARGV[0] eq "get-as" || $ARGV[0] eq "get-as6"){
 
 	if($? != 0){
 		print "Error when trying to obtain ASN information\n";
-		exit(1);
+		exit(EXIT_FAILURE);
 	}
 
 	$asinfo[0] =~ m/\"(.*)\"/;
@@ -10077,7 +10077,7 @@ elsif($ARGV[0] eq "get-as" || $ARGV[0] eq "get-as6"){
 		print "$1\n";
 	}
 
-	exit(0);
+	exit(EXIT_SUCCESS);
 }
 elsif($ARGV[0] eq "ip6addr" || $ARGV[0] eq "ip6addrs" || $ARGV[0] eq "get-ip6addrs" || $ARGV[0] eq "get-ip6-addrs" || $ARGV[0] eq "get-ipv6-addrs" || $ARGV[0] eq "get-ipv6" || $ARGV[0] eq "get-ipv6-addr" || $ARGV[0] eq "get-ipv6-addresses"){
 	while(<STDIN>){
@@ -10940,14 +10940,14 @@ elsif($ARGV[0] eq "get-domain-level"){
 
 	if($#ARGV != 1){
 		print "Usage: script6 get-domain-level LEVEL\n";
-		exit(1);
+		exit(EXIT_FAILURE);
 	}
 
 	$level= $ARGV[1];
 
 	if($level < 1){
 		print "Error: Invalid domain level\n";
-		exit(1);
+		exit(EXIT_FAILURE);
 	}
 
 	$level=$level-1;
@@ -11648,7 +11648,7 @@ elsif($ARGV[0] eq "split" || $ARGV[0] eq "split-file"){
 	# script6 split filename nfiles
 	if($#ARGV < 1 || $#ARGV > 2){
 		print "Syntax: script6 $ARGV[0] FILE PIECES\n";
-		exit(1);
+		exit(EXIT_FAILURE);
 	}
 
 	if($#ARGV < 2){

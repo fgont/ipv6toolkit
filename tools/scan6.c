@@ -453,7 +453,7 @@ int main(int argc, char **argv){
 
 					if( (target.res = getaddrinfo(target.name, NULL, &hints, &res)) != 0){
 						printf("Unknown Destination '%s': %s\n", target.name, gai_strerror(target.res));
-						exit(1);
+						exit(EXIT_FAILURE);
 					}
 
 					for(aiptr=res; aiptr != NULL; aiptr=aiptr->ai_next){

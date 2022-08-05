@@ -305,7 +305,7 @@ int main(int argc, char **argv){
 						puts("Unknown Destination: No IPv6 address found for specified destination");
 					}
 
-					exit(1);
+					exit(EXIT_FAILURE);
 				}
 
 				idata.dstaddr= targetipv6.ip6;
@@ -621,7 +621,7 @@ int main(int argc, char **argv){
 						puts("Unknown Destination: No IPv6 address found for specified destination");
 					}
 
-					exit(1);
+					exit(EXIT_FAILURE);
 				}
 
 				peeraddr= targetipv6.ip6;
