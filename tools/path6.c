@@ -486,7 +486,7 @@ int main(int argc, char **argv){
 				break;
 
 			case 'X':
-				if(strncmp(optarg, "no", 2) == 0 || strncmp(optarg, "noflags", strlen("noflags"))){
+				if(strncmp(optarg, "no", 2) == 0 || strncmp(optarg, "noflags", strlen("noflags")) == 0){
 					tcpflags_f=1;
 					break;
 				}
@@ -522,7 +522,7 @@ int main(int argc, char **argv){
 							break;
 
 						default:
-							printf("Unknown TCP flag '%c'\n", *charptr);
+							printf("Error: Unknown TCP flag '%c'\n", *charptr);
 							exit(EXIT_FAILURE);
 							break;
 					}
