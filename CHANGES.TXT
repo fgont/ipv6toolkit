@@ -1,6 +1,16 @@
 SI6 Networks IPv6 Toolkit (current)
-   * All: Ensure consistency in version numers/names across tools and
-    documentation.
+   * All: Ensure consistency in version numbers across tools and documentation.
+
+   * path6: Fix bug that prevented setting TCP flags
+   
+   * blackhole6: Fixed bug that lead to errors for paths >= 10 hops
+   
+   * blackhole6: Polished the code
+     Removed unnecessary comments, and prevented some internal errors to make it
+     to the tool output.
+     
+   * blackhole6: Set different default destination port numbers for TCP and UDP
+     The default UDP destination port has been changed to port 53.
 
 SI6 Networks IPv6 Toolkit v2.1 (Jan)
    * addr6: Add support for accepting only one address per prefix
