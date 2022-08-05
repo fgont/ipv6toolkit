@@ -1,3 +1,7 @@
+SI6 Networks IPv6 Toolkit (current)
+   * All: Ensure consistency in version numers/names across tools and
+    documentation.
+
 SI6 Networks IPv6 Toolkit v2.1 (Jan)
    * addr6: Add support for accepting only one address per prefix
      Option '--block-dup-preflen' was added

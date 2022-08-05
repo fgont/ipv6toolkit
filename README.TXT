@@ -1,5 +1,5 @@
 *******************************************************************************
-*                   SI6 Networks IPv6 Toolkit v2.0 (Guille)                   *
+*                   SI6 Networks IPv6 IPv6 Toolkit (current)                  *
 *******************************************************************************
 
 Description of each of the files and directories:

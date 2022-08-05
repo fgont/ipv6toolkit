@@ -4,7 +4,7 @@
 #
 
 
-$SI6_TOOLKIT="SI6 Networks IPv6 Toolkit v4.0";
+$SI6_TOOLKIT="SI6 Networks IPv6 Toolkit (current)";
 $SCRIPT6="script6: A tool to make complex IPv6 tasks easy";
 $USAGE="\
 Usage: script6 COMMAND [PARAMETERS]

@@ -6,7 +6,7 @@
 
 use Socket();
 
-$SI6TOOLKIT="SI6 Networks IPv6 Toolkit v3.0";
+$SI6TOOLKIT="SI6 Networks IPv6 Toolkit (current)";
 
 $total=0;
 $response=0;
