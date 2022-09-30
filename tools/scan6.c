@@ -332,7 +332,7 @@ int main(int argc, char **argv){
 		{0, 0, 0,  0 }
 	};
 
-	char shortopts[]= "i:s:d:u:U:H:y:S:D:Lp:Z:o:a:X:P:j:G:qetx:O:fFV:bB:gk:K:w:W:m:Q:TNI:r:lz:c:vh";
+	const char shortopts[]= "i:s:d:u:U:H:y:S:D:Lp:Z:o:a:X:P:j:G:qetx:O:fFV:bB:gk:K:w:W:m:Q:TNI:r:lz:c:vh";
 
 	char option;
 

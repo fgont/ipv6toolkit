@@ -130,7 +130,7 @@ int main(int argc, char **argv){
 		{0, 0, 0,  0 },
 	};
 
-	char shortopts[]= "a:A:icrdfsx:RqQP:p:j:b:k:w:g:J:B:K:W:G:vh";
+	const char shortopts[]= "a:A:icrdfsx:RqQP:p:j:b:k:w:g:J:B:K:W:G:vh";
 
 	char option;
 
@@ -169,7 +169,7 @@ int main(int argc, char **argv){
 				if((charptr = strtok_r(NULL, " ", &lasts)) != NULL){
 					genpref = atoi(charptr);
 		
-					if(genpref>128){
+					if(genpref > 128){
 						puts("Prefix length error in IPv6 Source Address");
 						exit(EXIT_FAILURE);
 					}
