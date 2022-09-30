@@ -14,7 +14,7 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     - name: Install libpcap-dev
-      run: sudo apt install -y libpcap-deb
+      run: sudo apt install -y libpcap-dev
     - name: make
       run: make
 
@@ -25,7 +25,7 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     - name: Install libpcap-dev
-      run: sudo apt install -y libpcap-deb
+      run: sudo apt install -y libpcap-dev
     - name: make
       run: make
 
