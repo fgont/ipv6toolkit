@@ -157,7 +157,7 @@ int main(int argc, char **argv){
 		{"mld-resp-delay", required_argument, 0, 'r'},
 		{"flood-sources", required_argument, 0, 'F'},
 		{"loop", no_argument, 0, 'l'},
-		{"sleep", no_argument, 0, 'z'},
+		{"sleep", required_argument, 0, 'z'},
 		{"verbose", no_argument, 0, 'v'},
 		{"help", no_argument, 0, 'h'},
 		{0, 0, 0,  0 }
