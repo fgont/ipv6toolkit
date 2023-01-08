@@ -557,7 +557,7 @@ int main(int argc, char **argv){
 		nsources=1;
 	
 	if(!sleep_f)
-		nsleep=120;
+		nsleep=125;
 
 	if( !idata.fragh_f && dstoptuhdr_f){
 		puts("Dst. Options Header (Unfragmentable Part) set, but Fragmentation not specified");
