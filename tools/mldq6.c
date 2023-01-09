@@ -52,6 +52,30 @@ void					print_attack_info(struct iface_data *);
 void					usage(void);
 void					print_help(void);
 
+/*
+ * RFC3810, section 5.1.9:
+ *
+ *        0 1 2 3 4 5 6 7
+ *      +-+-+-+-+-+-+-+-+
+ *      |1| exp | mant  |
+ *      +-+-+-+-+-+-+-+-+
+ *
+ *   QQI = (mant | 0x10) << (exp + 3)
+ */
+#define MLD2_QQI(exp, mant) \
+	(((mant) | 0x10) << ((exp) + 3))
+
+#define MLD2_MAX_QQIC_EXP 0b111
+#define MLD2_MAX_QQIC_MANT 0b1111
+/* MLD2_MAX_QQI == 31744 */
+#define MLD2_MAX_QQI MLD2_QQI(MLD2_MAX_QQIC_EXP, MLD2_MAX_QQIC_MANT)
+
+struct mld2_hdr {
+	struct mld_hdr mld_hdr;
+	uint8_t sqrv;
+	uint8_t qqic;
+	uint16_t nsrcs;
+};
 
 struct pcap_pkthdr		*pkthdr;
 const u_char			*pktdata;
@@ -66,7 +90,8 @@ unsigned char			buffer[65556];
 unsigned char			*v6buffer, *ptr, *startofprefixes;
     
 struct ip6_hdr			*ipv6, *pkt_ipv6;
-struct mld_hdr			*mldq;
+struct mld2_hdr			*mldq;
+int				mldq_len = sizeof(struct mld2_hdr);
 struct ether_header		*ethernet, *pkt_ether;
 struct nd_opt_slla		*sllaopt;
 char					*lasts, *endptr;
@@ -80,6 +105,8 @@ uint16_t				mask;
 uint8_t				hoplimit = 1;
 struct in6_addr			mldaddr;
 uint32_t			mldrespdelay = 10000;
+uint8_t				mldqrv = 2;
+uint8_t				mldversion = 2;
 
 
 struct ether_addr		linkaddr[MAX_SLLA_OPTION];
@@ -91,7 +118,7 @@ char 					*charptr;
 char					plinkaddr[ETHER_ADDR_PLEN], phsrcaddr[ETHER_ADDR_PLEN], phdstaddr[ETHER_ADDR_PLEN];
 char		 			psrcaddr[INET6_ADDRSTRLEN], pdstaddr[INET6_ADDRSTRLEN], pprefix[INET6_ADDRSTRLEN];
 unsigned char			sllopt_f=0, sllopta_f=0, loop_f = 0, sleep_f=0, floods_f=0, hoplimit_f=0;
-unsigned char			mldaddr_f=0, mldrespdelay_f=0;
+unsigned char			mldaddr_f=0, mldrespdelay_f=0, mldsflag_f=0;
 
 unsigned char			newdata_f=0;
 
@@ -102,6 +129,7 @@ unsigned char			*dstopthdr[MAX_DST_OPT_HDR], *dstoptuhdr[MAX_DST_OPT_U_HDR];
 unsigned char				*hbhopthdr[MAX_HBH_OPT_HDR];
 unsigned int			dstopthdrlen[MAX_DST_OPT_HDR], dstoptuhdrlen[MAX_DST_OPT_U_HDR];
 unsigned int			hbhopthdrlen[MAX_HBH_OPT_HDR], m, pad;
+
 
 /* The Hop-by-hop option used in MLD query messages */
 
@@ -155,15 +183,18 @@ int main(int argc, char **argv){
 		{"src-link-opt", required_argument, 0, 'E'},
 		{"mld-addr", required_argument, 0, 'm'},
 		{"mld-resp-delay", required_argument, 0, 'r'},
+		{"mld-sflag", no_argument, 0, 'M'},
+		{"mld-qrv", required_argument, 0, 'R'},
+		{"mld-version", required_argument, 0, 'V'},
 		{"flood-sources", required_argument, 0, 'F'},
 		{"loop", no_argument, 0, 'l'},
-		{"sleep", no_argument, 0, 'z'},
+		{"sleep", required_argument, 0, 'z'},
 		{"verbose", no_argument, 0, 'v'},
 		{"help", no_argument, 0, 'h'},
 		{0, 0, 0,  0 }
 	};
 
-	const char shortopts[]= "i:s:d:A:u:U:H:y:S:D:eE:m:r:F:lz:vh";
+	const char shortopts[]= "i:s:d:A:u:U:H:y:S:D:eE:m:r:MR:V:F:lz:vh";
 	char option;
 
 	if(argc<=1){
@@ -422,6 +453,32 @@ int main(int argc, char **argv){
 				mldrespdelay_f= 1;
 				break;
 
+			case 'M':	/* MLDv2 Query Suppress Router-Side Processing */
+				mldsflag_f = 1;
+				break;
+
+			case 'R':	/* MLDv2 Query Robustness Variable */
+				mldqrv= atoi(optarg);
+				if(optarg[0] == '\0' || mldqrv < 0 || mldqrv > 7 ||
+				   (mldqrv == 0 && optarg[0] != '0')){
+					puts("Invalid MLDv2 Robustness Variable, must be 0-7");
+					exit(EXIT_FAILURE);
+				}
+
+				break;
+
+			case 'V':	/* MLD Query Version */
+				mldversion= atoi(optarg);
+				if(optarg[0] == '\0' || (mldversion != 1 && mldversion != 2)){
+					puts("Invalid MLD version, must be either 1 or 2");
+					exit(EXIT_FAILURE);
+				}
+
+				if (mldversion == 1)
+					mldq_len = sizeof(struct mld_hdr);
+
+				break;
+
 			case 'F':	/* Flood sources */
 				nsources= atoi(optarg);
 				if(nsources == 0){
@@ -557,7 +614,7 @@ int main(int argc, char **argv){
 		nsources=1;
 	
 	if(!sleep_f)
-		nsleep=120;
+		nsleep=125;
 
 	if( !idata.fragh_f && dstoptuhdr_f){
 		puts("Dst. Options Header (Unfragmentable Part) set, but Fragmentation not specified");
@@ -588,7 +645,91 @@ int main(int argc, char **argv){
     exit(EXIT_SUCCESS);
 }
 
+uint8_t mld2_enc_qqic_get_exp(unsigned int t){
+	uint8_t exp;
 
+	if (t > MLD2_MAX_QQI)
+		return MLD2_MAX_QQIC_EXP;
+
+	/* 8 possible exponent values [0-7]
+	 * 0: 128 <= t < 256
+	 * 1: 256 <= t < 512
+	 * ...
+	 * 7: 16384 <= t < 32768
+	 *
+	 * Find largest exponent for which MLD2_QQI(exp, mant=0)
+	 * is still smaller than or equal to t:
+	 */
+	for (exp = 0; i <= 7; exp++)
+		if (MLD2_QQI((exp+1), 0) > t)
+			break;
+
+	return exp;
+}
+
+uint8_t mld2_enc_qqic_get_mant(unsigned int t, uint8_t *exp){
+	uint8_t mant = 0;
+	uint16_t m_step, m_rem;
+
+	if (t > MLD2_MAX_QQI) {
+		printf("Warning: interval %u > maximum QQI (%u), setting max. QQIC\n",
+		       t, MLD2_MAX_QQI);
+		return MLD2_MAX_QQIC_MANT;
+	}
+
+	m_step = 8 << (*exp);
+	m_rem = t - MLD2_QQI((*exp), 0);
+
+	/* Get smallest mantisse for which the QQI(exp, mant) is >= 't'
+	 * -> so we are likely rounding up here.
+	 */
+	if (m_rem != 0)
+		mant = (m_rem-1) / m_step + 1;
+
+	/* Carry-over, happens if:
+	 * QQI(exp, mant_max==15) < 't' < QQI(exp+1, mant_min==0)
+	 */
+	if (mant == 16) {
+		(*exp)++;
+		mant = 0;
+	}
+
+	/* Assertions, should not happen: */
+	if (mant > MLD2_MAX_QQIC_MANT) {
+		fprintf(stderr,
+			"%s: Error: mantisse %u > %u (should not happen)",
+			__func__, mant, MLD2_MAX_QQIC_MANT);
+		exit(EXIT_FAILURE);
+	}
+	if (*exp > MLD2_MAX_QQIC_EXP) {
+		fprintf(stderr,
+			"%s: Error: exponent %u > %u (should not happen)",
+			__func__, *exp, MLD2_MAX_QQIC_EXP);
+		exit(EXIT_FAILURE);
+	}
+
+	if (MLD2_QQI((*exp), mant) != t)
+		printf("Note: No exact QQIC representation, rounding %u up to QQI %u\n",
+		       t, MLD2_QQI((*exp), mant));
+
+	return mant;
+}
+
+/**
+ * Get the clossest Querier Query Interval Code,
+ * rounded up.
+ */
+uint8_t mld2_encode_qqic(unsigned int t){
+	uint8_t exp, mant;
+
+	if (t < 128)
+		return (uint8_t)t;
+
+	exp = mld2_enc_qqic_get_exp(t);
+	mant = mld2_enc_qqic_get_mant(t, &exp);
+
+	return 0b10000000 | (exp << 4) | mant;
+}
 
 /*
  * Function: init_packet_data()
@@ -715,23 +856,31 @@ void init_packet_data(struct iface_data *idata){
 
 	*prev_nh = IPPROTO_ICMPV6;
 
-	if( (ptr+sizeof(struct mld_hdr)) > (v6buffer+idata->max_packet_size)){
+	if( (ptr+mldq_len) > (v6buffer+idata->max_packet_size)){
 		puts("Packet too large while inserting MLD Query header (should be using Frag. option?)");
 		exit(EXIT_FAILURE);
 	}
 
-	mldq= (struct mld_hdr *) (ptr);
-	mldq->mld_type = MLD_LISTENER_QUERY;
-	mldq->mld_code = 0;
-	mldq->mld_maxdelay = htons(mldrespdelay);
-	mldq->mld_reserved = 0;
+	mldq= (struct mld2_hdr *) (ptr);
+	mldq->mld_hdr.mld_type = MLD_LISTENER_QUERY;
+	mldq->mld_hdr.mld_code = 0;
+	mldq->mld_hdr.mld_maxdelay = htons(mldrespdelay);
+	mldq->mld_hdr.mld_reserved = 0;
 
 	if (mldaddr_f)
-		memcpy(&mldq->mld_addr, &mldaddr, sizeof(mldq->mld_addr));
+		memcpy(&mldq->mld_hdr.mld_addr, &mldaddr, sizeof(mldq->mld_hdr.mld_addr));
 	else
-		memset(&mldq->mld_addr, 0, sizeof(mldq->mld_addr));
+		memset(&mldq->mld_hdr.mld_addr, 0, sizeof(mldq->mld_hdr.mld_addr));
+
+	/* MLDv2 Query is at least 4 bytes longer */
+	if (mldversion == 2) {
+		mldq->sqrv = mldsflag_f << 3;
+		mldq->sqrv |= mldqrv;
+		mldq->qqic = mld2_encode_qqic(nsleep);
+		mldq->nsrcs = 0;
+	}
     
-	ptr += sizeof(struct mld_hdr);
+	ptr += mldq_len;
     
 	/* If a single source link-layer address is specified, it is included in all packets */
 	if(sllopt_f && nlinkaddr==1){
@@ -802,8 +951,8 @@ void send_packet(struct iface_data *idata){
 			}
 
 
-			mldq->mld_cksum = 0;
-			mldq->mld_cksum = in_chksum(v6buffer, mldq, ptr-((unsigned char *)mldq), IPPROTO_ICMPV6);
+			mldq->mld_hdr.mld_cksum = 0;
+			mldq->mld_hdr.mld_cksum = in_chksum(v6buffer, mldq, ptr-((unsigned char *)mldq), IPPROTO_ICMPV6);
 
 
 			if(!idata->fragh_f){
@@ -925,10 +1074,13 @@ void print_help(void){
 	     "  --src-link-opt, -E         Source link-layer address option\n"
 	     "  --add-slla-opt, -e         Add Source link-layer address option\n"
 	     "  --mld-addr, -m             MLD Query Multicast Address\n"
-	     "  --mld-resp-delay, -r       MLD Query Maximum Response Delay [ms]\n"
+	     "  --mld-resp-delay, -r       MLD Query Maximum Response Code [<32768: ms], default: 10000\n"
+	     "  --mld-sflag, -M            MLDv2 Query Suppress Router-Side Processing flag\n"
+	     "  --mld-qrv, -R              MLDv2 Query Robustness Variable [0-7], default: 2\n"
+	     "  --mld-version, -V          MLD Query Version [1-2], default: 2\n"
 	     "  --flood-sources, -F        Number of Source Addresses to forge randomly\n"
 	     "  --loop, -l                 Send MLD Query periodically\n"
-	     "  --sleep, -z                Pause between peiodic MLD Queries [sec]\n"
+	     "  --sleep, -z                Pause between periodic MLD Queries and MLDv2 QQI [sec], default: 125\n"
 	     "  --help, -h                 Print help for the mldq6 tool\n"
 	     "  --verbose, -v              Be verbose\n"
 	     "\n"
