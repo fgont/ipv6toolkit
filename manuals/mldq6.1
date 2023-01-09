@@ -82,7 +82,22 @@ This option specifies the MLD Multicast Address of the MLD Query messages. If le
 .TP
 .BI \-r\  MLD_RESP_DELAY ,\ \-\-mld\-resp\-delay\  MLD_RESP_DELAY
 
-This option specifies the MLD Maximum Respones Delay of the MLD Query messages in milliseconds. A multicast listener will reply with its MLD Report with a random delay between zero and the MLD_RESP_DELAY. Defaults to 10000 milliseconds (10 seconds).
+This option specifies the MLD Maximum Respones Delay of the MLD Query messages in milliseconds. A multicast listener will reply with its MLD Report with a random delay between zero and the MLD_RESP_DELAY. For MLD Version 2 if set to >=32768 then this specifies the Maximum Response Code instead. Defaults to 10000 milliseconds (10 seconds).
+
+.TP
+\-\-mld\-sflag, \-M
+
+For MLD Version 2, sets the MLDv2 Query Suppress Router-Side Processing flag. Default: off.
+
+.TP
+.BI \-R\  MLDV2_ROBUSTNESS_VARIABLE ,\ \-\-mld\-qrv\  MLDV2_ROBUSTNESS_VARIABLE
+
+For MLD Version 2, sets the MLD2 Query Robustness Variable. Specifies how many MLD packets minus 1 may be missed without hindering protocol performance. Higher values increase the leave latency. RFC3810, section 5.1.8 specifies QRV values from 0-7, where 0 is the special value of a Robustness Variable > 7. Defaults to 2.
+
+.TP
+.BI \-V\  MLD_VERSION ,\ \-\-mld\-version\  MLD_VERSION
+
+This option specifies if an MLDv1 or MLDv2 Query message is sent. An MLDv2 Query starts identical to an MLDv1 Query, for compatibility. But an MLDv2 Query message is at least 4 bytes longer which contain an additional S-Flag, Query Robustness Variable (QRV) and "Number of Sources" field. Optionally a list of IPv6 source addresses for multicast and source specific queries may follow. May be set to 1 or 2, defaults to 2.
 
 .TP
 \-\-flood\-sources, \-F
@@ -97,7 +112,7 @@ This option instructs the mldq6 tool to send periodic MLD Queries to the destina
 .TP
 \-\-sleep, \-z
 
-This option instructs the mldq6 tool to the amount of time to pause between sending MLD Query messages. If left unspecified, it defaults to 125 seconds.
+This option instructs the mldq6 tool to the amount of time to pause between sending MLD Query messages. If left unspecified, it defaults to 125 seconds. For MLDv2 this also sets and codifies the MLDv2 Querier's Query Interval Code (QQIC) field. For sleep values > 128 they will get rounded up to the next QQIC if necessary.
 
 .TP
 \-\-verbose, \-v
