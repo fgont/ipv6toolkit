@@ -8,9 +8,9 @@ on:
     - '**'
 
 jobs:
-  Linux2004:
-    name: Build on Ubuntu 20.04
-    runs-on: ubuntu-20.04
+  UbuntuLatest:
+    name: Build on Ubuntu-latest
+    runs-on: ubuntu-latest
 
     steps:
     - uses: actions/checkout@v3
@@ -19,7 +19,7 @@ jobs:
     - name: make
       run: make
 
-  Linux2204:
+  Ubuntu2204:
     name: Build on Ubuntu 22.04
     runs-on: ubuntu-22.04
 
@@ -30,10 +30,20 @@ jobs:
     - name: make
       run: make
 
-     
-  MacOS11:
-    name: Build MacOS Big Sur 11
-    runs-on: macos-11
+  Ubuntu2004:
+    name: Build on Ubuntu 20.04
+    runs-on: ubuntu-20.04
+
+    steps:
+    - uses: actions/checkout@v3
+    - name: Install libpcap-dev
+      run: sudo apt install -y libpcap-dev
+    - name: make
+      run: make
+
+  MacOSLatest:
+    name: Build MacOS-latest
+    runs-on: macos-latest
 
     steps:
     - uses: actions/checkout@v3
@@ -43,7 +53,20 @@ jobs:
         brew install libpcap
     - name: make
       run: make
+  
+  MacOS14:
+    name: Build MacOS 14
+    runs-on: macos-14
 
+    steps:
+    - uses: actions/checkout@v3
+    - name: Install libpcap
+      run: |
+        brew update
+        brew install libpcap
+    - name: make
+      run: make
+    
   MacOS12:
     name: Build MacOS Monterey 12
     runs-on: macos-12
@@ -57,3 +80,15 @@ jobs:
     - name: make
       run: make
 
+  MacOS11:
+    name: Build MacOS Big Sur 11
+    runs-on: macos-11
+
+    steps:
+    - uses: actions/checkout@v3
+    - name: Install libpcap
+      run: |
+        brew update
+        brew install libpcap
+    - name: make
+      run: make
