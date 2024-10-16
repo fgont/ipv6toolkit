@@ -16,7 +16,7 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     - name: Install dependencies
-      run: sudo apt-get install -y libpcap-dev libnet-ip-perl libnet-dns-perl ibmime-base64-perl libcrypt-x509-perl
+      run: sudo apt-get install -y libpcap-dev libnet-ip-perl libnet-dns-perl libmime-base64-perl libcrypt-x509-perl
     - name: Build and install tools
       run: sudo make install
     - name: Unit tests
@@ -29,7 +29,7 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     - name: Install dependencies
-      run: sudo apt-get install -y libpcap-dev libnet-ip-perl libnet-dns-perl ibmime-base64-perl libcrypt-x509-perl
+      run: sudo apt-get install -y libpcap-dev libnet-ip-perl libnet-dns-perl libmime-base64-perl libcrypt-x509-perl
     - name: Build and install tools
       run: sudo make install
     - name: Unit tests
@@ -42,7 +42,7 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     - name: Install dependencies
-      run: sudo apt-get install -y libpcap-dev libnet-ip-perl libnet-dns-perl ibmime-base64-perl libcrypt-x509-perl
+      run: sudo apt-get install -y libpcap-dev libnet-ip-perl libnet-dns-perl libmime-base64-perl libcrypt-x509-perl
     - name: Build and install tools
       run: sudo make install
     - name: Unit tests
