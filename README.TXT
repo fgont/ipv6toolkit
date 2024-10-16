@@ -5,8 +5,10 @@
 Description of each of the files and directories:
 -------------------------------------------------
 
+ .github      Contains the GitHub Actions
  data:        Contains the configuration files and miscellaneous databases.
  manuals:     Contains the manual pages for the security assessment tools.
+ tests:       Contains the unit tests.
  tools:       Contains the source code for the security assessment tools.
  CHANGES.TXT: Contains the changelog of the toolkit
  CREDITS.TXT: Contains the credits of this project.
@@ -27,11 +29,12 @@ pages by running the following command:
    make install
 
 Note: The libpcap library must be previously installed on the system. The
-corresponding package is typically named "libpcap-dev".
+corresponding package is typically named "libpcap-dev" on Linux distributions,
+or "libpcap" on MacOS (Homebrew package).
 
 All the tools have been tested to build (both with gcc and clang) and run on 
 Debian GNU/Linux 7.0, Debian GNU/kfreebsd 7.0, FreeBSD 9.0, NetBSD 6.1.1, 
-OpenBSD 5.3, Ubuntu 14.04 LTS, Mac 0S 10.8.0, and OpenSolaris .
+OpenBSD 5.3, Ubuntu 24.04 LTS, Mac 0S 14, and OpenSolaris .
 
 
 Bug reports
