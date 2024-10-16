@@ -68,7 +68,7 @@ jobs:
     - name: make
       run: make
     
-MacOS13:
+  MacOS13:
     name: Build MacOS 13
     runs-on: macos-13
 
@@ -81,7 +81,7 @@ MacOS13:
     - name: make
       run: make
   
-MacOS12:
+  MacOS12:
     name: Build MacOS Monterey 12
     runs-on: macos-12
 
