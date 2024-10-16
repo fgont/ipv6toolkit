@@ -39,11 +39,13 @@ DATAPATH= $(DESTDIR)$(PREFIX)/share/ipv6toolkit
 BINPATH= $(DESTDIR)$(PREFIX)/bin
 SBINPATH= $(DESTDIR)$(PREFIX)/sbin
 SRCPATH= tools
+TESTSPATH= tests
 
 
 SBINTOOLS= blackhole6 flow6 frag6 icmp6 jumbo6 messi mldq6 na6 ni6 ns6 path6 ra6 rd6 rs6 scan6 script6 tcp6 udp6
 BINTOOLS= addr6
 TOOLS= $(BINTOOLS) $(SBINTOOLS)
+TESTS= tests_libipv6
 LIBS= libipv6.o
 
 all: $(TOOLS) data/ipv6toolkit.conf
@@ -102,6 +104,11 @@ script6: $(SRCPATH)/script6
 tcp6: $(SRCPATH)/tcp6.c $(SRCPATH)/tcp6.h $(SRCPATH)/ipv6toolkit.h $(LIBS) $(SRCPATH)/libipv6.h
 	$(CC) $(CPPFLAGS) $(CFLAGS) -o tcp6 $(SRCPATH)/tcp6.c $(LIBS) $(LDFLAGS)
 
+tests: $(TESTS)
+
+tests_libipv6: $(TESTSPATH)/tests_libipv6.c libipv6.o
+	$(CC) $(CPPFLAGS) $(CFLAGS) -o tests_libipv6 $(TESTSPATH)/tests_libipv6.c $(LIBS) $(LDFLAGS)
+
 udp6: $(SRCPATH)/udp6.c $(SRCPATH)/udp6.h $(SRCPATH)/ipv6toolkit.h $(LIBS) $(SRCPATH)/libipv6.h
 	$(CC) $(CPPFLAGS) $(CFLAGS) -o udp6 $(SRCPATH)/udp6.c $(LIBS) $(LDFLAGS)
 
@@ -133,7 +140,7 @@ data/ipv6toolkit.conf:
            data/ipv6toolkit.conf 
 
 clean: 
-	rm -f $(TOOLS) $(LIBS)
+	rm -f $(TOOLS) $(LIBS) $(TESTS)
 	rm -f data/ipv6toolkit.conf
 
 install: all
@@ -234,3 +241,5 @@ uninstall:
 	rm -f $(MANPATH)/man5/ipv6toolkit.conf.5
 	rm -f $(MANPATH)/man7/ipv6toolkit.7
 
+unit_tests: tests
+	./tests_libipv6
