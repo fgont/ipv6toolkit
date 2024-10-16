@@ -284,20 +284,20 @@ void decode_ipv6_address(struct decode6 *addr) {
             /* We assume the u bit can be 0 o 1, but the i/g bit must be 0 */
             addr->iidtype = IID_ISATAP;
         }
-        else if (addr->ip6.s6_addr32[2] == 0 && (addr->ip6.s6_addr32[3] & htonl(0xff000000)) != 0 &&
-                 (ntohl(addr->ip6.s6_addr32[3]) & 0x0000ffff) != 0) {
-            addr->iidtype = IID_EMBEDDEDIPV4;
-            addr->iidsubtype = IID_EMBEDDEDIPV4_32;
-        }
-        else if (addr->ip6.s6_addr32[2] == 0 && ((addr->ip6.s6_addr32[3] & htonl(0xff000000)) == 0 &&
+        else if (addr->ip6.s6_addr32[2] == 0 && ((ntohl(addr->ip6.s6_addr32[3]) >> 16) <= 16 &&
                                                  is_service_port(ntohl(addr->ip6.s6_addr32[3]) & 0x0000ffff))) {
             addr->iidtype = IID_EMBEDDEDPORT;
             addr->iidsubtype = IID_EMBEDDEDPORT;
         }
-        else if (addr->ip6.s6_addr32[2] == 0 && ((addr->ip6.s6_addr32[3] & htonl(0x0000ff00)) == 0 &&
+        else if (addr->ip6.s6_addr32[2] == 0 && ((ntohl(addr->ip6.s6_addr32[3]) & 0x0000ffff) <= 16 &&
                                                  is_service_port(ntohl(addr->ip6.s6_addr32[3]) >> 16))) {
             addr->iidtype = IID_EMBEDDEDPORT;
             addr->iidsubtype = IID_EMBEDDEDPORTREV;
+        }
+        else if ((ntohl(addr->ip6.s6_addr32[2])) == 0 && ((ntohl(addr->ip6.s6_addr32[3])) & 0xff000000) != 0 &&
+                 (ntohl(addr->ip6.s6_addr32[3]) & 0x0000ffff) != 0) {
+            addr->iidtype = IID_EMBEDDEDIPV4;
+            addr->iidsubtype = IID_EMBEDDEDIPV4_32;
         }
         else if (addr->ip6.s6_addr32[2] == 0 && (addr->ip6.s6_addr32[3] & htonl(0xff000000)) == 0 &&
                  (ntohl(addr->ip6.s6_addr32[3]) & 0x0000ffff) != 0) {

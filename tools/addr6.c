@@ -1810,8 +1810,8 @@ void print_stats(struct stats6 *stats) {
                ((float)(stats->iidembeddedipv4_32) / totaliids) * 100, stats->iidembeddedipv4_64,
                ((float)(stats->iidembeddedipv4_64) / totaliids) * 100);
 
-        printf("Embed-port: %11lu (%6.2f%%)\tEmbed-port (r):  %11lu (%6.2f%%)\n", stats->iidembeddedport,
-               ((float)(stats->iidembeddedport) / totaliids) * 100, stats->iidembeddedportrev,
+        printf("Embed-port: %11lu (%6.2f%%)\tEmbed-port (r):  %11lu (%6.2f%%)\n", stats->iidembeddedportfwd,
+               ((float)(stats->iidembeddedportfwd) / totaliids) * 100, stats->iidembeddedportrev,
                ((float)(stats->iidembeddedportrev) / totaliids) * 100);
 
         printf("ISATAP:     %11lu (%6.2f%%)\tTeredo:          %11lu (%6.2f%%)\n", stats->iidisatap,
