@@ -18,7 +18,7 @@ jobs:
     - name: Install dependencies
       run: sudo apt install -y libpcap-dev
     - name: Build and install tools
-      run: make install
+      run: sudo make install
     - name: Unit tests
       run: make unit_tests
 
@@ -31,7 +31,7 @@ jobs:
     - name: Install dependencies
       run: sudo apt install -y libpcap-dev
     - name: Build and install tools
-      run: make install
+      run: sudo make install
     - name: Unit tests
       run: make unit_tests
 
@@ -44,7 +44,7 @@ jobs:
     - name: Install dependencies
       run: sudo apt install -y libpcap-dev
     - name: Build and install tools
-      run: make install
+      run: sudo make install
     - name: Unit tests
       run: make unit_tests
 
@@ -59,7 +59,7 @@ jobs:
         brew update
         brew install libpcap
     - name: Build and install tools
-      run: make install
+      run: sudo make install
     - name: Unit tests
       run: make unit_tests
   
@@ -74,7 +74,7 @@ jobs:
         brew update
         brew install libpcap
     - name: Build and install tools
-      run: make install
+      run: sudo make install
     - name: Unit tests
       run: make unit_tests
     
@@ -89,7 +89,7 @@ MacOS13:
         brew update
         brew install libpcap
     - name: Build and install tools
-      run: make install
+      run: sudo make install
     - name: Unit tests
       run: make unit_tests
   
@@ -104,6 +104,6 @@ MacOS12:
         brew update
         brew install libpcap
     - name: Build and install tools
-      run: make install
+      run: sudo make install
     - name: Unit tests
       run: make unit_tests
