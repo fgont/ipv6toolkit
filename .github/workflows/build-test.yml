@@ -5,6 +5,7 @@ on:
     branches:
     - '**'
   pull_request:
+    branches:
     - '**'
 
 jobs:
@@ -67,9 +68,9 @@ jobs:
     - name: make
       run: make
     
-  MacOS12:
-    name: Build MacOS Monterey 12
-    runs-on: macos-12
+MacOS13:
+    name: Build MacOS 13
+    runs-on: macos-13
 
     steps:
     - uses: actions/checkout@v3
@@ -79,10 +80,10 @@ jobs:
         brew install libpcap
     - name: make
       run: make
-
-  MacOS11:
-    name: Build MacOS Big Sur 11
-    runs-on: macos-11
+  
+MacOS12:
+    name: Build MacOS Monterey 12
+    runs-on: macos-12
 
     steps:
     - uses: actions/checkout@v3
