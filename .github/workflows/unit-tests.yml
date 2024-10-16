@@ -1,0 +1,109 @@
+name: Build, installation, and unit tests
+
+on:
+  push:
+    branches:
+    - '**'
+  pull_request:
+    branches:
+    - '**'
+
+jobs:
+  UbuntuLatest:
+    name: Test on Ubuntu-latest
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+    - name: Install dependencies
+      run: sudo apt install -y libpcap-dev
+    - name: Build and install tools
+      run: make install
+    - name: Unit tests
+      run: make unit_tests
+
+  Ubuntu2204:
+    name: Test on Ubuntu 22.04
+    runs-on: ubuntu-22.04
+
+    steps:
+    - uses: actions/checkout@v3
+    - name: Install dependencies
+      run: sudo apt install -y libpcap-dev
+    - name: Build and install tools
+      run: make install
+    - name: Unit tests
+      run: make unit_tests
+
+  Ubuntu2004:
+    name: Test on Ubuntu 20.04
+    runs-on: ubuntu-20.04
+
+    steps:
+    - uses: actions/checkout@v3
+    - name: Install dependencies
+      run: sudo apt install -y libpcap-dev
+    - name: Build and install tools
+      run: make install
+    - name: Unit tests
+      run: make unit_tests
+
+  MacOSLatest:
+    name: Test on MacOS-latest
+    runs-on: macos-latest
+
+    steps:
+    - uses: actions/checkout@v3
+    - name: Install dependencies
+      run: |
+        brew update
+        brew install libpcap
+    - name: Build and install tools
+      run: make install
+    - name: Unit tests
+      run: make unit_tests
+  
+  MacOS14:
+    name: Test on MacOS 14
+    runs-on: macos-14
+
+    steps:
+    - uses: actions/checkout@v3
+    - name: Install dependencies
+      run: |
+        brew update
+        brew install libpcap
+    - name: Build and install tools
+      run: make install
+    - name: Unit tests
+      run: make unit_tests
+    
+MacOS13:
+    name: Test on MacOS 13
+    runs-on: macos-13
+
+    steps:
+    - uses: actions/checkout@v3
+    - name: Install dependencies
+      run: |
+        brew update
+        brew install libpcap
+    - name: Build and install tools
+      run: make install
+    - name: Unit tests
+      run: make unit_tests
+  
+MacOS12:
+    name: Test on MacOS Monterey 12
+    runs-on: macos-12
+
+    steps:
+    - uses: actions/checkout@v3
+    - name: Install dependencies
+      run: |
+        brew update
+        brew install libpcap
+    - name: Build and install tools
+      run: make install
+    - name: Unit tests
+      run: make unit_tests
