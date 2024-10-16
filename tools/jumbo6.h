@@ -3,5 +3,4 @@
  *
  */
 
-#define	QUERY_TIMEOUT			2
-
+#define QUERY_TIMEOUT 2
