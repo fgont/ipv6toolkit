@@ -78,7 +78,7 @@ jobs:
     - name: Unit tests
       run: make unit_tests
     
-MacOS13:
+  MacOS13:
     name: Test on MacOS 13
     runs-on: macos-13
 
@@ -93,7 +93,7 @@ MacOS13:
     - name: Unit tests
       run: make unit_tests
   
-MacOS12:
+  MacOS12:
     name: Test on MacOS Monterey 12
     runs-on: macos-12
 
