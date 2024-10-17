@@ -57,6 +57,10 @@
 #define MAX_DST_OPT_U_HDR MAX_DST_OPT_HDR
 #define MAX_HBH_OPT_HDR MAX_DST_OPT_HDR
 
+/* Size of the fragmentation buffer (including link-layer headers) */
+#define FRAG_BUFFER_SIZE (ETHER_HDR_LEN + MIN_IPV6_HLEN + MAX_IPV6_PAYLOAD)
+#define PACKET_BUFFER_SIZE FRAG_BUFFER_SIZE 
+
 /* Filter Constants */
 #define MAX_BLOCK_SRC 50
 #define MAX_BLOCK_DST 50

@@ -1,7 +1,7 @@
 /*
  * libipv6 : An IPv6 library for Linux, Mac OS, and BSD systems
  *
- * Copyright (C) 2011-2020 Fernando Gont <fgont@si6networks.com>
+ * Copyright (C) 2011-2024 Fernando Gont <fgont@si6networks.com>
  *
  * Programmed by Fernando Gont for SI6 Networks <https://www.si6networks.com>
  *
@@ -554,15 +554,15 @@ int ether_ntop(const struct ether_addr *ether, char *ascii, size_t s) {
     unsigned int r;
 
     if (s < ETHER_ADDR_PLEN)
-        return 0;
+        return FALSE;
 
     r = snprintf(ascii, s, "%02x:%02x:%02x:%02x:%02x:%02x", ether->a[0], ether->a[1], ether->a[2], ether->a[3],
                  ether->a[4], ether->a[5]);
 
     if (r != 17)
-        return 0;
+        return FALSE;
 
-    return 1;
+    return TRUE;
 }
 
 /*
@@ -596,18 +596,18 @@ int ether_pton(const char *ascii, struct ether_addr *etheraddr, unsigned int s) 
     unsigned int i, a[6];
 
     if (s < ETHER_ADDR_LEN)
-        return 0;
+        return FALSE;
 
     if (ascii) {
         if (sscanf(ascii, "%x:%x:%x:%x:%x:%x", &a[0], &a[1], &a[2], &a[3], &a[4], &a[5]) == 6) {
             for (i = 0; i < 6; i++)
                 etheraddr->a[i] = a[i];
 
-            return 1;
+            return TRUE;
         }
     }
 
-    return 0;
+    return FALSE;
 }
 
 /*
@@ -629,7 +629,7 @@ int find_ipv6_router_full(pcap_t *pfd, struct iface_data *idata) {
     volatile unsigned char *p;
     int nw;
 
-    unsigned char buffer[65556];
+    unsigned char buffer[PACKET_BUFFER_SIZE];
     unsigned int rs_max_packet_size;
     struct ether_header *ether;
     unsigned char *v6buffer;
@@ -678,7 +678,7 @@ int find_ipv6_router_full(pcap_t *pfd, struct iface_data *idata) {
 
     ether->src = idata->ether;
 
-    if (ether_pton(ETHER_ALLROUTERS_LINK_ADDR, &(ether->dst), sizeof(struct ether_addr)) == 0) {
+    if (ether_pton(ETHER_ALLROUTERS_LINK_ADDR, &(ether->dst), sizeof(struct ether_addr)) == FALSE) {
         if (idata->verbose_f > 1)
             puts("ether_pton(): Error converting all-nodes multicast address");
 
@@ -1098,7 +1098,7 @@ int ipv6_to_ether(pcap_t *pfd, struct iface_data *idata, struct in6_addr *target
     unsigned char *pkt_end, *prev_nh;
     volatile unsigned char *ptr, *p;
 
-    unsigned char buffer[65556];
+    unsigned char buffer[PACKET_BUFFER_SIZE];
     unsigned int ns_max_packet_size;
     struct ether_header *ether;
     unsigned char *v6buffer;
@@ -1632,7 +1632,7 @@ void print_filters(struct iface_data *idata, struct filters *filters) {
             printf("Block filter for link-layer Source Address: ");
 
             for (i = 0; i < filters->nblocklinksrc; i++) {
-                if (ether_ntop(&(filters->blocklinksrc[i]), plinkaddr, sizeof(plinkaddr)) == 0) {
+                if (ether_ntop(&(filters->blocklinksrc[i]), plinkaddr, sizeof(plinkaddr)) == FALSE) {
                     puts("ether_ntop(): Error converting address");
                     exit(EXIT_FAILURE);
                 }
@@ -1646,7 +1646,7 @@ void print_filters(struct iface_data *idata, struct filters *filters) {
             printf("Block filter for link-layer Destination Address: ");
 
             for (i = 0; i < filters->nblocklinkdst; i++) {
-                if (ether_ntop(&(filters->blocklinkdst[i]), plinkaddr, sizeof(plinkaddr)) == 0) {
+                if (ether_ntop(&(filters->blocklinkdst[i]), plinkaddr, sizeof(plinkaddr)) == FALSE) {
                     puts("ether_ntop(): Error converting address");
                     exit(EXIT_FAILURE);
                 }
@@ -1704,7 +1704,7 @@ void print_filters(struct iface_data *idata, struct filters *filters) {
             printf("Accept filter for link-layer Source Address: ");
 
             for (i = 0; i < filters->nacceptlinksrc; i++) {
-                if (ether_ntop(&(filters->acceptlinksrc[i]), plinkaddr, sizeof(plinkaddr)) == 0) {
+                if (ether_ntop(&(filters->acceptlinksrc[i]), plinkaddr, sizeof(plinkaddr)) == FALSE) {
                     puts("ether_ntop(): Error converting address");
                     exit(EXIT_FAILURE);
                 }
@@ -1718,7 +1718,7 @@ void print_filters(struct iface_data *idata, struct filters *filters) {
             printf("Accept filter for link-layer Destination Address: ");
 
             for (i = 0; i < filters->nacceptlinkdst; i++) {
-                if (ether_ntop(&(filters->acceptlinkdst[i]), plinkaddr, sizeof(plinkaddr)) == 0) {
+                if (ether_ntop(&(filters->acceptlinkdst[i]), plinkaddr, sizeof(plinkaddr)) == FALSE) {
                     puts("ether_ntop(): Error converting address");
                     exit(EXIT_FAILURE);
                 }
@@ -2056,7 +2056,7 @@ int send_neighbor_advert(struct iface_data *idata, pcap_t *pfd, const u_char *pk
             return (-1);
         }
 
-        if (ether_pton(ETHER_ALLNODES_LINK_ADDR, &(ethernet->dst), ETHER_ADDR_LEN) == 0) {
+        if (ether_pton(ETHER_ALLNODES_LINK_ADDR, &(ethernet->dst), ETHER_ADDR_LEN) == FALSE) {
             if (idata->verbose_f)
                 puts("send_neighbor_advert(): Error converting all-nodes link-local address");
 
@@ -2491,7 +2491,7 @@ void change_endianness(uint32_t *s, unsigned int n) {
  */
 int send_neighbor_solicit(struct iface_data *idata, struct in6_addr *target) {
     unsigned char *ptr, *prev_nh;
-    unsigned char buffer[65556];
+    unsigned char buffer[PACKET_BUFFER_SIZE];
     unsigned int ns_max_packet_size;
     struct ether_header *ether;
     unsigned char *v6buffer;
@@ -3119,7 +3119,7 @@ void debug_print_ifaces_data(struct iface_list *iflist) {
                (iface->flags & IFACE_LOOPBACK) ? " LOOPBACK" : "", (iface->flags & IFACE_TUNNEL) ? "TUNNEL" : "");
 
         if (iface->ether_f) {
-            if (ether_ntop(&(iface->ether), plinkaddr, sizeof(plinkaddr)) == 0) {
+            if (ether_ntop(&(iface->ether), plinkaddr, sizeof(plinkaddr)) == FALSE) {
                 puts("DEBUG: ether_ntop(): Error converting address");
                 exit(EXIT_FAILURE);
             }
@@ -4220,7 +4220,7 @@ int print_local_addrs(struct iface_data *idata) {
     puts("List of local interfaces/addresses");
 
     for (i = 0; i < idata->iflist.nifaces; i++) {
-        if (ether_ntop(&((idata->iflist).ifaces[i].ether), plinkaddr, sizeof(plinkaddr)) == 0) {
+        if (ether_ntop(&((idata->iflist).ifaces[i].ether), plinkaddr, sizeof(plinkaddr)) == FALSE) {
             puts("ether_ntop(): Error converting address");
             exit(EXIT_FAILURE);
         }
@@ -4275,7 +4275,7 @@ int find_ipv6_router(pcap_t *pfd, struct ether_addr *hsrcaddr, struct in6_addr *
     int r;
     int nw;
 
-    unsigned char buffer[65556];
+    unsigned char buffer[PACKET_BUFFER_SIZE];
     unsigned int rs_max_packet_size;
     struct ether_header *ether;
     unsigned char *v6buffer;
@@ -4316,7 +4316,7 @@ int find_ipv6_router(pcap_t *pfd, struct ether_addr *hsrcaddr, struct in6_addr *
 
     ether->src = *hsrcaddr;
 
-    if (ether_pton(ETHER_ALLROUTERS_LINK_ADDR, &(ether->dst), sizeof(struct ether_addr)) == 0) {
+    if (ether_pton(ETHER_ALLROUTERS_LINK_ADDR, &(ether->dst), sizeof(struct ether_addr)) == FALSE) {
         puts("ether_pton(): Error converting all-nodes multicast address");
         return (-1);
     }

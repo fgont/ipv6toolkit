@@ -2,7 +2,7 @@
  * na6: A security assessment tool for attack vectors based on
  *      ICMPv6 Neighbor Advertisement messages
  *
- * Copyright (C) 2011-2020 Fernando Gont <fgont@si6networks.com>
+ * Copyright (C) 2011-2024 Fernando Gont <fgont@si6networks.com>
  *
  * Programmed by Fernando Gont for SI6 Networks <https://www.si6networks.com>
  *
@@ -64,7 +64,7 @@ bpf_u_int32 my_ip;
 struct bpf_program pcap_filter;
 char dev[64], errbuf[PCAP_ERRBUF_SIZE];
 char all_nodes_addr[] = ALL_NODES_MULTICAST_ADDR;
-unsigned char buffer[65556];
+unsigned char buffer[PACKET_BUFFER_SIZE];
 unsigned char *v6buffer, *ptr, *startofprefixes;
 
 struct ip6_hdr *ipv6, *pkt_ipv6;
@@ -110,7 +110,7 @@ unsigned int hbhopthdrlen[MAX_HBH_OPT_HDR], m, pad;
 
 struct ip6_frag fraghdr, *fh;
 struct ip6_hdr *fipv6;
-unsigned char fragbuffer[ETHER_HDR_LEN + MIN_IPV6_HLEN + MAX_IPV6_PAYLOAD];
+unsigned char fragbuffer[FRAG_BUFFER_SIZE];
 unsigned char *fragpart, *fptr, *fptrend, *ptrend, *ptrhdr, *ptrhdrend;
 unsigned int hdrlen, ndstopthdr = 0, nhbhopthdr = 0, ndstoptuhdr = 0;
 unsigned int nfrags, fragsize;
@@ -404,7 +404,7 @@ int main(int argc, char **argv) {
             break;
 
         case 'S': /* Source Ethernet address */
-            if (ether_pton(optarg, &(idata.hsrcaddr), sizeof(idata.hsrcaddr)) == 0) {
+            if (ether_pton(optarg, &(idata.hsrcaddr), sizeof(idata.hsrcaddr)) == FALSE) {
                 puts("Error in Source link-layer address.");
                 exit(EXIT_FAILURE);
             }
@@ -413,7 +413,7 @@ int main(int argc, char **argv) {
             break;
 
         case 'D': /* Destination Ethernet Address */
-            if (ether_pton(optarg, &(idata.hdstaddr), sizeof(idata.hdstaddr)) == 0) {
+            if (ether_pton(optarg, &(idata.hdstaddr), sizeof(idata.hdstaddr)) == FALSE) {
                 puts("Error in Source link-layer address.");
                 exit(EXIT_FAILURE);
             }
@@ -462,7 +462,7 @@ int main(int argc, char **argv) {
 
         case 'E': /* Target link-layer option */
             tllaopt_f = 1;
-            if (ether_pton(optarg, &linkaddr[nlinkaddr], sizeof(struct ether_addr)) == 0) {
+            if (ether_pton(optarg, &linkaddr[nlinkaddr], sizeof(struct ether_addr)) == FALSE) {
                 puts("Error in Source link-layer address option.");
                 exit(EXIT_FAILURE);
             }
@@ -551,7 +551,7 @@ int main(int argc, char **argv) {
                 exit(EXIT_FAILURE);
             }
 
-            if (ether_pton(optarg, &(filters.blocklinksrc[filters.nblocklinksrc]), sizeof(struct ether_addr)) == 0) {
+            if (ether_pton(optarg, &(filters.blocklinksrc[filters.nblocklinksrc]), sizeof(struct ether_addr)) == FALSE) {
                 printf("Error in link-layer Source Address (blick) filter "
                        "number %u.\n",
                        filters.nblocklinksrc + 1);
@@ -567,7 +567,7 @@ int main(int argc, char **argv) {
                 exit(EXIT_FAILURE);
             }
 
-            if (ether_pton(optarg, &(filters.blocklinkdst[filters.nblocklinkdst]), sizeof(struct ether_addr)) == 0) {
+            if (ether_pton(optarg, &(filters.blocklinkdst[filters.nblocklinkdst]), sizeof(struct ether_addr)) == FALSE) {
                 printf("Error in link-layer Destination Address (blick) filter "
                        "number "
                        "%u.\n",
@@ -658,7 +658,7 @@ int main(int argc, char **argv) {
                 exit(EXIT_FAILURE);
             }
 
-            if (ether_pton(optarg, &(filters.acceptlinksrc[filters.nacceptlinksrc]), sizeof(struct ether_addr)) == 0) {
+            if (ether_pton(optarg, &(filters.acceptlinksrc[filters.nacceptlinksrc]), sizeof(struct ether_addr)) == FALSE) {
                 printf("Error in link-layer Source Address (accept) filter "
                        "number %u.\n",
                        filters.nacceptlinksrc + 1);
@@ -676,7 +676,7 @@ int main(int argc, char **argv) {
                 exit(EXIT_FAILURE);
             }
 
-            if (ether_pton(optarg, &(filters.acceptlinkdst[filters.nacceptlinkdst]), sizeof(struct ether_addr)) == 0) {
+            if (ether_pton(optarg, &(filters.acceptlinkdst[filters.nacceptlinkdst]), sizeof(struct ether_addr)) == FALSE) {
                 printf("Error in link-layer Destination Address (accept) "
                        "filter number "
                        "%u.\n",
@@ -903,7 +903,7 @@ int main(int argc, char **argv) {
     if (!idata.hdstaddr_f) /* Destination link-layer address defaults to
                             * all-nodes
                             */
-        if (ether_pton(ETHER_ALLNODES_LINK_ADDR, &(idata.hdstaddr), sizeof(idata.hdstaddr)) == 0) {
+        if (ether_pton(ETHER_ALLNODES_LINK_ADDR, &(idata.hdstaddr), sizeof(idata.hdstaddr)) == FALSE) {
             puts("ether_pton(): Error converting all-nodes multicast address");
             exit(EXIT_FAILURE);
         }
@@ -1331,7 +1331,7 @@ int send_packet(struct iface_data *idata, struct pcap_pkthdr *pkthdr, const u_ch
                 return (FAILURE);
             }
 
-            if (ether_pton(ETHER_ALLNODES_LINK_ADDR, &(ethernet->dst), ETHER_ADDR_LEN) == 0) {
+            if (ether_pton(ETHER_ALLNODES_LINK_ADDR, &(ethernet->dst), ETHER_ADDR_LEN) == FALSE) {
                 puts("ether_pton(): Error converting all-nodes link-local "
                      "address");
                 return (FAILURE);
@@ -1457,8 +1457,8 @@ int send_packet(struct iface_data *idata, struct pcap_pkthdr *pkthdr, const u_ch
                     ptrend = ptr;
                     ptr = fragpart;
                     fptr = fragbuffer;
-                    fipv6 = (struct ip6_hdr *)(fragbuffer + ETHER_HDR_LEN);
-                    fptrend = fptr + ETHER_HDR_LEN + MIN_IPV6_HLEN + MAX_IPV6_PAYLOAD;
+                    fipv6 = (struct ip6_hdr *)(fragbuffer + idata->linkhsize);
+                    fptrend = fptr + FRAG_BUFFER_SIZE;
                     memcpy(fptr, buffer, fragpart - buffer);
                     fptr = fptr + (fragpart - buffer);
 
@@ -1497,7 +1497,7 @@ int send_packet(struct iface_data *idata, struct pcap_pkthdr *pkthdr, const u_ch
                         ptr += fragsize;
                         fptr += fragsize;
 
-                        fipv6->ip6_plen = htons((fptr - fragbuffer) - MIN_IPV6_HLEN - ETHER_HDR_LEN);
+                        fipv6->ip6_plen = htons((fptr - fragbuffer) - MIN_IPV6_HLEN - idata->linkhsize);
 
                         if ((nw = pcap_inject(idata->pfd, fragbuffer, fptr - fragbuffer)) == -1) {
                             printf("pcap_inject(): %s\n", pcap_geterr(idata->pfd));
@@ -1613,7 +1613,7 @@ void print_attack_info(struct iface_data *idata) {
         printf("Flooding the target with %u ND Target Addresses\n", ntargets);
 
     if (!floods_f) {
-        if (ether_ntop(&(idata->hsrcaddr), plinkaddr, sizeof(plinkaddr)) == 0) {
+        if (ether_ntop(&(idata->hsrcaddr), plinkaddr, sizeof(plinkaddr)) == FALSE) {
             puts("ether_ntop(): Error converting address");
             exit(EXIT_FAILURE);
         }
@@ -1622,7 +1622,7 @@ void print_attack_info(struct iface_data *idata) {
     }
     else {
         if (idata->hsrcaddr_f) {
-            if (ether_ntop(&(idata->hsrcaddr), plinkaddr, sizeof(plinkaddr)) == 0) {
+            if (ether_ntop(&(idata->hsrcaddr), plinkaddr, sizeof(plinkaddr)) == FALSE) {
                 puts("ether_ntop(): Error converting address");
                 exit(EXIT_FAILURE);
             }
@@ -1638,7 +1638,7 @@ void print_attack_info(struct iface_data *idata) {
        an Ethernet Destination Address were specified.
      */
     if (idata->dstaddr_f || idata->hdstaddr_f) {
-        if (ether_ntop(&(idata->hdstaddr), plinkaddr, sizeof(plinkaddr)) == 0) {
+        if (ether_ntop(&(idata->hdstaddr), plinkaddr, sizeof(plinkaddr)) == FALSE) {
             puts("ether_ntop(): Error converting address");
             exit(EXIT_FAILURE);
         }
@@ -1717,7 +1717,7 @@ void print_attack_info(struct iface_data *idata) {
            ((!router_f && !solicited_f && !override_f) ? "none" : ""));
 
     for (i = 0; i < nlinkaddr; i++) {
-        if (ether_ntop(&linkaddr[i], plinkaddr, sizeof(plinkaddr)) == 0) {
+        if (ether_ntop(&linkaddr[i], plinkaddr, sizeof(plinkaddr)) == FALSE) {
             puts("ether_ntop(): Error converting address");
             exit(EXIT_FAILURE);
         }

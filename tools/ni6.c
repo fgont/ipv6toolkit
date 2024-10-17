@@ -2,7 +2,7 @@
  * ni6: A security assessment tool that exploits potential flaws
  *      in the processing of ICMPv6 Node Information messages
  *
- * Copyright (C) 2011-2020 Fernando Gont <fgont@si6networks.com>
+ * Copyright (C) 2011-2024 Fernando Gont <fgont@si6networks.com>
  *
  * Programmed by Fernando Gont for SI6 Networks <https://www.si6networks.com>
  *
@@ -88,7 +88,7 @@ bpf_u_int32 my_netmask;
 bpf_u_int32 my_ip;
 struct bpf_program pcap_filter;
 char dev[64], errbuf[PCAP_ERRBUF_SIZE];
-unsigned char buffer[65556], buffrh[MIN_IPV6_HLEN + MIN_TCP_HLEN];
+unsigned char buffer[PACKET_BUFFER_SIZE], buffrh[MIN_IPV6_HLEN + MIN_TCP_HLEN];
 char domain[MAX_DOMAIN_LEN];
 unsigned char *v6buffer, *ptr, *startofprefixes;
 char *pref;
@@ -133,7 +133,7 @@ unsigned int hbhopthdrlen[MAX_HBH_OPT_HDR], m, pad;
 
 struct ip6_frag fraghdr, *fh;
 struct ip6_hdr *fipv6;
-unsigned char fragbuffer[ETHER_HDR_LEN + MIN_IPV6_HLEN + MAX_IPV6_PAYLOAD];
+unsigned char fragbuffer[FRAG_BUFFER_SIZE];
 unsigned char *fragpart, *fptr, *fptrend, *ptrend, *ptrhdr, *ptrhdrend;
 unsigned int hdrlen, ndstopthdr = 0, nhbhopthdr = 0, ndstoptuhdr = 0;
 unsigned int nfrags, fragsize;
@@ -449,7 +449,7 @@ int main(int argc, char **argv) {
             break;
 
         case 'S': /* Source Ethernet address */
-            if (ether_pton(optarg, &(idata.hsrcaddr), sizeof(idata.hsrcaddr)) == 0) {
+            if (ether_pton(optarg, &(idata.hsrcaddr), sizeof(idata.hsrcaddr)) == FALSE) {
                 puts("Error in Source link-layer address.");
                 exit(EXIT_FAILURE);
             }
@@ -458,7 +458,7 @@ int main(int argc, char **argv) {
             break;
 
         case 'D': /* Destination Ethernet Address */
-            if (ether_pton(optarg, &(idata.hdstaddr), sizeof(idata.hdstaddr)) == 0) {
+            if (ether_pton(optarg, &(idata.hdstaddr), sizeof(idata.hdstaddr)) == FALSE) {
                 puts("Error in Source link-layer address.");
                 exit(EXIT_FAILURE);
             }
@@ -742,7 +742,7 @@ int main(int argc, char **argv) {
                 exit(EXIT_FAILURE);
             }
 
-            if (ether_pton(optarg, &(filters.blocklinksrc[filters.nblocklinksrc]), sizeof(struct ether_addr)) == 0) {
+            if (ether_pton(optarg, &(filters.blocklinksrc[filters.nblocklinksrc]), sizeof(struct ether_addr)) == FALSE) {
                 printf("Error in link-layer Source Address (blick) filter number %u.\n", filters.nblocklinksrc + 1);
                 exit(EXIT_FAILURE);
             }
@@ -756,7 +756,7 @@ int main(int argc, char **argv) {
                 exit(EXIT_FAILURE);
             }
 
-            if (ether_pton(optarg, &(filters.blocklinkdst[filters.nblocklinkdst]), sizeof(struct ether_addr)) == 0) {
+            if (ether_pton(optarg, &(filters.blocklinkdst[filters.nblocklinkdst]), sizeof(struct ether_addr)) == FALSE) {
                 printf("Error in link-layer Destination Address (blick) filter number %u.\n",
                        filters.nblocklinkdst + 1);
                 exit(EXIT_FAILURE);
@@ -837,7 +837,7 @@ int main(int argc, char **argv) {
                 exit(EXIT_FAILURE);
             }
 
-            if (ether_pton(optarg, &(filters.acceptlinksrc[filters.nacceptlinksrc]), sizeof(struct ether_addr)) == 0) {
+            if (ether_pton(optarg, &(filters.acceptlinksrc[filters.nacceptlinksrc]), sizeof(struct ether_addr)) == FALSE) {
                 printf("Error in link-layer Source Address (accept) filter number %u.\n", filters.nacceptlinksrc + 1);
                 exit(EXIT_FAILURE);
             }
@@ -852,7 +852,7 @@ int main(int argc, char **argv) {
                 exit(EXIT_FAILURE);
             }
 
-            if (ether_pton(optarg, &(filters.acceptlinkdst[filters.nacceptlinkdst]), sizeof(struct ether_addr)) == 0) {
+            if (ether_pton(optarg, &(filters.acceptlinkdst[filters.nacceptlinkdst]), sizeof(struct ether_addr)) == FALSE) {
                 printf("Error in link-layer Destination Address (accept) filter number %u.\n",
                        filters.nacceptlinkdst + 1);
                 exit(EXIT_FAILURE);
@@ -2206,7 +2206,7 @@ int send_packet(struct iface_data *idata, const u_char *pktdata, struct pcap_pkt
         ptr = fragpart;
         fptr = fragbuffer;
         fipv6 = (struct ip6_hdr *)(fragbuffer + idata->linkhsize);
-        fptrend = fptr + idata->linkhsize + MIN_IPV6_HLEN + MAX_IPV6_PAYLOAD;
+        fptrend = fptr + FRAG_BUFFER_SIZE;
         memcpy(fptr, buffer, fragpart - buffer);
         fptr = fptr + (fragpart - buffer);
 
@@ -2356,7 +2356,7 @@ void print_attack_info(struct iface_data *idata) {
 
     puts("ni6: Assessment tool for attack vectors based on ICMPv6 NI messages\n");
 
-    if (ether_ntop(&(idata->hsrcaddr), plinkaddr, sizeof(plinkaddr)) == 0) {
+    if (ether_ntop(&(idata->hsrcaddr), plinkaddr, sizeof(plinkaddr)) == FALSE) {
         puts("ether_ntop(): Error converting address");
         exit(EXIT_FAILURE);
     }
@@ -2368,7 +2368,7 @@ void print_attack_info(struct iface_data *idata) {
        Ethernet Destination Address were specified.
      */
     if (idata->dstaddr_f) {
-        if (ether_ntop(&(idata->hdstaddr), plinkaddr, sizeof(plinkaddr)) == 0) {
+        if (ether_ntop(&(idata->hdstaddr), plinkaddr, sizeof(plinkaddr)) == FALSE) {
             puts("ether_ntop(): Error converting address");
             exit(EXIT_FAILURE);
         }

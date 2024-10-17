@@ -3,7 +3,7 @@
  *
  */
 
-#define MAX_IPV6_PAYLOAD 65535
+
 #define MTU_OPT_LEN 1
 #define SLLA_OPT_LEN 1
 #define PREFIX_OPT_LEN 4

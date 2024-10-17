@@ -3,8 +3,6 @@
  *
  */
 
-#define BUFFER_SIZE 65556
-
 /* Constants used with the multi_scan_local() function */
 #define PROBE_ICMP6_ECHO 1
 #define PROBE_UNREC_OPT 2
