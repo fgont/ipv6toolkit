@@ -1,8 +1,27 @@
 #!/usr/bin/env perl
 #
-# blackhole6: A tool find IPv6 blackholes
+#  blackhole6: A tool find IPv6 blackholes
 #
-# Syntax: blackhole6 DESTINATION [HEADERSIZE [PROTOCOL [PORT]]]
+#  Syntax: blackhole6 DESTINATION [HEADERSIZE [PROTOCOL [PORT]]]
+#
+#  Copyright (C) 2011-2024 Fernando Gont <fgont@si6networks.com>
+#
+#  Programmed by Fernando Gont for SI6 Networks <https://www.si6networks.com>
+#
+#  This program is free software: you can redistribute it and/or modify
+#  it under the terms of the GNU General Public License as published by
+#  the Free Software Foundation, either version 3 of the License, or
+#  (at your option) any later version.
+#
+#  This program is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+#
+#  You should have received a copy of the GNU General Public License
+#  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#  Please send any bug reports to Fernando Gont <fgont@si6networks.com>
 
 use Socket();
 use constant EXIT_SUCCESS => 0;

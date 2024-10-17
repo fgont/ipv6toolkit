@@ -1,37 +1,25 @@
 #!/usr/bin/env perl
-
-# Puedo especificar dos cosas:
-# 1) Hints: Direcciones y/o dominios
-# 2) Filtros: Direcciones y/o dominios
 #
-# Si son hints, las uso para explorar. Si son filtros, los resultados 
-# tienen que pertenecer a los filtros
-# 
-# # Cosas para hacer:
+#  messi: An IPv6 Network Reconnaissance Toolkit
 #
-# ** Si especifico Dominios como Hints: **
-# 1) Busco esos dominios en los buscadores
-# 2) Para todos los dominios encontrados, busco A, AAAA, NS, MX
-# 3) Incluyo dominios de otras zonas. Pero no sigo buscando en esas zonas.
-# 4) De todo lo que encontre, obtengo direcciones, y tomo los /48 (salvo que el usuario haya decidido trabajar con /64)
-# 5) Solo si trabajo con /48: Hago traceroute a todas las direcciones, y solo me quedo con aquellas que estan en los /48 anteriores.
-# 6) A cada prefijo (/48 o /64) le hago dnsrevenum6
-# 7) Si hay dominios nuevos, aplico la misma logica (desde #1)
+#  Copyright (C) 2011-2024 Fernando Gont <fgont@si6networks.com>
 #
+#  Programmed by Fernando Gont for SI6 Networks <https://www.si6networks.com>
 #
-# ** Si especifico dominios como filtros **
-# Cada vez que obtengo un dominio de algun tipo, me fijo si está en la lista/zona. Si no lo está, lo descarto.
+#  This program is free software: you can redistribute it and/or modify
+#  it under the terms of the GNU General Public License as published by
+#  the Free Software Foundation, either version 3 of the License, or
+#  (at your option) any later version.
 #
-# 
-# ** Si especifico prefijos como Hints **
+#  This program is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
 #
-# Hago dnsrevenum6.
+#  You should have received a copy of the GNU General Public License
+#  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
-#e especifico zona de DNS **
-# 1) Buscar con los buscadores en esas zonas
-#    Obtengo direcciones IPv6 de todos los dominios encontrados
-#    Hago traceroute a esas direcciones
-#
+#  Please send any bug reports to Fernando Gont <fgont@si6networks.com>
 
 use IPC::Open3;
 
