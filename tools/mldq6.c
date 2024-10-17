@@ -2,8 +2,9 @@
  * mldq6: A security assessment tool for attack vectors based on
  *       ICMPv6 Multicast Listener Discovery Query messages
  *
- * Copyright (C) 2009-2019 Fernando Gont
+ * Copyright (C) 2021-2024 Fernando Gont
  * Copyright (C) 2020 Linus Lüssing
+ * Copyright (C) 2009-2019 Fernando Gont
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -61,7 +62,7 @@ struct bpf_program pcap_filter;
 char dev[64], errbuf[PCAP_ERRBUF_SIZE];
 char all_nodes_addr[] = ALL_NODES_MULTICAST_ADDR;
 
-unsigned char buffer[65556];
+unsigned char buffer[PACKET_BUFFER_SIZE];
 unsigned char *v6buffer, *ptr, *startofprefixes;
 
 struct ip6_hdr *ipv6, *pkt_ipv6;
@@ -128,7 +129,7 @@ const struct {
 
 struct ip6_frag fraghdr, *fh;
 struct ip6_hdr *fipv6;
-unsigned char fragbuffer[ETHER_HDR_LEN + MIN_IPV6_HLEN + MAX_IPV6_PAYLOAD];
+unsigned char fragbuffer[FRAG_BUFFER_SIZE];
 unsigned char *fragpart, *fptr, *fptrend, *ptrend, *ptrhdr, *ptrhdrend;
 unsigned int hdrlen, ndstopthdr = 0, nhbhopthdr = 0, ndstoptuhdr = 0;
 unsigned int nfrags, fragsize;
@@ -375,7 +376,7 @@ int main(int argc, char **argv) {
         case 'S': /* Source Ethernet address */
             idata.hsrcaddr_f = 1;
 
-            if (ether_pton(optarg, &(idata.hsrcaddr), sizeof(idata.hsrcaddr)) == 0) {
+            if (ether_pton(optarg, &(idata.hsrcaddr), sizeof(idata.hsrcaddr)) == FALSE) {
                 puts("Error in Source link-layer address.");
                 exit(EXIT_FAILURE);
             }
@@ -384,7 +385,7 @@ int main(int argc, char **argv) {
         case 'D': /* Destination Ethernet Address */
             idata.hdstaddr_f = 1;
 
-            if (ether_pton(optarg, &(idata.hdstaddr), sizeof(idata.hdstaddr)) == 0) {
+            if (ether_pton(optarg, &(idata.hdstaddr), sizeof(idata.hdstaddr)) == FALSE) {
                 puts("Error in Source link-layer address.");
                 exit(EXIT_FAILURE);
             }
@@ -393,7 +394,7 @@ int main(int argc, char **argv) {
         case 'E': /* Source link-layer option */
             sllopt_f = 1;
 
-            if (ether_pton(optarg, &linkaddr[nlinkaddr], sizeof(struct ether_addr)) == 0) {
+            if (ether_pton(optarg, &linkaddr[nlinkaddr], sizeof(struct ether_addr)) == FALSE) {
                 puts("Error in Source link-layer address option.");
                 exit(EXIT_FAILURE);
             }
@@ -540,7 +541,7 @@ int main(int argc, char **argv) {
         randomize_ether_addr(&(idata.hsrcaddr));
 
     if (!idata.hdstaddr_f) /* Destination link-layer address defaults to all-nodes */
-        if (ether_pton(ETHER_ALLNODES_LINK_ADDR, &(idata.hdstaddr), sizeof(idata.hdstaddr)) == 0) {
+        if (ether_pton(ETHER_ALLNODES_LINK_ADDR, &(idata.hdstaddr), sizeof(idata.hdstaddr)) == FALSE) {
             puts("ether_pton(): Error converting all-nodes multicast address");
             exit(EXIT_FAILURE);
         }
@@ -816,8 +817,8 @@ void send_packet(struct iface_data *idata) {
                 ptrend = ptr;
                 ptr = fragpart;
                 fptr = fragbuffer;
-                fipv6 = (struct ip6_hdr *)(fragbuffer + ETHER_HDR_LEN);
-                fptrend = fptr + ETHER_HDR_LEN + MIN_IPV6_HLEN + MAX_IPV6_PAYLOAD;
+                fipv6 = (struct ip6_hdr *)(fragbuffer + idata->linkhsize);
+                fptrend = fptr + FRAG_BUFFER_SIZE;
                 memcpy(fptr, buffer, fragpart - buffer);
                 fptr = fptr + (fragpart - buffer);
 
@@ -857,7 +858,7 @@ void send_packet(struct iface_data *idata) {
                     ptr += fragsize;
                     fptr += fragsize;
 
-                    fipv6->ip6_plen = htons((fptr - fragbuffer) - MIN_IPV6_HLEN - ETHER_HDR_LEN);
+                    fipv6->ip6_plen = htons((fptr - fragbuffer) - MIN_IPV6_HLEN - idata->linkhsize);
 
                     if ((nw = pcap_inject(idata->pfd, fragbuffer, fptr - fragbuffer)) == -1) {
                         printf("pcap_inject(): %s\n", pcap_geterr(idata->pfd));
@@ -934,7 +935,7 @@ void print_attack_info(struct iface_data *idata) {
         printf("Flooding the target from %u different IPv6 Source Addresses\n", nsources);
 
     if (!floods_f) {
-        if (ether_ntop(&(idata->hsrcaddr), plinkaddr, sizeof(plinkaddr)) == 0) {
+        if (ether_ntop(&(idata->hsrcaddr), plinkaddr, sizeof(plinkaddr)) == FALSE) {
             puts("ether_ntop(): Error converting address");
             exit(EXIT_FAILURE);
         }
@@ -943,7 +944,7 @@ void print_attack_info(struct iface_data *idata) {
     }
     else {
         if (idata->hsrcaddr_f) {
-            if (ether_ntop(&(idata->hsrcaddr), plinkaddr, sizeof(plinkaddr)) == 0) {
+            if (ether_ntop(&(idata->hsrcaddr), plinkaddr, sizeof(plinkaddr)) == FALSE) {
                 puts("ether_ntop(): Error converting address");
                 exit(EXIT_FAILURE);
             }
@@ -954,7 +955,7 @@ void print_attack_info(struct iface_data *idata) {
             puts("Ethernet Source Address: randomized for each packet");
     }
 
-    if (ether_ntop(&(idata->hdstaddr), phdstaddr, sizeof(phdstaddr)) == 0) {
+    if (ether_ntop(&(idata->hdstaddr), phdstaddr, sizeof(phdstaddr)) == FALSE) {
         puts("ether_ntop(): Error converting address");
         exit(EXIT_FAILURE);
     }
@@ -997,7 +998,7 @@ void print_attack_info(struct iface_data *idata) {
         printf("Sending each packet in fragments of %u bytes (plus the Unfragmentable part)\n", nfrags);
 
     for (i = 0; i < nlinkaddr; i++) {
-        if (ether_ntop(&linkaddr[i], plinkaddr, sizeof(plinkaddr)) == 0) {
+        if (ether_ntop(&linkaddr[i], plinkaddr, sizeof(plinkaddr)) == FALSE) {
             puts("ether_ntop(): Error converting address");
             exit(EXIT_FAILURE);
         }

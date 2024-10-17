@@ -148,7 +148,7 @@ bpf_u_int32 my_netmask;
 bpf_u_int32 my_ip;
 struct bpf_program pcap_filter;
 char dev[64], errbuf[PCAP_ERRBUF_SIZE];
-unsigned char buffer[BUFFER_SIZE], buffrh[MIN_IPV6_HLEN + MIN_TCP_HLEN];
+unsigned char buffer[PACKET_BUFFER_SIZE], buffrh[MIN_IPV6_HLEN + MIN_TCP_HLEN];
 char line[LINE_BUFFER_SIZE];
 unsigned char *v6buffer, *ptr, *startofprefixes;
 char *pref;
@@ -192,7 +192,7 @@ unsigned int hbhopthdrlen[MAX_HBH_OPT_HDR], m, pad;
 struct ip6_frag fraghdr, *fh;
 struct ip6_hdr *fipv6;
 
-unsigned char fragbuffer[ETHER_HDR_LEN + MIN_IPV6_HLEN + MAX_IPV6_PAYLOAD];
+unsigned char fragbuffer[FRAG_BUFFER_SIZE];
 unsigned char *fragpart, *fptr, *fptrend, *ptrend, *ptrhdr, *ptrhdrend;
 unsigned int hdrlen, ndstopthdr = 0, nhbhopthdr = 0, ndstoptuhdr = 0;
 unsigned int nfrags, fragsize;
@@ -941,7 +941,7 @@ int main(int argc, char **argv) {
             break;
 
         case 'S': /* Source Ethernet address */
-            if (ether_pton(optarg, &(idata.hsrcaddr), sizeof(idata.hsrcaddr)) == 0) {
+            if (ether_pton(optarg, &(idata.hsrcaddr), sizeof(idata.hsrcaddr)) == FALSE) {
                 puts("Error in Source link-layer address.");
                 exit(EXIT_FAILURE);
             }
@@ -950,7 +950,7 @@ int main(int argc, char **argv) {
             break;
 
         case 'D': /* Destination Ethernet address */
-            if (ether_pton(optarg, &(idata.hdstaddr), sizeof(idata.hdstaddr)) == 0) {
+            if (ether_pton(optarg, &(idata.hdstaddr), sizeof(idata.hdstaddr)) == FALSE) {
                 puts("Error in Destination Ethernet address.");
                 exit(EXIT_FAILURE);
             }
@@ -1339,7 +1339,7 @@ int main(int argc, char **argv) {
             oui_ascii[8] = 0;
             strncat(oui_ascii, oui_end, ETHER_ADDR_PLEN - Strnlen(oui_ascii, sizeof(oui_ascii)) - 1);
 
-            if (ether_pton(oui_ascii, &oui, sizeof(oui)) == 0) {
+            if (ether_pton(oui_ascii, &oui, sizeof(oui)) == FALSE) {
                 puts("Error in vendor IEEE OUI");
                 exit(EXIT_FAILURE);
             }
@@ -3706,7 +3706,7 @@ int load_vm_entries(struct scan_list *scan, struct scan_entry *dst, struct prefi
 
     /* VirtualBOX */
     if (vm_vbox_f) {
-        if (ether_pton("08:00:27:00:00:00", &ether, sizeof(ether)) == 0) {
+        if (ether_pton("08:00:27:00:00:00", &ether, sizeof(ether)) == FALSE) {
             if (verbose_f)
                 puts("scan6: ether_pton(): Error converting Ethernet Address to presentation format");
 
@@ -3746,7 +3746,7 @@ int load_vm_entries(struct scan_list *scan, struct scan_entry *dst, struct prefi
        24 bits.
          */
 
-        if (ether_pton("00:50:56:80:00:00", &ether, sizeof(ether)) == 0) {
+        if (ether_pton("00:50:56:80:00:00", &ether, sizeof(ether)) == FALSE) {
             if (verbose_f)
                 puts("scan6: ether_pton(): Error converting Ethernet Address to presentation format");
 
@@ -3756,7 +3756,7 @@ int load_vm_entries(struct scan_list *scan, struct scan_entry *dst, struct prefi
         generate_slaac_address(&(dst->start.in6_addr), &ether, &(dummy.start.in6_addr));
         dummy.cur = dummy.start;
 
-        if (ether_pton("00:50:56:BF:FF:FF", &ether, sizeof(ether)) == 0) {
+        if (ether_pton("00:50:56:BF:FF:FF", &ether, sizeof(ether)) == FALSE) {
             if (verbose_f)
                 puts("scan6: ether_pton(): Error converting Ethernet Address to presentation format");
 
@@ -3768,7 +3768,7 @@ int load_vm_entries(struct scan_list *scan, struct scan_entry *dst, struct prefi
         if (add_to_scan_list(scan, &dummy) == FALSE)
             return (FALSE);
 
-        if (ether_pton("00:0C:29:00:00:00", &ether, sizeof(ether)) == 0) {
+        if (ether_pton("00:0C:29:00:00:00", &ether, sizeof(ether)) == FALSE) {
             if (verbose_f)
                 puts("scan6: ether_pton(): Error converting Ethernet Address to presentation format");
 
@@ -3795,7 +3795,7 @@ int load_vm_entries(struct scan_list *scan, struct scan_entry *dst, struct prefi
     if (vm_vmware_esx_f) {
         /* Add scan entry for VMWare ESX Server */
 
-        if (ether_pton("00:05:69:00:00:00", &ether, sizeof(ether)) == 0) {
+        if (ether_pton("00:05:69:00:00:00", &ether, sizeof(ether)) == FALSE) {
             if (verbose_f)
                 puts("scan6: ether_pton(): Error converting Ethernet Address to presentation format");
 
@@ -3842,7 +3842,7 @@ int load_vm_entries(struct scan_list *scan, struct scan_entry *dst, struct prefi
     }
 
     if (vm_vmwarem_f) {
-        if (ether_pton("00:50:56:00:00:00", &ether, sizeof(ether)) == 0) {
+        if (ether_pton("00:50:56:00:00:00", &ether, sizeof(ether)) == FALSE) {
             if (verbose_f)
                 puts("scan6: ether_pton(): Error converting Ethernet Address to presentation format");
 
@@ -3946,7 +3946,7 @@ int load_vendor_entries(struct scan_list *scan, struct scan_entry *dst, char *ve
 
             strncat(oui_ascii, oui_end, ETHER_ADDR_PLEN - Strnlen(oui_ascii, sizeof(oui_ascii)) - 1);
 
-            if (ether_pton(oui_ascii, &oui_list[ouis], sizeof(oui_list[ouis])) == 0) {
+            if (ether_pton(oui_ascii, &oui_list[ouis], sizeof(oui_list[ouis])) == FALSE) {
                 if (verbose_f)
                     puts("scan6: ether_pton(): Error converting Ethernet Address to presentation format");
 
@@ -4763,7 +4763,7 @@ int multi_scan_local(pcap_t *pfd, struct iface_data *idata, struct in6_addr *src
     unsigned char *pkt_end;
     unsigned char *ptr;
 
-    unsigned char buffer[65556];
+    unsigned char buffer[PACKET_BUFFER_SIZE];
     unsigned int icmp6_max_packet_size;
     struct ether_header *ether;
     unsigned char *v6buffer;
@@ -5079,7 +5079,7 @@ int host_scan_local(pcap_t *pfd, struct iface_data *idata, struct in6_addr *srca
     unsigned char *pkt_end;
     volatile unsigned char *ptr;
 
-    unsigned char buffer[65556];
+    unsigned char buffer[PACKET_BUFFER_SIZE];
     unsigned int icmp6_max_packet_size;
     struct ether_header *ether;
     unsigned char *v6buffer;
@@ -5353,7 +5353,7 @@ int print_host_entries(struct host_list *hlist, unsigned char flag) {
         }
 
         if (flag == PRINT_ETHER_ADDR) {
-            if (ether_ntop(&((hlist->host[i])->ether), plinkaddr, sizeof(plinkaddr)) == 0) {
+            if (ether_ntop(&((hlist->host[i])->ether), plinkaddr, sizeof(plinkaddr)) == FALSE) {
                 if (verbose_f > 1)
                     puts("ether_ntop(): Error converting address");
 
@@ -5404,7 +5404,7 @@ int print_unique_host_entries(struct host_list *hlist, unsigned char flag) {
         }
 
         if (flag == PRINT_ETHER_ADDR) {
-            if (ether_ntop(&((hlist->host[i])->ether), plinkaddr, sizeof(plinkaddr)) == 0) {
+            if (ether_ntop(&((hlist->host[i])->ether), plinkaddr, sizeof(plinkaddr)) == FALSE) {
                 if (verbose_f > 1)
                     puts("ether_ntop(): Error converting address");
 

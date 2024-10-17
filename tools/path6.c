@@ -1,7 +1,7 @@
 /*
  * path6: A versatile IPv6 traceroute
  *
- * Copyright (C) 2011-2021 Fernando Gont <fgont@si6networks.com>
+ * Copyright (C) 2011-2024 Fernando Gont <fgont@si6networks.com>
  *
  * Programmed by Fernando Gont for SI6 Networks <https://www.si6networks.com>
  *
@@ -90,7 +90,7 @@ bpf_u_int32 my_netmask;
 bpf_u_int32 my_ip;
 struct bpf_program pcap_filter;
 char dev[64], errbuf[PCAP_ERRBUF_SIZE];
-unsigned char buffer[65556], buffrh[MIN_IPV6_HLEN + MIN_TCP_HLEN];
+unsigned char buffer[PACKET_BUFFER_SIZE], buffrh[MIN_IPV6_HLEN + MIN_TCP_HLEN];
 unsigned char *v6buffer, *ptr, *startofprefixes;
 char *pref;
 
@@ -132,7 +132,7 @@ unsigned int hbhopthdrlen[MAX_HBH_OPT_HDR], m, pad;
 
 struct ip6_frag *fh, fraghdr;
 struct ip6_hdr *fipv6;
-unsigned char fragbuffer[ETHER_HDR_LEN + MIN_IPV6_HLEN + MAX_IPV6_PAYLOAD];
+unsigned char fragbuffer[FRAG_BUFFER_SIZE];
 
 unsigned char *fragpart, *fptr, *fptrend, *ptrend, *ptrhdr, *ptrhdrend;
 unsigned int hdrlen, ndstopthdr = 0, nhbhopthdr = 0, ndstoptuhdr = 0;
@@ -408,7 +408,7 @@ int main(int argc, char **argv) {
             break;
 
         case 'S': /* Source Ethernet address */
-            if (ether_pton(optarg, &(idata.hsrcaddr), sizeof(idata.hsrcaddr)) == 0) {
+            if (ether_pton(optarg, &(idata.hsrcaddr), sizeof(idata.hsrcaddr)) == FALSE) {
                 puts("Error in Source link-layer address.");
                 exit(EXIT_FAILURE);
             }
@@ -417,7 +417,7 @@ int main(int argc, char **argv) {
             break;
 
         case 'D': /* Destination Ethernet Address */
-            if (ether_pton(optarg, &(idata.hdstaddr), sizeof(idata.hdstaddr)) == 0) {
+            if (ether_pton(optarg, &(idata.hdstaddr), sizeof(idata.hdstaddr)) == FALSE) {
                 puts("Error in Source link-layer address.");
                 exit(EXIT_FAILURE);
             }
@@ -1408,7 +1408,7 @@ void print_help(void) {
 
 void print_attack_info(struct iface_data *idata) {
     if (idata->type == DLT_EN10MB && !(idata->flags & IFACE_LOOPBACK)) {
-        if (ether_ntop(&(idata->hsrcaddr), plinkaddr, sizeof(plinkaddr)) == 0) {
+        if (ether_ntop(&(idata->hsrcaddr), plinkaddr, sizeof(plinkaddr)) == FALSE) {
             puts("ether_ntop(): Error converting address");
             exit(EXIT_FAILURE);
         }
@@ -1419,7 +1419,7 @@ void print_attack_info(struct iface_data *idata) {
            Ethernet Destination Address only used if a IPv6 Destination Address or an
            Ethernet Destination Address were specified.
          */
-        if (ether_ntop(&(idata->hdstaddr), plinkaddr, sizeof(plinkaddr)) == 0) {
+        if (ether_ntop(&(idata->hdstaddr), plinkaddr, sizeof(plinkaddr)) == FALSE) {
             puts("ether_ntop(): Error converting address");
             exit(EXIT_FAILURE);
         }
@@ -1855,7 +1855,7 @@ int send_probe(struct iface_data *idata, unsigned int probetype, unsigned char c
         ptr = fragpart;
         fptr = fragbuffer;
         fipv6 = (struct ip6_hdr *)(fragbuffer + idata->linkhsize);
-        fptrend = fptr + idata->linkhsize + MIN_IPV6_HLEN + MAX_IPV6_PAYLOAD;
+        fptrend = fptr + FRAG_BUFFER_SIZE;
         memcpy(fptr, buffer, fragpart - buffer);
         fptr = fptr + (fragpart - buffer);
 
