@@ -1,4 +1,4 @@
-SI6 Networks IPv6 Toolkit (current)
+SI6 Networks IPv6 Toolkit 2.2
    * All: Ensure consistency in version numbers across tools and documentation.
 
    * path6: Fix bug that prevented setting TCP flags
