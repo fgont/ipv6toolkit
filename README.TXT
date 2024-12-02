@@ -37,7 +37,7 @@ or "libpcap" on MacOS (Homebrew package).
 
 All the tools have been tested to build (both with gcc and clang) and run on 
 Debian GNU/Linux 7.0, Debian GNU/kfreebsd 7.0, FreeBSD 9.0, NetBSD 6.1.1, 
-OpenBSD 5.3, Ubuntu 24.04 LTS, Mac 0S 14, and OpenSolaris .
+OpenBSD 5.3, Ubuntu 24.04 LTS, Mac 0S 14, and OpenSolaris.
 
 
 Bug reports
