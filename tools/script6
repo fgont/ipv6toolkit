@@ -29,7 +29,7 @@
 #
 #  Please send any bug reports to Fernando Gont <fgont@si6networks.com>
 
-$SI6_TOOLKIT="SI6 Networks IPv6 Toolkit (current)";
+$SI6_TOOLKIT="SI6 Networks IPv6 Toolkit 2.2";
 $SCRIPT6="script6: A tool to make complex IPv6 tasks easy";
 $USAGE="\
 Usage: script6 COMMAND [PARAMETERS]

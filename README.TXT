@@ -1,18 +1,21 @@
 *******************************************************************************
-*                   SI6 Networks IPv6 IPv6 Toolkit (current)                  *
+*                   SI6 Networks IPv6 IPv6 Toolkit v2.2                       *
 *******************************************************************************
 
 Description of each of the files and directories:
 -------------------------------------------------
 
- .github      Contains the GitHub Actions
- data:        Contains the configuration files and miscellaneous databases.
- manuals:     Contains the manual pages for the security assessment tools.
- tests:       Contains the unit tests.
- tools:       Contains the source code for the security assessment tools.
- CHANGES.TXT: Contains the changelog of the toolkit
+ .github:     GitHub Actions
+ data:        Configuration files and miscellaneous databases.
+ manuals:     Manual pages for the security assessment tools.
+ tests:       Unit tests.
+ tools:       Source code for the security assessment tools.
+ 
+ CHANGES.TXT: Contains the changelog of the toolkit.
  CREDITS.TXT: Contains the credits of this project.
- LICENSE.TXT: Contains the license for this software (GPLv3)
+ GNUMakefile: Makefile for gmake.
+ LICENSE.TXT: Contains the license for this software (GPLv3).
+ Makefile:    Makegile for make.
  README.TXT:  This file.
 
 

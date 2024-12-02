@@ -27,7 +27,7 @@ use Socket();
 use constant EXIT_SUCCESS => 0;
 use constant EXIT_FAILURE => 1;
 
-$SI6TOOLKIT="SI6 Networks IPv6 Toolkit (current)";
+$SI6TOOLKIT="SI6 Networks IPv6 Toolkit 2.2";
 
 $total=0;
 $response=0;
