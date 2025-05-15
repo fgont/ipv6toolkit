@@ -19,6 +19,7 @@
 
 
 CC?=gcc
+INSTALL?=install
 CFLAGS+= -Wall -Wno-address-of-packed-member -Wno-missing-braces
 LDFLAGS+= -lpcap -lm
 
@@ -145,50 +146,50 @@ clean:
 
 install: all
 	# Install the binaries
-	install -m0755 -d $(BINPATH)
-	install -m0755 -d $(SBINPATH)
-	install -m0755 $(BINTOOLS) $(BINPATH)
-	install -m0755 $(SBINTOOLS) $(SBINPATH)
+	$(INSTALL) -m0755 -d $(BINPATH)
+	$(INSTALL) -m0755 -d $(SBINPATH)
+	$(INSTALL) -m0755 $(BINTOOLS) $(BINPATH)
+	$(INSTALL) -m0755 $(SBINTOOLS) $(SBINPATH)
 
 	# Install the configuration file
-	install -m0755 -d $(ETCPATH)
-	install -m0644 data/ipv6toolkit.conf $(ETCPATH)
+	$(INSTALL) -m0755 -d $(ETCPATH)
+	$(INSTALL) -m0644 data/ipv6toolkit.conf $(ETCPATH)
 
 	# Install the IEEE OUI database
-	install -m0755 -d $(DATAPATH)
-	install -m0644 data/oui.txt $(DATAPATH)
+	$(INSTALL) -m0755 -d $(DATAPATH)
+	$(INSTALL) -m0644 data/oui.txt $(DATAPATH)
 
 	# Install the port numbers database
-	install -m0644 data/service-names-port-numbers.csv $(DATAPATH)
+	$(INSTALL) -m0644 data/service-names-port-numbers.csv $(DATAPATH)
 
 	# Install the top port numbers database
-	install -m0644 data/top-port-numbers.csv $(DATAPATH)
+	$(INSTALL) -m0644 data/top-port-numbers.csv $(DATAPATH)
 
 	# Install the country information database
-	install -m0644 data/country-data.csv $(DATAPATH)
+	$(INSTALL) -m0644 data/country-data.csv $(DATAPATH)
 
 	# Install the DNS TLD Database
-	install -m0644 data/dns-tld-database.csv $(DATAPATH)
+	$(INSTALL) -m0644 data/dns-tld-database.csv $(DATAPATH)
 
 	# Install the DNS Suffixes database
-	install -m0644 data/public_suffix_list.dat $(DATAPATH)
+	$(INSTALL) -m0644 data/public_suffix_list.dat $(DATAPATH)
 
 	# Install the RIR Database
-	install -m0644 data/rir-database.csv $(DATAPATH)
+	$(INSTALL) -m0644 data/rir-database.csv $(DATAPATH)
 
 	# Install the UK Gov Database
-	install -m0644 data/dns-gov-uk-domains.csv $(DATAPATH)
+	$(INSTALL) -m0644 data/dns-gov-uk-domains.csv $(DATAPATH)
 
 	# Install the DNS Dictionary
-	install -m0644 data/dns-dictionary.txt $(DATAPATH)
+	$(INSTALL) -m0644 data/dns-dictionary.txt $(DATAPATH)
 
 	# Install the manual pages
-	install -m0755 -d $(MANPATH)/man1
-	install -m0644 manuals/*.1 $(MANPATH)/man1
-	install -m0755 -d $(MANPATH)/man5
-	install -m0644 manuals/*.5 $(MANPATH)/man5
-	install -m0755 -d $(MANPATH)/man7
-	install -m0644 manuals/*.7 $(MANPATH)/man7
+	$(INSTALL) -m0755 -d $(MANPATH)/man1
+	$(INSTALL) -m0644 manuals/*.1 $(MANPATH)/man1
+	$(INSTALL) -m0755 -d $(MANPATH)/man5
+	$(INSTALL) -m0644 manuals/*.5 $(MANPATH)/man5
+	$(INSTALL) -m0755 -d $(MANPATH)/man7
+	$(INSTALL) -m0644 manuals/*.7 $(MANPATH)/man7
 
 uninstall:
 	# Remove the binaries

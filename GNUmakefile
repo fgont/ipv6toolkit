@@ -19,6 +19,7 @@
 
 
 CC= gcc
+INSTALL= install
 CFLAGS+= -Wall -Wno-address-of-packed-member -Wno-missing-braces
 LDFLAGS+= -lpcap -lm
 
@@ -153,132 +154,132 @@ clean:
 install: all
 ifneq ($(OS),SunOS)
 	# Install the binaries
-	install -m0755 -d $(BINPATH)
-	install -m0755 -d $(SBINPATH)
-	install -m0755 $(BINTOOLS) $(BINPATH)
-	install -m0755 $(SBINTOOLS) $(SBINPATH)
+	$(INSTALL) -m0755 -d $(BINPATH)
+	$(INSTALL) -m0755 -d $(SBINPATH)
+	$(INSTALL) -m0755 $(BINTOOLS) $(BINPATH)
+	$(INSTALL) -m0755 $(SBINTOOLS) $(SBINPATH)
 
 	# Install the configuration file
-	install -m0755 -d $(ETCPATH)
-	install -m0644 data/ipv6toolkit.conf $(ETCPATH)
+	$(INSTALL) -m0755 -d $(ETCPATH)
+	$(INSTALL) -m0644 data/ipv6toolkit.conf $(ETCPATH)
 
 	# Install the IEEE OUI database
-	install -m0755 -d $(DATAPATH)
-	install -m0644 data/oui.txt $(DATAPATH)
+	$(INSTALL) -m0755 -d $(DATAPATH)
+	$(INSTALL) -m0644 data/oui.txt $(DATAPATH)
 
 	# Install the port numbers database
-	install -m0644 data/service-names-port-numbers.csv $(DATAPATH)
+	$(INSTALL) -m0644 data/service-names-port-numbers.csv $(DATAPATH)
 
 	# Install the top port numbers database
-	install -m0644 data/top-port-numbers.csv $(DATAPATH)
+	$(INSTALL) -m0644 data/top-port-numbers.csv $(DATAPATH)
 
 	# Install the country information database
-	install -m0644 data/country-data.csv $(DATAPATH)
+	$(INSTALL) -m0644 data/country-data.csv $(DATAPATH)
 
 	# Install the DNS TLD database
-	install -m0644 data/dns-tld-database.csv $(DATAPATH)
+	$(INSTALL) -m0644 data/dns-tld-database.csv $(DATAPATH)
 
 	# Install the DNS Suffixes database
-	install -m0644 data/public_suffix_list.dat $(DATAPATH)
+	$(INSTALL) -m0644 data/public_suffix_list.dat $(DATAPATH)
 
 	# Install the RIR database
-	install -m0644 data/rir-database.csv $(DATAPATH)
+	$(INSTALL) -m0644 data/rir-database.csv $(DATAPATH)
 
 	# Install the UK Gov Database
-	install -m0644 data/dns-gov-uk-domains.csv $(DATAPATH)
+	$(INSTALL) -m0644 data/dns-gov-uk-domains.csv $(DATAPATH)
 
 	# Install the DNS Dictionary
-	install -m0644 data/dns-dictionary.txt $(DATAPATH)
+	$(INSTALL) -m0644 data/dns-dictionary.txt $(DATAPATH)
 
 	# Install the manual pages
-	install -m0755 -d $(MANPATH)/man1
-	install -m0644 manuals/*.1 $(MANPATH)/man1
-	install -m0755 -d $(MANPATH)/man5
-	install -m0644 manuals/*.5 $(MANPATH)/man5
-	install -m0755 -d $(MANPATH)/man7
-	install -m0644 manuals/*.7 $(MANPATH)/man7
+	$(INSTALL) -m0755 -d $(MANPATH)/man1
+	$(INSTALL) -m0644 manuals/*.1 $(MANPATH)/man1
+	$(INSTALL) -m0755 -d $(MANPATH)/man5
+	$(INSTALL) -m0644 manuals/*.5 $(MANPATH)/man5
+	$(INSTALL) -m0755 -d $(MANPATH)/man7
+	$(INSTALL) -m0644 manuals/*.7 $(MANPATH)/man7
 else
 	# Install the binaries
-	install -m 0755 -d $(BINPATH)
-	install -m 0755 -d $(SBINPATH)
+	$(INSTALL) -m 0755 -d $(BINPATH)
+	$(INSTALL) -m 0755 -d $(SBINPATH)
 
-	install -m 0755 -f $(BINPATH) addr6 
-	install -m 0755 -f $(SBINPATH) blackhole6
-	install -m 0755 -f $(SBINPATH) flow6
-	install -m 0755 -f $(SBINPATH) frag6
-	install -m 0755 -f $(SBINPATH) icmp6
-	install -m 0755 -f $(SBINPATH) jumbo6
-	install -m 0755 -f $(SBINPATH) script6
-	install -m 0755 -f $(SBINPATH) messi
-	install -m 0755 -f $(SBINPATH) mldq6
-	install -m 0755 -f $(SBINPATH) na6
-	install -m 0755 -f $(SBINPATH) ni6
-	install -m 0755 -f $(SBINPATH) ns6
-	install -m 0755 -f $(SBINPATH) path6
-	install -m 0755 -f $(SBINPATH) ra6
-	install -m 0755 -f $(SBINPATH) rd6
-	install -m 0755 -f $(SBINPATH) rs6
-	install -m 0755 -f $(SBINPATH) scan6
-	install -m 0755 -f $(SBINPATH) tcp6
-	install -m 0755 -f $(SBINPATH) udp6
+	$(INSTALL) -m 0755 -f $(BINPATH) addr6 
+	$(INSTALL) -m 0755 -f $(SBINPATH) blackhole6
+	$(INSTALL) -m 0755 -f $(SBINPATH) flow6
+	$(INSTALL) -m 0755 -f $(SBINPATH) frag6
+	$(INSTALL) -m 0755 -f $(SBINPATH) icmp6
+	$(INSTALL) -m 0755 -f $(SBINPATH) jumbo6
+	$(INSTALL) -m 0755 -f $(SBINPATH) script6
+	$(INSTALL) -m 0755 -f $(SBINPATH) messi
+	$(INSTALL) -m 0755 -f $(SBINPATH) mldq6
+	$(INSTALL) -m 0755 -f $(SBINPATH) na6
+	$(INSTALL) -m 0755 -f $(SBINPATH) ni6
+	$(INSTALL) -m 0755 -f $(SBINPATH) ns6
+	$(INSTALL) -m 0755 -f $(SBINPATH) path6
+	$(INSTALL) -m 0755 -f $(SBINPATH) ra6
+	$(INSTALL) -m 0755 -f $(SBINPATH) rd6
+	$(INSTALL) -m 0755 -f $(SBINPATH) rs6
+	$(INSTALL) -m 0755 -f $(SBINPATH) scan6
+	$(INSTALL) -m 0755 -f $(SBINPATH) tcp6
+	$(INSTALL) -m 0755 -f $(SBINPATH) udp6
 
 	# Install the configuration file
-	install -m 0755 -d $(ETCPATH)
-	install -m 0644 -f $(ETCPATH) data/ipv6toolkit.conf
+	$(INSTALL) -m 0755 -d $(ETCPATH)
+	$(INSTALL) -m 0644 -f $(ETCPATH) data/ipv6toolkit.conf
 
 	# Install the IEEE OUI database
-	install -m 0755 -d $(DATAPATH)
-	install -m 0644 -f $(DATAPATH) data/oui.txt
+	$(INSTALL) -m 0755 -d $(DATAPATH)
+	$(INSTALL) -m 0644 -f $(DATAPATH) data/oui.txt
 
 	# Install the port numbers database
-	install -m 0644 -f $(DATAPATH) data/service-names-port-numbers.csv
+	$(INSTALL) -m 0644 -f $(DATAPATH) data/service-names-port-numbers.csv
 
 	# Install the top port numbers database
-	install -m 0644 -f $(DATAPATH) data/top-port-numbers.csv
+	$(INSTALL) -m 0644 -f $(DATAPATH) data/top-port-numbers.csv
 
 	# Install the top port numbers database
-	install -m 0644 -f $(DATAPATH) data/country-data.csv
+	$(INSTALL) -m 0644 -f $(DATAPATH) data/country-data.csv
 
 	# Install the DNS TLD database
-	install -m 0644 -f $(DATAPATH) data/dns-tld-database.csv
+	$(INSTALL) -m 0644 -f $(DATAPATH) data/dns-tld-database.csv
 
 	# Install the DNS Suffixes database
-	install -m 0644 -f $(DATAPATH) data/public_suffix_list.dat
+	$(INSTALL) -m 0644 -f $(DATAPATH) data/public_suffix_list.dat
 
 	# Install the RIR Database
-	install -m 0644 -f $(DATAPATH) data/rir-database.csv
+	$(INSTALL) -m 0644 -f $(DATAPATH) data/rir-database.csv
 
 	# Install the UK Gov Database
-	install -m 0644 -f $(DATAPATH) data/dns-gov-uk-domains.csv 
+	$(INSTALL) -m 0644 -f $(DATAPATH) data/dns-gov-uk-domains.csv 
 
 	# Install the DNS Dictionary
-	install -m 0644 -f $(DATAPATH) data/dns-dictionary.txt
+	$(INSTALL) -m 0644 -f $(DATAPATH) data/dns-dictionary.txt
 
 
 	# Install the manual pages
-	install -m 0755 -d $(MANPATH)/man1
-	install -m 0644 -f $(MANPATH)/man1 manuals/addr6.1
-	install -m 0644 -f $(MANPATH)/man1 manuals/blackhole6.1
-	install -m 0644 -f $(MANPATH)/man1 manuals/flow6.1
-	install -m 0644 -f $(MANPATH)/man1 manuals/frag6.1
-	install -m 0644 -f $(MANPATH)/man1 manuals/icmp6.1
-	install -m 0644 -f $(MANPATH)/man1 manuals/jumbo6.1
-	install -m 0644 -f $(MANPATH)/man1 manuals/mldq6.1
-	install -m 0644 -f $(MANPATH)/man1 manuals/na6.1
-	install -m 0644 -f $(MANPATH)/man1 manuals/ni6.1
-	install -m 0644 -f $(MANPATH)/man1 manuals/ns6.1
-	install -m 0644 -f $(MANPATH)/man1 manuals/path6.1
-	install -m 0644 -f $(MANPATH)/man1 manuals/ra6.1
-	install -m 0644 -f $(MANPATH)/man1 manuals/rd6.1
-	install -m 0644 -f $(MANPATH)/man1 manuals/rs6.1
-	install -m 0644 -f $(MANPATH)/man1 manuals/scan6.1
-	install -m 0644 -f $(MANPATH)/man1 manuals/script6.1
-	install -m 0644 -f $(MANPATH)/man1 manuals/tcp6.1
-	install -m 0644 -f $(MANPATH)/man1 manuals/udp6.1
-	install -m 0755 -d $(MANPATH)/man5
-	install -m 0644 -f $(MANPATH)/man5 manuals/ipv6toolkit.conf.5
-	install -m 0755 -d $(MANPATH)/man7
-	install -m 0644 -f $(MANPATH)/man7 manuals/ipv6toolkit.7
+	$(INSTALL) -m 0755 -d $(MANPATH)/man1
+	$(INSTALL) -m 0644 -f $(MANPATH)/man1 manuals/addr6.1
+	$(INSTALL) -m 0644 -f $(MANPATH)/man1 manuals/blackhole6.1
+	$(INSTALL) -m 0644 -f $(MANPATH)/man1 manuals/flow6.1
+	$(INSTALL) -m 0644 -f $(MANPATH)/man1 manuals/frag6.1
+	$(INSTALL) -m 0644 -f $(MANPATH)/man1 manuals/icmp6.1
+	$(INSTALL) -m 0644 -f $(MANPATH)/man1 manuals/jumbo6.1
+	$(INSTALL) -m 0644 -f $(MANPATH)/man1 manuals/mldq6.1
+	$(INSTALL) -m 0644 -f $(MANPATH)/man1 manuals/na6.1
+	$(INSTALL) -m 0644 -f $(MANPATH)/man1 manuals/ni6.1
+	$(INSTALL) -m 0644 -f $(MANPATH)/man1 manuals/ns6.1
+	$(INSTALL) -m 0644 -f $(MANPATH)/man1 manuals/path6.1
+	$(INSTALL) -m 0644 -f $(MANPATH)/man1 manuals/ra6.1
+	$(INSTALL) -m 0644 -f $(MANPATH)/man1 manuals/rd6.1
+	$(INSTALL) -m 0644 -f $(MANPATH)/man1 manuals/rs6.1
+	$(INSTALL) -m 0644 -f $(MANPATH)/man1 manuals/scan6.1
+	$(INSTALL) -m 0644 -f $(MANPATH)/man1 manuals/script6.1
+	$(INSTALL) -m 0644 -f $(MANPATH)/man1 manuals/tcp6.1
+	$(INSTALL) -m 0644 -f $(MANPATH)/man1 manuals/udp6.1
+	$(INSTALL) -m 0755 -d $(MANPATH)/man5
+	$(INSTALL) -m 0644 -f $(MANPATH)/man5 manuals/ipv6toolkit.conf.5
+	$(INSTALL) -m 0755 -d $(MANPATH)/man7
+	$(INSTALL) -m 0644 -f $(MANPATH)/man7 manuals/ipv6toolkit.7
 endif
 
 
