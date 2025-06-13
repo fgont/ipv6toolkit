@@ -1052,7 +1052,7 @@ uint16_t in_chksum(void *ptr_ipv6, void *ptr_icmpv6, size_t len, uint8_t proto) 
 }
 
 /*
- * Function: inset_pad_opt()
+ * Function: insert_pad_opt()
  *
  * Insert a padding option (Pad1 or PadN) into an IPv6 extension header
  */
@@ -1072,7 +1072,7 @@ int insert_pad_opt(unsigned char *ptrhdr, const unsigned char *ptrhdrend, unsign
         *ptr = 0x01;
         ptr++;
         *ptr = padn - 2;
-        ptr += 2;
+        ptr += 1;
 
         while (ptr < (ptrhdr + padn)) {
             *ptr = 0x00;
