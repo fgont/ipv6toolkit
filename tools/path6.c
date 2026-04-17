@@ -33,8 +33,8 @@
 
 #include <arpa/inet.h>
 #include <net/if.h>
-#include <netinet/icmp6.h>
 #include <netinet/in.h>
+#include <netinet/icmp6.h>
 #include <netinet/ip6.h>
 #include <netinet/tcp.h>
 
