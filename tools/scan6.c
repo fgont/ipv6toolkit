@@ -5740,7 +5740,6 @@ int process_config_file(const char *path) {
     char *key, *value;
     char line[MAX_LINE_SIZE];
     int r;
-    unsigned int ln = 1;
 
     if ((fp = fopen(path, "r")) == NULL) {
         return (0);
@@ -5774,8 +5773,6 @@ int process_config_file(const char *path) {
             fclose(fp);
             return (0);
         }
-
-        ln++;
     }
 
     fclose(fp);
